@@ -9,7 +9,17 @@
 | MySQL | 8.4 LTS | `C:\tools\mysql84` (8.4.11, taşınabilir kurulum) |
 | Node.js | 20+ | 22.14 (yalnızca ön yüz derlemesi için) |
 
-## MySQL'i başlatma
+## Tek komutla başlatma (Windows PowerShell)
+
+Proje klasöründe:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .aslat.ps1
+```
+
+MySQL çalışmıyorsa arka planda başlatır, ardından uygulamayı http://localhost:8000 adresinde açar.
+
+## MySQL'i elle başlatma (Git Bash)
 
 MySQL Windows hizmeti olarak kurulmadı (yönetici yetkisi gerektirir). Her oturumda elle başlatılır:
 
