@@ -21,6 +21,13 @@
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
                 ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
+                ['label' => 'Fiyatlandırma', 'route' => 'business.pricing', 'icon' => 'percent', 'active' => ['business.pricing', 'business.price-lists.*']],
+            ]],
+            ['label' => 'Bayiler', 'items' => [
+                ['label' => 'Bayiler', 'route' => 'business.dealers.index', 'icon' => 'users', 'active' => 'business.dealers.*'],
+                ['label' => 'Başvurular', 'route' => 'business.applications.index', 'icon' => 'inbox', 'active' => 'business.applications.*',
+                    'badge' => \App\Models\DealerApplication::whereIn('status', ['new', 'waiting_info'])->count()],
+                ['label' => 'Bayi Grupları', 'route' => 'business.dealer-groups.index', 'icon' => 'layers', 'active' => 'business.dealer-groups.*'],
             ]],
             ['label' => 'Stok', 'items' => [
                 ['label' => 'Stok Durumu', 'route' => 'business.stock.index', 'icon' => 'layers', 'active' => 'business.stock.*'],
@@ -29,7 +36,7 @@
             ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
-                ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'percent', 'active' => 'business.catalog.settings'],
+                ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
                 ['label' => 'Profil ve Güvenlik', 'route' => 'business.account', 'icon' => 'user', 'active' => 'business.account*'],
             ]],
         ],
@@ -79,6 +86,10 @@
                     <x-icon name="chevron-down" class="size-4" />
                 </button>
                 <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-60 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
+                    @if ($currentRelationship ?? null)
+                        <a href="{{ route('dealer.addresses.index') }}" class="block px-4 py-2 hover:bg-slate-50">Sevk Adresleri</a>
+                        <a href="{{ route('dealer.profile') }}" class="block px-4 py-2 hover:bg-slate-50">İşletme Profili</a>
+                    @endif
                     <a href="{{ route('dealer.account') }}" class="block px-4 py-2 hover:bg-slate-50">Profil ve Güvenlik</a>
                     @if ($dealerRelationships->count() > 1)
                         <a href="{{ route('dealer.select-business') }}" class="block px-4 py-2 hover:bg-slate-50">Toptancı Değiştir</a>
@@ -142,7 +153,10 @@
                                         'text-slate-600 hover:bg-slate-50 hover:text-ink' => ! $isPlatform && ! $active,
                                     ])>
                                         <x-icon :name="$item['icon']" class="size-4.5" />
-                                        {{ $item['label'] }}
+                                        <span class="flex-1">{{ $item['label'] }}</span>
+                                        @if (($item['badge'] ?? 0) > 0)
+                                            <span class="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">{{ $item['badge'] }}</span>
+                                        @endif
                                     </a>
                                 </li>
                             @endforeach

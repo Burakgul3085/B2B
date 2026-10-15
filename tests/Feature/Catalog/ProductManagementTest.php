@@ -36,13 +36,25 @@ class ProductManagementTest extends TestCase
 
         $this->actingAs($business->user, 'business')
             ->post(route('business.products.store'), $this->payload($business))
-            ->assertSessionHasNoErrors()
+            ->assertSessionHasNoErrors()->assertRedirect()
             ->assertRedirect();
 
         $product = $this->inTenant($business, fn () => Product::where('sku', 'KLM-001')->firstOrFail());
         $this->assertSame('8.5000', (string) $product->list_price);
         $this->assertSame($business->id, $product->business_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'product.created', 'entity_id' => $product->id]);
+    }
+
+    public function test_license_product_limit_is_enforced(): void
+    {
+        $business = $this->makeBusiness();
+        $business->licenses()->create(['plan' => 'Mini', 'starts_on' => now()->subDay()->toDateString(), 'max_products' => 1]);
+        $this->makeProduct($business);
+
+        $this->actingAs($business->user, 'business')
+            ->post(route('business.products.store'), $this->payload($business))
+            ->assertSessionHasErrors('name');
+        $this->assertSame(1, $this->inTenant($business, fn () => Product::count()));
     }
 
     public function test_sku_and_barcode_are_unique_per_business_only(): void
@@ -59,7 +71,7 @@ class ProductManagementTest extends TestCase
         $this->flushSession();
         $this->actingAs($b->user, 'business')
             ->post(route('business.products.store'), $this->payload($b))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame(1, $this->inTenant($b, fn () => Product::where('sku', 'KLM-001')->count()));
     }
 
@@ -99,7 +111,7 @@ class ProductManagementTest extends TestCase
 
         $this->actingAs($business->user, 'business')
             ->put(route('business.products.update', $product), $this->payload($business, ['sku' => $product->sku, 'barcode' => null, 'list_price' => '12.00']))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
 
         $log = AuditLog::where('action', 'product.updated')->where('entity_id', $product->id)->latest('id')->firstOrFail();
         $this->assertSame('10.0000', $log->old_values['list_price']);
@@ -116,7 +128,7 @@ class ProductManagementTest extends TestCase
         $this->actingAs($business->user, 'business');
 
         $this->post(route('business.products.price.update'), ['field' => 'list_price', 'mode' => 'percent', 'value' => '10', 'confirm' => '1'])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame('11.0000', (string) $a->fresh()->list_price);
         $this->assertSame('3.3000', (string) $b->fresh()->list_price);
 
@@ -198,7 +210,7 @@ class ProductManagementTest extends TestCase
 
         $this->actingAs($a->user, 'business')
             ->post(route('business.products.images.store', $product), ['images' => [UploadedFile::fake()->image('kalem.png', 800, 600)]])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
 
         $image = $this->inTenant($a, fn () => ProductImage::firstOrFail());
         $this->assertStringEndsWith('.webp', $image->path);

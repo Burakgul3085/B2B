@@ -48,4 +48,16 @@ final class Decimal
 
         return bcadd($value, '0', $scale);
     }
+
+    /** Yarım yukarı (HALF_UP) yuvarlama — tüm para hesaplarında tek yuvarlama kuralı. */
+    public static function round(string $value, int $scale): string
+    {
+        $offset = '0.'.str_repeat('0', $scale).'5';
+        $rounded = bccomp($value, '0', $scale + 10) >= 0
+            ? bcadd($value, $offset, $scale)
+            : bcsub($value, $offset, $scale);
+
+        // -0.00 yerine 0.00
+        return bccomp($rounded, '0', $scale) === 0 ? bcadd('0', '0', $scale) : $rounded;
+    }
 }

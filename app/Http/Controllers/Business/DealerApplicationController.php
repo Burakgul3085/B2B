@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Http\Controllers\Business;
+
+use App\Domain\Dealers\DealerOnboarding;
+use App\Http\Controllers\Controller;
+use App\Models\Attachment;
+use App\Models\DealerApplication;
+use App\Models\DealerGroup;
+use DomainException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class DealerApplicationController extends Controller
+{
+    public function __construct(private DealerOnboarding $onboarding) {}
+
+    public function index(Request $request): View
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in([...array_keys(DealerApplication::STATUSES), 'open'])],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $status = $filters['status'] ?? 'open';
+
+        $applications = DealerApplication::query()
+            ->when($status === 'open', fn ($q) => $q->whereIn('status', DealerApplication::OPEN))
+            ->when($status !== 'open', fn ($q) => $q->where('status', $status))
+            ->when($filters['q'] ?? null, function ($q, $term) {
+                $like = addcslashes($term, '%_\\');
+                $q->where(fn ($q) => $q->where('legal_name', 'like', "%{$like}%")->orWhere('email', 'like', "%{$like}%")->orWhere('contact_name', 'like', "%{$like}%"));
+            })
+            ->latest('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        $counts = DealerApplication::selectRaw('status, count(*) c')->groupBy('status')->pluck('c', 'status');
+
+        return view('business.dealers.applications', compact('applications', 'status', 'filters', 'counts'));
+    }
+
+    public function show(DealerApplication $application): View
+    {
+        $application->load(['attachments', 'relationship']);
+
+        return view('business.dealers.application-show', [
+            'application' => $application,
+            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
+            'defaultTerm' => request()->user()->business->settings->default_payment_term_days,
+        ]);
+    }
+
+    public function review(Request $request, DealerApplication $application): RedirectResponse
+    {
+        return $this->run(fn () => $this->onboarding->markInReview($application, $request->user()->id), 'Başvuru "İnceleniyor" olarak işaretlendi.');
+    }
+
+    public function requestInfo(Request $request, DealerApplication $application): RedirectResponse
+    {
+        $note = $request->validate(['note' => ['required', 'string', 'max:2000']], [], ['note' => 'istenen bilgi'])['note'];
+
+        return $this->run(fn () => $this->onboarding->requestInfo($application, $note, $request->user()->id),
+            'Ek bilgi talebi kaydedildi. Başvuru sahibine iletmek için iletişim bilgilerini kullanın (e-posta bildirimi Aşama 7 ile eklenecek).');
+    }
+
+    public function reject(Request $request, DealerApplication $application): RedirectResponse
+    {
+        $reason = $request->validate(['reason' => ['required', 'string', 'max:2000']], [], ['reason' => 'ret gerekçesi'])['reason'];
+
+        return $this->run(fn () => $this->onboarding->reject($application, $reason, $request->user()->id), 'Başvuru reddedildi.');
+    }
+
+    public function cancel(Request $request, DealerApplication $application): RedirectResponse
+    {
+        return $this->run(fn () => $this->onboarding->cancel($application, $request->user()->id), 'Başvuru iptal edildi.');
+    }
+
+    public function approve(Request $request, DealerApplication $application): RedirectResponse
+    {
+        $terms = $this->validateTerms($request);
+
+        try {
+            $result = $this->onboarding->approve($application, $request->user()->id, $terms);
+        } catch (DomainException $e) {
+            return back()->withErrors(['approve' => $e->getMessage()]);
+        }
+
+        return redirect()->route('business.dealers.show', $result['relationship'])
+            ->with('status', $result['existing_account']
+                ? 'Başvuru onaylandı. Bu bayinin platformda hesabı olduğu için mevcut hesabına sizinle çalışma yetkisi eklendi.'
+                : 'Başvuru onaylandı ve bayi hesabı açıldı.')
+            ->with('activation_url', $result['activation_url']);
+    }
+
+    public function attachment(DealerApplication $application, Attachment $attachment): StreamedResponse
+    {
+        abort_unless($attachment->attachable_type === 'dealer_application' && $attachment->attachable_id === $application->id, 404);
+        abort_unless(Storage::disk('local')->exists($attachment->stored_path), 404);
+
+        return Storage::disk('local')->download($attachment->stored_path, $attachment->original_name, [
+            'Content-Type' => $attachment->mime,
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    private function validateTerms(Request $request): array
+    {
+        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses')]);
+
+        return $request->validate([
+            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
+            'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
+            'can_edit_addresses' => ['boolean'],
+        ], [], ['dealer_group_id' => 'bayi grubu', 'payment_term_days' => 'vade (gün)']);
+    }
+
+    private function run(callable $action, string $message): RedirectResponse
+    {
+        try {
+            $action();
+        } catch (DomainException $e) {
+            return back()->withErrors(['approve' => $e->getMessage()]);
+        }
+
+        return back()->with('status', $message);
+    }
+}

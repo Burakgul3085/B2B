@@ -5,6 +5,7 @@ namespace App\Domain\Catalog;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
 use App\Domain\Tenancy\TenantContext;
+use App\Models\Business;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Unit;
@@ -136,6 +137,11 @@ class ProductService
 
     public function create(array $data): Product
     {
+        $limit = Business::with('licenses')->find($this->tenant->businessId())?->currentLicense()?->max_products;
+        if ($limit !== null && Product::notArchived()->count() >= $limit) {
+            throw new DomainException("Lisansınızdaki ürün sınırına ({$limit}) ulaşıldı. Kullanılmayan ürünleri arşivleyin veya platform yöneticinizle iletişime geçin.");
+        }
+
         return DB::transaction(function () use ($data) {
             $product = Product::create($data);
             $this->audit->log('product.created', $product, [], $product->only(self::TRACKED));

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
 use App\Http\Controllers\Controller;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -53,5 +55,32 @@ class SettingsController extends Controller
         $this->audit->log('business.settings_updated', $business, $old, $data);
 
         return back()->with('status', 'Ayarlar kaydedildi.');
+    }
+
+    /** Logo: başvuru sayfası, bayi paneli ve e-postalarda kullanılır. Görsel yeniden kodlanır. */
+    public function updateLogo(Request $request, ImageUploader $images): RedirectResponse
+    {
+        $business = $request->user()->business;
+
+        if ($request->boolean('remove')) {
+            $images->delete($business->logo_path);
+            $business->update(['logo_path' => null]);
+
+            return back()->with('status', 'Logo kaldırıldı.');
+        }
+
+        $request->validate(['logo' => ['required', 'file', 'max:2048', 'mimes:jpg,jpeg,png,webp']], [], ['logo' => 'logo']);
+
+        try {
+            $path = $images->store($request->file('logo'), 'businesses/'.$business->id.'/logo', 480);
+        } catch (DomainException $e) {
+            return back()->withErrors(['logo' => $e->getMessage()]);
+        }
+
+        $images->delete($business->logo_path);
+        $business->update(['logo_path' => $path]);
+        $this->audit->log('business.logo_updated', $business);
+
+        return back()->with('status', 'Logo güncellendi.');
     }
 }

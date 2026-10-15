@@ -72,10 +72,10 @@ class ActivationAndResetTest extends TestCase
     {
         $dealer = $this->makeDealer();
 
-        $this->post('/bayi/parolami-unuttum', ['email' => $dealer->email])->assertSessionHasNoErrors();
+        $this->post('/bayi/parolami-unuttum', ['email' => $dealer->email])->assertSessionHasNoErrors()->assertRedirect();
         $existingMessage = session('status');
 
-        $this->post('/bayi/parolami-unuttum', ['email' => 'yok@bayi.local'])->assertSessionHasNoErrors();
+        $this->post('/bayi/parolami-unuttum', ['email' => 'yok@bayi.local'])->assertSessionHasNoErrors()->assertRedirect();
         $missingMessage = session('status');
 
         $this->assertNotNull($existingMessage);
@@ -104,7 +104,7 @@ class ActivationAndResetTest extends TestCase
             ->assertSessionHasErrors('current_password');
 
         $this->put('/toptanci/hesabim/parola', ['current_password' => self::PASSWORD, 'password' => 'YeniParola2026', 'password_confirmation' => 'YeniParola2026'])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertTrue(Hash::check('YeniParola2026', $business->user->fresh()->password));
     }

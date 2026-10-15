@@ -1,6 +1,37 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" title="İşletme Ayarları">
     <x-page-header title="İşletme Ayarları" subtitle="Bayilerinizin gördüğü iletişim bilgileri ve sipariş davranışları." />
 
+    <div class="mb-6 grid gap-6 lg:grid-cols-2">
+        <x-card title="Logo" description="Başvuru sayfasında, bayi panelinde ve e-postalarda görünür. JPG, PNG veya WEBP; en fazla 2 MB.">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-32 items-center justify-center rounded-lg border border-line bg-slate-50">
+                    @if ($business->logo_path)
+                        <img src="{{ route('public.logo', $business->slug) }}?v={{ $business->updated_at->timestamp }}" alt="Logo" class="max-h-14 max-w-28">
+                    @else
+                        <span class="text-xs text-muted">Logo yok</span>
+                    @endif
+                </div>
+                <form method="POST" action="{{ route('business.settings.logo') }}" enctype="multipart/form-data" class="flex flex-1 flex-wrap items-center gap-2">
+                    @csrf
+                    <input type="file" name="logo" accept="image/jpeg,image/png,image/webp" required class="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium" aria-label="Logo dosyası">
+                    <x-button variant="secondary" size="sm" icon="upload">Yükle</x-button>
+                </form>
+            </div>
+            @error('logo')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+            @if ($business->logo_path)
+                <form method="POST" action="{{ route('business.settings.logo') }}" class="mt-3">@csrf<input type="hidden" name="remove" value="1"><button class="text-sm text-danger hover:underline">Logoyu kaldır</button></form>
+            @endif
+        </x-card>
+
+        <x-card title="Bayilik başvuru sayfanız" description="Bu bağlantıyı web sitenizde veya müşterilerinizle paylaşın.">
+            <div class="flex gap-2" x-data="{ copied: false }">
+                <input readonly value="{{ route('public.application', $business->slug) }}" class="field-input font-mono text-xs" x-ref="url" aria-label="Başvuru adresi">
+                <x-button type="button" variant="secondary" @click="navigator.clipboard.writeText($refs.url.value); copied = true"><span x-text="copied ? 'Kopyalandı' : 'Kopyala'">Kopyala</span></x-button>
+            </div>
+            <a href="{{ route('public.application', $business->slug) }}" target="_blank" rel="noopener" class="mt-3 inline-block text-sm text-primary hover:underline">Sayfayı aç</a>
+        </x-card>
+    </div>
+
     <form method="POST" action="{{ route('business.settings.update') }}" class="space-y-6">
         @csrf @method('PUT')
 

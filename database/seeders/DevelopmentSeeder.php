@@ -2,7 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Inventory\StockService;
+use App\Models\CurrentAccount;
+use App\Models\DealerApplication;
+use App\Models\DealerGroup;
+use App\Models\DiscountRule;
+use App\Models\PriceList;
+use App\Models\PriceListItem;
 use App\Domain\Platform\ProvisionBusinessDefaults;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Brand;
@@ -48,14 +55,47 @@ class DevelopmentSeeder extends Seeder
         ]);
 
         $tenant = app(TenantContext::class);
-        $tenant->runAs($akgun->id, fn () => DealerRelationship::create([
-            'dealer_id' => $onur->id, 'dealer_code' => 'B0001', 'status' => 'active', 'approved_at' => now(),
-        ]));
-        $tenant->runAs($other->id, fn () => DealerRelationship::create([
-            'dealer_id' => $onur->id, 'dealer_code' => 'DT-001', 'status' => 'active', 'approved_at' => now(),
-        ]));
+        $akgunRel = $tenant->runAs($akgun->id, fn () => $this->relationship($onur->id, 'B0001'));
+        $tenant->runAs($other->id, fn () => $this->relationship($onur->id, 'DT-001'));
 
-        $tenant->runAs($akgun->id, fn () => $this->sampleCatalog($akgun));
+        $tenant->runAs($akgun->id, function () use ($akgun, $akgunRel) {
+            $this->sampleCatalog($akgun);
+            $this->samplePricing($akgunRel);
+            DealerApplication::create([
+                'legal_name' => 'Deniz Kitabevi', 'contact_name' => 'Deniz Kaya', 'phone' => '0232 444 55 66', 'email' => 'deniz@denizkitabevi.test',
+                'city' => 'İzmir', 'district' => 'Bornova', 'address' => 'Kazımdirik Mah. 372. Sk. No:5', 'business_type' => 'bookstore',
+                'activity_area' => 'Okul ve kırtasiye', 'note' => 'Okul sezonu için çalışmak istiyoruz.',
+                'consent_text_version' => DealerOnboarding::CONSENT_VERSION, 'consent_at' => now(), 'ip' => '127.0.0.1',
+            ]);
+        });
+    }
+
+    private function relationship(int $dealerId, string $code): DealerRelationship
+    {
+        $rel = DealerRelationship::create(['dealer_id' => $dealerId, 'dealer_code' => $code, 'status' => 'active', 'approved_at' => now()]);
+        CurrentAccount::create(['dealer_relationship_id' => $rel->id, 'code' => $code]);
+        $rel->addresses()->create([
+            'title' => 'Merkez Mağaza', 'recipient_name' => 'Onur Yılmaz', 'phone' => '0212 000 00 00',
+            'city' => 'İstanbul', 'district' => 'Kadıköy', 'address_line' => 'Moda Cd. No:12', 'is_default' => true,
+        ]);
+
+        return $rel;
+    }
+
+    /** Örnek grup fiyat listesi ve indirim: önizleme ekranında öncelik kurallarını denemek için. */
+    private function samplePricing(DealerRelationship $rel): void
+    {
+        $list = PriceList::create(['name' => 'A Grubu 2026']);
+        foreach (Product::whereIn('sku', ['TK-1010-M', 'TK-1010-S'])->get() as $product) {
+            PriceListItem::create(['price_list_id' => $list->id, 'product_id' => $product->id, 'price' => '6.90']);
+        }
+        $group = DealerGroup::create(['name' => 'A Grubu', 'price_list_id' => $list->id]);
+        $rel->update(['dealer_group_id' => $group->id]);
+
+        DiscountRule::create([
+            'name' => 'Defter kampanyası', 'scope' => 'category', 'category_id' => Category::where('name', 'Defter')->value('id'),
+            'target' => 'all', 'percent' => '10',
+        ]);
     }
 
     /** Akgün Kırtasiye için örnek katalog ve stok (stok, hareketlerle oluşturulur). */

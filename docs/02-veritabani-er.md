@@ -49,7 +49,7 @@ erDiagram
 | `dealer_relationships` | **Toptancı ↔ bayi ticari ilişkisi** — sipariş, fiyat, cari bunun üzerinden | (business_id, dealer_id) UNIQUE, (business_id, dealer_code) UNIQUE, dealer_group_id, status `active/suspended/closed`, payment_term_days, can_edit_addresses, approved_at/by |
 | `dealer_groups` | Fiyat grubu (ör. "A Grubu Bayiler") | business_id, name, price_list_id |
 | `dealer_applications` | Başvurular | business_id, firma/yetkili/iletişim/vergi alanları, business_type, activity_area, note, status (6 durum), consent_text_version, consent_at, ip, reviewed_by, decision_note, dealer_id (onayda) |
-| `dealer_addresses` | Sevk adresleri | dealer_id, title, recipient_name, phone, city, district, address_line, note, is_default, archived_at |
+| `dealer_addresses` | Sevk adresleri — **Aşama 4'te ilişki bazına alındı** (bkz. 06 raporu) | business_id, dealer_relationship_id, title, recipient_name, phone, city, district, address_line, note, is_default, archived_at |
 | `auth_tokens` | Aktivasyon / parola sıfırlama | guard, user_id, purpose, token_hash UNIQUE, expires_at, used_at |
 
 **Neden `dealers` ile `dealer_relationships` ayrı?** Bir bayi (Onur Kırtasiye) ileride hem Akgün hem başka bir toptancıyla çalışabilir. Bayi kimliği ve adresleri tek; ama her toptancıyla fiyatı, cari hesabı, siparişleri, bayi kodu ve durumu ayrı. Toptancı, bayinin diğer toptancılarla ilişkisini **göremez** (sorgular her zaman `dealer_relationships.business_id` üzerinden).

@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Domain\Tenancy\TenantContext;
+use App\Models\DealerApplication;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -20,5 +22,10 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->isProduction());
 
         Password::defaults(fn () => Password::min(10)->letters()->numbers());
+
+        // Polimorfik ilişkilerde sınıf adı yerine sabit takma ad saklanır.
+        Relation::enforceMorphMap([
+            'dealer_application' => DealerApplication::class,
+        ]);
     }
 }

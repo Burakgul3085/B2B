@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Business;
 use App\Http\Controllers\Dealer;
 use App\Http\Controllers\Platform;
+use App\Http\Controllers\PublicSite;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::view('/', 'welcome')->name('home');
+
+// Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
+Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
+Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60')->name('public.application.store');
+Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
+Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
 /**
  * Her alanın ortak kimlik rotaları: giriş, çıkış, parola sıfırlama, (gerekirse) aktivasyon, hesap.
@@ -83,6 +90,46 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('/', Business\DashboardController::class)->name('dashboard');
         Route::get('ayarlar', [Business\SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('ayarlar', [Business\SettingsController::class, 'update'])->name('settings.update');
+        Route::post('ayarlar/logo', [Business\SettingsController::class, 'updateLogo'])->name('settings.logo');
+
+        // Bayilik başvuruları
+        Route::get('basvurular', [Business\DealerApplicationController::class, 'index'])->name('applications.index');
+        Route::get('basvurular/{application}', [Business\DealerApplicationController::class, 'show'])->name('applications.show');
+        Route::post('basvurular/{application}/incele', [Business\DealerApplicationController::class, 'review'])->name('applications.review');
+        Route::post('basvurular/{application}/bilgi-iste', [Business\DealerApplicationController::class, 'requestInfo'])->name('applications.request-info');
+        Route::post('basvurular/{application}/onayla', [Business\DealerApplicationController::class, 'approve'])->name('applications.approve');
+        Route::post('basvurular/{application}/reddet', [Business\DealerApplicationController::class, 'reject'])->name('applications.reject');
+        Route::post('basvurular/{application}/iptal', [Business\DealerApplicationController::class, 'cancel'])->name('applications.cancel');
+        Route::get('basvurular/{application}/belge/{attachment}', [Business\DealerApplicationController::class, 'attachment'])->name('applications.attachment');
+
+        // Bayiler
+        Route::get('bayiler', [Business\DealerController::class, 'index'])->name('dealers.index');
+        Route::get('bayiler/yeni', [Business\DealerController::class, 'create'])->name('dealers.create');
+        Route::post('bayiler', [Business\DealerController::class, 'store'])->name('dealers.store');
+        Route::get('bayiler/{dealer}', [Business\DealerController::class, 'show'])->name('dealers.show');
+        Route::put('bayiler/{dealer}', [Business\DealerController::class, 'update'])->name('dealers.update');
+        Route::put('bayiler/{dealer}/durum', [Business\DealerController::class, 'updateStatus'])->name('dealers.status');
+        Route::post('bayiler/{dealer}/aktivasyon', [Business\DealerController::class, 'activationLink'])->name('dealers.activation');
+        Route::post('bayiler/{dealer}/adresler', [Business\DealerController::class, 'storeAddress'])->name('dealers.addresses.store');
+        Route::put('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'updateAddress'])->name('dealers.addresses.update');
+        Route::delete('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'archiveAddress'])->name('dealers.addresses.destroy');
+        Route::post('bayiler/{dealer}/fiyatlar', [Business\DealerController::class, 'storePrice'])->name('dealers.prices.store');
+        Route::delete('bayiler/{dealer}/fiyatlar/{price}', [Business\DealerController::class, 'destroyPrice'])->name('dealers.prices.destroy');
+        Route::get('bayi-gruplari', [Business\DealerGroupController::class, 'index'])->name('dealer-groups.index');
+        Route::post('bayi-gruplari', [Business\DealerGroupController::class, 'store'])->name('dealer-groups.store');
+        Route::put('bayi-gruplari/{group}', [Business\DealerGroupController::class, 'update'])->name('dealer-groups.update');
+        Route::delete('bayi-gruplari/{group}', [Business\DealerGroupController::class, 'destroy'])->name('dealer-groups.destroy');
+
+        // Fiyatlandırma
+        Route::get('fiyatlandirma', [Business\PricingController::class, 'index'])->name('pricing');
+        Route::post('fiyat-listeleri', [Business\PricingController::class, 'storeList'])->name('price-lists.store');
+        Route::get('fiyat-listeleri/{list}', [Business\PricingController::class, 'showList'])->name('price-lists.show');
+        Route::put('fiyat-listeleri/{list}', [Business\PricingController::class, 'updateList'])->name('price-lists.update');
+        Route::post('fiyat-listeleri/{list}/urunler', [Business\PricingController::class, 'storeItem'])->name('price-lists.items.store');
+        Route::delete('fiyat-listeleri/{list}/urunler/{item}', [Business\PricingController::class, 'destroyItem'])->name('price-lists.items.destroy');
+        Route::post('fiyat-listeleri/{list}/doldur', [Business\PricingController::class, 'fillList'])->name('price-lists.fill');
+        Route::post('indirimler', [Business\PricingController::class, 'storeRule'])->name('discounts.store');
+        Route::put('indirimler/{rule}/durum', [Business\PricingController::class, 'toggleRule'])->name('discounts.toggle');
 
         // Katalog: ürünler
         Route::get('urunler', [Business\ProductController::class, 'index'])->name('products.index');
@@ -159,6 +206,14 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::post('toptanci-sec', [Dealer\SelectBusinessController::class, 'store'])->name('select-business.store');
 
         Route::get('/', Dealer\DashboardController::class)->name('dashboard');
+
+        Route::get('sevk-adresleri', [Dealer\AddressController::class, 'index'])->name('addresses.index');
+        Route::post('sevk-adresleri', [Dealer\AddressController::class, 'store'])->name('addresses.store');
+        Route::put('sevk-adresleri/{address}', [Dealer\AddressController::class, 'update'])->name('addresses.update');
+        Route::put('sevk-adresleri/{address}/varsayilan', [Dealer\AddressController::class, 'makeDefault'])->name('addresses.default');
+        Route::delete('sevk-adresleri/{address}', [Dealer\AddressController::class, 'destroy'])->name('addresses.destroy');
+        Route::get('isletme-profili', [Dealer\ProfileController::class, 'show'])->name('profile');
+        Route::put('isletme-profili', [Dealer\ProfileController::class, 'update'])->name('profile.update');
 
         $accountRoutes();
     });

@@ -7,6 +7,12 @@ use App\Domain\Tenancy\TenantContext;
 use App\Http\Middleware\RequirePlatformTwoFactor;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\DealerApplication;
+use App\Models\DealerGroup;
+use App\Models\DealerProductPrice;
+use App\Models\DiscountRule;
+use App\Models\PriceList;
+use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
@@ -96,7 +102,7 @@ class PagesRenderTest extends TestCase
         $this->put('/toptanci/ayarlar', [
             'display_name' => 'Yeni Ad', 'phone' => '0212 111 11 11', 'accent_color' => '#123456',
             'stock_display' => 'exact', 'ledger_post_on' => 'completion', 'default_payment_term_days' => 45, 'price_display' => 'incl_vat',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $business->refresh()->load('settings');
         $this->assertSame('Yeni Ad', $business->display_name);
@@ -107,6 +113,50 @@ class PagesRenderTest extends TestCase
             'display_name' => 'Yeni Ad', 'accent_color' => 'red;background:url(x)',
             'stock_display' => 'exact', 'ledger_post_on' => 'completion', 'default_payment_term_days' => 45, 'price_display' => 'incl_vat',
         ])->assertSessionHasErrors('accent_color');
+    }
+
+    public function test_dealer_management_and_pricing_pages_render(): void
+    {
+        $business = $this->makeBusiness();
+        $dealer = $this->makeDealer();
+        $rel = $this->relate($business, $dealer);
+        $tenant = app(TenantContext::class);
+
+        $this->actingAs($business->user, 'business');
+        foreach (['/toptanci/basvurular', '/toptanci/basvurular?status=approved', '/toptanci/bayiler', '/toptanci/bayiler/yeni',
+            '/toptanci/bayi-gruplari', '/toptanci/fiyatlandirma', '/toptanci/fiyatlandirma?tab=discounts'] as $url) {
+            $this->get($url)->assertOk();
+        }
+
+        [$list, $application] = $tenant->runAs($business->id, function () use ($rel) {
+            $list = PriceList::create(['name' => 'Liste']);
+            $group = DealerGroup::create(['name' => 'Grup', 'price_list_id' => $list->id]);
+            $rel->update(['dealer_group_id' => $group->id]);
+            $product = Product::create(['sku' => 'P1', 'name' => 'Kalem', 'unit_id' => Unit::value('id'), 'tax_rate_id' => TaxRate::value('id'), 'list_price' => '5']);
+            PriceListItem::create(['price_list_id' => $list->id, 'product_id' => $product->id, 'price' => '4']);
+            DealerProductPrice::create(['dealer_relationship_id' => $rel->id, 'product_id' => $product->id, 'price' => '3']);
+            DiscountRule::create(['name' => 'Kural', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'group', 'dealer_group_id' => $group->id, 'percent' => '5']);
+            $rel->addresses()->create(['title' => 'Merkez', 'recipient_name' => 'A', 'phone' => '0212 000 00 00', 'city' => 'İst', 'district' => 'Fatih', 'address_line' => 'X']);
+            $application = DealerApplication::create(['legal_name' => 'Başvuran', 'contact_name' => 'B', 'phone' => '1234567', 'email' => 'b@b.test',
+                'city' => 'İst', 'district' => 'Fatih', 'address' => 'Y', 'consent_text_version' => 'v', 'consent_at' => now()]);
+
+            return [$list, $application];
+        });
+
+        foreach (['/toptanci/basvurular', "/toptanci/basvurular/{$application->id}", '/toptanci/bayiler', "/toptanci/bayiler/{$rel->id}",
+            "/toptanci/bayiler/{$rel->id}?tab=addresses", "/toptanci/bayiler/{$rel->id}?tab=prices", "/toptanci/bayiler/{$rel->id}?tab=preview",
+            '/toptanci/bayi-gruplari', '/toptanci/fiyatlandirma', '/toptanci/fiyatlandirma?tab=discounts', "/toptanci/fiyat-listeleri/{$list->id}"] as $url) {
+            $this->get($url)->assertOk();
+        }
+        $this->get("/toptanci/bayiler/{$rel->id}?tab=preview")->assertSee('Bayiye özel fiyat');
+
+        $this->flushSession();
+        $this->actingAs($dealer, 'dealer');
+        $this->get('/bayi/sevk-adresleri')->assertOk()->assertSee('Merkez');
+        $this->get('/bayi/isletme-profili')->assertOk()->assertSee($rel->dealer_code);
+
+        $this->get("/basvuru/{$business->slug}")->assertOk();
+        $this->get("/basvuru/{$business->slug}/tesekkurler")->assertOk();
     }
 
     public function test_dealer_pages_render(): void

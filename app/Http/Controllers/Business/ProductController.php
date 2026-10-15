@@ -59,7 +59,11 @@ class ProductController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $product = $this->products->create($this->products->validate($this->input($request)));
+        try {
+            $product = $this->products->create($this->products->validate($this->input($request)));
+        } catch (DomainException $e) {
+            return back()->withErrors(['name' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('business.products.show', $product)->with('status', 'Ürün oluşturuldu. Görsel ve stok girişini bu sayfadan yapabilirsiniz.');
     }
