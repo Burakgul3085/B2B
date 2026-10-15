@@ -40,7 +40,7 @@ class DealerUser extends Authenticatable
     public function usableRelationships(): Collection
     {
         return DealerRelationship::withoutBusinessScope()
-            ->with('business')
+            ->with('business.modules')
             ->where('dealer_id', $this->dealer_id)
             ->where('status', 'active')
             ->whereHas('business', fn ($q) => $q->where('status', 'active'))

@@ -8,4 +8,5 @@
 | [04-asama-2-raporu.md](04-asama-2-raporu.md) | Aşama 2: temel altyapı raporu |
 | [05-asama-3-raporu.md](05-asama-3-raporu.md) | Aşama 3: ürün ve stok raporu |
 | [06-asama-4-raporu.md](06-asama-4-raporu.md) | Aşama 4: bayilik ve fiyatlandırma raporu |
+| [07-asama-5-raporu.md](07-asama-5-raporu.md) | Aşama 5: sipariş ve ürün talepleri raporu |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

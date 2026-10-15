@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Business;
 
 use App\Http\Controllers\Controller;
+use App\Models\DealerApplication;
 use App\Models\DealerRelationship;
+use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductRequest;
 use App\Models\WarehouseStock;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -39,7 +42,16 @@ class DashboardController extends Controller
             'stock_qty' => (string) $stockTotals->qty,
             'stock_value' => (string) $stockTotals->value,
             'unpriced' => (int) $stockTotals->unpriced,
+            'pending_orders' => Order::whereIn('status', [...Order::PENDING, 'cancel_requested'])->count(),
+            'today_orders' => Order::where('created_at', '>=', now()->startOfDay())->count(),
+            // Satış = onaylanmış ve iptal edilmemiş siparişlerin tutarı (onay tarihine göre).
+            'month_sales' => (string) Order::whereIn('status', ['approved', 'preparing', 'completed', 'cancel_requested'])
+                ->where('approved_at', '>=', now()->startOfMonth())->sum('grand_total'),
+            'open_requests' => ProductRequest::whereIn('status', ProductRequest::OPEN)->count(),
+            'new_applications' => DealerApplication::whereIn('status', ['new', 'waiting_info'])->count(),
         ];
+
+        $recentOrders = Order::with('relationship.dealer:id,legal_name')->latest('id')->limit(6)->get();
 
         $critical = (clone $active)->with('unit')
             ->select('products.*')->selectRaw("COALESCE({$salesQty}, 0) as sales_qty")
@@ -54,6 +66,6 @@ class DashboardController extends Controller
             ['label' => 'Stok girişi yapın', 'done' => bccomp($kpis['stock_qty'], '0', 3) > 0, 'route' => 'business.stock.create'],
         ];
 
-        return view('business.dashboard', compact('kpis', 'setup', 'critical'));
+        return view('business.dashboard', compact('kpis', 'setup', 'critical', 'recentOrders'));
     }
 }

@@ -3,7 +3,9 @@
 namespace App\Domain\Inventory;
 
 use App\Domain\Auth\CurrentActor;
+use App\Domain\Ordering\ProductRequestService;
 use App\Domain\Tenancy\TenantContext;
+use App\Models\BusinessSetting;
 use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\StockMovement;
@@ -185,6 +187,15 @@ class StockService
             ->update(['quantity' => $new, 'updated_at' => now()]);
 
         $actor = $this->actor->get();
+
+        // Sevk deposuna stok girdiyse, commit sonrasında "gelince haber ver" talepleri işaretlenir.
+        if (bccomp($signedQty, '0', Quantity::SCALE) > 0) {
+            $productId = $product->id;
+            $isSalesWarehouse = (int) BusinessSetting::where('business_id', $this->tenant->businessId())->value('default_warehouse_id') === $warehouseId;
+            if ($isSalesWarehouse) {
+                DB::afterCommit(fn () => app(ProductRequestService::class)->onStockIncreased($productId));
+            }
+        }
 
         return StockMovement::create([
             'warehouse_id' => $warehouseId,

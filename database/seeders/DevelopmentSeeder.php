@@ -4,12 +4,9 @@ namespace Database\Seeders;
 
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Inventory\StockService;
-use App\Models\CurrentAccount;
-use App\Models\DealerApplication;
-use App\Models\DealerGroup;
-use App\Models\DiscountRule;
-use App\Models\PriceList;
-use App\Models\PriceListItem;
+use App\Domain\Ordering\CartService;
+use App\Domain\Ordering\OrderService;
+use Illuminate\Support\Str;
 use App\Domain\Platform\ProvisionBusinessDefaults;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Brand;
@@ -17,10 +14,16 @@ use App\Models\Business;
 use App\Models\BusinessModule;
 use App\Models\BusinessUser;
 use App\Models\Category;
+use App\Models\CurrentAccount;
 use App\Models\Dealer;
+use App\Models\DealerApplication;
+use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\DealerUser;
+use App\Models\DiscountRule;
 use App\Models\PlatformAdmin;
+use App\Models\PriceList;
+use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\TaxRate;
 use App\Models\Unit;
@@ -61,6 +64,7 @@ class DevelopmentSeeder extends Seeder
         $tenant->runAs($akgun->id, function () use ($akgun, $akgunRel) {
             $this->sampleCatalog($akgun);
             $this->samplePricing($akgunRel);
+            $this->sampleOrders($akgun, $akgunRel);
             DealerApplication::create([
                 'legal_name' => 'Deniz Kitabevi', 'contact_name' => 'Deniz Kaya', 'phone' => '0232 444 55 66', 'email' => 'deniz@denizkitabevi.test',
                 'city' => 'İzmir', 'district' => 'Bornova', 'address' => 'Kazımdirik Mah. 372. Sk. No:5', 'business_type' => 'bookstore',
@@ -83,6 +87,24 @@ class DevelopmentSeeder extends Seeder
     }
 
     /** Örnek grup fiyat listesi ve indirim: önizleme ekranında öncelik kurallarını denemek için. */
+    /** Biri onaylanmış, biri onay bekleyen iki örnek sipariş (gerçek servislerle: stok ve cari hareketleriyle). */
+    private function sampleOrders(Business $business, DealerRelationship $rel): void
+    {
+        $carts = app(CartService::class);
+        $orders = app(OrderService::class);
+        $address = $rel->addresses()->value('id');
+        $sku = fn (string $code) => Product::where('sku', $code)->value('id');
+
+        $carts->add($rel, $sku('TK-1010-M'), '100');
+        $carts->add($rel, $sku('SD-A4-100'), '20');
+        $approved = $orders->submit($rel, $address, 'Okul sezonu siparişi', (string) Str::uuid());
+        $orders->approve($approved, [], (int) $business->settings()->value('default_warehouse_id'), ['planned_on' => now()->addDays(2)->toDateString()], $business->user->id);
+
+        $carts->add($rel, $sku('KK-HB-12'), '24');
+        $carts->add($rel, $sku('JK-07-K'), '48');
+        $orders->submit($rel, $address, null, (string) Str::uuid());
+    }
+
     private function samplePricing(DealerRelationship $rel): void
     {
         $list = PriceList::create(['name' => 'A Grubu 2026']);

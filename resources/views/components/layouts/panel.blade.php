@@ -4,6 +4,9 @@
 
     /** @var Area $area */
     $user = auth($area->guard())->user();
+    $currentBusiness ??= null;
+    $dealerRelationships ??= collect();
+    $currentRelationship ??= null;
 
     // Menüde yalnızca kullanıma açılmış modüller yer alır; sonraki aşamaların modülleri eklendikçe görünür.
     $nav = match ($area) {
@@ -18,6 +21,12 @@
             ['items' => [
                 ['label' => 'Dashboard', 'route' => 'business.dashboard', 'icon' => 'home', 'active' => 'business.dashboard'],
             ]],
+            ['label' => 'Satış', 'items' => array_values(array_filter([
+                ['label' => 'Siparişler', 'route' => 'business.orders.index', 'icon' => 'file', 'active' => 'business.orders.*',
+                    'badge' => \App\Models\Order::whereIn('status', ['submitted', 'cancel_requested'])->count()],
+                ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Ürün Talepleri', 'route' => 'business.product-requests.index', 'icon' => 'inbox', 'active' => 'business.product-requests.*',
+                    'badge' => \App\Models\ProductRequest::where('status', 'new')->count()] : null,
+            ]))],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
                 ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
@@ -41,14 +50,15 @@
             ]],
         ],
         Area::Dealer => [
-            ['items' => [
+            ['items' => array_values(array_filter([
                 ['label' => 'Ana Sayfa', 'route' => 'dealer.dashboard', 'icon' => 'home', 'active' => 'dealer.dashboard'],
-            ]],
+                ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
+                ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
+                ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,
+            ]))],
         ],
     };
 
-    $currentBusiness ??= null;
-    $dealerRelationships ??= collect();
     $isPlatform = $area === Area::Platform;
     $brand = $isPlatform ? 'B2B Platform' : ($currentBusiness?->display_name ?? config('app.name'));
 @endphp
@@ -80,7 +90,18 @@
                     @endforeach
                 @endforeach
             </nav>
-            <div class="ml-auto flex items-center gap-2" x-data="{ open: false }" @click.outside="open = false">
+            @if ($currentRelationship)
+                @php $cartCount = app(\App\Domain\Ordering\CartService::class)->count($currentRelationship); @endphp
+                <form method="GET" action="{{ route('dealer.catalog') }}" class="ml-auto hidden max-w-xs flex-1 lg:block" role="search">
+                    <input name="q" value="{{ request()->routeIs('dealer.catalog') ? request('q') : '' }}" placeholder="Ürün adı, kodu veya barkod" aria-label="Katalogda ara"
+                        class="w-full rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:bg-white focus:text-ink focus:ring-2 focus:ring-white/40">
+                </form>
+                <a href="{{ route('dealer.cart') }}" class="relative ml-auto rounded-lg p-2 hover:bg-white/10 lg:ml-0" aria-label="Sepet ({{ $cartCount }} ürün)">
+                    <x-icon name="package" />
+                    @if ($cartCount)<span class="absolute -top-0.5 -right-0.5 rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-primary-dark tabular-nums">{{ $cartCount }}</span>@endif
+                </a>
+            @endif
+            <div @class(['flex items-center gap-2', 'ml-auto' => ! $currentRelationship]) x-data="{ open: false }" @click.outside="open = false">
                 <button type="button" @click="open = !open" class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-white/10" :aria-expanded="open">
                     <span class="hidden max-w-48 truncate sm:inline">{{ $user->dealer->legal_name }}</span>
                     <x-icon name="chevron-down" class="size-4" />

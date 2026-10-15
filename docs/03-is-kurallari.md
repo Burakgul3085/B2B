@@ -83,6 +83,7 @@ stateDiagram-v2
   in_review --> rejected
   in_review --> cancelled: bayi iptal eder (etkisiz)
   approved --> preparing
+  approved --> completed: hazırlık adımı atlanabilir
   approved --> cancel_requested: bayi
   approved --> cancelled: toptancı (ters kayıtlar)
   preparing --> completed

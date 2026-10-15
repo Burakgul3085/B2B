@@ -92,6 +92,21 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::put('ayarlar', [Business\SettingsController::class, 'update'])->name('settings.update');
         Route::post('ayarlar/logo', [Business\SettingsController::class, 'updateLogo'])->name('settings.logo');
 
+        // Siparişler
+        Route::get('siparisler', [Business\OrderController::class, 'index'])->name('orders.index');
+        Route::get('siparisler/{order}', [Business\OrderController::class, 'show'])->name('orders.show');
+        Route::post('siparisler/{order}/incele', [Business\OrderController::class, 'review'])->name('orders.review');
+        Route::post('siparisler/{order}/onayla', [Business\OrderController::class, 'approve'])->name('orders.approve');
+        Route::post('siparisler/{order}/reddet', [Business\OrderController::class, 'reject'])->name('orders.reject');
+        Route::post('siparisler/{order}/hazirlaniyor', [Business\OrderController::class, 'prepare'])->name('orders.prepare');
+        Route::post('siparisler/{order}/tamamla', [Business\OrderController::class, 'complete'])->name('orders.complete');
+        Route::post('siparisler/{order}/iptal', [Business\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('siparisler/{order}/iptal-talebi', [Business\OrderController::class, 'resolveCancel'])->name('orders.resolve-cancel');
+        Route::middleware('module:product_requests')->group(function () {
+            Route::get('urun-talepleri', [Business\ProductRequestController::class, 'index'])->name('product-requests.index');
+            Route::put('urun-talepleri/{productRequest}', [Business\ProductRequestController::class, 'respond'])->name('product-requests.respond');
+        });
+
         // Bayilik başvuruları
         Route::get('basvurular', [Business\DealerApplicationController::class, 'index'])->name('applications.index');
         Route::get('basvurular/{application}', [Business\DealerApplicationController::class, 'show'])->name('applications.show');
@@ -206,6 +221,22 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::post('toptanci-sec', [Dealer\SelectBusinessController::class, 'store'])->name('select-business.store');
 
         Route::get('/', Dealer\DashboardController::class)->name('dashboard');
+
+        Route::get('katalog', [Dealer\CatalogController::class, 'index'])->name('catalog');
+        Route::get('katalog/{product}', [Dealer\CatalogController::class, 'show'])->name('catalog.show');
+        Route::get('gorsel/{image}', [Dealer\CatalogController::class, 'image'])->name('images.show');
+        Route::get('sepet', [Dealer\CartController::class, 'index'])->name('cart');
+        Route::post('sepet', [Dealer\CartController::class, 'add'])->name('cart.add');
+        Route::put('sepet/{item}', [Dealer\CartController::class, 'update'])->name('cart.update');
+        Route::delete('sepet/{item}', [Dealer\CartController::class, 'remove'])->name('cart.remove');
+        Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1')->name('cart.submit');
+        Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
+        Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
+        Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::middleware('module:product_requests')->group(function () {
+            Route::get('taleplerim', [Dealer\ProductRequestController::class, 'index'])->name('requests.index');
+            Route::post('taleplerim', [Dealer\ProductRequestController::class, 'store'])->name('requests.store');
+        });
 
         Route::get('sevk-adresleri', [Dealer\AddressController::class, 'index'])->name('addresses.index');
         Route::post('sevk-adresleri', [Dealer\AddressController::class, 'store'])->name('addresses.store');
