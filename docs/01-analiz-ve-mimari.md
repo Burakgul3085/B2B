@@ -67,6 +67,7 @@ Gerekçe — sade PHP yerine framework seçmemizin nedeni güvenlik ve tutarlıl
 
 ```
 app/
+  Models/                 ← Eloquent modelleri (Laravel standardı)
   Domain/                 ← iş kuralları; HTTP'den bağımsız
     Tenancy/              (TenantContext, BelongsToBusiness trait, global scope)
     Platform/             (işletme, lisans, modül, destek erişimi)

@@ -1,0 +1,125 @@
+@php use App\Models\Business; use App\Models\BusinessModule; @endphp
+<x-layouts.panel :area="\App\Domain\Auth\Area::Platform" :title="$business->display_name">
+    <x-page-header :title="$business->display_name" :subtitle="$business->legal_name">
+        <x-slot:breadcrumb><a href="{{ route('platform.businesses.index') }}" class="hover:underline">İşletmeler</a></x-slot:breadcrumb>
+        <x-badge :tone="['active' => 'success', 'suspended' => 'warning', 'closed' => 'neutral'][$business->status]">{{ Business::STATUSES[$business->status] }}</x-badge>
+        <x-button variant="secondary" :href="route('platform.businesses.edit', $business)">Düzenle</x-button>
+    </x-page-header>
+
+    @if (session('activation') && ! session('activation')['mail_sent'])
+        <div class="mb-6 rounded-xl border border-amber-200 bg-warning-soft p-4 text-sm text-amber-900" x-data>
+            <p class="font-semibold">Aktivasyon e-postası gönderilemedi</p>
+            <p class="mt-1">Sistem e-postası yapılandırılmamış. Aşağıdaki tek kullanımlık bağlantıyı işletme yetkilisine güvenli bir kanaldan iletin. Bu bağlantı yalnızca bir kez gösterilir.</p>
+            <div class="mt-3 flex gap-2">
+                <input readonly value="{{ session('activation')['activation_url'] }}" class="field-input font-mono text-xs" x-ref="link">
+                <x-button type="button" variant="secondary" @click="navigator.clipboard.writeText($refs.link.value)">Kopyala</x-button>
+            </div>
+        </div>
+    @endif
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+            <x-card title="İşletme bilgileri">
+                <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                    @foreach ([
+                        'Kısa ad' => $business->slug, 'E-posta' => $business->email, 'Telefon' => $business->phone,
+                        'Vergi dairesi / no' => trim(($business->tax_office ?? '').' '.($business->tax_number ?? '')),
+                        'İl / ilçe' => trim(($business->city ?? '').' / '.($business->district ?? ''), ' /'),
+                        'Oluşturulma' => $business->created_at->format('d.m.Y'),
+                    ] as $label => $value)
+                        <div><dt class="text-muted">{{ $label }}</dt><dd class="mt-0.5 font-medium">{{ $value ?: '—' }}</dd></div>
+                    @endforeach
+                </dl>
+            </x-card>
+
+            <x-card title="Lisans dönemleri" :padding="false">
+                @if ($business->licenses->isEmpty())
+                    <x-empty-state icon="key" title="Lisans tanımlı değil" class="py-8" />
+                @else
+                    <table class="table-base">
+                        <thead><tr><th>Plan</th><th>Başlangıç</th><th>Bitiş</th><th>Sınırlar</th></tr></thead>
+                        <tbody class="divide-y divide-line">
+                            @foreach ($business->licenses as $license)
+                                <tr>
+                                    <td class="font-medium">{{ $license->plan }}</td>
+                                    <td class="tabular-nums">{{ $license->starts_on->format('d.m.Y') }}</td>
+                                    <td class="tabular-nums">{{ $license->ends_on?->format('d.m.Y') ?? 'Süresiz' }}</td>
+                                    <td class="text-muted">{{ $license->max_dealers ? $license->max_dealers.' bayi' : 'Bayi sınırı yok' }}, {{ $license->max_products ? $license->max_products.' ürün' : 'ürün sınırı yok' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+                <details class="border-t border-line">
+                    <summary class="cursor-pointer px-5 py-3 text-sm font-medium text-primary">Lisans dönemi ekle</summary>
+                    <form method="POST" action="{{ route('platform.businesses.licenses.store', $business) }}" class="grid gap-4 px-5 pb-5 sm:grid-cols-3">
+                        @csrf
+                        <x-field name="plan" label="Plan" value="Standart" required />
+                        <x-field name="starts_on" label="Başlangıç" type="date" required />
+                        <x-field name="ends_on" label="Bitiş" type="date" />
+                        <x-field name="max_dealers" label="Bayi sınırı" type="number" min="1" />
+                        <x-field name="max_products" label="Ürün sınırı" type="number" min="1" />
+                        <x-field name="note" label="Not" />
+                        <div class="sm:col-span-3"><x-button>Ekle</x-button></div>
+                    </form>
+                </details>
+            </x-card>
+
+            <x-card title="Modüller" description="Kapatılan modül işletme panelinde ve bayi panelinde gizlenir.">
+                <form method="POST" action="{{ route('platform.businesses.modules', $business) }}">
+                    @csrf @method('PUT')
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        @foreach (BusinessModule::AVAILABLE as $key => $label)
+                            <label class="flex items-center gap-3 rounded-lg border border-line px-4 py-3 text-sm">
+                                <input type="checkbox" name="modules[]" value="{{ $key }}" class="size-4 rounded border-line text-primary" @checked($business->moduleEnabled($key))>
+                                {{ $label }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <x-button class="mt-4" variant="secondary">Modülleri kaydet</x-button>
+                </form>
+            </x-card>
+        </div>
+
+        <div class="space-y-6">
+            <x-card title="İşletme yetkilisi">
+                @if ($business->user)
+                    <p class="font-medium">{{ $business->user->name }}</p>
+                    <p class="text-sm text-muted">{{ $business->user->email }}</p>
+                    <div class="mt-3">
+                        @if ($business->user->status === 'pending_activation')
+                            <x-badge tone="warning">Aktivasyon bekliyor</x-badge>
+                            <form method="POST" action="{{ route('platform.businesses.activation', $business) }}" class="mt-3">
+                                @csrf
+                                <x-button variant="secondary" size="sm" icon="refresh">Yeni bağlantı gönder</x-button>
+                            </form>
+                        @else
+                            <x-badge tone="success">Etkin</x-badge>
+                            <p class="mt-2 text-xs text-muted">Son giriş: {{ $business->user->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? 'Henüz giriş yapılmadı' }}</p>
+                        @endif
+                    </div>
+                @endif
+            </x-card>
+
+            <x-card title="Kullanım">
+                <dl class="space-y-2 text-sm">
+                    @foreach ($usage as $label => $count)
+                        <div class="flex justify-between"><dt class="text-muted">{{ $label }}</dt><dd class="font-medium tabular-nums">{{ $count }}</dd></div>
+                    @endforeach
+                </dl>
+                <p class="mt-3 text-xs text-muted">Platform yalnızca adetleri görür; ticari tutarlar işletmeye özeldir.</p>
+            </x-card>
+
+            <x-card title="İşletme durumu">
+                <form method="POST" action="{{ route('platform.businesses.status', $business) }}" class="space-y-4" x-data="{ status: '{{ old('status', $business->status) }}' }">
+                    @csrf @method('PUT')
+                    <x-field name="status" label="Durum" :options="Business::STATUSES" :value="$business->status" x-model="status" />
+                    <div x-show="status !== 'active'" x-cloak>
+                        <x-field name="status_reason" label="Gerekçe" :value="$business->status_reason" textarea hint="Askıya alınan işletmenin kullanıcıları ve bayileri giriş yapamaz." />
+                    </div>
+                    <x-button variant="secondary">Durumu güncelle</x-button>
+                </form>
+            </x-card>
+        </div>
+    </div>
+</x-layouts.panel>

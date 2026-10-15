@@ -1,0 +1,58 @@
+<?php
+
+use App\Domain\Auth\Area;
+use App\Domain\Tenancy\MissingTenantContext;
+use App\Http\Middleware\PlatformIpAllowlist;
+use App\Http\Middleware\RequirePlatformTwoFactor;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetBusinessContext;
+use App\Http\Middleware\SetDealerContext;
+use App\Http\Middleware\UseAreaSession;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        // Oturum başlamadan önce alanın çerezini seç.
+        $middleware->web(prepend: [UseAreaSession::class]);
+        $middleware->append(SecurityHeaders::class);
+
+        $middleware->alias([
+            'business.context' => SetBusinessContext::class,
+            'dealer.context' => SetDealerContext::class,
+            'platform.2fa' => RequirePlatformTwoFactor::class,
+            'platform.ip' => PlatformIpAllowlist::class,
+        ]);
+
+        // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.
+        $middleware->redirectGuestsTo(function (Request $request) {
+            $area = Area::fromRequest($request) ?? Area::Dealer;
+
+            return route($area->loginRoute());
+        });
+
+        // Oturumu olan kullanıcı giriş sayfasını açarsa kendi alanının ana sayfasına gider.
+        $middleware->redirectUsersTo(function (Request $request) {
+            $area = Area::fromRequest($request) ?? Area::Dealer;
+
+            return route($area->homeRoute());
+        });
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+        );
+
+        // İşletme bağlamı eksikliği bir programlama hatasıdır; kullanıcıya ayrıntı gösterilmez.
+        $exceptions->report(function (MissingTenantContext $e) {
+            Log::critical($e->getMessage(), ['trace' => $e->getTraceAsString()]);
+        });
+    })->create();

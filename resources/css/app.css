@@ -1,0 +1,75 @@
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/*
+| Tasarım token'ları (docs/01-analiz-ve-mimari.md §8).
+| Tüm bileşenler bu renkleri kullanır; modül bazında ayrı renk tanımlanmaz.
+*/
+@theme {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --color-primary: #1e3a8a;
+    --color-primary-hover: #1e40af;
+    --color-primary-dark: #172554;
+    --color-primary-soft: #eef2ff;
+    --color-ink: #0f172a;
+    --color-muted: #64748b;
+    --color-line: #e2e8f0;
+    --color-surface: #f8fafc;
+    --color-graphite: #1f2937;
+
+    --color-success: #15803d;
+    --color-success-soft: #dcfce7;
+    --color-warning: #b45309;
+    --color-warning-soft: #fef3c7;
+    --color-danger: #b91c1c;
+    --color-danger-soft: #fee2e2;
+    --color-info: #0369a1;
+    --color-info-soft: #e0f2fe;
+}
+
+@layer base {
+    html {
+        @apply bg-surface text-ink antialiased;
+        font-size: 15px;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-primary;
+    }
+}
+
+@layer components {
+    .field-input {
+        @apply block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink shadow-xs
+            placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none
+            disabled:bg-slate-50 disabled:text-muted;
+    }
+
+    .field-input[aria-invalid='true'] {
+        @apply border-danger focus:ring-danger/15;
+    }
+
+    .table-base {
+        @apply min-w-full divide-y divide-line text-sm;
+    }
+
+    .table-base th {
+        @apply bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold tracking-wide text-muted uppercase;
+    }
+
+    .table-base td {
+        @apply px-4 py-3 align-middle;
+    }
+
+    .table-base tbody tr {
+        @apply hover:bg-slate-50/70;
+    }
+}
