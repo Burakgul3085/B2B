@@ -14,7 +14,7 @@
 Proje klasöründe:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .baslat.ps1
+powershell -ExecutionPolicy Bypass -File .\baslat.ps1
 ```
 
 MySQL çalışmıyorsa arka planda başlatır, ardından uygulamayı http://localhost:8000 adresinde açar.
