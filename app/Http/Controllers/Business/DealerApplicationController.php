@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Dealers\DealerOnboarding;
+use App\Domain\Notifications\Notifier;
 use App\Http\Controllers\Controller;
 use App\Models\Attachment;
 use App\Models\DealerApplication;
@@ -17,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DealerApplicationController extends Controller
 {
-    public function __construct(private DealerOnboarding $onboarding) {}
+    public function __construct(private DealerOnboarding $onboarding, private Notifier $notifier) {}
 
     public function index(Request $request): View
     {
@@ -63,15 +64,20 @@ class DealerApplicationController extends Controller
     {
         $note = $request->validate(['note' => ['required', 'string', 'max:2000']], [], ['note' => 'istenen bilgi'])['note'];
 
-        return $this->run(fn () => $this->onboarding->requestInfo($application, $note, $request->user()->id),
-            'Ek bilgi talebi kaydedildi. Başvuru sahibine iletmek için iletişim bilgilerini kullanın (e-posta bildirimi Aşama 7 ile eklenecek).');
+        return $this->run(function () use ($application, $note, $request) {
+            $this->onboarding->requestInfo($application, $note, $request->user()->id);
+            $this->notifier->applicationInfoRequested($application->fresh());
+        }, 'Ek bilgi talebi kaydedildi ve e-posta ayarınız varsa başvuru sahibine gönderildi.');
     }
 
     public function reject(Request $request, DealerApplication $application): RedirectResponse
     {
         $reason = $request->validate(['reason' => ['required', 'string', 'max:2000']], [], ['reason' => 'ret gerekçesi'])['reason'];
 
-        return $this->run(fn () => $this->onboarding->reject($application, $reason, $request->user()->id), 'Başvuru reddedildi.');
+        return $this->run(function () use ($application, $reason, $request) {
+            $this->onboarding->reject($application, $reason, $request->user()->id);
+            $this->notifier->applicationRejected($application->fresh());
+        }, 'Başvuru reddedildi.');
     }
 
     public function cancel(Request $request, DealerApplication $application): RedirectResponse
@@ -89,11 +95,15 @@ class DealerApplicationController extends Controller
             return back()->withErrors(['approve' => $e->getMessage()]);
         }
 
+        $mail = $this->notifier->applicationApproved($application->fresh(), $result['activation_url']);
+        $emailed = $mail->status !== 'skipped';
+
         return redirect()->route('business.dealers.show', $result['relationship'])
-            ->with('status', $result['existing_account']
+            ->with('status', ($result['existing_account']
                 ? 'Başvuru onaylandı. Bu bayinin platformda hesabı olduğu için mevcut hesabına sizinle çalışma yetkisi eklendi.'
-                : 'Başvuru onaylandı ve bayi hesabı açıldı.')
-            ->with('activation_url', $result['activation_url']);
+                : 'Başvuru onaylandı ve bayi hesabı açıldı.').($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''))
+            // Bağlantı yalnızca e-posta gönderilemiyorsa (ayar yoksa) bir kez gösterilir.
+            ->with('activation_url', $emailed ? null : $result['activation_url']);
     }
 
     public function attachment(DealerApplication $application, Attachment $attachment): StreamedResponse

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Dealers\DealerOnboarding;
+use App\Domain\Notifications\Notifier;
 use App\Domain\Pricing\PriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\DealerAddress;
@@ -85,9 +86,12 @@ class DealerController extends Controller
             return back()->withErrors(['email' => $e->getMessage()])->withInput();
         }
 
+        $emailed = app(Notifier::class)->dealerCreated($result['relationship'], $result['activation_url'])->status !== 'skipped';
+
         return redirect()->route('business.dealers.show', $result['relationship'])
-            ->with('status', $result['existing_account'] ? 'Bayinin mevcut hesabına sizinle çalışma yetkisi eklendi.' : 'Bayi hesabı açıldı.')
-            ->with('activation_url', $result['activation_url']);
+            ->with('status', ($result['existing_account'] ? 'Bayinin mevcut hesabına sizinle çalışma yetkisi eklendi.' : 'Bayi hesabı açıldı.')
+                .($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''))
+            ->with('activation_url', $emailed ? null : $result['activation_url']);
     }
 
     public function show(Request $request, DealerRelationship $dealer): View
@@ -158,7 +162,10 @@ class DealerController extends Controller
             return back()->withErrors(['activation' => $e->getMessage()]);
         }
 
-        return back()->with('activation_url', $url)->with('status', 'Yeni aktivasyon bağlantısı oluşturuldu; önceki bağlantılar geçersiz oldu.');
+        $emailed = app(Notifier::class)->dealerCreated($dealer, $url)->status !== 'skipped';
+
+        return back()->with('activation_url', $emailed ? null : $url)
+            ->with('status', $emailed ? 'Yeni aktivasyon bağlantısı bayiye e-postayla gönderiliyor; önceki bağlantılar geçersiz oldu.' : 'Yeni aktivasyon bağlantısı oluşturuldu; önceki bağlantılar geçersiz oldu.');
     }
 
     public function storeAddress(Request $request, DealerRelationship $dealer): RedirectResponse

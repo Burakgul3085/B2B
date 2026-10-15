@@ -14,6 +14,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
+        $this->app->bind(\App\Domain\Mail\MailTransport::class, \App\Domain\Mail\GmailTransport::class);
     }
 
     public function boot(): void
@@ -26,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         // Polimorfik ilişkilerde sınıf adı yerine sabit takma ad saklanır.
         Relation::enforceMorphMap([
             'dealer_application' => DealerApplication::class,
+            'message' => \App\Models\Message::class,
         ]);
     }
 }

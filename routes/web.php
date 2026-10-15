@@ -76,6 +76,7 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::post('isletmeler/{business}/aktivasyon', [Platform\BusinessController::class, 'resendActivation'])->name('businesses.activation');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
+            Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');
 
             $accountRoutes();
         });
@@ -103,6 +104,27 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('siparisler/{order}/iptal', [Business\OrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('siparisler/{order}/iptal-talebi', [Business\OrderController::class, 'resolveCancel'])->name('orders.resolve-cancel');
         Route::post('siparisler/{order}/iade', [Business\OrderReturnController::class, 'store'])->name('orders.returns.store');
+
+        // İletişim
+        Route::middleware('module:messaging')->group(function () {
+            Route::get('mesajlar', [Business\MessageController::class, 'index'])->name('messages.index');
+            Route::get('mesajlar/yeni', [Business\MessageController::class, 'create'])->name('messages.create');
+            Route::post('mesajlar', [Business\MessageController::class, 'store'])->middleware('throttle:30,1')->name('messages.store');
+            Route::get('mesajlar/{conversation}', [Business\MessageController::class, 'show'])->name('messages.show');
+            Route::post('mesajlar/{conversation}', [Business\MessageController::class, 'reply'])->middleware('throttle:30,1')->name('messages.reply');
+            Route::get('mesajlar/{conversation}/ek/{attachment}', [Business\MessageController::class, 'attachment'])->name('messages.attachment');
+        });
+        Route::get('duyurular', [Business\AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::get('bildirimler', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('bildirimler/{notification}', [\App\Http\Controllers\NotificationController::class, 'open'])->name('notifications.open');
+        Route::post('bildirimler/okundu', [\App\Http\Controllers\NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::get('e-posta', [Business\EmailSettingsController::class, 'show'])->name('email.settings');
+        Route::put('e-posta', [Business\EmailSettingsController::class, 'update'])->name('email.update');
+        Route::post('e-posta/test', [Business\EmailSettingsController::class, 'test'])->name('email.test');
+        Route::put('e-posta/sablon', [Business\EmailSettingsController::class, 'updateTemplate'])->name('email.template');
+        Route::get('e-posta/kayitlar', [Business\EmailSettingsController::class, 'logs'])->name('email.logs');
+        Route::post('e-posta/kayitlar/{log}/tekrar', [Business\EmailSettingsController::class, 'retry'])->name('email.retry');
 
         // Cari hesaplar
         Route::get('cari-hesaplar', [Business\CurrentAccountController::class, 'index'])->name('accounts.index');
@@ -242,6 +264,17 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::delete('sepet/{item}', [Dealer\CartController::class, 'remove'])->name('cart.remove');
         Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1')->name('cart.submit');
         Route::get('cari-hesabim', Dealer\AccountStatementController::class)->name('account.statement');
+        Route::middleware('module:messaging')->group(function () {
+            Route::get('mesajlar', [Dealer\MessageController::class, 'index'])->name('messages.index');
+            Route::get('mesajlar/yeni', [Dealer\MessageController::class, 'create'])->name('messages.create');
+            Route::post('mesajlar', [Dealer\MessageController::class, 'store'])->middleware('throttle:30,1')->name('messages.store');
+            Route::get('mesajlar/{conversation}', [Dealer\MessageController::class, 'show'])->name('messages.show');
+            Route::post('mesajlar/{conversation}', [Dealer\MessageController::class, 'reply'])->middleware('throttle:30,1')->name('messages.reply');
+            Route::get('mesajlar/{conversation}/ek/{attachment}', [Dealer\MessageController::class, 'attachment'])->name('messages.attachment');
+        });
+        Route::get('bildirimler', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('bildirimler/{notification}', [\App\Http\Controllers\NotificationController::class, 'open'])->name('notifications.open');
+        Route::post('bildirimler/okundu', [\App\Http\Controllers\NotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');

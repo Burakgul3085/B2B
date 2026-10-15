@@ -61,6 +61,9 @@ class OrderController extends Controller
             return back()->withErrors(['order' => $e->getMessage()]);
         }
 
+        $notifier = app(\App\Domain\Notifications\Notifier::class);
+        $order->status === 'cancelled' ? $notifier->orderCancelledByDealer($order) : $notifier->cancelRequested($order);
+
         return back()->with('status', $order->status === 'cancelled' ? 'Siparişiniz iptal edildi.' : 'İptal talebiniz toptancıya iletildi.');
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Inventory\InsufficientStock;
+use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReturnService;
@@ -20,7 +21,7 @@ use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function __construct(private OrderService $orders) {}
+    public function __construct(private OrderService $orders, private Notifier $notifier) {}
 
     public function index(Request $request): View
     {
@@ -75,7 +76,7 @@ class OrderController extends Controller
 
     public function review(Order $order): RedirectResponse
     {
-        return $this->run(fn () => $this->orders->markInReview($order), 'Sipariş incelemeye alındı.');
+        return $this->run($order, fn () => $this->orders->markInReview($order), 'Sipariş incelemeye alındı.');
     }
 
     public function approve(Request $request, Order $order): RedirectResponse
@@ -103,6 +104,8 @@ class OrderController extends Controller
             return back()->withErrors(['order' => $e->getMessage()])->withInput();
         }
 
+        $this->notifier->orderStatusChanged($order->fresh(['relationship']), $order->is_partial ? 'Bazı kalemler stok nedeniyle kısmi karşılandı.' : null);
+
         return back()->with('status', $order->is_partial ? 'Sipariş kısmi olarak onaylandı; stok düşüldü.' : 'Sipariş onaylandı; stok düşüldü.');
     }
 
@@ -110,41 +113,45 @@ class OrderController extends Controller
     {
         $reason = $request->validate(['reason' => ['required', 'string', 'max:1000']], [], ['reason' => 'ret gerekçesi'])['reason'];
 
-        return $this->run(fn () => $this->orders->reject($order, $reason), 'Sipariş reddedildi.');
+        return $this->run($order, fn () => $this->orders->reject($order, $reason), 'Sipariş reddedildi.');
     }
 
     public function prepare(Order $order): RedirectResponse
     {
-        return $this->run(fn () => $this->orders->markPreparing($order), 'Sipariş "Hazırlanıyor" olarak işaretlendi.');
+        return $this->run($order, fn () => $this->orders->markPreparing($order), 'Sipariş "Hazırlanıyor" olarak işaretlendi.');
     }
 
     public function complete(Order $order): RedirectResponse
     {
-        return $this->run(fn () => $this->orders->complete($order), 'Sipariş tamamlandı.');
+        return $this->run($order, fn () => $this->orders->complete($order), 'Sipariş tamamlandı.');
     }
 
     public function cancel(Request $request, Order $order): RedirectResponse
     {
         $reason = $request->validate(['reason' => ['required', 'string', 'max:1000']], [], ['reason' => 'iptal nedeni'])['reason'];
 
-        return $this->run(fn () => $this->orders->cancelByBusiness($order, $reason), 'Sipariş iptal edildi. Düşülen stok ve cari borç ters kayıtla geri alındı.');
+        return $this->run($order, fn () => $this->orders->cancelByBusiness($order, $reason), 'Sipariş iptal edildi. Düşülen stok ve cari borç ters kayıtla geri alındı.');
     }
 
     public function resolveCancel(Request $request, Order $order): RedirectResponse
     {
         $data = $request->validate(['decision' => ['required', Rule::in(['accept', 'decline'])], 'note' => ['nullable', 'string', 'max:500']]);
 
-        return $this->run(fn () => $this->orders->resolveCancelRequest($order, $data['decision'] === 'accept', $data['note'] ?? null),
-            $data['decision'] === 'accept' ? 'İptal talebi kabul edildi; ters kayıtlar yazıldı.' : 'İptal talebi reddedildi; sipariş önceki durumuna döndü.');
+        return $this->run($order, fn () => $this->orders->resolveCancelRequest($order, $data['decision'] === 'accept', $data['note'] ?? null),
+            $data['decision'] === 'accept' ? 'İptal talebi kabul edildi; ters kayıtlar yazıldı.' : 'İptal talebi reddedildi; sipariş önceki durumuna döndü.',
+            $data['decision'] === 'decline' ? 'İptal talebiniz kabul edilmedi.'.(($data['note'] ?? null) ? ' Not: '.$data['note'] : '') : null);
     }
 
-    private function run(callable $action, string $message): RedirectResponse
+    /** İşlemi çalıştırır; başarılıysa (commit sonrası) bayiye bildirim ve e-posta gönderir. */
+    private function run(Order $order, callable $action, string $message, ?string $note = null): RedirectResponse
     {
         try {
             $action();
         } catch (DomainException $e) {
             return back()->withErrors(['order' => $e->getMessage()]);
         }
+
+        $this->notifier->orderStatusChanged($order->fresh(['relationship']), $note);
 
         return back()->with('status', $message);
     }

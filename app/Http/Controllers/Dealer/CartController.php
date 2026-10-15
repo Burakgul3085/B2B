@@ -87,6 +87,10 @@ class CartController extends Controller
             return back()->withErrors(['cart' => $e->getMessage()])->withInput();
         }
 
+        if ($order->wasRecentlyCreated) {
+            app(\App\Domain\Notifications\Notifier::class)->orderSubmitted($order);
+        }
+
         return redirect()->route('dealer.orders.show', $order)
             ->with('status', "Siparişiniz {$order->order_no} numarasıyla toptancıya iletildi. Stok, sipariş onayında kesinleşir.");
     }

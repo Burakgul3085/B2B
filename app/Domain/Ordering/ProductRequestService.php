@@ -4,6 +4,7 @@ namespace App\Domain\Ordering;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Inventory\Quantity;
+use App\Domain\Notifications\Notifier;
 use App\Models\DealerRelationship;
 use App\Models\ProductRequest;
 use DomainException;
@@ -63,9 +64,18 @@ class ProductRequestService
      */
     public function onStockIncreased(int $productId): int
     {
-        return DB::transaction(fn () => ProductRequest::where('product_id', $productId)
-            ->whereIn('status', ProductRequest::OPEN)
-            ->where('notify_when_in_stock', true)
-            ->update(['status' => 'stock_updated', 'notified_at' => now(), 'updated_at' => now()]));
+        $requests = DB::transaction(function () use ($productId) {
+            $requests = ProductRequest::where('product_id', $productId)->whereIn('status', ProductRequest::OPEN)
+                ->where('notify_when_in_stock', true)->lockForUpdate()->get();
+            ProductRequest::whereKey($requests->modelKeys())->update(['status' => 'stock_updated', 'notified_at' => now(), 'updated_at' => now()]);
+
+            return $requests;
+        });
+
+        foreach ($requests as $request) {
+            app(Notifier::class)->stockArrived($request->load(['product', 'relationship']));
+        }
+
+        return $requests->count();
     }
 }

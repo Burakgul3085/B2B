@@ -14,6 +14,7 @@
             ['items' => [
                 ['label' => 'Genel Durum', 'route' => 'platform.dashboard', 'icon' => 'home', 'active' => 'platform.dashboard'],
                 ['label' => 'İşletmeler', 'route' => 'platform.businesses.index', 'icon' => 'building', 'active' => 'platform.businesses.*'],
+                ['label' => 'E-posta Altyapısı', 'route' => 'platform.email-status', 'icon' => 'inbox', 'active' => 'platform.email-status'],
                 ['label' => 'Denetim Kayıtları', 'route' => 'platform.audit-logs', 'icon' => 'file', 'active' => 'platform.audit-logs'],
             ]],
         ],
@@ -43,12 +44,18 @@
                 ['label' => 'Stok Hareketleri', 'route' => 'business.stock-movements.index', 'icon' => 'refresh', 'active' => 'business.stock-movements.*'],
                 ['label' => 'Depolar ve Sayım', 'route' => 'business.warehouses.index', 'icon' => 'warehouse', 'active' => ['business.warehouses.*', 'business.stock-counts.*']],
             ]],
+            ['label' => 'İletişim', 'items' => array_values(array_filter([
+                ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'business.messages.index', 'icon' => 'inbox', 'active' => 'business.messages.*',
+                    'badge' => \App\Domain\Messaging\MessagingService::unreadScope(\App\Models\Conversation::query(), 'business')->count()] : null,
+                ['label' => 'Duyurular', 'route' => 'business.announcements.index', 'icon' => 'file', 'active' => 'business.announcements.*'],
+            ]))],
             ['label' => 'Finans', 'items' => [
                 ['label' => 'Cari Hesaplar', 'route' => 'business.accounts.index', 'icon' => 'users', 'active' => 'business.accounts.*'],
                 ['label' => 'Tahsilatlar', 'route' => 'business.collections.index', 'icon' => 'check-circle', 'active' => 'business.collections.*'],
             ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
+                ['label' => 'E-posta Ayarları', 'route' => 'business.email.settings', 'icon' => 'refresh', 'active' => 'business.email.*'],
                 ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
                 ['label' => 'Profil ve Güvenlik', 'route' => 'business.account', 'icon' => 'user', 'active' => 'business.account*'],
             ]],
@@ -59,6 +66,7 @@
                 ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
+                ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,
             ]))],
         ],

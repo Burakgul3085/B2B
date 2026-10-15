@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\PublicSite;
 
 use App\Domain\Dealers\DealerOnboarding;
+use App\Domain\Notifications\Notifier;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
@@ -62,9 +63,10 @@ class DealerApplicationFormController extends Controller
         ]);
 
         try {
-            $this->tenant->runAs($business->id, fn () => $this->onboarding->submit(
-                $data, $request->file('documents', []), $request->ip(), $request->userAgent()
-            ));
+            $this->tenant->runAs($business->id, function () use ($data, $request) {
+                $application = $this->onboarding->submit($data, $request->file('documents', []), $request->ip(), $request->userAgent());
+                app(Notifier::class)->applicationReceived($application);
+            });
         } catch (DomainException $e) {
             return back()->withErrors(['email' => $e->getMessage()])->withInput();
         }

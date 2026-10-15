@@ -49,6 +49,7 @@ class ProductRequestController extends Controller
 
         try {
             $this->requests->respond($productRequest, $data['status'], $data['response_note'] ?? null, $request->user()->id);
+            app(\App\Domain\Notifications\Notifier::class)->requestUpdated($productRequest->fresh(['product', 'relationship']));
         } catch (DomainException $e) {
             return back()->withErrors(['request' => $e->getMessage()]);
         }
