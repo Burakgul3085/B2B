@@ -46,6 +46,15 @@
                 </x-card>
             @endif
 
+            <x-card title="Finans">
+                <dl class="space-y-2 text-sm">
+                    <div class="flex justify-between"><dt class="text-muted">Cari alacak</dt><dd class="font-medium tabular-nums">{{ Money::format($finance['receivable']) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-muted">Vadesi geçmiş</dt><dd @class(['font-medium tabular-nums', 'text-danger' => bccomp($finance['overdue'], '0', 2) > 0])>{{ Money::format($finance['overdue']) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-muted">Bu ay tahsilat</dt><dd class="font-medium tabular-nums">{{ Money::format($finance['month_collections']) }}</dd></div>
+                </dl>
+                <a href="{{ route('business.accounts.index') }}" class="mt-3 inline-block text-sm font-medium text-primary hover:underline">Cari hesaplar</a>
+            </x-card>
+
             <x-card title="Özet">
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-muted">Aktif bayi</dt><dd class="font-medium tabular-nums">{{ $kpis['active_dealers'] }}</dd></div>

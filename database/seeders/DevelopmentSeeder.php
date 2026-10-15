@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Inventory\StockService;
+use App\Domain\Ledger\LedgerService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
-use Illuminate\Support\Str;
 use App\Domain\Platform\ProvisionBusinessDefaults;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Brand;
@@ -30,6 +30,7 @@ use App\Models\Unit;
 use App\Models\VariantGroup;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 /**
  * Yalnızca yerel geliştirme içindir (DatabaseSeeder local ortam dışında çağırmaz).
@@ -99,6 +100,12 @@ class DevelopmentSeeder extends Seeder
         $carts->add($rel, $sku('SD-A4-100'), '20');
         $approved = $orders->submit($rel, $address, 'Okul sezonu siparişi', (string) Str::uuid());
         $orders->approve($approved, [], (int) $business->settings()->value('default_warehouse_id'), ['planned_on' => now()->addDays(2)->toDateString()], $business->user->id);
+
+        // Cari: açılış bakiyesi (geçmiş dönemden, vadesi geçmiş) ve kısmi tahsilat.
+        $ledger = app(LedgerService::class);
+        $account = CurrentAccount::where('dealer_relationship_id', $rel->id)->first();
+        $ledger->setOpening($account, '1250.00', now()->subDays(45)->toDateString(), 'Önceki sistemden devir');
+        $ledger->recordCollection($account, ['collected_on' => now()->subDays(3)->toDateString(), 'amount' => '1000.00', 'method' => 'transfer', 'description' => 'Dekont 4471'], $business->user->id);
 
         $carts->add($rel, $sku('KK-HB-12'), '24');
         $carts->add($rel, $sku('JK-07-K'), '48');

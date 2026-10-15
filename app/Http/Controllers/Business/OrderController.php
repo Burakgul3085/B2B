@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Business;
 use App\Domain\Inventory\InsufficientStock;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
+use App\Domain\Ordering\ReturnService;
 use App\Http\Controllers\Controller;
 use App\Models\DealerRelationship;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use DomainException;
@@ -65,6 +67,8 @@ class OrderController extends Controller
             'warehouses' => $warehouses,
             'stock' => $stock,
             'canApprove' => in_array($order->status, Order::PENDING, true),
+            'returnable' => $order->status === 'completed' ? ReturnService::returnable($order) : [],
+            'returns' => OrderReturn::where('order_id', $order->id)->with('items')->latest('id')->get(),
             'can' => fn (string $to) => OrderStateMachine::can($order->status, $to),
         ]);
     }

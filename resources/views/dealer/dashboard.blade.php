@@ -7,7 +7,7 @@
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-kpi label="Devam eden sipariş" :value="$kpis['open_orders']" :href="route('dealer.orders.index', ['status' => 'open'])" hint="Siparişlerim" />
         <x-kpi label="Bu ay onaylanan sipariş" :value="Money::format($kpis['month_amount'])" hint="KDV dahil" />
-        <x-kpi label="Cari bakiye" :value="Money::format($kpis['balance'])" :hint="bccomp($kpis['balance'], '0', 2) > 0 ? 'Borç bakiyesi' : 'Borcunuz yok'" />
+        <x-kpi label="Cari bakiye" :value="Money::format($kpis['balance'])" :href="route('dealer.account.statement')" :hint="bccomp($kpis['balance'], '0', 2) > 0 ? 'Ekstreyi gör' : 'Borcunuz yok'" />
         <x-kpi label="Açık ürün talebi" :value="$kpis['open_requests']" :href="$currentBusiness->moduleEnabled('product_requests') ? route('dealer.requests.index') : null" :hint="$currentBusiness->moduleEnabled('product_requests') ? 'Taleplerim' : null" />
     </div>
 

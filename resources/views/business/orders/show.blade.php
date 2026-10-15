@@ -77,6 +77,45 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             <x-card :title="$canApprove ? 'Sipariş tutarı (istenen miktarlarla)' : 'Ürünler'" :padding="false">@include('partials.order-items', ['order' => $order])</x-card>
+
+            @if ($returns->isNotEmpty())
+                <x-card title="İadeler" :padding="false">
+                    <ul class="divide-y divide-line text-sm">
+                        @foreach ($returns as $r)
+                            <li class="flex justify-between gap-3 px-5 py-3">
+                                <span>{{ $r->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $r->items->count() }} kalem @if ($r->note)<span class="text-muted">· {{ $r->note }}</span>@endif</span>
+                                <span class="font-medium tabular-nums">{{ Money::format($r->grand_total) }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-card>
+            @endif
+
+            @if ($order->status === 'completed' && collect($returnable)->contains(fn ($q) => bccomp($q, '0', 3) > 0))
+                <x-card title="İade kaydı" description="İade edilen miktar sevk deposuna girer ve bayinin carisine sipariş fiyatıyla alacak yazılır." :padding="false">
+                    @error('return')<div role="alert" class="mx-5 mt-4 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
+                    <form method="POST" action="{{ route('business.orders.returns.store', $order) }}" onsubmit="return confirm('İade kaydedilsin mi? Stok girişi ve cari alacak yazılacak.')">
+                        @csrf
+                        <table class="table-base">
+                            <thead><tr><th>Ürün</th><th class="text-right">İade edilebilir</th><th class="text-right">İade miktarı</th></tr></thead>
+                            <tbody class="divide-y divide-line">
+                                @foreach ($order->items as $item)
+                                    @continue(bccomp($returnable[$item->id] ?? '0', '0', 3) <= 0)
+                                    <tr>
+                                        <td>{{ $item->name }}</td>
+                                        <td class="text-right tabular-nums">{{ Quantity::format($returnable[$item->id]) }} {{ $item->unit_name }}</td>
+                                        <td class="text-right"><input name="qty[{{ $item->id }}]" value="{{ old('qty.'.$item->id) }}" inputmode="decimal" class="field-input ml-auto w-24 py-1 text-right" aria-label="{{ $item->name }} iade miktarı"></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <div class="flex flex-wrap items-end gap-3 border-t border-line p-4">
+                            <x-field name="note" label="Açıklama" class="min-w-60 flex-1" />
+                            <x-button variant="secondary">İadeyi kaydet</x-button>
+                        </div>
+                    </form>
+                </x-card>
+            @endif
         </div>
 
         <div class="space-y-6">

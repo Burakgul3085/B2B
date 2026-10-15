@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Domain\Ledger\AccountAnalysis;
 use App\Http\Controllers\Controller;
+use App\Models\CollectionEntry;
+use App\Models\CurrentAccount;
 use App\Models\DealerApplication;
 use App\Models\DealerRelationship;
 use App\Models\Order;
@@ -53,6 +56,14 @@ class DashboardController extends Controller
 
         $recentOrders = Order::with('relationship.dealer:id,legal_name')->latest('id')->limit(6)->get();
 
+        $accounts = CurrentAccount::where('balance', '>', 0)->get();
+        $aging = app(AccountAnalysis::class)->agingMany($accounts);
+        $finance = [
+            'receivable' => (string) $accounts->sum('balance'),
+            'overdue' => collect($aging)->reduce(fn ($c, $a) => bcadd($c, $a['overdue'], 2), '0.00'),
+            'month_collections' => (string) CollectionEntry::whereNull('cancelled_at')->where('collected_on', '>=', now()->startOfMonth()->toDateString())->sum('amount'),
+        ];
+
         $critical = (clone $active)->with('unit')
             ->select('products.*')->selectRaw("COALESCE({$salesQty}, 0) as sales_qty")
             ->whereRaw("COALESCE({$salesQty}, 0) > 0")
@@ -66,6 +77,6 @@ class DashboardController extends Controller
             ['label' => 'Stok girişi yapın', 'done' => bccomp($kpis['stock_qty'], '0', 3) > 0, 'route' => 'business.stock.create'],
         ];
 
-        return view('business.dashboard', compact('kpis', 'setup', 'critical', 'recentOrders'));
+        return view('business.dashboard', compact('kpis', 'setup', 'critical', 'recentOrders', 'finance'));
     }
 }

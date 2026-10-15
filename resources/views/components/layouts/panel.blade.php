@@ -43,6 +43,10 @@
                 ['label' => 'Stok Hareketleri', 'route' => 'business.stock-movements.index', 'icon' => 'refresh', 'active' => 'business.stock-movements.*'],
                 ['label' => 'Depolar ve Sayım', 'route' => 'business.warehouses.index', 'icon' => 'warehouse', 'active' => ['business.warehouses.*', 'business.stock-counts.*']],
             ]],
+            ['label' => 'Finans', 'items' => [
+                ['label' => 'Cari Hesaplar', 'route' => 'business.accounts.index', 'icon' => 'users', 'active' => 'business.accounts.*'],
+                ['label' => 'Tahsilatlar', 'route' => 'business.collections.index', 'icon' => 'check-circle', 'active' => 'business.collections.*'],
+            ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
                 ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
@@ -54,6 +58,7 @@
                 ['label' => 'Ana Sayfa', 'route' => 'dealer.dashboard', 'icon' => 'home', 'active' => 'dealer.dashboard'],
                 ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
+                ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,
             ]))],
         ],
