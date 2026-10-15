@@ -12,7 +12,7 @@ Laravel 13 + MySQL 8.4 + Blade/Alpine/Tailwind 4. Mimari ve iş kuralları `docs
 
 ## Komutlar
 
-- Testler (MySQL `b2b_test` veritabanı gerekir): `php artisan test`
+- Testler (MySQL `b2b_test` veritabanı gerekir): `php artisan test` (eşzamanlılık testleri: `--testsuite=Concurrency`)
 - Kod stili: `vendor/bin/pint`
 - Ön yüz derleme: `npm run build`
 - Yerel kurulum ve çalıştırma: `docs/GELISTIRME.md`

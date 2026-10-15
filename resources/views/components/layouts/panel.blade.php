@@ -18,8 +18,18 @@
             ['items' => [
                 ['label' => 'Dashboard', 'route' => 'business.dashboard', 'icon' => 'home', 'active' => 'business.dashboard'],
             ]],
+            ['label' => 'Katalog', 'items' => [
+                ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
+                ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
+            ]],
+            ['label' => 'Stok', 'items' => [
+                ['label' => 'Stok Durumu', 'route' => 'business.stock.index', 'icon' => 'layers', 'active' => 'business.stock.*'],
+                ['label' => 'Stok Hareketleri', 'route' => 'business.stock-movements.index', 'icon' => 'refresh', 'active' => 'business.stock-movements.*'],
+                ['label' => 'Depolar ve Sayım', 'route' => 'business.warehouses.index', 'icon' => 'warehouse', 'active' => ['business.warehouses.*', 'business.stock-counts.*']],
+            ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
+                ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'percent', 'active' => 'business.catalog.settings'],
                 ['label' => 'Profil ve Güvenlik', 'route' => 'business.account', 'icon' => 'user', 'active' => 'business.account*'],
             ]],
         ],
@@ -57,8 +67,8 @@
                     @foreach ($group['items'] as $item)
                         <a href="{{ route($item['route']) }}" @class([
                             'rounded-md px-3 py-2 text-sm font-medium',
-                            'bg-white/15 text-white' => request()->routeIs($item['active']),
-                            'text-white/80 hover:bg-white/10 hover:text-white' => ! request()->routeIs($item['active']),
+                            'bg-white/15 text-white' => request()->routeIs(...(array) $item['active']),
+                            'text-white/80 hover:bg-white/10 hover:text-white' => ! request()->routeIs(...(array) $item['active']),
                         ])>{{ $item['label'] }}</a>
                     @endforeach
                 @endforeach
@@ -122,7 +132,7 @@
                         @endisset
                         <ul class="space-y-0.5">
                             @foreach ($group['items'] as $item)
-                                @php $active = request()->routeIs($item['active']); @endphp
+                                @php $active = request()->routeIs(...(array) $item['active']); @endphp
                                 <li>
                                     <a href="{{ route($item['route']) }}" @if ($active) aria-current="page" @endif @class([
                                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',

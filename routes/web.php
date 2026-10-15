@@ -84,6 +84,68 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('ayarlar', [Business\SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('ayarlar', [Business\SettingsController::class, 'update'])->name('settings.update');
 
+        // Katalog: ürünler
+        Route::get('urunler', [Business\ProductController::class, 'index'])->name('products.index');
+        Route::get('urunler/yeni', [Business\ProductController::class, 'create'])->name('products.create');
+        Route::post('urunler', [Business\ProductController::class, 'store'])->name('products.store');
+        Route::post('urunler/toplu', [Business\ProductController::class, 'bulk'])->name('products.bulk');
+        Route::get('urunler/toplu-fiyat', [Business\ProductController::class, 'priceForm'])->name('products.price');
+        Route::post('urunler/toplu-fiyat', [Business\ProductController::class, 'priceUpdate'])->name('products.price.update');
+        Route::middleware('module:import')->group(function () {
+            Route::get('urunler/ice-aktar', [Business\ProductImportController::class, 'index'])->name('products.import');
+            Route::post('urunler/ice-aktar', [Business\ProductImportController::class, 'store'])->middleware('throttle:10,1')->name('products.import.store');
+            Route::get('urunler/ice-aktar/sablon', [Business\ProductImportController::class, 'template'])->name('products.import.template');
+            Route::get('urunler/ice-aktar/{job}', [Business\ProductImportController::class, 'show'])->name('products.import.show');
+        });
+        Route::get('urunler/{product}', [Business\ProductController::class, 'show'])->name('products.show');
+        Route::get('urunler/{product}/duzenle', [Business\ProductController::class, 'edit'])->name('products.edit');
+        Route::put('urunler/{product}', [Business\ProductController::class, 'update'])->name('products.update');
+        Route::post('urunler/{product}/kopyala', [Business\ProductController::class, 'duplicate'])->name('products.duplicate');
+        Route::post('urunler/{product}/arsivle', [Business\ProductController::class, 'archive'])->name('products.archive');
+        Route::post('urunler/{product}/arsivden-cikar', [Business\ProductController::class, 'restore'])->name('products.restore');
+        Route::post('urunler/{product}/gorseller', [Business\ProductImageController::class, 'store'])->name('products.images.store');
+        Route::put('urunler/{product}/gorseller/{image}/ana', [Business\ProductImageController::class, 'primary'])->name('products.images.primary');
+        Route::delete('urunler/{product}/gorseller/{image}', [Business\ProductImageController::class, 'destroy'])->name('products.images.destroy');
+        Route::get('gorsel/{image}', [Business\ProductImageController::class, 'show'])->name('images.show');
+
+        // Katalog: kategori, marka, varyant grupları
+        Route::get('kategori-ve-markalar', [Business\CatalogStructureController::class, 'index'])->name('catalog.structure');
+        Route::post('kategoriler', [Business\CatalogStructureController::class, 'storeCategory'])->name('categories.store');
+        Route::put('kategoriler/{category}', [Business\CatalogStructureController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('kategoriler/{category}', [Business\CatalogStructureController::class, 'destroyCategory'])->name('categories.destroy');
+        Route::post('markalar', [Business\CatalogStructureController::class, 'storeBrand'])->name('brands.store');
+        Route::put('markalar/{brand}', [Business\CatalogStructureController::class, 'updateBrand'])->name('brands.update');
+        Route::delete('markalar/{brand}', [Business\CatalogStructureController::class, 'destroyBrand'])->name('brands.destroy');
+        Route::post('varyant-gruplari', [Business\CatalogStructureController::class, 'storeVariantGroup'])->name('variant-groups.store');
+        Route::put('varyant-gruplari/{variantGroup}', [Business\CatalogStructureController::class, 'updateVariantGroup'])->name('variant-groups.update');
+
+        // Ayarlar: KDV ve birimler
+        Route::get('kdv-ve-birimler', [Business\CatalogSettingsController::class, 'index'])->name('catalog.settings');
+        Route::post('kdv-oranlari', [Business\CatalogSettingsController::class, 'storeTaxRate'])->name('tax-rates.store');
+        Route::put('kdv-oranlari/{taxRate}/durum', [Business\CatalogSettingsController::class, 'toggleTaxRate'])->name('tax-rates.toggle');
+        Route::post('birimler', [Business\CatalogSettingsController::class, 'storeUnit'])->name('units.store');
+        Route::put('birimler/{unit}', [Business\CatalogSettingsController::class, 'updateUnit'])->name('units.update');
+
+        // Stok ve depo
+        Route::get('stok', [Business\StockController::class, 'index'])->name('stock.index');
+        Route::get('stok/hareket', [Business\StockController::class, 'create'])->name('stock.create');
+        Route::post('stok/hareket', [Business\StockController::class, 'store'])->name('stock.store');
+        Route::get('stok/transfer', [Business\StockController::class, 'transferForm'])->name('stock.transfer');
+        Route::post('stok/transfer', [Business\StockController::class, 'transfer'])->name('stock.transfer.store');
+        Route::get('stok/urun-ara', [Business\StockController::class, 'lookup'])->name('stock.lookup');
+        Route::get('stok-hareketleri', [Business\StockMovementController::class, 'index'])->name('stock-movements.index');
+        Route::get('depolar', [Business\WarehouseController::class, 'index'])->name('warehouses.index');
+        Route::post('depolar', [Business\WarehouseController::class, 'store'])->name('warehouses.store');
+        Route::put('depolar/{warehouse}', [Business\WarehouseController::class, 'update'])->name('warehouses.update');
+        Route::put('depolar/{warehouse}/varsayilan', [Business\WarehouseController::class, 'makeDefault'])->name('warehouses.default');
+        Route::get('stok-sayimlari', [Business\StockCountController::class, 'index'])->name('stock-counts.index');
+        Route::post('stok-sayimlari', [Business\StockCountController::class, 'store'])->name('stock-counts.store');
+        Route::get('stok-sayimlari/{count}', [Business\StockCountController::class, 'show'])->name('stock-counts.show');
+        Route::post('stok-sayimlari/{count}/satir', [Business\StockCountController::class, 'addLine'])->name('stock-counts.lines.store');
+        Route::delete('stok-sayimlari/{count}/satir/{line}', [Business\StockCountController::class, 'removeLine'])->name('stock-counts.lines.destroy');
+        Route::post('stok-sayimlari/{count}/uygula', [Business\StockCountController::class, 'apply'])->name('stock-counts.apply');
+        Route::post('stok-sayimlari/{count}/iptal', [Business\StockCountController::class, 'cancel'])->name('stock-counts.cancel');
+
         $accountRoutes();
     });
 });

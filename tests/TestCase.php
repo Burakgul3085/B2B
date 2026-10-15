@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Domain\Platform\ProvisionBusinessDefaults;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Business;
 use App\Models\BusinessUser;
@@ -23,6 +24,7 @@ abstract class TestCase extends BaseTestCase
             'slug' => $slug, 'display_name' => "İşletme {$slug}", 'legal_name' => "İşletme {$slug} Ltd.", 'status' => $status,
         ]);
         $business->settings()->create([]);
+        app(ProvisionBusinessDefaults::class)->handle($business);
 
         BusinessUser::create([
             'business_id' => $business->id, 'name' => 'Yönetici', 'email' => "{$slug}@test.local",

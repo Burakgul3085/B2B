@@ -2,6 +2,7 @@
 
 use App\Domain\Auth\Area;
 use App\Domain\Tenancy\MissingTenantContext;
+use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\PlatformIpAllowlist;
 use App\Http\Middleware\RequirePlatformTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Log;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -25,11 +27,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [UseAreaSession::class]);
         $middleware->append(SecurityHeaders::class);
 
+        // İşletme bağlamı, rota model bağlamasından ÖNCE kurulur: başka işletmenin kaydı
+        // global scope nedeniyle bulunamaz ve 404 döner.
+        $middleware->prependToPriorityList(SubstituteBindings::class, SetBusinessContext::class);
+        $middleware->prependToPriorityList(SubstituteBindings::class, SetDealerContext::class);
+
         $middleware->alias([
             'business.context' => SetBusinessContext::class,
             'dealer.context' => SetDealerContext::class,
             'platform.2fa' => RequirePlatformTwoFactor::class,
             'platform.ip' => PlatformIpAllowlist::class,
+            'module' => EnsureModuleEnabled::class,
         ]);
 
         // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.

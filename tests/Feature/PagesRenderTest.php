@@ -2,7 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Inventory\StockService;
+use App\Domain\Tenancy\TenantContext;
 use App\Http\Middleware\RequirePlatformTwoFactor;
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\StockCount;
+use App\Models\StockCountLine;
+use App\Models\TaxRate;
+use App\Models\Unit;
+use App\Models\VariantGroup;
+use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
@@ -33,6 +44,48 @@ class PagesRenderTest extends TestCase
         foreach (['/toptanci', '/toptanci/ayarlar', '/toptanci/hesabim'] as $url) {
             $this->get($url)->assertOk()->assertSee('İşletme Ayarları')->assertDontSee('Denetim Kayıtları');
         }
+    }
+
+    public function test_catalog_and_inventory_pages_render_empty_and_filled(): void
+    {
+        $business = $this->makeBusiness();
+        $this->actingAs($business->user, 'business');
+
+        $pages = ['/toptanci/urunler', '/toptanci/urunler/yeni', '/toptanci/urunler/toplu-fiyat', '/toptanci/urunler/ice-aktar',
+            '/toptanci/kategori-ve-markalar', '/toptanci/kategori-ve-markalar?tab=brands', '/toptanci/kategori-ve-markalar?tab=variants',
+            '/toptanci/kdv-ve-birimler', '/toptanci/stok', '/toptanci/stok/hareket', '/toptanci/stok/transfer',
+            '/toptanci/stok-hareketleri', '/toptanci/depolar', '/toptanci/stok-sayimlari'];
+
+        foreach ($pages as $url) {
+            $this->get($url)->assertOk();
+        }
+
+        // Dolu veriyle
+        $tenant = app(TenantContext::class);
+        [$product, $count] = $tenant->runAs($business->id, function () use ($business) {
+            $category = Category::create(['name' => 'Kalem']);
+            Category::create(['name' => 'Jel Kalem', 'parent_id' => $category->id]);
+            Brand::create(['name' => 'Marka']);
+            $group = VariantGroup::create(['name' => 'Jel Kalem', 'attribute_names' => ['Renk']]);
+            $product = Product::create([
+                'sku' => 'P1', 'name' => 'Jel Kalem Mavi', 'category_id' => $category->id, 'variant_group_id' => $group->id, 'variant_values' => ['Renk' => 'Mavi'],
+                'unit_id' => Unit::where('code', 'ADET')->value('id'), 'tax_rate_id' => TaxRate::where('rate', '20.00')->value('id'),
+                'list_price' => '5', 'critical_stock_level' => '10',
+            ]);
+            $warehouse = Warehouse::find($business->settings()->value('default_warehouse_id'));
+            app(StockService::class)->adjust($product->load('unit'), $warehouse, 'increase', '4');
+            $count = StockCount::create(['warehouse_id' => $warehouse->id]);
+            StockCountLine::create(['stock_count_id' => $count->id, 'product_id' => $product->id, 'counted_qty' => '5']);
+
+            return [$product, $count];
+        });
+
+        foreach ([...$pages, "/toptanci/urunler/{$product->id}", "/toptanci/urunler/{$product->id}/duzenle", "/toptanci/stok-sayimlari/{$count->id}", '/toptanci?x=1'] as $url) {
+            $this->get($url)->assertOk();
+        }
+
+        $this->get('/toptanci')->assertSee('Jel Kalem Mavi'); // kritik stok listesinde
+        $this->get('/toptanci/urunler')->assertSee('Mavi');
     }
 
     public function test_business_settings_update(): void

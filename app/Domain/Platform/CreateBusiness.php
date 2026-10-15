@@ -32,6 +32,7 @@ class CreateBusiness
         [$model, $user] = DB::transaction(function () use ($business, $owner, $license) {
             $model = Business::create($business + ['status' => 'active']);
             $model->settings()->create([]);
+            app(ProvisionBusinessDefaults::class)->handle($model);
 
             foreach (array_keys(BusinessModule::AVAILABLE) as $key) {
                 $model->modules()->create(['module_key' => $key, 'enabled' => true]);
