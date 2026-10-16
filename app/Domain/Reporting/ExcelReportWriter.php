@@ -35,7 +35,7 @@ use OpenSpout\Writer\XLSX\Writer;
  *  2  Rapor adı                                 │ antet, tüm sütunlar boyunca birleştirilmiş
  *  3  Rapor tarihi · kayıt sayısı · hazırlayan  ┘ altında işletme renginde çizgi
  *  5  Filtreler
- *  7  Sütun başlıkları (işletme rengi zemin, beyaz yazı) — sabitlenmiş, filtreli, her sayfada yazdırılır
+ *  7  Sütun başlıkları (işletme rengi zemin, beyaz yazı) — filtreli, her sayfada yazdırılır
  *  8… Veri (zebra satırlar; ₺, miktar, yüzde ve tarih Excel biçimiyle; sayılar gerçek sayı hücresi)
  *     TOPLAM satırı ve açıklama notu
  */
@@ -91,7 +91,8 @@ final class ExcelReportWriter
         $writer->openToFile($path);
         $sheet = $writer->getCurrentSheet();
         $sheet->setName($this->sheetName($report->title()));
-        $sheet->setSheetView((new SheetView(showGridLines: false))->withFreezeRow(self::HEADER_ROW + 1));
+        // Bölme dondurulmaz: birleştirilmiş antetle birlikte 7 satırlık donmuş alan Excel'de kaydırırken çizim hatası yapıyor.
+        $sheet->setSheetView(new SheetView(showGridLines: false));
         $sheet->setPrintTitleRows('$'.self::HEADER_ROW.':$'.self::HEADER_ROW);
         foreach ($this->widths($columns, $sample) as $i => $width) {
             $sheet->setColumnWidth($width, $i + 1);
@@ -221,7 +222,8 @@ final class ExcelReportWriter
     /** Başlık ve ilk satırlardaki en uzun değere göre sütun genişliği. @return float[] */
     private function widths(array $columns, LazyCollection $sample): array
     {
-        $max = array_map(fn ($c) => mb_strlen($c['label']) * 1.1, $columns);
+        // Başlık: kalın yazı payı + otomatik filtre düğmesi (~3 karakter) başlığın üstüne binmesin.
+        $max = array_map(fn ($c) => mb_strlen($c['label']) * 1.15 + 3, $columns);
         foreach ($sample as $row) {
             foreach ($columns as $key => $col) {
                 $max[$key] = max($max[$key], mb_strlen(CellFormatter::display($col['type'], $row->{$key} ?? null)));
