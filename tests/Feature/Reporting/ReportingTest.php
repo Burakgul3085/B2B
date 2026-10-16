@@ -91,9 +91,14 @@ class ReportingTest extends TestCase
         $rows = $this->xlsxRows($this->get(route('business.reports.export', ['key' => 'orders', 'format' => 'xlsx']))->assertOk());
         $headerRow = collect($rows)->first(fn ($r) => in_array('Genel toplam', $r, true));
         $header = array_search('Genel toplam', $headerRow, true);
-        $last = end($rows);
-        $this->assertSame('TOPLAM', $last[0]);
-        $this->assertEqualsWithDelta(120.00, $last[$header], 0.001);
+        $totalRow = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'TOPLAM');
+        $this->assertNotNull($totalRow, 'Excel dosyasında TOPLAM satırı yok.');
+        $this->assertEqualsWithDelta(120.00, $totalRow[$header], 0.001);
+        // Antet: unvan, rapor adı, kayıt sayısı; tarih hücreleri gerçek tarih değeri.
+        $this->assertSame($business->legal_name, $rows[0][0]);
+        $this->assertSame('Siparişler', $rows[1][0]);
+        $this->assertStringContainsString('Kayıt sayısı: 2', $rows[2][0]);
+        $this->assertInstanceOf(\DateTimeInterface::class, $rows[array_search($headerRow, $rows, true) + 1][1]);
 
         $report = ReportRegistry::find('business', 'orders');
         $context = new ReportContext('business', $business->id);

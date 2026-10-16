@@ -3,14 +3,11 @@
 namespace App\Domain\Reporting;
 
 use App\Models\Business;
+use App\Models\DealerRelationship;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use OpenSpout\Common\Entity\Cell;
-use OpenSpout\Common\Entity\Row;
-use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -30,63 +27,41 @@ class ReportExporter
 
     public function excel(Report $report, array $prepared, ReportContext $context, Business $business, array $filterSummary): StreamedResponse
     {
-        $columns = array_intersect_key($report->columns(), array_flip($prepared['columns']));
-        $columns = array_replace(array_flip($prepared['columns']), $columns);
+        $columns = $this->columns($report, $prepared);
         $totals = $this->runner->totals($report, $prepared, $context);
+        $count = $this->runner->count($report, $prepared, $context);
         $filename = Str::slug($report->title()).'-'.now()->format('Ymd-Hi').'.xlsx';
 
-        return response()->streamDownload(function () use ($report, $prepared, $context, $business, $filterSummary, $columns, $totals) {
-            $writer = new Writer;
-            $writer->openToFile('php://output');
-            $bold = (new Style)->withFontBold(true);
-
-            $writer->addRow(Row::fromValuesWithStyle([CellFormatter::safeText($business->legal_name)], $bold));
-            $writer->addRow(Row::fromValuesWithStyle([CellFormatter::safeText($report->title())], $bold));
-            $writer->addRow(Row::fromValues(['Rapor tarihi: '.now()->timezone('Europe/Istanbul')->format('d.m.Y H:i')]));
-            foreach ($filterSummary as $label => $value) {
-                $writer->addRow(Row::fromValues([CellFormatter::safeText($label.': '.$value)]));
-            }
-            $writer->addRow(Row::fromValues(['']));
-            $writer->addRow(Row::fromValuesWithStyle(array_column($columns, 'label'), $bold));
-
-            foreach ($this->runner->rows($report, $prepared, $context) as $row) {
-                $cells = [];
-                foreach ($columns as $key => $col) {
-                    $cells[] = $this->cell($col['type'], $row->{$key} ?? null);
-                }
-                $writer->addRow(new Row($cells));
-            }
-
-            if ($totals) {
-                $cells = [];
-                $first = true;
-                foreach ($columns as $key => $col) {
-                    $cells[] = isset($totals[$key]) ? Cell::fromValue((float) $totals[$key], $bold) : Cell::fromValue($first ? 'TOPLAM' : '', $bold);
-                    $first = false;
-                }
-                $writer->addRow(new Row($cells));
-            }
-
-            $writer->close();
+        return response()->streamDownload(function () use ($report, $prepared, $context, $business, $filterSummary, $columns, $totals, $count) {
+            (new ExcelReportWriter)->write('php://output', $report, $business, $columns,
+                $this->runner->rows($report, $prepared, $context), $this->runner->rows($report, $prepared, $context)->take(300),
+                $count, $totals, $filterSummary);
         }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     /** @return StreamedResponse|null null: satır sınırı aşıldı */
     public function pdf(Report $report, array $prepared, ReportContext $context, Business $business, array $filterSummary): ?StreamedResponse
     {
-        if ($this->runner->count($report, $prepared, $context) > $this->pdfRowLimit) {
+        $count = $this->runner->count($report, $prepared, $context);
+        if ($count > $this->pdfRowLimit) {
             return null;
         }
 
-        $columns = array_replace(array_flip($prepared['columns']), array_intersect_key($report->columns(), array_flip($prepared['columns'])));
+        $columns = $this->columns($report, $prepared);
         $html = view('reports.pdf', [
             'report' => $report,
             'business' => $business,
             'columns' => $columns,
             'rows' => $this->runner->rows($report, $prepared, $context),
+            'count' => $count,
             'totals' => $this->runner->totals($report, $prepared, $context),
             'filterSummary' => $filterSummary,
             'logo' => $this->logoDataUri($business),
+            'brand' => '#'.ReportBranding::color($business),
+            'contact' => ReportBranding::contactLines($business),
+            'generatedAt' => ReportBranding::now(),
+            'landscape' => count($columns) > 6,
+            'dealerName' => $context->isDealer() ? DealerRelationship::with('dealer:id,legal_name')->find($context->relationshipId)?->dealer->legal_name : null,
         ])->render();
 
         $options = new Options;
@@ -96,25 +71,27 @@ class ReportExporter
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', count($columns) > 6 ? 'landscape' : 'portrait');
         $dompdf->render();
+        $this->pageNumbers($dompdf);
 
         $filename = Str::slug($report->title()).'-'.now()->format('Ymd-Hi').'.pdf';
 
         return response()->streamDownload(fn () => print ($dompdf->output()), $filename, ['Content-Type' => 'application/pdf']);
     }
 
-    private function cell(string $type, mixed $value): Cell
+    /** Seçili sütunlar, seçim sırasıyla. @return array<string, array> */
+    private function columns(Report $report, array $prepared): array
     {
-        if ($value === null || $value === '') {
-            return Cell::fromValue('');
-        }
-        if (CellFormatter::isNumeric($type)) {
-            return Cell::fromValue((float) $value);
-        }
-        if (in_array($type, ['date', 'datetime'], true)) {
-            return Cell::fromValue(CellFormatter::display($type, $value));
-        }
+        return array_replace(array_flip($prepared['columns']), array_intersect_key($report->columns(), array_flip($prepared['columns'])));
+    }
 
-        return Cell::fromValue(CellFormatter::safeText((string) $value));
+    /** Her sayfanın altına "Sayfa X / Y" (toplam sayfa sayısı ancak çizimden sonra bilinir). */
+    private function pageNumbers(Dompdf $dompdf): void
+    {
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $text = 'Sayfa {PAGE_NUM} / {PAGE_COUNT}';
+        $width = $dompdf->getFontMetrics()->getTextWidth('Sayfa 99 / 99', $font, 5.2);
+        $canvas->page_text($canvas->get_width() - 37 - $width, $canvas->get_height() - 37.5, $text, $font, 5.2, [0.39, 0.45, 0.55]);
     }
 
     private function logoDataUri(Business $business): ?string
