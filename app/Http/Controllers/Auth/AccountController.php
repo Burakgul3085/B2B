@@ -49,7 +49,43 @@ class AccountController extends Controller
             return back()->withErrors(['email' => $e->getMessage()])->withInput();
         }
 
-        return back()->with('status', "Doğrulama bağlantısı {$result['email']} adresine gönderildi. Bağlantıyı açana kadar mevcut e-postanızla giriş yapmaya devam edersiniz.")
+        return $this->afterSend($result);
+    }
+
+    public function resendEmail(Request $request, AccountEmailService $emails): RedirectResponse
+    {
+        $area = $this->area($request);
+        try {
+            $result = $emails->resendChange($area, $request->user($area->guard()));
+        } catch (DomainException $e) {
+            return back()->withErrors(['email' => $e->getMessage()]);
+        }
+
+        return $this->afterSend($result);
+    }
+
+    public function cancelEmail(Request $request, AccountEmailService $emails): RedirectResponse
+    {
+        $area = $this->area($request);
+        $emails->cancelChange($area, $request->user($area->guard()));
+
+        return back()->with('status', 'E-posta değişikliği talebi iptal edildi; mevcut adresiniz geçerli.');
+    }
+
+    private function afterSend(array $result): RedirectResponse
+    {
+        $message = match ($result['via']) {
+            'system' => "Doğrulama bağlantısı {$result['email']} adresine gönderildi.",
+            'business' => "Doğrulama bağlantısı {$result['email']} adresine işletmenin Gmail hesabından gönderiliyor (birkaç saniye sürebilir; gereksiz/spam klasörünü de kontrol edin).",
+            'screen' => 'E-posta gönderimi tanımlı olmadığı için doğrulama bağlantısı aşağıda gösteriliyor.',
+            default => 'Doğrulama e-postası gönderilemedi; lütfen platform yöneticisiyle iletişime geçin.',
+        };
+
+        if ($result['via'] === 'none') {
+            return back()->withErrors(['email' => $message]);
+        }
+
+        return back()->with('status', $message.' Bağlantıyı açana kadar mevcut e-postanızla giriş yapmaya devam edersiniz.')
             ->with('email_verify_url', $result['url']);
     }
 

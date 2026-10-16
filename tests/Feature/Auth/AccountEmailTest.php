@@ -50,7 +50,7 @@ class AccountEmailTest extends TestCase
         $url = session('email_verify_url'); // demo ortamı: sistem e-postası yok, bağlantı ekranda
         $this->assertNotNull($url);
         $this->assertSame($user->email, $user->fresh()->email, 'Doğrulanmadan değişmemeli.');
-        $this->get(route('business.account'))->assertSee('Doğrulama bekliyor: yeni@gercek.test');
+        $this->get(route('business.account'))->assertSee('Doğrulama bekliyor:')->assertSee('yeni@gercek.test')->assertSee('Bağlantıyı yeniden gönder');
 
         // Bağlantı açılınca yalnızca onay sayfası gelir; değişiklik butonla uygulanır.
         $token = basename(parse_url($url, PHP_URL_PATH));
@@ -66,6 +66,28 @@ class AccountEmailTest extends TestCase
 
         $this->post(route('business.logout'));
         $this->post(route('business.login.store'), ['email' => 'yeni@gercek.test', 'password' => self::PASSWORD])->assertRedirect(route('business.dashboard'));
+    }
+
+    public function test_verification_goes_through_business_gmail_and_can_be_resent_or_cancelled(): void
+    {
+        $business = $this->makeBusiness();
+        $this->inTenant($business, fn () => \App\Models\EmailSetting::create([
+            'from_email' => 'gonderen@gmail.com', 'app_password_encrypted' => 'x', 'status' => 'verified',
+        ]));
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->actingAs($business->user, 'business');
+
+        $this->post(route('business.account.email'), ['email' => 'gercek@gmail.com', 'email_password' => self::PASSWORD])->assertSessionHasNoErrors();
+        $this->assertNull(session('email_verify_url'), 'Gmail ile gönderildiğinde bağlantı ekranda gösterilmez.');
+        $this->assertDatabaseHas('email_logs', ['template_key' => 'account_email_verify', 'to_email' => 'gercek@gmail.com', 'status' => 'queued']);
+
+        $this->post(route('business.account.email.resend'))->assertSessionHasNoErrors();
+        $this->assertSame(2, \App\Models\EmailLog::withoutBusinessScope()->where('template_key', 'account_email_verify')->count());
+        $this->assertSame(1, AuthToken::where(['purpose' => 'email_change'])->whereNull('used_at')->count(), 'Yalnızca son bağlantı geçerli.');
+
+        $this->delete(route('business.account.email.cancel'))->assertSessionHasNoErrors();
+        $this->assertSame(0, AuthToken::where(['purpose' => 'email_change'])->whereNull('used_at')->count());
+        $this->post(route('business.account.email.resend'))->assertSessionHasErrors('email');
     }
 
     public function test_email_taken_meanwhile_is_rejected_at_confirmation(): void

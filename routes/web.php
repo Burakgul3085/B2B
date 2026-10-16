@@ -57,6 +57,8 @@ $accountRoutes = function () {
     Route::put('hesabim', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('hesabim/parola', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
+    Route::post('hesabim/e-posta/yeniden', [AccountController::class, 'resendEmail'])->middleware('throttle:5,10')->name('account.email.resend');
+    Route::delete('hesabim/e-posta', [AccountController::class, 'cancelEmail'])->name('account.email.cancel');
 };
 
 /* ---------------- Platform yönetimi ---------------- */

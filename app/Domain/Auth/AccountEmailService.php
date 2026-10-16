@@ -3,7 +3,9 @@
 namespace App\Domain\Auth;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Mail\BusinessMailer;
 use App\Domain\Mail\SystemMailer;
+use App\Domain\Tenancy\TenantContext;
 use App\Models\AuthToken;
 use App\Models\BusinessUser;
 use DomainException;
@@ -19,7 +21,7 @@ use Illuminate\Support\Str;
  *  - Platform yöneticisi doğrudan değiştirir: gerekçe zorunlu, denetim kaydı, eski ve yeni adrese bildirim.
  *  - Parola hiçbir yöneticiye gösterilmez; yalnızca sıfırlama bağlantısı üretilir.
  *
- * Bağlantıların ekranda gösterilmesi: sistem e-postası tanımlı değilse ve ortam üretim değilse (yerel/demo)
+ * Bağlantıların ekranda gösterilmesi: hiçbir e-posta kanalı yoksa ve ortam üretim değilse (yerel/demo)
  * bağlantı ekranda gösterilir. Üretimde bağlantı yalnızca e-postayla gider.
  */
 class AccountEmailService
@@ -33,7 +35,12 @@ class AccountEmailService
     }
 
     /**
-     * @return array{url: ?string, email: string} url yalnızca ekranda gösterilecekse dolu
+     * Doğrulama bağlantısı yeni adrese gider. Gönderim sırası:
+     *  1. Sistem e-postası tanımlıysa onunla,
+     *  2. değilse (toptancı/bayi alanında) o anki işletmenin Gmail ayarıyla (E-posta Ayarları),
+     *  3. o da yoksa yerel/demo ortamında bağlantı ekranda gösterilir.
+     *
+     * @return array{url: ?string, email: string, via: 'system'|'business'|'screen'|'none'}
      */
     public function requestChange(Area $area, Model $user, string $newEmail): array
     {
@@ -45,16 +52,50 @@ class AccountEmailService
 
         $plain = $this->tokens->issue($area, $user->id, 'email_change', $email);
         $url = $this->tokens->url($area, 'email_change', $plain);
-        $this->mailer->send($email, 'E-posta adresinizi doğrulayın', [
-            'title' => 'Yeni e-posta adresinizi doğrulayın',
-            'intro' => "{$area->label()} hesabınızın giriş e-postasını bu adresle değiştirme talebi aldık. Değişikliği tamamlamak için 24 saat içinde aşağıdaki bağlantıyı açın. Doğrulayana kadar eski adresinizle giriş yapmaya devam edersiniz.",
-            'action_url' => $url,
-            'action_label' => 'E-postamı doğrula',
-            'outro' => 'Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.',
-        ]);
         $this->audit->log('auth.email_change_requested', $user, [], ['new_email' => $email], businessId: $this->businessId($user), actorArea: $area);
 
-        return ['url' => $this->revealsLinks() ? $url : null, 'email' => $email];
+        $via = $this->deliverVerification($area, $email, $url);
+
+        return ['url' => $via === 'screen' ? $url : null, 'email' => $email, 'via' => $via];
+    }
+
+    /** Bekleyen değişiklik için yeni bağlantı (eski bağlantılar geçersiz olur). */
+    public function resendChange(Area $area, Model $user): array
+    {
+        $pending = $this->tokens->pendingEmailChange($area, $user->id) ?? throw new DomainException('Bekleyen bir e-posta değişikliği yok.');
+
+        return $this->requestChange($area, $user, $pending->new_email);
+    }
+
+    public function cancelChange(Area $area, Model $user): void
+    {
+        $this->tokens->revoke($area, $user->id, 'email_change');
+        $this->audit->log('auth.email_change_cancelled', $user, businessId: $this->businessId($user), actorArea: $area);
+    }
+
+    /** @return 'system'|'business'|'screen'|'none' */
+    private function deliverVerification(Area $area, string $email, string $url): string
+    {
+        if ($this->mailer->isConfigured()) {
+            $this->mailer->send($email, 'E-posta adresinizi doğrulayın', [
+                'title' => 'Yeni e-posta adresinizi doğrulayın',
+                'intro' => "{$area->label()} hesabınızın giriş e-postasını bu adresle değiştirme talebi aldık. Değişikliği tamamlamak için 24 saat içinde aşağıdaki bağlantıyı açın. Doğrulayana kadar eski adresinizle giriş yapmaya devam edersiniz.",
+                'action_url' => $url,
+                'action_label' => 'E-postamı doğrula',
+                'outro' => 'Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.',
+            ]);
+
+            return 'system';
+        }
+
+        if ($area !== Area::Platform && app(TenantContext::class)->hasBusiness()) {
+            $log = app(BusinessMailer::class)->queue('account_email_verify', $email, [], ['url' => $url, 'label' => 'E-postamı doğrula']);
+            if ($log->status !== 'skipped') {
+                return 'business';
+            }
+        }
+
+        return app()->isProduction() ? 'none' : 'screen';
     }
 
     /** Doğrulama bağlantısıyla değişikliği tamamlar. @throws DomainException */

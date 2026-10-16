@@ -14,7 +14,7 @@
             @if (session('email_verify_url'))
                 <div class="mb-5 rounded-xl border border-amber-200 bg-warning-soft p-4 text-sm text-amber-900" x-data="{ copied: false }">
                     <p class="font-semibold">Doğrulama bağlantısı (demo ortamı)</p>
-                    <p class="mt-1">Sistem e-postası henüz tanımlı olmadığı için bağlantı burada gösteriliyor. Canlı ortamda yalnızca yeni adrese e-postayla gider.</p>
+                    <p class="mt-1">E-posta gönderimi tanımlı olmadığı için bağlantı burada gösteriliyor. Canlı ortamda yalnızca yeni adrese e-postayla gider.</p>
                     <div class="mt-3 flex gap-2">
                         <input readonly value="{{ session('email_verify_url') }}" class="field-input font-mono text-xs" x-ref="link" aria-label="Doğrulama bağlantısı">
                         <x-button type="button" variant="secondary" @click="navigator.clipboard.writeText($refs.link.value); copied = true" x-text="copied ? 'Kopyalandı' : 'Kopyala'">Kopyala</x-button>
@@ -25,14 +25,21 @@
             <dl class="mb-5 text-sm">
                 <dt class="text-muted">Mevcut giriş e-postası</dt>
                 <dd class="mt-0.5 font-medium">{{ $user->email }}</dd>
-                @if ($pendingEmail)
-                    <dd class="mt-2"><x-badge tone="warning">Doğrulama bekliyor: {{ $pendingEmail->new_email }}</x-badge></dd>
-                @endif
             </dl>
+            @if ($pendingEmail)
+                <div class="mb-5 rounded-lg border border-amber-200 bg-warning-soft p-3 text-sm text-amber-900">
+                    <p><b>Doğrulama bekliyor:</b> {{ $pendingEmail->new_email }}</p>
+                    <p class="mt-1 text-xs">Doğrulama bağlantısı <b>yeni adrese</b> gönderilir. Gelmediyse yeniden gönderin; yanlış yazdıysanız iptal edip yeniden başlatın.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <form method="POST" action="{{ route($area->value.'.account.email.resend') }}">@csrf<x-button variant="secondary" size="sm" icon="refresh">Bağlantıyı yeniden gönder</x-button></form>
+                        <form method="POST" action="{{ route($area->value.'.account.email.cancel') }}">@csrf @method('DELETE')<x-button variant="ghost" size="sm">Talebi iptal et</x-button></form>
+                    </div>
+                </div>
+            @endif
             <form method="POST" action="{{ route($area->value.'.account.email') }}" class="space-y-5">
                 @csrf
-                <x-field name="email" label="Yeni e-posta adresi" type="email" required autocomplete="email" />
-                <x-field name="email_password" label="Mevcut parola" type="password" required autocomplete="current-password" hint="Güvenliğiniz için parolanızla onaylayın." />
+                <x-field name="email" label="Yeni e-posta adresi" type="email" required autocomplete="off" data-1p-ignore data-lpignore="true" />
+                <x-field name="email_password" label="Mevcut parola" type="password" required autocomplete="new-password" hint="Güvenliğiniz için parolanızla onaylayın." />
                 <x-button variant="secondary">Doğrulama bağlantısı gönder</x-button>
             </form>
         </x-card>

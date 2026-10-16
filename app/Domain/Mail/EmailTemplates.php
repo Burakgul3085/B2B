@@ -29,6 +29,11 @@ final class EmailTemplates
             'subject' => '{isletme} bayi hesabınız hazır',
             'intro' => 'Bayi hesabınız oluşturuldu. Aşağıdaki bağlantıyla parolanızı belirleyin. Bağlantı 72 saat geçerlidir.',
         ],
+        'account_email_verify' => [
+            'label' => 'Giriş e-postası doğrulama (hesap sahibine)',
+            'subject' => '{isletme} hesabınız için e-posta doğrulama',
+            'intro' => 'Hesabınızın giriş e-postasını bu adresle değiştirme talebi aldık. Değişikliği tamamlamak için 24 saat içinde aşağıdaki bağlantıyı açın. Doğrulayana kadar eski adresinizle giriş yapmaya devam edersiniz. Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.',
+        ],
         'dealer_password_reset' => [
             'label' => 'Bayi parola sıfırlama (bayiye)',
             'subject' => '{isletme} bayi hesabınız için parola sıfırlama',
