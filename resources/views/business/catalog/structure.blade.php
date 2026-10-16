@@ -71,7 +71,7 @@
                                 </form>
                                 <button type="button" @click="edit = !edit" class="text-primary hover:underline" x-text="edit ? 'Vazgeç' : 'Düzenle'"></button>
                                 @if ($brand->products_count === 0)
-                                    <form method="POST" action="{{ route('business.brands.destroy', $brand) }}" onsubmit="return confirm('Marka silinsin mi?')">@csrf @method('DELETE')<button class="text-danger hover:underline">Sil</button></form>
+                                    <form method="POST" action="{{ route('business.brands.destroy', $brand) }}" data-confirm="Marka silinsin mi?">@csrf @method('DELETE')<button class="text-danger hover:underline">Sil</button></form>
                                 @endif
                             </li>
                         @endforeach

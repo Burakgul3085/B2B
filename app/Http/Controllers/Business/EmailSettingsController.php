@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Mail\BusinessMailer;
+use App\Domain\Mail\EmailSettingService;
 use App\Domain\Mail\EmailTemplates;
 use App\Domain\Mail\MailFailure;
 use App\Domain\Mail\MailTransport;
@@ -15,7 +16,6 @@ use App\Models\EmailTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -38,74 +38,30 @@ class EmailSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, EmailSettingService $settings): RedirectResponse
     {
-        $setting = EmailSetting::first();
-        $request->merge(['app_password' => preg_replace('/\s+/', '', $request->scalar('app_password'))]);
+        $changed = $settings->save($request->only(['from_email', 'from_name', 'app_password']) + ['payment_reminders' => $request->boolean('payment_reminders')]);
 
-        $data = $request->validate([
-            'from_email' => ['required', 'email', 'max:255'],
-            'from_name' => ['nullable', 'string', 'max:120'],
-            // Google uygulama şifresi 16 harftir (boşluksuz). Kayıtlıysa boş bırakılabilir.
-            'app_password' => [$setting ? 'nullable' : 'required', 'regex:/^[a-zA-Z]{16}$/'],
-            'payment_reminders' => ['boolean'],
-        ], ['app_password.regex' => 'Uygulama şifresi 16 harften oluşmalıdır (Google gösterdiği boşluklar olmadan da girebilirsiniz).'],
-            ['from_email' => 'gönderen e-posta', 'from_name' => 'görünen ad', 'app_password' => 'uygulama şifresi']);
-
-        $values = [
-            'from_email' => Str::lower($data['from_email']),
-            'from_name' => $data['from_name'] ?? null,
-            'payment_reminders' => $request->boolean('payment_reminders'),
-        ];
-
-        $credentialsChanged = ! $setting || filled($data['app_password'] ?? null) || $setting->from_email !== $values['from_email'];
-        if (filled($data['app_password'] ?? null)) {
-            $values['app_password_encrypted'] = $this->secrets->encrypt($data['app_password']);
-        }
-        if ($credentialsChanged) {
-            $values += ['status' => 'unverified', 'last_error_code' => null];
-        }
-
-        $setting ? $setting->update($values) : EmailSetting::create($values);
-        $this->audit->log('email.settings_updated', null, [], ['from_email' => $values['from_email'], 'password_changed' => filled($data['app_password'] ?? null)]);
-
-        return back()->with('status', $credentialsChanged ? 'E-posta ayarı kaydedildi. Şimdi “Bağlantıyı test et” ile doğrulayın.' : 'E-posta ayarı kaydedildi.');
+        return back()->with('status', $changed ? 'E-posta ayarı kaydedildi. Şimdi “Bağlantıyı test et” ile doğrulayın.' : 'E-posta ayarı kaydedildi.');
     }
 
-    /** Gmail SMTP bağlantısı ve kimlik doğrulaması denenir; başarılıysa kullanıcının kendi adresine test e-postası gider. */
-    public function test(Request $request, MailTransport $transport): RedirectResponse
+    /** Gmail SMTP bağlantısı ve kimlik doğrulaması denenir; başarılıysa ana adrese test e-postası gider. */
+    public function test(Request $request, MailTransport $transport, EmailSettingService $settings): RedirectResponse
     {
-        $setting = EmailSetting::firstOrFail();
-        $key = 'email-test:'.$setting->business_id;
+        $key = 'email-test:'.$request->user()->business_id;
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return back()->withErrors(['email' => 'Çok fazla deneme. Lütfen birkaç dakika sonra tekrar deneyin.']);
         }
         RateLimiter::hit($key, 600);
-
-        $sender = ['email' => $setting->from_email, 'name' => $setting->from_name, 'password' => $this->secrets->decrypt($setting->app_password_encrypted)];
+        abort_unless(EmailSetting::exists(), 404);
 
         try {
-            $transport->verify($sender);
-            $transport->send($sender, [
-                'to' => $request->user()->email,
-                'subject' => 'Test e-postası — '.$request->user()->business->display_name,
-                'html' => view('emails.business', [
-                    'business' => $request->user()->business, 'subject' => 'E-posta ayarınız çalışıyor',
-                    'intro' => 'Bu bir test e-postasıdır. Bayilerinize gönderilecek bildirimler bu hesaptan gidecek.', 'details' => [], 'action_url' => null,
-                ])->render(),
-                'text' => 'E-posta ayarınız çalışıyor.',
-            ]);
+            $to = $settings->test($transport);
         } catch (MailFailure $e) {
-            $setting->update(['status' => 'failed', 'last_tested_at' => now(), 'last_error_code' => $e->reason]);
-            $this->audit->log('email.test_failed', null, [], ['reason' => $e->reason]);
-
             return back()->withErrors(['email' => $e->getMessage()]);
         }
 
-        $setting->update(['status' => 'verified', 'last_tested_at' => now(), 'last_error_code' => null]);
-        $this->audit->log('email.test_succeeded');
-
-        return back()->with('status', 'Bağlantı başarılı. '.$request->user()->email.' adresine test e-postası gönderildi.');
+        return back()->with('status', "Bağlantı başarılı. {$to} adresine test e-postası gönderildi.");
     }
 
     public function updateTemplate(Request $request): RedirectResponse

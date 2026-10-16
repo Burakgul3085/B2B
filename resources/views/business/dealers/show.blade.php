@@ -10,8 +10,6 @@
         <x-badge :tone="['active' => 'success', 'suspended' => 'warning', 'closed' => 'neutral'][$r->status]">{{ DealerRelationship::STATUSES[$r->status] }}</x-badge>
     </x-page-header>
 
-    <x-activation-link />
-    @error('activation')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
     <nav class="mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Sekmeler">
         @foreach (['general' => 'Genel', 'addresses' => 'Sevk adresleri', 'prices' => 'Özel fiyatlar', 'preview' => 'Fiyat önizleme'] as $key => $label)
@@ -55,31 +53,45 @@
             </div>
 
             <div class="space-y-6">
-                <x-card title="Hesap">
+                <x-card title="Giriş hesabı">
                     @error('account_email')<div role="alert" class="mb-4 rounded-lg border border-red-200 bg-danger-soft px-3 py-2 text-sm text-red-900">{{ $message }}</div>@enderror
-                    @if (session('reset_url'))
-                        <div class="mb-4 rounded-lg border border-amber-200 bg-warning-soft p-3 text-xs text-amber-900">
-                            <p class="font-semibold">Parola sıfırlama bağlantısı (yalnızca demo ortamı)</p>
-                            <p class="mt-1">Canlı ortamda bu bağlantı size gösterilmez, yalnızca bayinin e-postasına gider.</p>
-                            <input readonly value="{{ session('reset_url') }}" class="field-input mt-2 font-mono text-xs" aria-label="Parola sıfırlama bağlantısı">
-                        </div>
-                    @endif
                     <p class="text-xs text-muted">Giriş e-postası</p>
-                    <p class="mb-3 break-all text-sm font-medium">{{ $user?->email }}</p>
-                    @if ($user?->status === 'pending_activation')
-                        <x-badge tone="warning">Aktivasyon bekliyor</x-badge>
-                        <p class="mt-2 text-sm text-muted">Bayi henüz parolasını belirlemedi. E-posta hatalı girildiyse düzeltin; aktivasyon bağlantısı yeni adrese gider.</p>
-                        <form method="POST" action="{{ route('business.dealers.email', $r) }}" class="mt-3 space-y-3">
-                            @csrf @method('PUT')
-                            <x-field name="email" label="Doğru e-posta adresi" type="email" :value="old('email', $user->email)" required />
-                            <x-button variant="secondary" size="sm">E-postayı düzelt ve bağlantı gönder</x-button>
-                        </form>
-                        <form method="POST" action="{{ route('business.dealers.activation', $r) }}" class="mt-2">@csrf<x-button variant="ghost" size="sm" icon="refresh">Aynı adrese yeni aktivasyon bağlantısı</x-button></form>
-                    @else
-                        <x-badge tone="success">Etkin</x-badge>
-                        <p class="mt-2 text-xs text-muted">Son giriş: {{ $user?->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? '—' }}</p>
-                        <p class="mt-3 text-xs text-muted">Bayi hesabını etkinleştirdi; giriş e-postasını yalnızca bayi kendisi (Profil ve Güvenlik) veya platform yöneticisi değiştirebilir.</p>
-                        <form method="POST" action="{{ route('business.dealers.password-reset', $r) }}" class="mt-3">@csrf<x-button variant="secondary" size="sm">Parola sıfırlama bağlantısı gönder</x-button></form>
+                    <p class="break-all text-sm font-medium">{{ $user?->email }}</p>
+                    <div class="mt-2">
+                        @if ($user?->status === 'pending_activation')
+                            <x-badge tone="warning">Şifre belirlenmedi</x-badge>
+                            <p class="mt-2 text-xs text-muted">Aşağıdan şifre belirlediğinizde hesap etkinleşir.</p>
+                        @elseif ($user?->status === 'disabled')
+                            <x-badge>Platform tarafından kapatıldı</x-badge>
+                        @else
+                            <x-badge tone="success">Etkin</x-badge>
+                            <p class="mt-1 text-xs text-muted">Son giriş: {{ $user?->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? 'Henüz giriş yapmadı' }}</p>
+                        @endif
+                    </div>
+
+                    @if ($user && $user->last_login_at === null)
+                        <details class="mt-4 border-t border-line pt-3">
+                            <summary class="cursor-pointer text-sm font-medium text-primary">E-postayı düzelt</summary>
+                            <p class="mt-2 text-xs text-muted">Bayi henüz giriş yapmadığı için hatalı yazılmış e-postayı düzeltebilirsiniz. Giriş yaptıktan sonra e-postasını kendisi değiştirir.</p>
+                            <form method="POST" action="{{ route('business.dealers.email', $r) }}" class="mt-3 space-y-3">
+                                @csrf @method('PUT')
+                                <x-field name="email" label="Doğru e-posta adresi" type="email" :value="old('email', $user->email)" required autocomplete="off" />
+                                <x-button variant="secondary" size="sm">Kaydet</x-button>
+                            </form>
+                        </details>
+                    @endif
+
+                    @if ($user)
+                        <details class="mt-4 border-t border-line pt-3" @if ($errors->has('password')) open @endif>
+                            <summary class="cursor-pointer text-sm font-medium text-primary">Yeni şifre belirle</summary>
+                            <p class="mt-2 text-xs text-muted">Bayi şifresini unuttuysa yeni şifre belirleyip kendisine iletin. Bayi isterse sonra kendisi değiştirir.</p>
+                            <form method="POST" action="{{ route('business.dealers.password', $r) }}" class="mt-3 space-y-3">
+                                @csrf @method('PUT')
+                                <x-field name="password" label="Yeni şifre" type="password" required autocomplete="new-password" hint="En az 10 karakter; harf ve rakam." />
+                                <x-field name="password_confirmation" label="Yeni şifre (tekrar)" type="password" required autocomplete="new-password" />
+                                <x-button variant="secondary" size="sm">Şifreyi kaydet</x-button>
+                            </form>
+                        </details>
                     @endif
                 </x-card>
 
@@ -112,7 +124,7 @@
                             </div>
                             <div class="flex flex-col items-end gap-1 text-sm">
                                 <button type="button" @click="edit = true" class="text-primary hover:underline">Düzenle</button>
-                                <form method="POST" action="{{ route('business.dealers.addresses.destroy', [$r, $address]) }}" onsubmit="return confirm('Adres kaldırılsın mı?')">@csrf @method('DELETE')<button class="text-danger hover:underline">Kaldır</button></form>
+                                <form method="POST" action="{{ route('business.dealers.addresses.destroy', [$r, $address]) }}" data-confirm="Adres kaldırılsın mı?">@csrf @method('DELETE')<button class="text-danger hover:underline">Kaldır</button></form>
                             </div>
                         </div>
                         <div x-show="edit" x-cloak>

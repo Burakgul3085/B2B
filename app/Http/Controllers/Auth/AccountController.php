@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
-use App\Domain\Auth\AuthTokenService;
 use App\Http\Controllers\Controller;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -26,67 +25,25 @@ class AccountController extends Controller
 
         $user = $request->user($area->guard());
 
-        return view('account.show', [
-            'area' => $area,
-            'user' => $user,
-            'pendingEmail' => app(AuthTokenService::class)->pendingEmailChange($area, $user->id),
-        ]);
+        return view('account.show', ['area' => $area, 'user' => $user]);
     }
 
-    /** Giriş e-postası değişikliği: mevcut parola ile onaylanır, yeni adres doğrulanınca uygulanır. */
-    public function updateEmail(Request $request, AccountEmailService $emails): RedirectResponse
+    /** Giriş e-postası değişikliği: mevcut şifreyle onaylanır ve hemen uygulanır (doğrulama bağlantısı yok). */
+    public function updateEmail(Request $request, AccountEmailService $accounts): RedirectResponse
     {
         $area = $this->area($request);
-        $user = $request->user($area->guard());
         $data = $request->validate([
             'email' => ['bail', 'required', 'string', 'email', 'max:255'],
             'email_password' => ['bail', 'required', 'string', 'current_password:'.$area->guard()],
-        ], [], ['email' => 'yeni e-posta adresi', 'email_password' => 'mevcut parola']);
+        ], [], ['email' => 'yeni e-posta adresi', 'email_password' => 'mevcut şifre']);
 
         try {
-            $result = $emails->requestChange($area, $user, $data['email']);
+            $email = $accounts->changeOwnEmail($area, $request->user($area->guard()), $data['email']);
         } catch (DomainException $e) {
-            return back()->withErrors(['email' => $e->getMessage()])->withInput();
+            return back()->withErrors(['email' => $e->getMessage()])->withInput($request->only('email'));
         }
 
-        return $this->afterSend($result);
-    }
-
-    public function resendEmail(Request $request, AccountEmailService $emails): RedirectResponse
-    {
-        $area = $this->area($request);
-        try {
-            $result = $emails->resendChange($area, $request->user($area->guard()));
-        } catch (DomainException $e) {
-            return back()->withErrors(['email' => $e->getMessage()]);
-        }
-
-        return $this->afterSend($result);
-    }
-
-    public function cancelEmail(Request $request, AccountEmailService $emails): RedirectResponse
-    {
-        $area = $this->area($request);
-        $emails->cancelChange($area, $request->user($area->guard()));
-
-        return back()->with('status', 'E-posta değişikliği talebi iptal edildi; mevcut adresiniz geçerli.');
-    }
-
-    private function afterSend(array $result): RedirectResponse
-    {
-        $message = match ($result['via']) {
-            'system' => "Doğrulama bağlantısı {$result['email']} adresine gönderildi.",
-            'business' => "Doğrulama bağlantısı {$result['email']} adresine işletmenin Gmail hesabından gönderiliyor (birkaç saniye sürebilir; gereksiz/spam klasörünü de kontrol edin).",
-            'screen' => 'E-posta gönderimi tanımlı olmadığı için doğrulama bağlantısı aşağıda gösteriliyor.',
-            default => 'Doğrulama e-postası gönderilemedi; lütfen platform yöneticisiyle iletişime geçin.',
-        };
-
-        if ($result['via'] === 'none') {
-            return back()->withErrors(['email' => $message]);
-        }
-
-        return back()->with('status', $message.' Bağlantıyı açana kadar mevcut e-postanızla giriş yapmaya devam edersiniz.')
-            ->with('email_verify_url', $result['url']);
+        return back()->with('status', "Giriş e-postanız {$email} olarak güncellendi. Bundan sonra bu adresle giriş yapın; e-postalar da bu adrese gelir.");
     }
 
     public function updateProfile(Request $request): RedirectResponse

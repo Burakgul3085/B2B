@@ -5,17 +5,23 @@ namespace App\Http\Controllers\Platform;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
+use App\Domain\Mail\EmailSettingService;
+use App\Domain\Mail\MailFailure;
+use App\Domain\Mail\MailTransport;
 use App\Domain\Platform\CreateBusiness;
+use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\BusinessModule;
 use App\Models\DealerRelationship;
+use App\Models\EmailSetting;
 use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 /**
@@ -59,6 +65,7 @@ class BusinessController extends Controller
             'slug' => ['required', 'string', 'min:3', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:businesses,slug'],
             'owner_name' => ['required', 'string', 'max:120'],
             'owner_email' => ['required', 'email', 'max:255', 'unique:business_users,email'],
+            'owner_password' => ['required', 'string', Password::defaults()],
             'plan' => ['required', 'string', 'max:40'],
             'starts_on' => ['required', 'date'],
             'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
@@ -66,13 +73,12 @@ class BusinessController extends Controller
 
         $result = $action->handle(
             collect($data)->only(['slug', 'legal_name', 'display_name', 'tax_office', 'tax_number', 'phone', 'email', 'city', 'district', 'address'])->all(),
-            ['name' => $data['owner_name'], 'email' => Str::lower($data['owner_email'])],
+            ['name' => $data['owner_name'], 'email' => Str::lower($data['owner_email']), 'password' => $data['owner_password']],
             ['plan' => $data['plan'], 'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'] ?? null],
         );
 
         return redirect()->route('platform.businesses.show', $result['business'])
-            ->with('status', 'İşletme oluşturuldu.')
-            ->with('activation', $result);
+            ->with('status', 'İşletme oluşturuldu. Yetkili, belirlediğiniz e-posta ve şifreyle toptancı paneline hemen giriş yapabilir.');
     }
 
     public function show(Business $business): View
@@ -84,7 +90,34 @@ class BusinessController extends Controller
             'Aktif bayi' => DealerRelationship::withoutBusinessScope()->where('business_id', $business->id)->where('status', 'active')->count(),
         ];
 
-        return view('platform.businesses.show', compact('business', 'usage'));
+        $emailSetting = EmailSetting::withoutBusinessScope()->where('business_id', $business->id)->first();
+
+        return view('platform.businesses.show', compact('business', 'usage', 'emailSetting'));
+    }
+
+    /** İşletmenin ana Gmail ayarı: toptancı panelindeki E-posta Ayarları ile aynı kurallar. */
+    public function updateEmail(Request $request, Business $business, EmailSettingService $settings, TenantContext $tenant): RedirectResponse
+    {
+        $changed = $tenant->runAs($business->id, fn () => $settings->save(
+            $request->only(['from_email', 'from_name', 'app_password'])
+        ));
+
+        return back()->with('status', $changed ? 'E-posta ayarı kaydedildi. Şimdi “Bağlantıyı test et” ile doğrulayın.' : 'E-posta ayarı kaydedildi.');
+    }
+
+    public function testEmail(Business $business, MailTransport $transport, EmailSettingService $settings, TenantContext $tenant): RedirectResponse
+    {
+        try {
+            $to = $tenant->runAs($business->id, function () use ($settings, $transport) {
+                abort_unless(EmailSetting::exists(), 404);
+
+                return $settings->test($transport);
+            });
+        } catch (MailFailure $e) {
+            return back()->withErrors(['mail' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "Bağlantı başarılı. {$to} adresine test e-postası gönderildi.");
     }
 
     public function edit(Business $business): View
@@ -149,17 +182,6 @@ class BusinessController extends Controller
         return back()->with('status', 'Modüller güncellendi.');
     }
 
-    public function resendActivation(Business $business, CreateBusiness $action): RedirectResponse
-    {
-        $user = $business->user;
-        abort_if($user === null || $user->status !== 'pending_activation', 422, 'Hesap zaten etkin.');
-
-        $result = $action->sendActivation($user);
-        $this->audit->log('platform.activation_resent', $user, businessId: $business->id);
-
-        return back()->with('status', 'Yeni aktivasyon bağlantısı oluşturuldu.')->with('activation', $result);
-    }
-
     /** İşletme yetkilisinin adı ve giriş e-postası: doğrudan değişir, gerekçe zorunlu, eski ve yeni adrese bildirim. */
     public function updateUser(Request $request, Business $business, AccountEmailService $emails): RedirectResponse
     {
@@ -167,15 +189,19 @@ class BusinessController extends Controller
         $data = $request->validate([
             'name' => ['bail', 'required', 'string', 'max:120'],
             'email' => ['bail', 'required', 'string', 'email', 'max:255'],
+            'password' => ['nullable', 'string', 'confirmed', Password::defaults()],
             'reason' => ['bail', 'required', 'string', 'min:5', 'max:500'],
-        ], [], ['name' => 'ad soyad', 'email' => 'giriş e-postası', 'reason' => 'gerekçe']);
+        ], [], ['name' => 'ad soyad', 'email' => 'giriş e-postası', 'password' => 'yeni şifre', 'reason' => 'gerekçe']);
 
         try {
             if ($emails->normalize($data['email']) !== Str::lower($user->email)) {
                 $emails->changeByPlatform(Area::Business, $user, $data['email'], $data['reason']);
             }
         } catch (DomainException $e) {
-            return back()->withErrors(['user_email' => $e->getMessage()])->withInput();
+            return back()->withErrors(['user_email' => $e->getMessage()])->withInput($request->except(['password', 'password_confirmation']));
+        }
+        if (filled($data['password'] ?? null)) {
+            $emails->setPassword(Area::Business, $user, $data['password'], 'platform.password_set', ['reason' => $data['reason']]);
         }
         if ($data['name'] !== $user->fresh()->name) {
             $old = $user->name;
@@ -183,21 +209,7 @@ class BusinessController extends Controller
             $this->audit->log('platform.user_name_changed', $user, ['name' => $old], ['name' => $data['name'], 'reason' => $data['reason']], businessId: $business->id);
         }
 
-        $note = $user->fresh()->status === 'pending_activation' ? ' Hesap henüz etkinleşmediği için "Yeni bağlantı gönder" ile aktivasyon bağlantısını yeni adrese gönderin.' : '';
-
-        return back()->with('status', 'Yetkili bilgileri güncellendi; eski ve yeni adrese bilgi verildi.'.$note);
-    }
-
-    public function sendPasswordReset(Business $business, AccountEmailService $emails): RedirectResponse
-    {
-        $user = $business->user ?? abort(404);
-        if ($user->status !== 'active') {
-            return back()->withErrors(['user_email' => 'Parola sıfırlama yalnızca etkin hesaplar için gönderilebilir.']);
-        }
-        $result = $emails->sendPasswordReset(Area::Business, $user, 'Platform yöneticisi');
-        $this->audit->log('platform.password_reset_sent', $user, businessId: $business->id);
-
-        return back()->with('status', "Parola sıfırlama bağlantısı {$user->email} adresine gönderildi.")->with('reset_url', $result['url']);
+        return back()->with('status', 'Yetkili bilgileri güncellendi.'.(filled($data['password'] ?? null) ? ' Yeni şifre kaydedildi.' : ''));
     }
 
     private function businessRules(): array

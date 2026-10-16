@@ -29,7 +29,7 @@
                                 </td>
                                 <td>
                                     {{ $business->user?->email ?? '—' }}
-                                    @if ($business->user?->status === 'pending_activation')<x-badge tone="warning" class="ml-1">Aktivasyon bekliyor</x-badge>@endif
+                                    @if ($business->user?->status === 'pending_activation')<x-badge tone="warning" class="ml-1">Şifre belirlenmedi</x-badge>@endif
                                 </td>
                                 <td class="text-muted">
                                     @if ($license){{ $license->plan }} · {{ $license->ends_on?->format('d.m.Y') ?? 'Süresiz' }}@else<x-badge tone="danger">Geçerli lisans yok</x-badge>@endif

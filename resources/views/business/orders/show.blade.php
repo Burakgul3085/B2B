@@ -18,7 +18,7 @@
             <form method="POST" action="{{ route('business.orders.resolve-cancel', $order) }}" class="mt-3 flex flex-wrap items-center gap-2">
                 @csrf
                 <input name="note" class="field-input max-w-xs py-1.5" placeholder="Not (reddederken)" aria-label="Not">
-                <x-button name="decision" value="accept" variant="danger" size="sm" onclick="return confirm('İptal kabul edilsin mi? Düşülen stok ve cari borç geri alınacak.')">İptali kabul et</x-button>
+                <x-button name="decision" value="accept" variant="danger" size="sm" data-confirm="İptal kabul edilsin mi? Düşülen stok ve cari borç geri alınacak.">İptali kabul et</x-button>
                 <x-button name="decision" value="decline" variant="secondary" size="sm">Reddet</x-button>
             </form>
         </div>
@@ -27,7 +27,7 @@
     @if ($canApprove)
         {{-- Onay ekranı: kalem bazında miktar, depo ve teslimat bilgisi --}}
         <form method="POST" action="{{ route('business.orders.approve', $order) }}" x-data="{ wh: '{{ old('warehouse_id', $order->warehouse_id) }}', stock: {{ Js::from($stock) }} }"
-            onsubmit="return confirm('Sipariş onaylansın mı? Onaylanan miktarlar stoktan düşülecek.')">
+            data-confirm="Sipariş onaylansın mı? Onaylanan miktarlar stoktan düşülecek.">
             @csrf
             <x-card title="Onay" description="Stoğu yetmeyen kalemlerde miktarı düşürerek kısmi onay verebilirsiniz. Kesin stok kontrolü onay anında yapılır." :padding="false" class="mb-6">
                 <div class="flex flex-wrap items-end gap-4 border-b border-line p-5">
@@ -97,7 +97,7 @@
             @if ($order->status === 'completed' && collect($returnable)->contains(fn ($q) => bccomp($q, '0', 3) > 0))
                 <x-card title="İade kaydı" description="İade edilen miktar sevk deposuna girer ve bayinin carisine sipariş fiyatıyla alacak yazılır." :padding="false">
                     @error('return')<div role="alert" class="mx-5 mt-4 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
-                    <form method="POST" action="{{ route('business.orders.returns.store', $order) }}" onsubmit="return confirm('İade kaydedilsin mi? Stok girişi ve cari alacak yazılacak.')">
+                    <form method="POST" action="{{ route('business.orders.returns.store', $order) }}" data-confirm="İade kaydedilsin mi? Stok girişi ve cari alacak yazılacak.">
                         @csrf
                         <table class="table-base">
                             <thead><tr><th>Ürün</th><th class="text-right">İade edilebilir</th><th class="text-right">İade miktarı</th></tr></thead>
@@ -142,13 +142,13 @@
                             <form method="POST" action="{{ route('business.orders.prepare', $order) }}">@csrf<x-button variant="secondary" size="sm">Hazırlanıyor</x-button></form>
                         @endif
                         @if ($can('completed') && $order->status !== 'cancel_requested')
-                            <form method="POST" action="{{ route('business.orders.complete', $order) }}" onsubmit="return confirm('Sipariş tamamlandı olarak kapatılsın mı?')">@csrf<x-button size="sm" icon="check">Tamamlandı</x-button></form>
+                            <form method="POST" action="{{ route('business.orders.complete', $order) }}" data-confirm="Sipariş tamamlandı olarak kapatılsın mı?">@csrf<x-button size="sm" icon="check">Tamamlandı</x-button></form>
                         @endif
                     </div>
                     @if ($can('rejected'))
                         <details class="mt-4">
                             <summary class="cursor-pointer text-sm font-medium text-danger">Siparişi reddet</summary>
-                            <form method="POST" action="{{ route('business.orders.reject', $order) }}" class="mt-3 space-y-3" onsubmit="return confirm('Sipariş reddedilsin mi?')">
+                            <form method="POST" action="{{ route('business.orders.reject', $order) }}" class="mt-3 space-y-3" data-confirm="Sipariş reddedilsin mi?">
                                 @csrf
                                 <x-field name="reason" label="Ret gerekçesi" textarea required hint="Bayiye gösterilir." />
                                 <x-button variant="danger" size="sm">Reddet</x-button>
@@ -158,7 +158,7 @@
                     @if ($can('cancelled') && ! $canApprove && $order->status !== 'cancel_requested')
                         <details class="mt-4">
                             <summary class="cursor-pointer text-sm font-medium text-danger">Siparişi iptal et</summary>
-                            <form method="POST" action="{{ route('business.orders.cancel', $order) }}" class="mt-3 space-y-3" onsubmit="return confirm('Sipariş iptal edilsin mi? Düşülen stok ve cari borç ters kayıtla geri alınacak.')">
+                            <form method="POST" action="{{ route('business.orders.cancel', $order) }}" class="mt-3 space-y-3" data-confirm="Sipariş iptal edilsin mi? Düşülen stok ve cari borç ters kayıtla geri alınacak.">
                                 @csrf
                                 <x-field name="reason" label="İptal nedeni" textarea required />
                                 <x-button variant="danger" size="sm">İptal et</x-button>

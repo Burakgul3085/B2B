@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -88,22 +89,34 @@ class DealerApplicationController extends Controller
     public function approve(Request $request, DealerApplication $application): RedirectResponse
     {
         $terms = $this->validateTerms($request);
+        $login = self::validateLogin($request);
 
         try {
-            $result = $this->onboarding->approve($application, $request->user()->id, $terms);
+            $result = $this->onboarding->approve($application, $request->user()->id, $terms, $login);
         } catch (DomainException $e) {
-            return back()->withErrors(['approve' => $e->getMessage()]);
+            return back()->withErrors(['approve' => $e->getMessage()])->withInput($request->except('password'));
         }
 
-        $mail = $this->notifier->applicationApproved($application->fresh(), $result['activation_url']);
-        $emailed = $mail->status !== 'skipped';
+        $emailed = $this->notifier->applicationApproved($application->fresh(), $result['email'], $result['existing_account'])->status !== 'skipped';
 
         return redirect()->route('business.dealers.show', $result['relationship'])
-            ->with('status', ($result['existing_account']
-                ? 'Başvuru onaylandı. Bu bayinin platformda hesabı olduğu için mevcut hesabına sizinle çalışma yetkisi eklendi.'
-                : 'Başvuru onaylandı ve bayi hesabı açıldı.').($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''))
-            // Bağlantı yalnızca e-posta gönderilemiyorsa (ayar yoksa) bir kez gösterilir.
-            ->with('activation_url', $emailed ? null : $result['activation_url']);
+            ->with('status', self::approvedMessage($result).($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''));
+    }
+
+    /** Onayda giriş bilgileri: e-posta (başvurudaki veya düzeltilmiş) ve onaylayanın belirlediği şifre. */
+    public static function validateLogin(Request $request): array
+    {
+        return $request->validate([
+            'login_email' => ['bail', 'required', 'string', 'email', 'max:255'],
+            'password' => ['nullable', 'string', Password::defaults()],
+        ], [], ['login_email' => 'giriş e-postası', 'password' => 'şifre']) + ['email' => $request->input('login_email')];
+    }
+
+    public static function approvedMessage(array $result): string
+    {
+        return $result['existing_account']
+            ? 'Başvuru onaylandı. Bu e-postayla kayıtlı bir bayi hesabı olduğu için mevcut hesabına erişim eklendi; bayi kendi şifresiyle giriş yapar.'
+            : "Başvuru onaylandı ve bayi hesabı açıldı. Bayi {$result['email']} ve belirlediğiniz şifreyle hemen giriş yapabilir.";
     }
 
     public function attachment(DealerApplication $application, Attachment $attachment): StreamedResponse

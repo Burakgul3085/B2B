@@ -23,14 +23,14 @@
             @endforelse
         </x-card>
 
-        <x-card title="Aktivasyon bekleyen işletmeler" description="İşletme yetkilisi henüz parolasını belirlemedi." :padding="false">
+        <x-card title="Şifresi belirlenmemiş işletmeler" description="Eski aktivasyon akışından kalan, yetkilisine henüz şifre verilmemiş işletmeler. İşletme detayından şifre belirleyin." :padding="false">
             @forelse ($pendingOwners as $business)
                 <a href="{{ route('platform.businesses.show', $business) }}" class="flex items-center justify-between border-b border-line px-5 py-3 text-sm last:border-0 hover:bg-slate-50">
                     <span class="font-medium">{{ $business->display_name }}</span>
                     <span class="text-muted">{{ $business->created_at->format('d.m.Y') }}</span>
                 </a>
             @empty
-                <x-empty-state icon="check-circle" title="Bekleyen aktivasyon yok" class="py-8" />
+                <x-empty-state icon="check-circle" title="Şifre bekleyen işletme yok" class="py-8" />
             @endforelse
         </x-card>
     </div>

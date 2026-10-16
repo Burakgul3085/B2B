@@ -21,7 +21,7 @@
             @endif
         </x-card>
         <x-card title="Yeni duyuru">
-            <form method="POST" action="{{ route('business.announcements.store') }}" class="space-y-4" onsubmit="return confirm('Duyuru yayımlansın mı?')">
+            <form method="POST" action="{{ route('business.announcements.store') }}" class="space-y-4" data-confirm="Duyuru yayımlansın mı?">
                 @csrf
                 <x-field name="title" label="Başlık" required maxlength="160" />
                 <x-field name="body" label="Metin" textarea required />

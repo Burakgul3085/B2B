@@ -75,7 +75,7 @@ class EmailTest extends TestCase
 
         $this->post(route('business.email.test'))->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame('verified', $this->inTenant($business, fn () => EmailSetting::value('status')));
-        $this->assertSame([$business->user->email], $this->transport->recipients());
+        $this->assertSame(['satis@akgun.test'], $this->transport->recipients(), 'Test e-postası ana adrese gider.');
         // Sunucu, port ve şifreleme kullanıcıdan istenmez: formda yok.
         $this->get(route('business.email.settings'))->assertDontSee('smtp.gmail.com')->assertDontSee('Port');
 
@@ -96,7 +96,9 @@ class EmailTest extends TestCase
         $this->post(route('dealer.cart.add'), ['product_id' => $product->id, 'quantity' => '1'])->assertRedirect();
         $this->post(route('dealer.cart.submit'), ['address_id' => $this->inTenant($business, fn () => $rel->addresses()->value('id')), 'submit_token' => (string) Str::uuid()])->assertRedirect();
 
-        $this->assertContains($business->user->email, $this->transport->recipients());
+        // Toptancıya gelen bildirim ana e-posta adresine (Gmail hesabı) düşer.
+        $this->assertContains('satis@akgun.test', $this->transport->recipients());
+        $this->assertNotContains($business->user->email, $this->transport->recipients());
         $this->assertSame('satis@akgun.test', $this->transport->sent[0]['sender']['email']);
         $this->assertSame(self::APP_PASSWORD, $this->transport->sent[0]['sender']['password']);
         $this->assertStringContainsString('Yeni sipariş', $this->transport->sent[0]['mail']['subject']);
@@ -128,7 +130,7 @@ class EmailTest extends TestCase
         $this->assertSame('sent', $log->fresh()->status);
     }
 
-    public function test_without_settings_emails_are_skipped_and_activation_link_is_shown(): void
+    public function test_without_settings_emails_are_skipped_but_account_works(): void
     {
         $business = $this->makeBusiness();
         $this->post("/basvuru/{$business->slug}", [
@@ -137,14 +139,17 @@ class EmailTest extends TestCase
         ]);
         $application = $this->inTenant($business, fn () => DealerApplication::sole());
 
-        $this->actingAs($business->user, 'business')->post(route('business.applications.approve', $application), ['payment_term_days' => 30]);
+        $this->actingAs($business->user, 'business')->post(route('business.applications.approve', $application),
+            ['payment_term_days' => 30, 'login_email' => 'ali@bayi.test', 'password' => 'BayiSifre2026'])->assertSessionHasNoErrors();
 
-        $this->assertNotNull(session('activation_url'));
         $this->assertSame([], $this->transport->sent);
         $this->assertSame(['skipped'], $this->inTenant($business, fn () => EmailLog::pluck('status')->unique()->values()->all()));
+        $this->flushSession();
+        $this->post('/bayi/login', ['email' => 'ali@bayi.test', 'password' => 'BayiSifre2026'])->assertRedirect();
+        $this->assertAuthenticated('dealer');
     }
 
-    public function test_with_settings_activation_link_is_emailed_not_shown(): void
+    public function test_application_notifies_business_and_applicant_and_approval_mail_has_no_password(): void
     {
         $business = $this->makeBusiness();
         $this->configure($business);
@@ -152,15 +157,21 @@ class EmailTest extends TestCase
             'legal_name' => 'Yeni Bayi', 'contact_name' => 'Ali', 'phone' => '0212 111 22 33', 'email' => 'ali@bayi.test',
             'city' => 'İzmir', 'district' => 'Konak', 'address' => 'Adres', 'consent' => '1',
         ]);
-        $this->assertContains($business->user->email, $this->transport->recipients(), 'Başvuru bildirimi toptancıya gitmeli.');
+        $this->assertContains('satis@akgun.test', $this->transport->recipients(), 'Başvuru bildirimi toptancının ana adresine gitmeli.');
+        $applicant = collect($this->transport->sent)->firstWhere('mail.to', 'ali@bayi.test');
+        $this->assertNotNull($applicant, 'Başvuru sahibine "başvurunuz alındı" e-postası gitmeli.');
+        $this->assertStringContainsString('başvurunuz alındı', mb_strtolower($applicant['mail']['subject']));
         $application = $this->inTenant($business, fn () => DealerApplication::sole());
 
-        $this->actingAs($business->user, 'business')->post(route('business.applications.approve', $application), ['payment_term_days' => 30]);
+        $this->transport->sent = [];
+        $this->actingAs($business->user, 'business')->post(route('business.applications.approve', $application),
+            ['payment_term_days' => 30, 'login_email' => 'ali@bayi.test', 'password' => 'BayiSifre2026'])->assertSessionHasNoErrors();
 
-        $this->assertNull(session('activation_url'));
         $mail = collect($this->transport->sent)->firstWhere('mail.to', 'ali@bayi.test');
         $this->assertNotNull($mail);
-        $this->assertStringContainsString('/bayi/aktivasyon/', $mail['mail']['html']);
+        $this->assertStringContainsString('ali@bayi.test', $mail['mail']['html']);
+        $this->assertStringNotContainsString('BayiSifre2026', $mail['mail']['html'], 'Şifre e-postayla gönderilmez.');
+        $this->assertStringNotContainsString('aktivasyon', $mail['mail']['html']);
     }
 
     public function test_disabled_email_module_skips_sending(): void

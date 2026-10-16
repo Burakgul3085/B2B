@@ -15,11 +15,20 @@
                 <x-field name="address" label="Açık adres" textarea required class="sm:col-span-2" hint="İlk sevk adresi olarak da kaydedilir." />
             </div>
         </x-card>
-        <x-card title="Yetkili" description="Giriş e-postası. Bu adres platformda başka bir toptancının bayisi olarak kayıtlıysa yeni hesap açılmaz, mevcut hesaba erişim eklenir.">
-            <div class="grid gap-5 sm:grid-cols-3">
+        <x-card title="Yetkili ve giriş bilgileri" description="Bayi bu e-posta ve şifreyle hemen giriş yapar; giriş yaptıktan sonra e-postasını ve şifresini kendisi değiştirebilir. Bu e-posta başka bir toptancının bayisi olarak kayıtlıysa yeni hesap açılmaz, mevcut hesaba erişim eklenir (şifre değişmez).">
+            <div class="grid gap-5 sm:grid-cols-2">
                 <x-field name="contact_name" label="Ad soyad" required />
-                <x-field name="email" label="E-posta" type="email" required />
                 <x-field name="phone" label="Telefon" type="tel" required />
+                <x-field name="email" label="Giriş e-postası" type="email" required autocomplete="off" />
+                <div x-data="{ show: false }">
+                    <label for="password" class="mb-1.5 block text-sm font-medium">Şifre <span class="text-danger">*</span></label>
+                    <div class="flex gap-2">
+                        <input id="password" name="password" :type="show ? 'text' : 'password'" autocomplete="new-password" class="field-input" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
+                        <x-button type="button" variant="secondary" size="sm" @click="show = !show" x-text="show ? 'Gizle' : 'Göster'">Göster</x-button>
+                    </div>
+                    <p class="mt-1.5 text-xs text-muted">En az 10 karakter; harf ve rakam içermeli. Şifreyi bayiye siz iletirsiniz (e-postayla gönderilmez).</p>
+                    @error('password')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
+                </div>
             </div>
         </x-card>
         <x-card title="Ticari koşullar">

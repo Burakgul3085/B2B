@@ -14,10 +14,15 @@ final class EmailTemplates
             'subject' => 'Yeni bayilik başvurusu: {bayi}',
             'intro' => '{bayi} bayilik başvurusu gönderdi. Başvuruyu panelinizden inceleyebilirsiniz.',
         ],
+        'application_received_applicant' => [
+            'label' => 'Başvuru alındı (başvuru sahibine)',
+            'subject' => '{isletme} bayilik başvurunuz alındı',
+            'intro' => 'Sayın {yetkili}, {bayi} adına yaptığınız bayilik başvurusu bize ulaştı. Başvurunuzu inceleyip en kısa sürede size dönüş yapacağız.',
+        ],
         'application_approved' => [
-            'label' => 'Başvuru onayı ve hesap etkinleştirme (bayiye)',
+            'label' => 'Başvuru onayı ve hesap bilgileri (bayiye)',
             'subject' => '{isletme} bayilik başvurunuz onaylandı',
-            'intro' => 'Bayilik başvurunuz onaylandı. Aşağıdaki bağlantıyla parolanızı belirleyip hesabınızı etkinleştirebilirsiniz. Bağlantı 72 saat geçerlidir.',
+            'intro' => 'Bayilik başvurunuz onaylandı ve bayi hesabınız açıldı. Giriş e-postanız: {eposta}. Şifreniz size ayrıca iletilecektir; giriş yaptıktan sonra Profil ve Güvenlik ekranından e-postanızı ve şifrenizi değiştirebilirsiniz.',
         ],
         'relationship_added' => [
             'label' => 'Mevcut bayi hesabına yeni toptancı (bayiye)',
@@ -25,19 +30,14 @@ final class EmailTemplates
             'intro' => 'Bayilik başvurunuz onaylandı. Mevcut hesabınızla giriş yaparak {isletme} kataloğuna ulaşabilirsiniz.',
         ],
         'dealer_activation' => [
-            'label' => 'Bayi hesabı etkinleştirme (bayiye)',
+            'label' => 'Bayi hesabı açıldı (bayiye)',
             'subject' => '{isletme} bayi hesabınız hazır',
-            'intro' => 'Bayi hesabınız oluşturuldu. Aşağıdaki bağlantıyla parolanızı belirleyin. Bağlantı 72 saat geçerlidir.',
+            'intro' => '{isletme} bayi hesabınız açıldı. Giriş e-postanız: {eposta}. Şifreniz size ayrıca iletilecektir; giriş yaptıktan sonra Profil ve Güvenlik ekranından e-postanızı ve şifrenizi değiştirebilirsiniz.',
         ],
-        'account_email_verify' => [
-            'label' => 'Giriş e-postası doğrulama (hesap sahibine)',
-            'subject' => '{isletme} hesabınız için e-posta doğrulama',
-            'intro' => 'Hesabınızın giriş e-postasını bu adresle değiştirme talebi aldık. Değişikliği tamamlamak için 24 saat içinde aşağıdaki bağlantıyı açın. Doğrulayana kadar eski adresinizle giriş yapmaya devam edersiniz. Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.',
-        ],
-        'dealer_password_reset' => [
-            'label' => 'Bayi parola sıfırlama (bayiye)',
-            'subject' => '{isletme} bayi hesabınız için parola sıfırlama',
-            'intro' => '{isletme} bayi hesabınız için parola sıfırlama bağlantısı gönderdi. Aşağıdaki bağlantıyla yeni parolanızı belirleyin. Bağlantı kısa süre geçerlidir; parolanızı değiştirmek istemiyorsanız bu e-postayı dikkate almayın.',
+        'password_reset' => [
+            'label' => 'Parola sıfırlama (hesap sahibine)',
+            'subject' => '{isletme} hesabınız için parola sıfırlama',
+            'intro' => 'Hesabınız için parola sıfırlama talebi aldık. Aşağıdaki bağlantıyla yeni parolanızı belirleyin; bağlantı 60 dakika geçerlidir. Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın, parolanız değişmez.',
         ],
         'application_rejected' => [
             'label' => 'Başvuru reddi (bayiye)',

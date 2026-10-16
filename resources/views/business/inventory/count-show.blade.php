@@ -64,9 +64,9 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line p-4">
                 <p class="text-sm text-muted">Fark, sayım uygulandığı andaki stoğa göre yeniden hesaplanır.</p>
                 <div class="flex gap-2">
-                    <form method="POST" action="{{ route('business.stock-counts.cancel', $count) }}" onsubmit="return confirm('Sayım iptal edilsin mi? Stok değişmez.')">@csrf<x-button variant="ghost">İptal et</x-button></form>
+                    <form method="POST" action="{{ route('business.stock-counts.cancel', $count) }}" data-confirm="Sayım iptal edilsin mi? Stok değişmez.">@csrf<x-button variant="ghost">İptal et</x-button></form>
                     @if ($count->lines->isNotEmpty())
-                        <form method="POST" action="{{ route('business.stock-counts.apply', $count) }}" onsubmit="return confirm('Sayım uygulansın mı? Farklar stok hareketi olarak kaydedilecek ve bu işlem geri alınamaz.')">@csrf<x-button>Sayımı uygula</x-button></form>
+                        <form method="POST" action="{{ route('business.stock-counts.apply', $count) }}" data-confirm="Sayım uygulansın mı? Farklar stok hareketi olarak kaydedilecek ve bu işlem geri alınamaz.">@csrf<x-button>Sayımı uygula</x-button></form>
                     @endif
                 </div>
             </div>

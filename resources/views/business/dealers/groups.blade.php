@@ -17,7 +17,7 @@
                                 </div>
                                 <button type="button" @click="edit = true" class="text-sm text-primary hover:underline">Düzenle</button>
                                 @if ($group->relationships_count === 0)
-                                    <form method="POST" action="{{ route('business.dealer-groups.destroy', $group) }}" onsubmit="return confirm('Grup silinsin mi?')">@csrf @method('DELETE')<button class="text-sm text-danger hover:underline">Sil</button></form>
+                                    <form method="POST" action="{{ route('business.dealer-groups.destroy', $group) }}" data-confirm="Grup silinsin mi?">@csrf @method('DELETE')<button class="text-sm text-danger hover:underline">Sil</button></form>
                                 @endif
                             </div>
                             <form x-show="edit" x-cloak method="POST" action="{{ route('business.dealer-groups.update', $group) }}" class="flex flex-wrap items-center gap-2">

@@ -11,10 +11,11 @@
                 hint="Bayilik başvuru adresinde kullanılır: /basvuru/kisa-ad. Küçük harf, rakam ve tire." />
         </x-card>
 
-        <x-card title="İşletme yetkilisi" description="Hesap etkinleştirme bağlantısı bu adrese gönderilir. Parola e-postayla gönderilmez.">
-            <div class="grid gap-5 sm:grid-cols-2">
+        <x-card title="İşletme yetkilisi ve giriş bilgileri" description="Yetkili bu e-posta ve şifreyle toptancı paneline hemen giriş yapar; sonra kendi hesabından değiştirebilir. Şifre e-postayla gönderilmez.">
+            <div class="grid gap-5 sm:grid-cols-3">
                 <x-field name="owner_name" label="Ad soyad" required />
-                <x-field name="owner_email" label="E-posta" type="email" required />
+                <x-field name="owner_email" label="Giriş e-postası" type="email" required autocomplete="off" />
+                <x-field name="owner_password" label="Şifre" type="password" required autocomplete="new-password" hint="En az 10 karakter; harf ve rakam." />
             </div>
         </x-card>
 

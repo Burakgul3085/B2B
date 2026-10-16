@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Business;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
-use App\Domain\Auth\AuthTokenService;
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Notifications\Notifier;
 use App\Domain\Pricing\PriceResolver;
@@ -21,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class DealerController extends Controller
@@ -81,21 +81,24 @@ class DealerController extends Controller
             'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
-        ], [], $this->attributes());
+            'password' => ['nullable', 'string', Password::defaults()],
+        ], [], $this->attributes() + ['password' => 'şifre']);
 
         try {
             $result = $this->onboarding->createDirect($data, $data['contact_name'], $request->user()->id,
-                array_filter(collect($data)->only(['dealer_code', 'dealer_group_id', 'payment_term_days', 'can_edit_addresses'])->all(), fn ($v) => $v !== null));
+                array_filter(collect($data)->only(['dealer_code', 'dealer_group_id', 'payment_term_days', 'can_edit_addresses'])->all(), fn ($v) => $v !== null),
+                $data['password'] ?? null);
         } catch (DomainException $e) {
-            return back()->withErrors(['email' => $e->getMessage()])->withInput();
+            return back()->withErrors([str_contains($e->getMessage(), 'şifre') ? 'password' : 'email' => $e->getMessage()])->withInput($request->except('password'));
         }
 
-        $emailed = app(Notifier::class)->dealerCreated($result['relationship'], $result['activation_url'])->status !== 'skipped';
+        $emailed = app(Notifier::class)->dealerCreated($result['relationship'], $result['existing_account'])->status !== 'skipped';
 
         return redirect()->route('business.dealers.show', $result['relationship'])
-            ->with('status', ($result['existing_account'] ? 'Bayinin mevcut hesabına sizinle çalışma yetkisi eklendi.' : 'Bayi hesabı açıldı.')
-                .($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''))
-            ->with('activation_url', $emailed ? null : $result['activation_url']);
+            ->with('status', ($result['existing_account']
+                ? 'Bu e-postayla kayıtlı bir bayi hesabı olduğu için mevcut hesabına sizinle çalışma yetkisi eklendi; bayi kendi şifresiyle giriş yapar.'
+                : "Bayi hesabı açıldı. Bayi {$result['email']} ve belirlediğiniz şifreyle hemen giriş yapabilir.")
+                .($emailed ? ' Bilgilendirme e-postası bayiye gönderiliyor.' : ''));
     }
 
     public function show(Request $request, DealerRelationship $dealer): View
@@ -158,55 +161,29 @@ class DealerController extends Controller
             .($data['status'] !== 'active' ? ' Bayi sizinle ilgili ekranlara artık erişemez ve sipariş veremez.' : ''));
     }
 
-    public function activationLink(DealerRelationship $dealer): RedirectResponse
-    {
-        try {
-            $url = $this->onboarding->newActivationLink($dealer);
-        } catch (DomainException $e) {
-            return back()->withErrors(['activation' => $e->getMessage()]);
-        }
-
-        $emailed = app(Notifier::class)->dealerCreated($dealer, $url)->status !== 'skipped';
-
-        return back()->with('activation_url', $emailed ? null : $url)
-            ->with('status', $emailed ? 'Yeni aktivasyon bağlantısı bayiye e-postayla gönderiliyor; önceki bağlantılar geçersiz oldu.' : 'Yeni aktivasyon bağlantısı oluşturuldu; önceki bağlantılar geçersiz oldu.');
-    }
-
-    /** Aktivasyonu tamamlanmamış bayinin hatalı e-postasını düzeltir ve aktivasyon bağlantısını yeni adrese gönderir. */
+    /** Bayi henüz giriş yapmadıysa hatalı yazılmış giriş e-postasını düzeltir. */
     public function correctEmail(Request $request, DealerRelationship $dealer): RedirectResponse
     {
         $data = $request->validate(['email' => ['bail', 'required', 'string', 'email', 'max:255']], [], ['email' => 'e-posta adresi']);
 
         try {
-            $url = $this->onboarding->correctPendingEmail($dealer, $data['email']);
+            $email = $this->onboarding->correctEmailBeforeFirstLogin($dealer, $data['email']);
         } catch (DomainException $e) {
             return back()->withErrors(['account_email' => $e->getMessage()])->withInput();
         }
 
-        $emailed = app(Notifier::class)->dealerCreated($dealer->fresh(), $url)->status !== 'skipped';
-
-        return back()->with('activation_url', $emailed ? null : $url)
-            ->with('status', 'Giriş e-postası düzeltildi. '.($emailed ? 'Aktivasyon bağlantısı yeni adrese e-postayla gönderiliyor.' : 'Yeni aktivasyon bağlantısı oluşturuldu.').' Önceki bağlantılar geçersiz oldu.');
+        return back()->with('status', "Giriş e-postası {$email} olarak düzeltildi.");
     }
 
-    /** Etkin bayiye parola sıfırlama bağlantısı gönderir. Bağlantı toptancıya gösterilmez (yalnızca demo ortamında). */
-    public function sendPasswordReset(DealerRelationship $dealer, AccountEmailService $emails, AuthTokenService $tokens): RedirectResponse
+    /** Toptancı bayisine yeni şifre belirler (bağlantı gönderilmez). */
+    public function setPassword(Request $request, DealerRelationship $dealer, AccountEmailService $accounts): RedirectResponse
     {
-        $user = $dealer->dealer->user;
-        if ($user?->status !== 'active') {
-            return back()->withErrors(['account_email' => 'Parola sıfırlama yalnızca etkin bayi hesapları için gönderilebilir.']);
-        }
+        $data = $request->validate(['password' => ['bail', 'required', 'string', 'confirmed', Password::defaults()]], [], ['password' => 'yeni şifre']);
+        $user = $dealer->dealer->user ?? abort(404);
 
-        $url = $tokens->url(Area::Dealer, 'password_reset', $tokens->issue(Area::Dealer, $user->id, 'password_reset'));
-        $emailed = app(Notifier::class)->dealerPasswordReset($dealer, $url)->status !== 'skipped';
-        $this->audit->log('dealer.password_reset_sent', $dealer);
+        $accounts->setPassword(Area::Dealer, $user, $data['password'], 'dealer.password_set_by_business', ['dealer_relationship_id' => $dealer->id]);
 
-        $reveal = $emails->revealsLinks() && ! $emailed;
-
-        return back()->with('reset_url', $reveal ? $url : null)->with('status', $emailed
-            ? "Parola sıfırlama bağlantısı {$user->email} adresine e-postayla gönderiliyor."
-            : ($reveal ? 'E-posta ayarınız olmadığı için bağlantı gönderilemedi; demo ortamında aşağıda gösteriliyor.'
-                : 'Bağlantı gönderilemedi: önce E-posta Ayarları ekranından Gmail hesabınızı tanımlayın.'));
+        return back()->with('status', "Bayinin şifresi güncellendi. Bayi {$user->email} ve yeni şifreyle giriş yapabilir.");
     }
 
     public function storeAddress(Request $request, DealerRelationship $dealer): RedirectResponse

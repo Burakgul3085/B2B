@@ -2,212 +2,249 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Domain\Mail\SystemMailer;
+use App\Domain\Mail\MailTransport;
+use App\Domain\Mail\SecretBox;
 use App\Models\AuthToken;
 use App\Models\BusinessUser;
+use App\Models\DealerApplication;
 use App\Models\DealerRelationship;
 use App\Models\DealerUser;
+use App\Models\EmailSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 use Tests\Concerns\CreatesOrders;
+use Tests\Fakes\FakeMailTransport;
 use Tests\TestCase;
 
 /**
- * Giriş e-postası ve hesap bilgileri yetkileri:
- *  - Kişi kendi e-postasını doğrulama bağlantısıyla değiştirir.
- *  - Toptancı yalnızca aktivasyonu tamamlanmamış (ve başka toptancıyla ilişkisiz) bayinin e-postasını düzeltir;
- *    aktif bayiye yalnızca parola sıfırlama bağlantısı gönderir ve bu bağlantıyı görmez.
- *  - Platform yöneticisi gerekçeyle doğrudan değiştirir, sıfırlama bağlantısı üretir, hesabı kapatır.
+ * Sade hesap ve e-posta kurgusu:
+ *  - Hesaplar şifreyle açılır, hemen etkindir (aktivasyon/doğrulama bağlantısı yok).
+ *  - Herkes kendi e-postasını mevcut şifresiyle hemen değiştirir.
+ *  - Toptancı bayisine, platform her hesaba yeni şifre belirler; platform bayi açar ve başvuruları onaylar.
+ *  - Tek ana Gmail: toptancı panelinden ve platformdan girilir; toptancı bildirimleri bu adrese düşer.
  */
 class AccountEmailTest extends TestCase
 {
     use CreatesOrders, RefreshDatabase;
 
-    private function pendingDealer($business): array
-    {
-        $this->actingAs($business->user, 'business')->post(route('business.dealers.store'), [
-            'legal_name' => 'Hatalı Mail Kırtasiye', 'contact_name' => 'Ayşe Demir', 'email' => 'uydurma@yanlis.test',
-            'phone' => '0212 111 22 33', 'city' => 'İstanbul', 'district' => 'Şişli', 'address' => 'Cadde 1', 'payment_term_days' => 30,
-        ])->assertSessionHasNoErrors()->assertRedirect();
-        $user = DealerUser::where('email', 'uydurma@yanlis.test')->sole();
-        $rel = $this->inTenant($business, fn () => DealerRelationship::where('dealer_id', $user->dealer_id)->sole());
+    private FakeMailTransport $transport;
 
-        return [$user, $rel];
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->transport = new FakeMailTransport;
+        $this->app->instance(MailTransport::class, $this->transport);
     }
 
-    public function test_user_changes_own_email_only_after_verification(): void
+    private function configureMail($business, string $address = 'ana@gmail.com'): void
+    {
+        $this->inTenant($business, fn () => EmailSetting::create([
+            'from_email' => $address, 'status' => 'verified', 'app_password_encrypted' => app(SecretBox::class)->encrypt('abcdefghijklmnop'),
+        ]));
+    }
+
+    public function test_user_changes_own_email_immediately_with_current_password(): void
     {
         $business = $this->makeBusiness();
-        $user = $business->user;
         $other = $this->makeBusiness()->user;
-        $this->actingAs($user, 'business');
+        $this->actingAs($business->user, 'business');
 
         $this->post(route('business.account.email'), ['email' => 'yeni@gercek.test', 'email_password' => 'yanlis'])->assertSessionHasErrors('email_password');
         $this->post(route('business.account.email'), ['email' => $other->email, 'email_password' => self::PASSWORD])->assertSessionHasErrors('email');
 
-        $response = $this->post(route('business.account.email'), ['email' => 'Yeni@Gercek.test', 'email_password' => self::PASSWORD])
+        $this->post(route('business.account.email'), ['email' => 'Yeni@Gercek.test', 'email_password' => self::PASSWORD])
             ->assertSessionHasNoErrors()->assertRedirect();
-        $url = session('email_verify_url'); // demo ortamı: sistem e-postası yok, bağlantı ekranda
-        $this->assertNotNull($url);
-        $this->assertSame($user->email, $user->fresh()->email, 'Doğrulanmadan değişmemeli.');
-        $this->get(route('business.account'))->assertSee('Doğrulama bekliyor:')->assertSee('yeni@gercek.test')->assertSee('Bağlantıyı yeniden gönder');
-
-        // Bağlantı açılınca yalnızca onay sayfası gelir; değişiklik butonla uygulanır.
-        $token = basename(parse_url($url, PHP_URL_PATH));
-        $this->get($url)->assertOk()->assertSee('yeni@gercek.test');
-        $this->assertSame($user->email, $user->fresh()->email);
-
-        $this->post(route('business.email.confirm'), ['token' => $token])->assertRedirect(route('business.account'));
-        $this->assertSame('yeni@gercek.test', $user->fresh()->email);
+        $this->assertSame('yeni@gercek.test', $business->user->fresh()->email);
         $this->assertDatabaseHas('audit_logs', ['action' => 'auth.email_changed']);
-
-        // Tek kullanımlık.
-        $this->post(route('business.email.confirm'), ['token' => $token])->assertRedirect(route('business.login'))->assertSessionHasErrors('email');
+        $this->assertSame(0, AuthToken::count(), 'Doğrulama bağlantısı üretilmez.');
 
         $this->post(route('business.logout'));
         $this->post(route('business.login.store'), ['email' => 'yeni@gercek.test', 'password' => self::PASSWORD])->assertRedirect(route('business.dashboard'));
     }
 
-    public function test_verification_goes_through_business_gmail_and_can_be_resent_or_cancelled(): void
-    {
-        $business = $this->makeBusiness();
-        $this->inTenant($business, fn () => \App\Models\EmailSetting::create([
-            'from_email' => 'gonderen@gmail.com', 'app_password_encrypted' => 'x', 'status' => 'verified',
-        ]));
-        \Illuminate\Support\Facades\Queue::fake();
-        $this->actingAs($business->user, 'business');
-
-        $this->post(route('business.account.email'), ['email' => 'gercek@gmail.com', 'email_password' => self::PASSWORD])->assertSessionHasNoErrors();
-        $this->assertNull(session('email_verify_url'), 'Gmail ile gönderildiğinde bağlantı ekranda gösterilmez.');
-        $this->assertDatabaseHas('email_logs', ['template_key' => 'account_email_verify', 'to_email' => 'gercek@gmail.com', 'status' => 'queued']);
-
-        $this->post(route('business.account.email.resend'))->assertSessionHasNoErrors();
-        $this->assertSame(2, \App\Models\EmailLog::withoutBusinessScope()->where('template_key', 'account_email_verify')->count());
-        $this->assertSame(1, AuthToken::where(['purpose' => 'email_change'])->whereNull('used_at')->count(), 'Yalnızca son bağlantı geçerli.');
-
-        $this->delete(route('business.account.email.cancel'))->assertSessionHasNoErrors();
-        $this->assertSame(0, AuthToken::where(['purpose' => 'email_change'])->whereNull('used_at')->count());
-        $this->post(route('business.account.email.resend'))->assertSessionHasErrors('email');
-    }
-
-    public function test_email_taken_meanwhile_is_rejected_at_confirmation(): void
+    public function test_dealer_changes_own_email_and_password(): void
     {
         $rel = $this->orderingDealer($this->makeBusiness());
-        $this->actingAs($rel->dealer->user, 'dealer')
-            ->post(route('dealer.account.email'), ['email' => 'kapisilan@bayi.test', 'email_password' => self::PASSWORD])->assertSessionHasNoErrors();
-        $token = basename(parse_url(session('email_verify_url'), PHP_URL_PATH));
+        $user = $rel->dealer->user;
+        $this->actingAs($user, 'dealer');
 
-        $this->makeDealer()->forceFill(['email' => 'kapisilan@bayi.test'])->save();
+        $this->get(route('dealer.account'))->assertOk()->assertSee('Giriş e-postası');
+        $this->post(route('dealer.account.email'), ['email' => 'bayi@gercek.test', 'email_password' => self::PASSWORD])->assertSessionHasNoErrors();
+        $this->put(route('dealer.account.password'), ['current_password' => self::PASSWORD, 'password' => 'BayiYeni2026x', 'password_confirmation' => 'BayiYeni2026x'])
+            ->assertSessionHasNoErrors();
 
-        $this->post(route('dealer.email.confirm'), ['token' => $token])->assertSessionHasErrors('email');
-        $this->assertNotSame('kapisilan@bayi.test', $rel->dealer->user->fresh()->email);
+        $user->refresh();
+        $this->assertSame('bayi@gercek.test', $user->email);
+        $this->assertTrue(Hash::check('BayiYeni2026x', $user->password));
     }
 
-    public function test_business_corrects_pending_dealer_email_and_resends_activation(): void
+    public function test_business_creates_dealer_with_password_and_dealer_logs_in_immediately(): void
     {
         $business = $this->makeBusiness();
-        [$user, $rel] = $this->pendingDealer($business);
-        $oldToken = AuthToken::where(['guard' => 'dealer', 'user_id' => $user->id, 'purpose' => 'activation'])->whereNull('used_at')->sole();
+        $form = [
+            'legal_name' => 'Yeni Kırtasiye', 'contact_name' => 'Ayşe Demir', 'email' => 'ayse@bayi.test', 'phone' => '0212 111 22 33',
+            'city' => 'İstanbul', 'district' => 'Şişli', 'address' => 'Cadde 1', 'payment_term_days' => 30,
+        ];
+        $this->actingAs($business->user, 'business');
+        $this->post(route('business.dealers.store'), $form)->assertSessionHasErrors('password');
+        $this->post(route('business.dealers.store'), $form + ['password' => 'kisa'])->assertSessionHasErrors('password');
+        $this->post(route('business.dealers.store'), $form + ['password' => 'BayiSifre2026'])->assertSessionHasNoErrors()->assertRedirect();
 
-        $this->put(route('business.dealers.email', $rel), ['email' => 'gercek@bayi.test'])->assertSessionHasNoErrors()->assertRedirect();
+        $user = DealerUser::where('email', 'ayse@bayi.test')->sole();
+        $this->assertSame('active', $user->status);
+        $this->assertSame(0, AuthToken::count());
 
-        $this->assertSame('gercek@bayi.test', $user->fresh()->email);
-        $this->assertSame('gercek@bayi.test', $user->dealer->fresh()->email);
-        $this->assertNotNull($oldToken->fresh()->used_at, 'Eski bağlantı geçersiz olmalı.');
-        $this->assertNotNull(session('activation_url'), 'E-posta ayarı yokken bağlantı ekranda gösterilir.');
-        $this->assertDatabaseHas('audit_logs', ['action' => 'dealer.pending_email_corrected']);
+        $this->flushSession();
+        $this->post(route('dealer.login.store'), ['email' => 'ayse@bayi.test', 'password' => 'BayiSifre2026'])->assertRedirect(route('dealer.dashboard'));
     }
 
-    public function test_business_cannot_change_email_of_active_or_shared_dealer(): void
-    {
-        $business = $this->makeBusiness();
-        $active = $this->orderingDealer($business);
-        $this->actingAs($business->user, 'business')
-            ->put(route('business.dealers.email', $active), ['email' => 'baska@bayi.test'])->assertSessionHasErrors('account_email');
-        $this->assertNotSame('baska@bayi.test', $active->dealer->user->fresh()->email);
-
-        // Bekleyen ama başka toptancıyla da ilişkili hesap.
-        [$user, $rel] = $this->pendingDealer($business);
-        $this->relate($this->makeBusiness(), $user);
-        $this->put(route('business.dealers.email', $rel), ['email' => 'baska2@bayi.test'])->assertSessionHasErrors('account_email');
-        $this->assertSame('uydurma@yanlis.test', $user->fresh()->email);
-    }
-
-    public function test_business_password_reset_link_is_never_shown_when_mail_is_available(): void
+    public function test_business_sets_new_password_for_dealer(): void
     {
         $business = $this->makeBusiness();
         $rel = $this->orderingDealer($business);
         $this->actingAs($business->user, 'business');
 
-        // Demo: toptancının Gmail'i ve sistem e-postası yok → bağlantı ekranda.
-        $this->post(route('business.dealers.password-reset', $rel))->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertNotNull(session('reset_url'));
+        $this->put(route('business.dealers.password', $rel), ['password' => 'YeniBayi2026', 'password_confirmation' => 'farkli'])->assertSessionHasErrors('password');
+        $this->put(route('business.dealers.password', $rel), ['password' => 'YeniBayi2026', 'password_confirmation' => 'YeniBayi2026'])->assertSessionHasNoErrors();
 
-        // Canlı benzeri: sistem e-postası tanımlı → bağlantı toptancıya gösterilmez.
-        $this->mock(SystemMailer::class, fn ($m) => $m->shouldReceive('isConfigured')->andReturn(true)->shouldReceive('send')->andReturn(true));
-        $this->flushSession();
-        $this->actingAs($business->user, 'business')->post(route('business.dealers.password-reset', $rel))->assertRedirect();
-        $this->assertNull(session('reset_url'));
-        $this->assertSame(2, AuthToken::where(['guard' => 'dealer', 'purpose' => 'password_reset'])->count());
+        $this->assertTrue(Hash::check('YeniBayi2026', $rel->dealer->user->fresh()->password));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'dealer.password_set_by_business']);
+
+        // Eski akıştan kalan, şifresi olmayan hesap şifre belirlenince etkinleşir.
+        $pending = $this->orderingDealer($business);
+        $pending->dealer->user->forceFill(['status' => 'pending_activation', 'password' => null])->save();
+        $this->put(route('business.dealers.password', $pending), ['password' => 'YeniBayi2026', 'password_confirmation' => 'YeniBayi2026'])->assertSessionHasNoErrors();
+        $this->assertSame('active', $pending->dealer->user->fresh()->status);
     }
 
-    public function test_platform_changes_business_user_email_with_reason(): void
+    public function test_business_corrects_email_only_before_dealers_first_login_and_if_not_shared(): void
+    {
+        $business = $this->makeBusiness();
+        $rel = $this->orderingDealer($business);
+        $this->actingAs($business->user, 'business');
+
+        $this->put(route('business.dealers.email', $rel), ['email' => 'dogru@bayi.test'])->assertSessionHasNoErrors();
+        $this->assertSame('dogru@bayi.test', $rel->dealer->user->fresh()->email);
+
+        $rel->dealer->user->forceFill(['last_login_at' => now()])->save();
+        $this->put(route('business.dealers.email', $rel), ['email' => 'baska@bayi.test'])->assertSessionHasErrors('account_email');
+
+        $shared = $this->orderingDealer($business);
+        $this->relate($this->makeBusiness(), $shared->dealer->user);
+        $this->put(route('business.dealers.email', $shared), ['email' => 'baska2@bayi.test'])->assertSessionHasErrors('account_email');
+    }
+
+    public function test_forgot_password_link_is_sent_through_the_business_gmail(): void
+    {
+        $business = $this->makeBusiness();
+        $this->configureMail($business);
+        $rel = $this->orderingDealer($business);
+
+        $this->post(route('dealer.password.email'), ['email' => $rel->dealer->user->email])->assertSessionHas('status');
+
+        $mail = collect($this->transport->sent)->firstWhere('mail.to', $rel->dealer->user->email);
+        $this->assertNotNull($mail, 'Sıfırlama bağlantısı bayinin kendi e-postasına gitmeli.');
+        $this->assertSame('ana@gmail.com', $mail['sender']['email']);
+        $this->assertStringContainsString('/bayi/parola-sifirla/', $mail['mail']['html']);
+    }
+
+    public function test_platform_manages_business_owner_and_mail_settings(): void
     {
         $business = $this->makeBusiness();
         $this->actingAsPlatformAdmin();
 
         $this->put(route('platform.businesses.user', $business), ['name' => 'Yeni Yetkili', 'email' => 'patron@gercek.test', 'reason' => ''])
             ->assertSessionHasErrors('reason');
-        $this->put(route('platform.businesses.user', $business), ['name' => 'Yeni Yetkili', 'email' => 'patron@gercek.test', 'reason' => 'Müşteri talebi, telefonla doğrulandı'])
-            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->put(route('platform.businesses.user', $business), [
+            'name' => 'Yeni Yetkili', 'email' => 'patron@gercek.test', 'password' => 'PatronSifre2026', 'password_confirmation' => 'PatronSifre2026',
+            'reason' => 'Müşteri talebi, telefonla doğrulandı',
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $user = BusinessUser::find($business->user->id);
         $this->assertSame('patron@gercek.test', $user->email);
-        $this->assertSame('Yeni Yetkili', $user->name);
+        $this->assertTrue(Hash::check('PatronSifre2026', $user->password));
         $this->assertDatabaseHas('audit_logs', ['action' => 'platform.user_email_changed']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'platform.password_set']);
 
-        $this->post(route('platform.businesses.password-reset', $business))->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame(1, AuthToken::where(['guard' => 'business', 'user_id' => $user->id, 'purpose' => 'password_reset'])->count());
+        // Ana Gmail ayarı platformdan da girilir ve test edilir.
+        $this->put(route('platform.businesses.email', $business), ['from_email' => 'burak@gmail.com', 'app_password' => 'abcd efgh ijkl mnop'])->assertSessionHasNoErrors();
+        $this->assertSame('burak@gmail.com', EmailSetting::withoutBusinessScope()->where('business_id', $business->id)->value('from_email'));
+        $this->post(route('platform.businesses.email.test', $business))->assertSessionHasNoErrors();
+        $this->assertSame(['burak@gmail.com'], $this->transport->recipients());
+        $this->assertSame('verified', EmailSetting::withoutBusinessScope()->where('business_id', $business->id)->value('status'));
     }
 
-    public function test_platform_manages_dealer_accounts(): void
+    public function test_platform_creates_dealer_for_a_chosen_business_and_manages_it(): void
     {
         $business = $this->makeBusiness();
-        $rel = $this->orderingDealer($business);
-        $dealerUser = $rel->dealer->user;
-        $this->relate($this->makeBusiness(), $dealerUser); // iki toptancıyla çalışan bayi
-
         $this->actingAsPlatformAdmin();
-        $this->get(route('platform.dealer-accounts.index', ['q' => $dealerUser->email]))->assertOk()->assertSee($dealerUser->email)->assertSee($business->display_name);
-        $this->get(route('platform.dealer-accounts.show', $dealerUser))->assertOk()->assertSee($business->display_name);
 
-        $this->put(route('platform.dealer-accounts.update', $dealerUser), ['name' => $dealerUser->name, 'email' => 'bayi@gercek.test', 'reason' => 'Bayi eski adresine erişemiyor'])
-            ->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('bayi@gercek.test', $dealerUser->fresh()->email);
+        $this->post(route('platform.dealer-accounts.store'), [
+            'business_id' => $business->id, 'legal_name' => 'Platform Bayisi', 'contact_name' => 'Can', 'email' => 'can@bayi.test',
+            'phone' => '0212 111 22 33', 'city' => 'Bursa', 'district' => 'Nilüfer', 'address' => 'Adres', 'password' => 'CanSifre2026',
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
-        $this->put(route('platform.dealer-accounts.status', $dealerUser), ['status' => 'disabled', 'reason' => 'Ödeme sorunu'])->assertSessionHasNoErrors();
-        $this->assertSame('disabled', $dealerUser->fresh()->status);
+        $user = DealerUser::where('email', 'can@bayi.test')->sole();
+        $this->assertSame(1, DealerRelationship::withoutBusinessScope()->where('business_id', $business->id)->where('dealer_id', $user->dealer_id)->count());
+        $this->get(route('platform.dealer-accounts.show', $user))->assertOk()->assertSee($business->display_name);
 
+        $this->put(route('platform.dealer-accounts.update', $user), [
+            'name' => 'Can Yılmaz', 'email' => 'can@gercek.test', 'password' => 'CanYeni2026x', 'password_confirmation' => 'CanYeni2026x', 'reason' => 'Bayi talebi',
+        ])->assertSessionHasNoErrors();
+        $user->refresh();
+        $this->assertSame('can@gercek.test', $user->email);
+        $this->assertTrue(Hash::check('CanYeni2026x', $user->password));
+
+        $this->put(route('platform.dealer-accounts.status', $user), ['status' => 'disabled', 'reason' => 'Ödeme sorunu'])->assertSessionHasNoErrors();
         $this->flushSession();
         $this->app['auth']->forgetGuards();
-        $this->post(route('dealer.login.store'), ['email' => 'bayi@gercek.test', 'password' => self::PASSWORD])->assertSessionHasErrors();
+        $this->post(route('dealer.login.store'), ['email' => 'can@gercek.test', 'password' => 'CanYeni2026x'])->assertSessionHasErrors();
         $this->assertGuest('dealer');
-
-        $this->actingAsPlatformAdmin();
-        $this->put(route('platform.dealer-accounts.status', $dealerUser), ['status' => 'active', 'reason' => 'Ödeme alındı'])->assertSessionHasNoErrors();
-        $this->assertSame('active', $dealerUser->fresh()->status);
-        $this->assertSame(2, DB::table('audit_logs')->where('action', 'platform.dealer_user_status_changed')->count());
     }
 
-    public function test_other_areas_cannot_use_platform_account_screens(): void
+    public function test_application_reaches_platform_and_platform_can_approve_it(): void
     {
         $business = $this->makeBusiness();
-        $rel = $this->orderingDealer($business);
+        $this->configureMail($business);
+        $this->post("/basvuru/{$business->slug}", [
+            'legal_name' => 'Başvuran Kırtasiye', 'contact_name' => 'Deniz', 'phone' => '0212 111 22 33', 'email' => 'deniz@bayi.test',
+            'city' => 'İzmir', 'district' => 'Konak', 'address' => 'Adres', 'consent' => '1',
+        ])->assertRedirect();
+        $application = DealerApplication::withoutBusinessScope()->sole();
 
-        $this->actingAs($business->user, 'business')->get(route('platform.dealer-accounts.index'))->assertRedirect(route('platform.login'));
-        $this->actingAs($rel->dealer->user, 'dealer')->put(route('platform.dealer-accounts.update', $rel->dealer->user), [
-            'name' => 'X', 'email' => 'ele@gecir.test', 'reason' => 'deneme deneme',
-        ])->assertRedirect(route('platform.login'));
-        $this->assertNotSame('ele@gecir.test', $rel->dealer->user->fresh()->email);
+        // Toptancının ana adresine ve başvuru sahibine e-posta.
+        $this->assertContains('ana@gmail.com', $this->transport->recipients());
+        $this->assertContains('deniz@bayi.test', $this->transport->recipients());
+
+        $this->actingAsPlatformAdmin();
+        $this->get(route('platform.applications.index'))->assertOk()->assertSee('Başvuran Kırtasiye')->assertSee($business->display_name);
+        $this->get(route('platform.applications.show', $application->id))->assertOk();
+        $this->post(route('platform.applications.approve', $application->id), ['login_email' => 'deniz@bayi.test', 'password' => 'DenizSifre2026', 'payment_term_days' => 30])
+            ->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertSame('approved', $application->fresh()->status);
+        $this->assertSame('active', DealerUser::where('email', 'deniz@bayi.test')->sole()->status);
+        $this->post(route('platform.applications.approve', $application->id), ['login_email' => 'deniz@bayi.test', 'password' => 'DenizSifre2026', 'payment_term_days' => 30])
+            ->assertSessionHasErrors('approve');
+    }
+
+    public function test_dealer_login_page_links_to_application_form(): void
+    {
+        $only = $this->makeBusiness();
+        $this->get(route('dealer.login'))->assertOk()->assertSee('Bayimiz olmak ister misiniz?')->assertSee(route('public.apply'), false);
+        $this->get(route('public.apply'))->assertRedirect(route('public.application', $only->slug));
+
+        $second = $this->makeBusiness();
+        $this->get(route('public.apply'))->assertOk()->assertSee($only->display_name)->assertSee($second->display_name);
+    }
+
+    public function test_views_have_no_inline_event_handlers_blocked_by_csp(): void
+    {
+        $offenders = collect(File::allFiles(resource_path('views')))
+            ->filter(fn ($f) => preg_match('/\son(submit|click|change|input|load)=/', $f->getContents()))
+            ->map(fn ($f) => $f->getRelativePathname())->values()->all();
+
+        $this->assertSame([], $offenders, 'İçerik güvenlik politikası satır içi olay işleyicilerini engeller; data-confirm / data-autosubmit kullanın.');
     }
 }

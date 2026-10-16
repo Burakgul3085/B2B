@@ -59,7 +59,7 @@ Geliştirme verisi (`database/seeders/DevelopmentSeeder.php`, yalnızca `APP_ENV
 
 Parolalar seeder dosyasındaki `DEV_PASSWORD` sabitindedir.
 
-Sistem e-postası (`SYSTEM_MAIL_*`) tanımlı değilse yerel ortamda e-posta içeriği ve bağlantılar `storage/logs/laravel.log` dosyasına yazılır.
+E-postalar işletmenin **ana Gmail hesabıyla** gönderilir (toptancı paneli → E-posta Ayarları veya platform → işletme detayı). E-postaların gitmesi için kuyruk çalıştırıcısı açık olmalıdır; `baslat.ps1` bunu otomatik başlatır.
 
 ## Platform yöneticisi oluşturma (sunucuda)
 

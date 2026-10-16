@@ -51,7 +51,7 @@
             </x-card>
 
             <x-card title="Toplu doldur" description="Standart bayi fiyatı (yoksa liste fiyatı) üzerinden yüzde farkla listeyi doldurur.">
-                <form method="POST" action="{{ route('business.price-lists.fill', $list) }}" class="space-y-4" onsubmit="return confirm('Liste toplu olarak doldurulsun mu?')">
+                <form method="POST" action="{{ route('business.price-lists.fill', $list) }}" class="space-y-4" data-confirm="Liste toplu olarak doldurulsun mu?">
                     @csrf
                     <x-field name="category" label="Kategori" :options="['' => 'Tüm ürünler'] + \App\Models\Category::with('parent')->get()->sortBy(fn ($c) => $c->fullName())->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->all()" />
                     <x-field name="percent" label="Fark (%)" type="number" step="0.01" value="0" required hint="Ör. -5 = %5 daha düşük." />

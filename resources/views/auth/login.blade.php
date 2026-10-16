@@ -28,6 +28,11 @@
             @if ($area === Area::Business)
                 Bayi misiniz? <a href="{{ route('dealer.login') }}" class="font-medium text-primary hover:underline">Bayi girişi</a>
             @else
+                <div class="mb-4 rounded-lg border border-line bg-slate-50 px-4 py-3 text-left">
+                    <p class="font-medium text-ink">Bayimiz olmak ister misiniz?</p>
+                    <p class="mt-0.5 text-xs text-muted">Başvuru formunu doldurun; inceleyip size en kısa sürede dönüş yapalım.</p>
+                    <a href="{{ route('public.apply') }}" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">Bayilik başvuru formu →</a>
+                </div>
                 Toptancı mısınız? <a href="{{ route('business.login') }}" class="font-medium text-primary hover:underline">Toptancı girişi</a>
             @endif
         </x-slot:footer>

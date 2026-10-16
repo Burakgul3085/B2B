@@ -1,6 +1,8 @@
-@php $statuses = ['pending_activation' => 'Aktivasyon bekliyor', 'active' => 'Etkin', 'disabled' => 'Devre dışı']; @endphp
+@php $statuses = ['pending_activation' => 'Şifre bekliyor', 'active' => 'Etkin', 'disabled' => 'Devre dışı']; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Platform" title="Bayi Hesapları">
-    <x-page-header title="Bayi Hesapları" subtitle="Bayi giriş hesapları. Bir bayi hesabı birden fazla toptancıyla kullanılabilir; giriş e-postasını yalnızca bayi veya platform yöneticisi değiştirebilir." />
+    <x-page-header title="Bayi Hesapları" subtitle="Bayi giriş hesapları. Bir bayi hesabı birden fazla toptancıyla kullanılabilir.">
+        <x-button :href="route('platform.dealer-accounts.create')" icon="plus">Yeni bayi</x-button>
+    </x-page-header>
 
     <x-card :padding="false">
         <form method="GET" class="flex flex-wrap items-end gap-3 border-b border-line p-4">

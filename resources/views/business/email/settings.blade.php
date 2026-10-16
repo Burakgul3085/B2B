@@ -34,7 +34,7 @@
                 <form method="POST" action="{{ route('business.email.update') }}" class="space-y-5">
                     @csrf @method('PUT')
                     <div class="grid gap-5 sm:grid-cols-2">
-                        <x-field name="from_email" label="Gönderici e-posta (Google hesabı)" type="email" :value="$setting?->from_email" required autocomplete="off" />
+                        <x-field name="from_email" label="Ana e-posta adresi (Google hesabı)" hint="Bütün e-postalar bu adresten gider; size gelen bildirimler (yeni sipariş, başvuru, mesaj) de bu adrese düşer." type="email" :value="$setting?->from_email" required autocomplete="off" />
                         <x-field name="from_name" label="Görünen ad (isteğe bağlı)" :value="$setting?->from_name" :placeholder="$currentBusiness->display_name" />
                     </div>
                     <div>
@@ -55,7 +55,7 @@
                     <form method="POST" action="{{ route('business.email.test') }}" class="mt-5 border-t border-line pt-5">
                         @csrf
                         <x-button variant="secondary" icon="refresh">Bağlantıyı test et</x-button>
-                        <p class="mt-2 text-xs text-muted">Gmail'e bağlanıp kimlik doğrulanır; başarılıysa {{ auth('business')->user()->email }} adresine test e-postası gönderilir.</p>
+                        <p class="mt-2 text-xs text-muted">Gmail'e bağlanıp kimlik doğrulanır; başarılıysa ana e-posta adresine ({{ $setting->from_email }}) test e-postası gönderilir.</p>
                     </form>
                 @endif
             </x-card>

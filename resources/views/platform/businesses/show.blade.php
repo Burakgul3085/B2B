@@ -6,17 +6,6 @@
         <x-button variant="secondary" :href="route('platform.businesses.edit', $business)">Düzenle</x-button>
     </x-page-header>
 
-    @if (session('activation') && ! session('activation')['mail_sent'])
-        <div class="mb-6 rounded-xl border border-amber-200 bg-warning-soft p-4 text-sm text-amber-900" x-data>
-            <p class="font-semibold">Aktivasyon e-postası gönderilemedi</p>
-            <p class="mt-1">Sistem e-postası yapılandırılmamış. Aşağıdaki tek kullanımlık bağlantıyı işletme yetkilisine güvenli bir kanaldan iletin. Bu bağlantı yalnızca bir kez gösterilir.</p>
-            <div class="mt-3 flex gap-2">
-                <input readonly value="{{ session('activation')['activation_url'] }}" class="field-input font-mono text-xs" x-ref="link">
-                <x-button type="button" variant="secondary" @click="navigator.clipboard.writeText($refs.link.value)">Kopyala</x-button>
-            </div>
-        </div>
-    @endif
-
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             <x-card title="İşletme bilgileri">
@@ -82,39 +71,53 @@
         </div>
 
         <div class="space-y-6">
+            <x-card title="Ana e-posta (Gmail)" description="Bütün e-postalar bu hesaptan gider; toptancıya gelen bildirimler de bu adrese düşer. Toptancı da kendi E-posta Ayarları ekranından değiştirebilir.">
+                @php $mailTone = ['verified' => 'success', 'failed' => 'danger'][$emailSetting?->status] ?? 'warning'; @endphp
+                @if ($emailSetting)
+                    <p class="text-sm font-medium break-all">{{ $emailSetting->from_email }}</p>
+                    <x-badge :tone="$mailTone" class="mt-1">{{ ['verified' => 'Doğrulandı', 'failed' => 'Bağlantı hatalı', 'unverified' => 'Test edilmedi'][$emailSetting->status] ?? $emailSetting->status }}</x-badge>
+                @else
+                    <x-badge tone="warning">Tanımlı değil — e-postalar gönderilmiyor</x-badge>
+                @endif
+                @error('mail')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+                <details class="mt-4 border-t border-line pt-4" @if ($errors->hasAny(['from_email', 'from_name', 'app_password'])) open @endif>
+                    <summary class="cursor-pointer text-sm font-medium text-primary">{{ $emailSetting ? 'Ayarı değiştir' : 'Gmail ayarını gir' }}</summary>
+                    <form method="POST" action="{{ route('platform.businesses.email', $business) }}" class="mt-3 space-y-4">
+                        @csrf @method('PUT')
+                        <x-field name="from_email" label="Ana e-posta adresi (Google hesabı)" type="email" :value="old('from_email', $emailSetting?->from_email)" required autocomplete="off" />
+                        <x-field name="from_name" label="Görünen ad (isteğe bağlı)" :value="old('from_name', $emailSetting?->from_name)" />
+                        <x-field name="app_password" label="16 haneli uygulama şifresi" type="password" autocomplete="new-password" :hint="$emailSetting ? 'Kayıtlı şifre değişmeyecekse boş bırakın.' : 'Google hesabı → Güvenlik → Uygulama şifreleri'" />
+                        <x-button variant="secondary" size="sm">Kaydet</x-button>
+                    </form>
+                </details>
+                @if ($emailSetting)
+                    <form method="POST" action="{{ route('platform.businesses.email.test', $business) }}" class="mt-3">@csrf<x-button variant="ghost" size="sm" icon="refresh">Bağlantıyı test et</x-button></form>
+                @endif
+            </x-card>
+
             <x-card title="İşletme yetkilisi">
                 @if ($business->user)
                     <p class="font-medium">{{ $business->user->name }}</p>
                     <p class="text-sm text-muted">{{ $business->user->email }}</p>
                     <div class="mt-3">
                         @if ($business->user->status === 'pending_activation')
-                            <x-badge tone="warning">Aktivasyon bekliyor</x-badge>
-                            <form method="POST" action="{{ route('platform.businesses.activation', $business) }}" class="mt-3">
-                                @csrf
-                                <x-button variant="secondary" size="sm" icon="refresh">Yeni bağlantı gönder</x-button>
-                            </form>
+                            <x-badge tone="warning">Şifre belirlenmedi</x-badge>
+                            <p class="mt-2 text-xs text-muted">Aşağıdan şifre belirlediğinizde hesap etkinleşir.</p>
                         @else
                             <x-badge tone="success">Etkin</x-badge>
                             <p class="mt-2 text-xs text-muted">Son giriş: {{ $business->user->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? 'Henüz giriş yapılmadı' }}</p>
-                            <form method="POST" action="{{ route('platform.businesses.password-reset', $business) }}" class="mt-3">@csrf<x-button variant="secondary" size="sm">Parola sıfırlama bağlantısı gönder</x-button></form>
                         @endif
                     </div>
 
-                    @if (session('reset_url'))
-                        <div class="mt-4 rounded-lg border border-amber-200 bg-warning-soft p-3 text-xs text-amber-900">
-                            <p class="font-semibold">Parola sıfırlama bağlantısı (demo ortamı)</p>
-                            <p class="mt-1">Sistem e-postası tanımlı olmadığı için gösteriliyor; canlıda yalnızca e-postayla gider.</p>
-                            <input readonly value="{{ session('reset_url') }}" class="field-input mt-2 font-mono text-xs" aria-label="Parola sıfırlama bağlantısı">
-                        </div>
-                    @endif
-
-                    <details class="mt-4 border-t border-line pt-4" @if ($errors->hasAny(['name', 'email', 'reason', 'user_email'])) open @endif>
-                        <summary class="cursor-pointer text-sm font-medium text-primary">Yetkili bilgilerini düzenle</summary>
+                    <details class="mt-4 border-t border-line pt-4" @if ($errors->hasAny(['name', 'email', 'password', 'reason', 'user_email'])) open @endif>
+                        <summary class="cursor-pointer text-sm font-medium text-primary">Yetkili bilgilerini düzenle / yeni şifre</summary>
                         @error('user_email')<p class="mt-3 text-sm text-danger">{{ $message }}</p>@enderror
                         <form method="POST" action="{{ route('platform.businesses.user', $business) }}" class="mt-3 space-y-4">
                             @csrf @method('PUT')
                             <x-field name="name" label="Ad soyad" :value="old('name', $business->user->name)" required />
-                            <x-field name="email" label="Giriş e-postası" type="email" :value="old('email', $business->user->email)" required hint="Doğrulama beklenmeden hemen değişir; eski ve yeni adrese bilgi gider." />
+                            <x-field name="email" label="Giriş e-postası" type="email" :value="old('email', $business->user->email)" required autocomplete="off" />
+                            <x-field name="password" label="Yeni şifre (isteğe bağlı)" type="password" autocomplete="new-password" hint="Boş bırakılırsa şifre değişmez." />
+                            <x-field name="password_confirmation" label="Yeni şifre (tekrar)" type="password" autocomplete="new-password" />
                             <x-field name="reason" label="Gerekçe" textarea required hint="Denetim kaydına yazılır." />
                             <x-button variant="secondary" size="sm">Kaydet</x-button>
                         </form>

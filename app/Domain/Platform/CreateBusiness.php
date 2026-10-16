@@ -3,9 +3,6 @@
 namespace App\Domain\Platform;
 
 use App\Domain\Audit\AuditLogger;
-use App\Domain\Auth\Area;
-use App\Domain\Auth\AuthTokenService;
-use App\Domain\Mail\SystemMailer;
 use App\Models\Business;
 use App\Models\BusinessModule;
 use App\Models\BusinessUser;
@@ -18,18 +15,17 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateBusiness
 {
-    public function __construct(
-        private AuthTokenService $tokens,
-        private SystemMailer $mailer,
-        private AuditLogger $audit,
-    ) {}
+    public function __construct(private AuditLogger $audit) {}
 
     /**
-     * @return array{business: Business, activation_url: ?string, mail_sent: bool}
+     * Yetkili hesabı hemen etkindir: giriş e-postası ve şifreyi platform yöneticisi belirler (aktivasyon bağlantısı yok).
+     *
+     * @param  array{name: string, email: string, password: string}  $owner
+     * @return array{business: Business}
      */
     public function handle(array $business, array $owner, array $license): array
     {
-        [$model, $user] = DB::transaction(function () use ($business, $owner, $license) {
+        [$model] = DB::transaction(function () use ($business, $owner, $license) {
             $model = Business::create($business + ['status' => 'active']);
             $model->settings()->create([]);
             app(ProvisionBusinessDefaults::class)->handle($model);
@@ -44,8 +40,9 @@ class CreateBusiness
                 'business_id' => $model->id,
                 'name' => $owner['name'],
                 'email' => $owner['email'],
-                'status' => 'pending_activation',
+                'password' => $owner['password'],
             ]);
+            $user->forceFill(['status' => 'active', 'activated_at' => now()])->save();
 
             $this->audit->log('platform.business_created', $model, [], [
                 'slug' => $model->slug, 'legal_name' => $model->legal_name, 'owner_email' => $user->email,
@@ -54,29 +51,6 @@ class CreateBusiness
             return [$model, $user];
         });
 
-        $result = $this->sendActivation($user);
-
-        return ['business' => $model] + $result;
-    }
-
-    /** @return array{activation_url: ?string, mail_sent: bool} */
-    public function sendActivation(BusinessUser $user): array
-    {
-        $plain = $this->tokens->issue(Area::Business, $user->id, 'activation');
-        $url = $this->tokens->url(Area::Business, 'activation', $plain);
-
-        $sent = $this->mailer->send($user->email, 'Toptancı paneli hesabınız hazır', [
-            'title' => 'Hesabınızı etkinleştirin',
-            'intro' => "{$user->business->display_name} için toptancı paneli hesabınız oluşturuldu. Parolanızı belirlemek için aşağıdaki bağlantıyı kullanın. Bağlantı ".config('b2b.activation_ttl_hours').' saat geçerlidir.',
-            'action_url' => $url,
-            'action_label' => 'Parolamı belirle',
-        ]);
-
-        // Bağlantı yalnızca e-posta gönderilemediğinde ekranda gösterilir; bu durum denetim kaydına yazılır.
-        if (! $sent) {
-            $this->audit->log('platform.activation_link_shown', $user, businessId: $user->business_id);
-        }
-
-        return ['activation_url' => $sent ? null : $url, 'mail_sent' => $sent];
+        return ['business' => $model];
     }
 }

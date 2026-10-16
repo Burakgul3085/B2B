@@ -3,6 +3,7 @@
 namespace App\Domain\Notifications;
 
 use App\Domain\Mail\BusinessMailer;
+use App\Domain\Mail\EmailSettingService;
 use App\Domain\Support\Money;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Announcement;
@@ -32,30 +33,28 @@ class Notifier
         $url = route('business.applications.show', $a);
         $this->toBusiness('application', "Yeni bayilik başvurusu: {$a->legal_name}", "{$a->city} / {$a->district}", $url);
         $this->mailBusiness('application_received', ['bayi' => $a->legal_name], ['url' => $url, 'label' => 'Başvuruyu incele'],
-            ['Yetkili' => $a->contact_name, 'Telefon' => $a->phone, 'E-posta' => $a->email], $a);
+            ['Yetkili' => $a->contact_name, 'Telefon' => $a->phone, 'E-posta' => $a->email, 'İl / ilçe' => "{$a->city} / {$a->district}"], $a);
+        // Başvuru sahibine otomatik "başvurunuz alındı" e-postası.
+        $this->mailer->queue('application_received_applicant', $a->email, ['bayi' => $a->legal_name, 'yetkili' => $a->contact_name], [],
+            ['Başvuru tarihi' => $a->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i')], 'dealer_application', $a->id);
     }
 
-    /** @return EmailLog e-postanın gönderilip gönderilmeyeceğini (status) çağıran bilir */
-    public function applicationApproved(DealerApplication $a, ?string $activationUrl): EmailLog
+    /** Onaylanan başvuru sahibine hesap bilgileri (şifre e-postayla gönderilmez). */
+    public function applicationApproved(DealerApplication $a, string $loginEmail, bool $existingAccount): EmailLog
     {
-        return $activationUrl
-            ? $this->mailer->queue('application_approved', $a->email, [], ['url' => $activationUrl, 'label' => 'Hesabımı etkinleştir'], [], 'dealer_application', $a->id)
-            : $this->mailer->queue('relationship_added', $a->email, [], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_application', $a->id);
+        return $existingAccount
+            ? $this->mailer->queue('relationship_added', $loginEmail, [], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_application', $a->id)
+            : $this->mailer->queue('application_approved', $loginEmail, ['eposta' => $loginEmail], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_application', $a->id);
     }
 
-    public function dealerCreated(DealerRelationship $rel, ?string $activationUrl): EmailLog
+    /** Yeni açılan bayiye hesap bilgileri (şifre e-postayla gönderilmez). */
+    public function dealerCreated(DealerRelationship $rel, bool $existingAccount): EmailLog
     {
         $email = $this->dealerEmail($rel);
 
-        return $activationUrl
-            ? $this->mailer->queue('dealer_activation', $email, [], ['url' => $activationUrl, 'label' => 'Parolamı belirle'], [], 'dealer_relationship', $rel->id)
-            : $this->mailer->queue('relationship_added', $email, [], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_relationship', $rel->id);
-    }
-
-    /** Toptancının aktif bayisi için başlattığı parola sıfırlama (bağlantı toptancıya gösterilmez). */
-    public function dealerPasswordReset(DealerRelationship $rel, string $resetUrl): EmailLog
-    {
-        return $this->mailer->queue('dealer_password_reset', $this->dealerEmail($rel), [], ['url' => $resetUrl, 'label' => 'Yeni parola belirle'], [], 'dealer_relationship', $rel->id);
+        return $existingAccount
+            ? $this->mailer->queue('relationship_added', $email, [], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_relationship', $rel->id)
+            : $this->mailer->queue('dealer_activation', $email, ['eposta' => $email], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_relationship', $rel->id);
     }
 
     public function applicationRejected(DealerApplication $a): void
@@ -199,7 +198,8 @@ class Notifier
 
     private function mailBusiness(string $key, array $vars, array $action, array $details, $related): void
     {
-        $to = BusinessUser::where('business_id', app(TenantContext::class)->businessId())->where('status', 'active')->value('email');
+        // Toptancıya gelen bildirimler işletmenin ana e-posta adresine (E-posta Ayarları) düşer.
+        $to = EmailSettingService::inboxAddress(BusinessUser::where('business_id', app(TenantContext::class)->businessId())->value('email'));
         if ($to) {
             $this->mailer->queue($key, $to, $vars, $action, $details, $related ? Str::snake(class_basename($related)) : null, $related?->getKey());
         }

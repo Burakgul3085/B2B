@@ -13,4 +13,5 @@
 | [09-asama-7-raporu.md](09-asama-7-raporu.md) | Aşama 7: iletişim raporu |
 | [10-asama-8-raporu.md](10-asama-8-raporu.md) | Aşama 8: dashboard ve raporlama raporu |
 | [11-asama-9-raporu.md](11-asama-9-raporu.md) | Aşama 9: güvenlik, performans ve negatif testler raporu |
+| [12-revizyonlar.md](12-revizyonlar.md) | Sunum öncesi revizyonlar: raporlar, hesap ve e-posta kurgusu, bayilik başvurusu |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

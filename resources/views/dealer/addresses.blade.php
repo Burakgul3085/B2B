@@ -22,7 +22,7 @@
                             @endunless
                             @if ($relationship->can_edit_addresses)
                                 <button type="button" @click="edit = true" class="text-primary hover:underline">Düzenle</button>
-                                <form method="POST" action="{{ route('dealer.addresses.destroy', $address) }}" onsubmit="return confirm('Adres kaldırılsın mı?')">@csrf @method('DELETE')<button class="text-danger hover:underline">Kaldır</button></form>
+                                <form method="POST" action="{{ route('dealer.addresses.destroy', $address) }}" data-confirm="Adres kaldırılsın mı?">@csrf @method('DELETE')<button class="text-danger hover:underline">Kaldır</button></form>
                             @endif
                         </div>
                     </div>

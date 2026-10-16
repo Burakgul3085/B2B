@@ -38,7 +38,7 @@
                                     </td>
                                     <td class="hidden text-muted md:table-cell">{{ $r->group?->name ?? '—' }}</td>
                                     <td class="hidden tabular-nums sm:table-cell">{{ $r->payment_term_days }} gün</td>
-                                    <td>@if ($r->dealer->user?->status === 'pending_activation')<x-badge tone="warning">Aktivasyon bekliyor</x-badge>@else<x-badge tone="success">Etkin</x-badge>@endif</td>
+                                    <td>@if ($r->dealer->user?->status === 'pending_activation')<x-badge tone="warning">Şifre bekliyor</x-badge>@elseif ($r->dealer->user?->status === 'disabled')<x-badge>Kapalı</x-badge>@else<x-badge tone="success">Etkin</x-badge>@endif</td>
                                     <td><x-badge :tone="['active' => 'success', 'suspended' => 'warning', 'closed' => 'neutral'][$r->status]">{{ DealerRelationship::STATUSES[$r->status] }}</x-badge></td>
                                 </tr>
                             @endforeach

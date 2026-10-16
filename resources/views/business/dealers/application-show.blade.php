@@ -57,8 +57,9 @@
             @elseif ($a->isOpen())
                 <x-card title="Onayla ve hesap aç" description="Bayi hesabı, cari hesap ve ilk sevk adresi oluşturulur.">
                     <form method="POST" action="{{ route('business.applications.approve', $a) }}" class="space-y-4"
-                        onsubmit="return confirm('Başvuru onaylansın ve bayi hesabı açılsın mı?')">
+                        data-confirm="Başvuru onaylansın ve bayi hesabı açılsın mı?">
                         @csrf
+                        @include('partials.approve-login', ['application' => $a])
                         <x-field name="dealer_group_id" label="Bayi grubu" :options="['' => 'Grupsuz'] + $groups->all()" />
                         <x-field name="payment_term_days" label="Vade (gün)" type="number" min="0" max="365" :value="$defaultTerm" required />
                         <x-toggle name="can_edit_addresses" label="Bayi sevk adreslerini değiştirebilsin" :checked="true" />
@@ -80,13 +81,13 @@
                     </details>
                     <details class="mt-4">
                         <summary class="cursor-pointer text-sm font-medium text-danger">Reddet</summary>
-                        <form method="POST" action="{{ route('business.applications.reject', $a) }}" class="mt-3 space-y-3" onsubmit="return confirm('Başvuru reddedilsin mi?')">
+                        <form method="POST" action="{{ route('business.applications.reject', $a) }}" class="mt-3 space-y-3" data-confirm="Başvuru reddedilsin mi?">
                             @csrf
                             <x-field name="reason" label="Ret gerekçesi" textarea required />
                             <x-button variant="danger" size="sm">Reddet</x-button>
                         </form>
                     </details>
-                    <form method="POST" action="{{ route('business.applications.cancel', $a) }}" class="mt-4 border-t border-line pt-4" onsubmit="return confirm('Başvuru iptal edilsin mi?')">
+                    <form method="POST" action="{{ route('business.applications.cancel', $a) }}" class="mt-4 border-t border-line pt-4" data-confirm="Başvuru iptal edilsin mi?">
                         @csrf<button class="text-sm text-muted hover:underline">Başvuruyu iptal et</button>
                     </form>
                 </x-card>

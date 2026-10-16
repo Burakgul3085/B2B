@@ -3,8 +3,6 @@
 namespace App\Domain\Dealers;
 
 use App\Domain\Audit\AuditLogger;
-use App\Domain\Auth\Area;
-use App\Domain\Auth\AuthTokenService;
 use App\Domain\Files\DocumentUploader;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Business;
@@ -29,7 +27,6 @@ class DealerOnboarding
     public function __construct(
         private TenantContext $tenant,
         private AuditLogger $audit,
-        private AuthTokenService $tokens,
         private DocumentUploader $documents,
     ) {}
 
@@ -68,22 +65,22 @@ class DealerOnboarding
         });
     }
 
-    public function markInReview(DealerApplication $application, int $reviewerId): void
+    public function markInReview(DealerApplication $application, ?int $reviewerId): void
     {
         $this->transition($application, ['new', 'waiting_info'], 'in_review', $reviewerId);
     }
 
-    public function requestInfo(DealerApplication $application, string $note, int $reviewerId): void
+    public function requestInfo(DealerApplication $application, string $note, ?int $reviewerId): void
     {
         $this->transition($application, ['new', 'in_review'], 'waiting_info', $reviewerId, ['info_request_note' => $note]);
     }
 
-    public function reject(DealerApplication $application, string $reason, int $reviewerId): void
+    public function reject(DealerApplication $application, string $reason, ?int $reviewerId): void
     {
         $this->transition($application, DealerApplication::OPEN, 'rejected', $reviewerId, ['decision_note' => $reason]);
     }
 
-    public function cancel(DealerApplication $application, int $reviewerId): void
+    public function cancel(DealerApplication $application, ?int $reviewerId): void
     {
         $this->transition($application, DealerApplication::OPEN, 'cancelled', $reviewerId);
     }
@@ -91,11 +88,15 @@ class DealerOnboarding
     /**
      * Başvuruyu onaylar: bayi (yoksa) + giriş hesabı (yoksa) + ilişki + cari hesap tek transaction'da.
      *
-     * @return array{relationship: DealerRelationship, activation_url: ?string, existing_account: bool}
+     * Giriş e-postası başvurudaki adres olabilir veya onaylayan değiştirebilir; şifreyi onaylayan belirler.
+     * Onaylayan toptancı kullanıcısı ya da platform yöneticisidir (platformda $reviewerId boş, kayıt denetimde).
+     *
+     * @param  array{email: string, password: ?string}  $login
+     * @return array{relationship: DealerRelationship, existing_account: bool, email: string}
      */
-    public function approve(DealerApplication $application, int $reviewerId, array $terms = []): array
+    public function approve(DealerApplication $application, ?int $reviewerId, array $terms, array $login): array
     {
-        return DB::transaction(function () use ($application, $reviewerId, $terms) {
+        return DB::transaction(function () use ($application, $reviewerId, $terms, $login) {
             $application = DealerApplication::whereKey($application->id)->lockForUpdate()->firstOrFail();
             if (! $application->isOpen()) {
                 throw new DomainException('Bu başvuru zaten sonuçlanmış.');
@@ -103,9 +104,9 @@ class DealerOnboarding
 
             $result = $this->onboard([
                 'legal_name' => $application->legal_name, 'tax_office' => $application->tax_office, 'tax_number' => $application->tax_number,
-                'phone' => $application->phone, 'email' => $application->email, 'city' => $application->city,
+                'phone' => $application->phone, 'email' => $login['email'], 'city' => $application->city,
                 'district' => $application->district, 'address' => $application->address,
-            ], $application->contact_name, $reviewerId, $terms);
+            ], $application->contact_name, $reviewerId, $terms, $login['password'] ?? null);
 
             $application->update([
                 'status' => 'approved', 'reviewed_by' => $reviewerId, 'reviewed_at' => now(),
@@ -120,40 +121,28 @@ class DealerOnboarding
     /**
      * Toptancının başvuru olmadan doğrudan bayi hesabı açması.
      *
-     * @return array{relationship: DealerRelationship, activation_url: ?string, existing_account: bool}
+     * Hesap hemen etkindir; giriş e-postası ve şifreyi açan kişi belirler (aktivasyon bağlantısı yok).
+     *
+     * @return array{relationship: DealerRelationship, existing_account: bool, email: string}
      */
-    public function createDirect(array $dealer, string $contactName, int $creatorId, array $terms = []): array
+    public function createDirect(array $dealer, string $contactName, ?int $creatorId, array $terms, ?string $password): array
     {
-        return DB::transaction(fn () => $this->onboard($dealer, $contactName, $creatorId, $terms));
-    }
-
-    /** Henüz etkinleştirilmemiş bayi hesabı için yeni aktivasyon bağlantısı. */
-    public function newActivationLink(DealerRelationship $relationship): string
-    {
-        $user = DealerUser::where('dealer_id', $relationship->dealer_id)->firstOrFail();
-        if ($user->status !== 'pending_activation') {
-            throw new DomainException('Bayi hesabı zaten etkinleştirilmiş.');
-        }
-
-        $plain = $this->tokens->issue(Area::Dealer, $user->id, 'activation');
-        $this->audit->log('dealer.activation_link_created', $relationship);
-
-        return $this->tokens->url(Area::Dealer, 'activation', $plain);
+        return DB::transaction(fn () => $this->onboard($dealer, $contactName, $creatorId, $terms, $password));
     }
 
     /**
-     * Henüz etkinleştirilmemiş bayi hesabının hatalı girilmiş e-postasını düzeltir ve yeni aktivasyon bağlantısı üretir.
-     * Etkin hesapta veya başka bir toptancıyla da ilişkili hesapta değiştirilemez (hesap bayiye aittir).
+     * Bayi henüz hiç giriş yapmadıysa ve yalnızca bu toptancıyla çalışıyorsa toptancı hatalı yazılmış giriş
+     * e-postasını düzeltebilir. Sonrasında e-postayı bayi kendisi veya platform yöneticisi değiştirir.
      */
-    public function correctPendingEmail(DealerRelationship $relationship, string $newEmail): string
+    public function correctEmailBeforeFirstLogin(DealerRelationship $relationship, string $newEmail): string
     {
         return DB::transaction(function () use ($relationship, $newEmail) {
             $user = DealerUser::where('dealer_id', $relationship->dealer_id)->lockForUpdate()->firstOrFail();
-            if ($user->status !== 'pending_activation') {
-                throw new DomainException('Bayi hesabını etkinleştirdi; giriş e-postasını yalnızca bayi kendisi veya platform yöneticisi değiştirebilir.');
+            if ($user->last_login_at !== null) {
+                throw new DomainException('Bayi hesabına giriş yaptı; giriş e-postasını yalnızca bayi kendisi veya platform yöneticisi değiştirebilir.');
             }
-            if (DealerRelationship::withoutGlobalScopes()->where('dealer_id', $relationship->dealer_id)->count() > 1) {
-                throw new DomainException('Bu bayi hesabı başka bir toptancıyla da ilişkili; e-posta değişikliği için platform yöneticisine başvurun.');
+            if (DealerRelationship::withoutBusinessScope()->where('dealer_id', $relationship->dealer_id)->count() > 1) {
+                throw new DomainException('Bu bayi hesabı başka bir toptancıyla da çalışıyor; e-posta değişikliği için platform yöneticisine başvurun.');
             }
 
             $email = Str::lower(trim($newEmail));
@@ -167,13 +156,13 @@ class DealerOnboarding
             if (Str::lower((string) $relationship->dealer->email) === Str::lower($old)) {
                 $relationship->dealer->forceFill(['email' => $email])->save();
             }
-            $this->audit->log('dealer.pending_email_corrected', $relationship, ['email' => $old], ['email' => $email]);
+            $this->audit->log('dealer.email_corrected', $relationship, ['email' => $old], ['email' => $email]);
 
-            return $this->newActivationLink($relationship);
+            return $email;
         });
     }
 
-    private function onboard(array $dealerData, string $contactName, int $actorId, array $terms): array
+    private function onboard(array $dealerData, string $contactName, ?int $actorId, array $terms, ?string $password): array
     {
         $business = Business::with('licenses')->findOrFail($this->tenant->businessId());
         $this->assertWithinLicense($business);
@@ -190,9 +179,12 @@ class DealerOnboarding
             $dealer = $user->dealer;
         } else {
             $dealer = Dealer::create(collect($dealerData)->only(['legal_name', 'tax_office', 'tax_number', 'phone', 'city', 'district', 'address'])->all() + ['email' => $email]);
-            $user = DealerUser::create([
-                'dealer_id' => $dealer->id, 'name' => $contactName, 'email' => $email, 'status' => 'pending_activation',
-            ]);
+            if (blank($password)) {
+                throw new DomainException('Yeni bayi hesabı için şifre belirleyin.');
+            }
+            $user = DealerUser::create(['dealer_id' => $dealer->id, 'name' => $contactName, 'email' => $email, 'password' => $password]);
+            // Hesap hemen etkindir; bayi ilk girişten sonra bilgilerini kendisi değiştirebilir.
+            $user->forceFill(['status' => 'active', 'activated_at' => now()])->save();
         }
 
         $code = $terms['dealer_code'] ?? $this->nextDealerCode();
@@ -222,14 +214,9 @@ class DealerOnboarding
             ]);
         }
 
-        $url = null;
-        if (! $existing) {
-            $url = $this->tokens->url(Area::Dealer, 'activation', $this->tokens->issue(Area::Dealer, $user->id, 'activation'));
-        }
-
         $this->audit->log('dealer.onboarded', $relationship, [], ['email' => $email, 'existing_account' => $existing, 'dealer_code' => $code]);
 
-        return ['relationship' => $relationship, 'activation_url' => $url, 'existing_account' => $existing];
+        return ['relationship' => $relationship, 'existing_account' => $existing, 'email' => $email];
     }
 
     private function assertWithinLicense(Business $business): void
@@ -251,7 +238,7 @@ class DealerOnboarding
         return $code;
     }
 
-    private function transition(DealerApplication $application, array $from, string $to, int $reviewerId, array $extra = []): void
+    private function transition(DealerApplication $application, array $from, string $to, ?int $reviewerId, array $extra = []): void
     {
         DB::transaction(function () use ($application, $from, $to, $reviewerId, $extra) {
             $locked = DealerApplication::whereKey($application->id)->lockForUpdate()->firstOrFail();

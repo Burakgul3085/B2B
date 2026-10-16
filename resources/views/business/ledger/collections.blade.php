@@ -39,7 +39,7 @@
                                     @else
                                         <details class="text-left">
                                             <summary class="cursor-pointer text-sm text-danger">İptal</summary>
-                                            <form method="POST" action="{{ route('business.collections.cancel', $c) }}" class="mt-2 flex gap-2" onsubmit="return confirm('Tahsilat iptal edilsin mi?')">
+                                            <form method="POST" action="{{ route('business.collections.cancel', $c) }}" class="mt-2 flex gap-2" data-confirm="Tahsilat iptal edilsin mi?">
                                                 @csrf
                                                 <input name="reason" required maxlength="500" class="field-input w-40 py-1" placeholder="Neden" aria-label="İptal nedeni">
                                                 <x-button variant="danger" size="sm">İptal et</x-button>

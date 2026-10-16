@@ -6,6 +6,11 @@
         'platform.business_status_changed' => 'İşletme durumu değişti', 'platform.license_added' => 'Lisans eklendi',
         'platform.modules_updated' => 'Modüller güncellendi', 'platform.activation_resent' => 'Aktivasyon yeniden gönderildi',
         'platform.activation_link_shown' => 'Aktivasyon bağlantısı ekranda gösterildi',
+        'auth.email_changed' => 'Giriş e-postası değiştirildi', 'platform.user_email_changed' => 'Platform: giriş e-postası değiştirildi',
+        'platform.user_name_changed' => 'Platform: ad soyad değiştirildi', 'platform.password_set' => 'Platform: yeni şifre belirlendi',
+        'platform.dealer_user_status_changed' => 'Platform: bayi hesabı durumu değişti', 'dealer.password_set_by_business' => 'Toptancı bayiye yeni şifre belirledi',
+        'dealer.email_corrected' => 'Bayi e-postası düzeltildi', 'dealer.onboarded' => 'Bayi hesabı açıldı',
+        'email.settings_updated' => 'E-posta ayarı güncellendi', 'email.test_succeeded' => 'E-posta bağlantı testi başarılı', 'email.test_failed' => 'E-posta bağlantı testi başarısız',
     ];
 @endphp
 @if ($logs->isEmpty())

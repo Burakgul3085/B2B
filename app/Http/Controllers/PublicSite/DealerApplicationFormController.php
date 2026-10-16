@@ -24,6 +24,20 @@ class DealerApplicationFormController extends Controller
 {
     public function __construct(private DealerOnboarding $onboarding, private TenantContext $tenant) {}
 
+    /**
+     * Bayi giriş sayfasındaki "Bayimiz olmak ister misiniz?" bağlantısı: tek toptancı varsa doğrudan onun formuna,
+     * birden çok toptancı varsa seçim sayfasına gider.
+     */
+    public function index(): View|RedirectResponse
+    {
+        $businesses = Business::where('status', 'active')->orderBy('display_name')->get(['id', 'slug', 'display_name', 'legal_name', 'city', 'logo_path']);
+        if ($businesses->count() === 1) {
+            return redirect()->route('public.application', $businesses->first()->slug);
+        }
+
+        return view('public.apply-choose', ['businesses' => $businesses]);
+    }
+
     public function show(string $slug): View
     {
         $business = $this->business($slug);

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
 use App\Domain\Auth\AuthTokenService;
-use App\Domain\Mail\SystemMailer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,11 +18,7 @@ use Illuminate\View\View;
 /** "Parolamı unuttum" ve parola belirleme — üç alan için ayrı bağlantılar. */
 class PasswordResetController extends Controller
 {
-    public function __construct(
-        private AuthTokenService $tokens,
-        private SystemMailer $mailer,
-        private AuditLogger $audit,
-    ) {}
+    public function __construct(private AuthTokenService $tokens, private AuditLogger $audit) {}
 
     public function request(Request $request): View
     {
@@ -44,15 +40,9 @@ class PasswordResetController extends Controller
         $user = $model::where('email', $email)->first();
 
         // Yalnızca etkin hesaplara bağlantı gönderilir; yanıt her durumda aynıdır (hesap varlığı sızdırılmaz).
+        // Bağlantı kişinin kendi e-postasına, ilgili toptancının ana Gmail hesabından gider.
         if ($user && $user->password && $user->canSignIn()) {
-            $plain = $this->tokens->issue($area, $user->id, 'password_reset');
-            $this->mailer->send($user->email, 'Parola sıfırlama', [
-                'title' => 'Parolanızı sıfırlayın',
-                'intro' => "{$area->label()} hesabınız için parola sıfırlama talebi aldık. Bağlantı ".config('b2b.password_reset_ttl_minutes').' dakika geçerlidir.',
-                'action_url' => $this->tokens->url($area, 'password_reset', $plain),
-                'action_label' => 'Yeni parola belirle',
-                'outro' => 'Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın; parolanız değişmez.',
-            ]);
+            app(AccountEmailService::class)->sendPasswordResetLink($area, $user);
         }
 
         return back()->with('status', 'Bu e-posta adresine kayıtlı etkin bir hesap varsa sıfırlama bağlantısı gönderildi.');

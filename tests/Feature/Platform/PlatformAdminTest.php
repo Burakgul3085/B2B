@@ -48,29 +48,30 @@ class PlatformAdminTest extends TestCase
         $this->get('/platform')->assertRedirect(route('platform.two-factor.challenge'));
     }
 
-    public function test_platform_admin_creates_business_with_pending_owner(): void
+    public function test_platform_admin_creates_business_with_active_owner_and_password(): void
     {
         $admin = $this->actingAsVerifiedAdmin();
-
-        $this->post(route('platform.businesses.store'), [
+        $form = [
             'legal_name' => 'Akgün Kırtasiye Ltd. Şti.', 'display_name' => 'Akgün Kırtasiye', 'slug' => 'Akgün Kırtasiye',
-            'owner_name' => 'Ahmet Akgün', 'owner_email' => 'Ahmet@Akgun.test',
-            'plan' => 'Standart', 'starts_on' => now()->toDateString(),
-        ])->assertRedirect();
+            'owner_name' => 'Ahmet Akgün', 'owner_email' => 'Ahmet@Akgun.test', 'plan' => 'Standart', 'starts_on' => now()->toDateString(),
+        ];
+
+        $this->post(route('platform.businesses.store'), $form)->assertSessionHasErrors('owner_password');
+        $this->post(route('platform.businesses.store'), $form + ['owner_password' => 'ToptanSifre2026'])->assertSessionHasNoErrors()->assertRedirect();
 
         $business = Business::where('slug', 'akgun-kirtasiye')->firstOrFail();
         $user = BusinessUser::where('business_id', $business->id)->firstOrFail();
 
         $this->assertSame('ahmet@akgun.test', $user->email);
-        $this->assertSame('pending_activation', $user->status);
-        $this->assertNull($user->password);
+        $this->assertSame('active', $user->status);
         $this->assertNotNull($business->settings);
         $this->assertCount(1, $business->licenses);
-        $this->assertDatabaseHas('auth_tokens', ['guard' => 'business', 'user_id' => $user->id, 'purpose' => 'activation']);
+        $this->assertDatabaseMissing('auth_tokens', ['guard' => 'business', 'user_id' => $user->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'platform.business_created', 'actor_type' => 'platform', 'actor_id' => $admin->id]);
+        $this->get(route('platform.businesses.show', $business))->assertOk()->assertSee('Ana e-posta (Gmail)');
 
-        // Test ortamında sistem e-postası yapılandırılmadığı için bağlantı bir kez ekranda gösterilir.
-        $this->get(route('platform.businesses.show', $business))->assertOk();
+        // Yetkili hemen giriş yapar.
+        $this->post('/toptanci/login', ['email' => 'ahmet@akgun.test', 'password' => 'ToptanSifre2026'])->assertRedirect('/toptanci');
     }
 
     public function test_second_user_for_same_business_is_impossible(): void

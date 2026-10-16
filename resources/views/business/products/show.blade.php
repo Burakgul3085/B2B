@@ -50,7 +50,7 @@
                                     @unless ($image->is_primary)
                                         <form method="POST" action="{{ route('business.products.images.primary', [$product, $image]) }}">@csrf @method('PUT')<button class="text-primary hover:underline">Ana yap</button></form>
                                     @else<span></span>@endunless
-                                    <form method="POST" action="{{ route('business.products.images.destroy', [$product, $image]) }}" onsubmit="return confirm('Görsel silinsin mi?')">@csrf @method('DELETE')<button class="text-danger hover:underline">Sil</button></form>
+                                    <form method="POST" action="{{ route('business.products.images.destroy', [$product, $image]) }}" data-confirm="Görsel silinsin mi?">@csrf @method('DELETE')<button class="text-danger hover:underline">Sil</button></form>
                                 </div>
                             </div>
                         @endforeach
@@ -132,7 +132,7 @@
                         <x-button variant="secondary" size="sm" icon="copy">Ürünü kopyala</x-button>
                     </form>
                     <form method="POST" action="{{ route('business.products.archive', $product) }}" class="mt-5 border-t border-line pt-4"
-                        onsubmit="return confirm('Ürün arşivlensin mi? Bayiler artık göremez; geçmiş sipariş ve stok kayıtları korunur.')">
+                        data-confirm="Ürün arşivlensin mi? Bayiler artık göremez; geçmiş sipariş ve stok kayıtları korunur.">
                         @csrf
                         <x-button variant="ghost" size="sm" icon="archive" class="text-danger">Arşivle</x-button>
                     </form>

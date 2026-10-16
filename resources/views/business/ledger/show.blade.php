@@ -60,7 +60,7 @@
 
             @unless ($hasOpening)
                 <x-card title="Açılış bakiyesi" description="Sisteme geçmeden önceki bakiye. Bir kez girilir.">
-                    <form method="POST" action="{{ route('business.accounts.opening', $account) }}" class="space-y-4" onsubmit="return confirm('Açılış bakiyesi kaydedilsin mi? Sonradan yalnızca düzeltme hareketiyle değiştirilebilir.')">
+                    <form method="POST" action="{{ route('business.accounts.opening', $account) }}" class="space-y-4" data-confirm="Açılış bakiyesi kaydedilsin mi? Sonradan yalnızca düzeltme hareketiyle değiştirilebilir.">
                         @csrf
                         <div class="grid grid-cols-2 gap-3">
                             <x-field name="amount" label="Tutar (₺)" type="number" step="0.01" required hint="Bayi borçluysa pozitif, alacaklıysa negatif." />
@@ -73,7 +73,7 @@
             @endunless
 
             <x-card title="Düzeltme hareketi" description="İskonto, yuvarlama farkı vb. için. Açıklama zorunludur ve kayıt altına alınır.">
-                <form method="POST" action="{{ route('business.accounts.adjust', $account) }}" class="space-y-4" onsubmit="return confirm('Düzeltme hareketi kaydedilsin mi?')">
+                <form method="POST" action="{{ route('business.accounts.adjust', $account) }}" class="space-y-4" data-confirm="Düzeltme hareketi kaydedilsin mi?">
                     @csrf
                     <x-field name="direction" label="Tür" :options="['credit' => 'Alacak (bayinin borcunu azaltır)', 'debit' => 'Borç (bayinin borcunu artırır)']" />
                     <div class="grid grid-cols-2 gap-3">

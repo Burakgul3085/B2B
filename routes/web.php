@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Auth\AccountController;
-use App\Http\Controllers\Auth\ActivationController;
-use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Business;
@@ -22,34 +20,27 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 
 // Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
+Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');
 Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
 Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60')->name('public.application.store');
 Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
 Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
 /**
- * Her alanın ortak kimlik rotaları: giriş, çıkış, parola sıfırlama, (gerekirse) aktivasyon, hesap.
+ * Her alanın ortak kimlik rotaları: giriş, çıkış, parola sıfırlama, hesap. Aktivasyon bağlantısı yoktur;
+ * hesaplar açılırken şifre belirlenir.
  */
-$authRoutes = function (string $name, bool $activation) {
-    Route::middleware("guest:{$name}")->group(function () use ($activation) {
+$authRoutes = function (string $name) {
+    Route::middleware("guest:{$name}")->group(function () {
         Route::get('login', [LoginController::class, 'show'])->name('login');
         Route::post('login', [LoginController::class, 'store'])->middleware('throttle:20,1')->name('login.store');
         Route::get('parolami-unuttum', [PasswordResetController::class, 'request'])->name('password.request');
         Route::post('parolami-unuttum', [PasswordResetController::class, 'email'])->name('password.email');
         Route::get('parola-sifirla/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
         Route::post('parola-sifirla', [PasswordResetController::class, 'update'])->name('password.update');
-
-        if ($activation) {
-            Route::get('aktivasyon/{token}', [ActivationController::class, 'show'])->name('activation.show');
-            Route::post('aktivasyon', [ActivationController::class, 'store'])->name('activation.store');
-        }
     });
 
     Route::post('cikis', [LoginController::class, 'destroy'])->middleware("auth:{$name}")->name('logout');
-
-    // Yeni giriş e-postasının doğrulanması: oturum gerekmez (bağlantı yeni adrese gelen gizli belirteç).
-    Route::get('e-posta-dogrula/{token}', [EmailVerificationController::class, 'show'])->name('email.verify');
-    Route::post('e-posta-dogrula', [EmailVerificationController::class, 'confirm'])->middleware('throttle:10,1')->name('email.confirm');
 };
 
 $accountRoutes = function () {
@@ -57,13 +48,11 @@ $accountRoutes = function () {
     Route::put('hesabim', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('hesabim/parola', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
-    Route::post('hesabim/e-posta/yeniden', [AccountController::class, 'resendEmail'])->middleware('throttle:5,10')->name('account.email.resend');
-    Route::delete('hesabim/e-posta', [AccountController::class, 'cancelEmail'])->name('account.email.cancel');
 };
 
 /* ---------------- Platform yönetimi ---------------- */
 Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(function () use ($authRoutes, $accountRoutes) {
-    $authRoutes('platform', false);
+    $authRoutes('platform');
 
     Route::middleware(['auth:platform', 'auth.session'])->group(function () use ($accountRoutes) {
         Route::get('iki-adimli-dogrulama/kurulum', [Platform\TwoFactorController::class, 'setup'])->name('two-factor.setup');
@@ -83,15 +72,22 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::put('isletmeler/{business}/durum', [Platform\BusinessController::class, 'updateStatus'])->name('businesses.status');
             Route::post('isletmeler/{business}/lisans', [Platform\BusinessController::class, 'storeLicense'])->name('businesses.licenses.store');
             Route::put('isletmeler/{business}/moduller', [Platform\BusinessController::class, 'updateModules'])->name('businesses.modules');
-            Route::post('isletmeler/{business}/aktivasyon', [Platform\BusinessController::class, 'resendActivation'])->name('businesses.activation');
             Route::put('isletmeler/{business}/yetkili', [Platform\BusinessController::class, 'updateUser'])->name('businesses.user');
-            Route::post('isletmeler/{business}/parola-sifirlama', [Platform\BusinessController::class, 'sendPasswordReset'])->middleware('throttle:10,1')->name('businesses.password-reset');
+            Route::put('isletmeler/{business}/e-posta', [Platform\BusinessController::class, 'updateEmail'])->name('businesses.email');
+            Route::post('isletmeler/{business}/e-posta/test', [Platform\BusinessController::class, 'testEmail'])->middleware('throttle:5,10')->name('businesses.email.test');
+
+            Route::get('basvurular', [Platform\ApplicationController::class, 'index'])->name('applications.index');
+            Route::get('basvurular/{application}', [Platform\ApplicationController::class, 'show'])->whereNumber('application')->name('applications.show');
+            Route::post('basvurular/{application}/onayla', [Platform\ApplicationController::class, 'approve'])->whereNumber('application')->name('applications.approve');
+            Route::post('basvurular/{application}/reddet', [Platform\ApplicationController::class, 'reject'])->whereNumber('application')->name('applications.reject');
+            Route::get('basvurular/{application}/belge/{attachment}', [Platform\ApplicationController::class, 'attachment'])->whereNumber(['application', 'attachment'])->name('applications.attachment');
 
             Route::get('bayi-hesaplari', [Platform\DealerAccountController::class, 'index'])->name('dealer-accounts.index');
+            Route::get('bayi-hesaplari/yeni', [Platform\DealerAccountController::class, 'create'])->name('dealer-accounts.create');
+            Route::post('bayi-hesaplari', [Platform\DealerAccountController::class, 'store'])->name('dealer-accounts.store');
             Route::get('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'show'])->name('dealer-accounts.show');
             Route::put('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'update'])->name('dealer-accounts.update');
             Route::put('bayi-hesaplari/{dealerUser}/durum', [Platform\DealerAccountController::class, 'updateStatus'])->name('dealer-accounts.status');
-            Route::post('bayi-hesaplari/{dealerUser}/parola-sifirlama', [Platform\DealerAccountController::class, 'sendPasswordReset'])->middleware('throttle:10,1')->name('dealer-accounts.password-reset');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');
@@ -103,7 +99,7 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
 
 /* ---------------- Toptancı paneli ---------------- */
 Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes, $accountRoutes) {
-    $authRoutes('business', true);
+    $authRoutes('business');
 
     Route::middleware(['auth:business', 'auth.session', 'business.context'])->group(function () use ($accountRoutes) {
         Route::get('/', Business\DashboardController::class)->name('dashboard');
@@ -182,9 +178,8 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('bayiler/{dealer}', [Business\DealerController::class, 'show'])->name('dealers.show');
         Route::put('bayiler/{dealer}', [Business\DealerController::class, 'update'])->name('dealers.update');
         Route::put('bayiler/{dealer}/durum', [Business\DealerController::class, 'updateStatus'])->name('dealers.status');
-        Route::post('bayiler/{dealer}/aktivasyon', [Business\DealerController::class, 'activationLink'])->name('dealers.activation');
         Route::put('bayiler/{dealer}/giris-eposta', [Business\DealerController::class, 'correctEmail'])->middleware('throttle:10,1')->name('dealers.email');
-        Route::post('bayiler/{dealer}/parola-sifirlama', [Business\DealerController::class, 'sendPasswordReset'])->middleware('throttle:5,10')->name('dealers.password-reset');
+        Route::put('bayiler/{dealer}/sifre', [Business\DealerController::class, 'setPassword'])->middleware('throttle:10,1')->name('dealers.password');
         Route::post('bayiler/{dealer}/adresler', [Business\DealerController::class, 'storeAddress'])->name('dealers.addresses.store');
         Route::put('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'updateAddress'])->name('dealers.addresses.update');
         Route::delete('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'archiveAddress'])->name('dealers.addresses.destroy');
@@ -274,7 +269,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
 
 /* ---------------- Bayi paneli ---------------- */
 Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $accountRoutes) {
-    $authRoutes('dealer', true);
+    $authRoutes('dealer');
 
     Route::middleware(['auth:dealer', 'auth.session', 'dealer.context'])->group(function () use ($accountRoutes) {
         Route::get('toptanci-sec', [Dealer\SelectBusinessController::class, 'show'])->name('select-business');

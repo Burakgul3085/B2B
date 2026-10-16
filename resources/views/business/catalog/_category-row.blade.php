@@ -21,6 +21,6 @@
     </form>
     <button type="button" @click="edit = !edit" class="text-sm text-primary hover:underline" x-text="edit ? 'Vazgeç' : 'Düzenle'"></button>
     @if ($count === 0 && ($level === 1 || $category->children->isEmpty()))
-        <form method="POST" action="{{ route('business.categories.destroy', $category) }}" onsubmit="return confirm('Kategori silinsin mi?')">@csrf @method('DELETE')<button class="text-sm text-danger hover:underline">Sil</button></form>
+        <form method="POST" action="{{ route('business.categories.destroy', $category) }}" data-confirm="Kategori silinsin mi?">@csrf @method('DELETE')<button class="text-sm text-danger hover:underline">Sil</button></form>
     @endif
 </li>

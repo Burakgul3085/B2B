@@ -10,6 +10,7 @@ use App\Models\DealerRelationship;
 use App\Models\DealerUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -94,16 +95,14 @@ class DealerOnboardingTest extends TestCase
         $this->post("/basvuru/{$business->slug}", $this->form());
         $application = $this->applications($business)->sole();
 
-        $response = $this->actingAs($business->user, 'business')
-            ->post(route('business.applications.approve', $application), ['payment_term_days' => 45, 'can_edit_addresses' => '0']);
+        $response = $this->actingAs($business->user, 'business')->post(route('business.applications.approve', $application), [
+            'payment_term_days' => 45, 'can_edit_addresses' => '0', 'login_email' => 'onur@ornek.test', 'password' => 'BayiParola2026',
+        ]);
+        $response->assertSessionHasNoErrors()->assertRedirect();
 
-        $activationUrl = session('activation_url');
-        $this->assertNotNull($activationUrl);
-        $response->assertRedirect();
-
+        // Hesap hemen etkin: aktivasyon bağlantısı yok.
         $user = DealerUser::where('email', 'onur@ornek.test')->sole();
-        $this->assertSame('pending_activation', $user->status);
-        $this->assertNull($user->password);
+        $this->assertSame('active', $user->status);
 
         app(TenantContext::class)->runAs($business->id, function () use ($user, $application) {
             $rel = DealerRelationship::where('dealer_id', $user->dealer_id)->sole();
@@ -114,13 +113,26 @@ class DealerOnboardingTest extends TestCase
             $this->assertSame('approved', $application->fresh()->status);
         });
 
-        // Bayi bağlantıyla parolasını belirler ve giriş yapar.
+        // Bayi toptancının belirlediği şifreyle hemen giriş yapar.
         $this->flushSession();
-        $token = basename(parse_url($activationUrl, PHP_URL_PATH));
-        $this->post('/bayi/aktivasyon', ['token' => $token, 'password' => 'BayiParola2026', 'password_confirmation' => 'BayiParola2026'])
-            ->assertRedirect('/bayi/login');
         $this->post('/bayi/login', ['email' => 'onur@ornek.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi');
         $this->get('/bayi')->assertOk()->assertSee($business->display_name);
+    }
+
+    public function test_approval_requires_password_for_new_account_and_allows_correcting_email(): void
+    {
+        $business = $this->makeBusiness();
+        $this->post("/basvuru/{$business->slug}", $this->form());
+        $application = $this->applications($business)->sole();
+        $this->actingAs($business->user, 'business');
+
+        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30, 'login_email' => 'onur@ornek.test'])
+            ->assertSessionHasErrors('approve');
+        $this->assertSame(0, DealerUser::count());
+
+        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30, 'login_email' => 'onur.gercek@ornek.test', 'password' => 'BayiParola2026'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('onur.gercek@ornek.test', DealerUser::sole()->email);
     }
 
     public function test_application_cannot_be_approved_twice(): void
@@ -130,8 +142,9 @@ class DealerOnboardingTest extends TestCase
         $application = $this->applications($business)->sole();
         $this->actingAs($business->user, 'business');
 
-        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30]);
-        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30])->assertSessionHasErrors('approve');
+        $login = ['payment_term_days' => 30, 'login_email' => 'onur@ornek.test', 'password' => 'BayiParola2026'];
+        $this->post(route('business.applications.approve', $application), $login);
+        $this->post(route('business.applications.approve', $application), $login)->assertSessionHasErrors('approve');
 
         $this->assertSame(1, DealerUser::count());
         $this->assertSame(1, app(TenantContext::class)->runAs($business->id, fn () => DealerRelationship::count()));
@@ -148,10 +161,12 @@ class DealerOnboardingTest extends TestCase
         $application = $this->applications($second)->sole();
 
         $this->actingAs($second->user, 'business')
-            ->post(route('business.applications.approve', $application), ['payment_term_days' => 30]);
+            ->post(route('business.applications.approve', $application), ['payment_term_days' => 30, 'login_email' => strtoupper($existing->email)])
+            ->assertSessionHasNoErrors();
 
-        $this->assertNull(session('activation_url'));
+        // Mevcut hesap: yeni hesap açılmaz, şifre değişmez.
         $this->assertSame(1, DealerUser::count());
+        $this->assertTrue(Hash::check(self::PASSWORD, $existing->fresh()->password));
         $this->assertSame(2, DealerRelationship::withoutBusinessScope()->where('dealer_id', $existing->dealer_id)->count());
         $this->assertCount(2, $existing->fresh()->usableRelationships());
     }
@@ -168,7 +183,8 @@ class DealerOnboardingTest extends TestCase
 
         $this->assertSame('rejected', $application->fresh()->status);
         $this->assertSame(0, DealerUser::count());
-        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30])->assertSessionHasErrors('approve');
+        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30, 'login_email' => 'onur@ornek.test', 'password' => 'BayiParola2026'])
+            ->assertSessionHasErrors('approve');
     }
 
     public function test_license_dealer_limit_is_enforced(): void
@@ -179,7 +195,7 @@ class DealerOnboardingTest extends TestCase
 
         $this->actingAs($business->user, 'business')->post(route('business.dealers.store'), [
             'legal_name' => 'Yeni Bayi', 'contact_name' => 'Ali', 'email' => 'ali@yeni.test', 'phone' => '0212 111 22 33',
-            'city' => 'Ankara', 'district' => 'Çankaya', 'address' => 'Adres', 'payment_term_days' => 30,
+            'city' => 'Ankara', 'district' => 'Çankaya', 'address' => 'Adres', 'payment_term_days' => 30, 'password' => 'BayiParola2026',
         ])->assertSessionHasErrors('email');
 
         $this->assertSame(0, DealerUser::where('email', 'ali@yeni.test')->count());
@@ -192,9 +208,12 @@ class DealerOnboardingTest extends TestCase
         $this->actingAs($business->user, 'business')->post(route('business.dealers.store'), [
             'legal_name' => 'Doğrudan Bayi', 'contact_name' => 'Ayşe', 'email' => 'ayse@bayi.test', 'phone' => '0212 111 22 33',
             'city' => 'İzmir', 'district' => 'Konak', 'address' => 'Adres 1', 'dealer_code' => 'IZM-01', 'payment_term_days' => 60,
+            'password' => 'BayiParola2026',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
-        $this->assertNotNull(session('activation_url'));
+        $this->assertSame('active', DealerUser::where('email', 'ayse@bayi.test')->sole()->status);
+        $this->flushSession();
+        $this->post('/bayi/login', ['email' => 'ayse@bayi.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi');
         $this->assertSame('IZM-01', app(TenantContext::class)->runAs($business->id, fn () => DealerRelationship::sole()->dealer_code));
     }
 
@@ -211,7 +230,7 @@ class DealerOnboardingTest extends TestCase
         $this->actingAs($a->user, 'business');
         $this->get(route('business.applications.show', $application))->assertNotFound();
         $this->get(route('business.applications.attachment', [$application, $attachment]))->assertNotFound();
-        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30])->assertNotFound();
+        $this->post(route('business.applications.approve', $application), ['payment_term_days' => 30, 'login_email' => 'x@x.test', 'password' => 'BayiParola2026'])->assertNotFound();
         $this->get(route('business.applications.index'))->assertDontSee('Onur Kırtasiye');
     }
 

@@ -37,7 +37,7 @@
 
             @if ($canCancel || $canRequestCancel)
                 <x-card :title="$canCancel ? 'Siparişi iptal et' : 'İptal talebi'" :description="$canCancel ? 'Sipariş henüz onaylanmadı; doğrudan iptal edebilirsiniz.' : 'Sipariş onaylandı; iptal için toptancınızın onayı gerekir.'">
-                    <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" onsubmit="return confirm('Emin misiniz?')">
+                    <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" data-confirm="Emin misiniz?">
                         @csrf
                         <x-field name="reason" label="İptal nedeni" textarea required />
                         <x-button variant="danger" size="sm">{{ $canCancel ? 'İptal et' : 'İptal talebi gönder' }}</x-button>

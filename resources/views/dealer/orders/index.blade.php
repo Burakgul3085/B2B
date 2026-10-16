@@ -4,7 +4,7 @@
 
     <x-card :padding="false">
         <form method="GET" class="flex flex-wrap gap-2 border-b border-line p-4">
-            <select name="status" class="field-input w-auto" aria-label="Durum" onchange="this.form.submit()">
+            <select name="status" class="field-input w-auto" aria-label="Durum" data-autosubmit>
                 <option value="">Tüm siparişler</option>
                 <option value="open" @selected(($filters['status'] ?? '') === 'open')>Devam edenler</option>
                 @foreach (Order::STATUSES as $k => $l)<option value="{{ $k }}" @selected(($filters['status'] ?? '') === $k)>{{ $l }}</option>@endforeach

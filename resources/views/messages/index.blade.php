@@ -6,7 +6,7 @@
     <x-card :padding="false">
         <form method="GET" class="flex flex-wrap items-center gap-2 border-b border-line p-4">
             <input name="q" value="{{ $filters['q'] ?? '' }}" class="field-input max-w-sm" placeholder="Konu veya mesaj içinde ara" aria-label="Ara">
-            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="unread" value="1" @checked($filters['unread'] ?? false) class="size-4 rounded" onchange="this.form.submit()"> Okunmamış</label>
+            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="unread" value="1" @checked($filters['unread'] ?? false) class="size-4 rounded" data-autosubmit> Okunmamış</label>
             <x-button variant="secondary" icon="search">Ara</x-button>
         </form>
         @if ($conversations->isEmpty())
