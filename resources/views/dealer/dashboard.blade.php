@@ -27,6 +27,12 @@
         </div>
     @endif
 
+    <x-chart class="mt-6" title="Aylık sipariş tutarı" description="Son 12 ay, onaylanmış siparişler (KDV dahil)" height="h-56"
+        :empty="array_sum($monthly['values']) == 0"
+        :config="['type' => 'bar', 'unit' => 'money', 'name' => 'Sipariş tutarı', 'labels' => $monthly['labels'], 'values' => $monthly['values']]"
+        :headers="['Ay', 'Tutar']"
+        :rows="collect($monthly['labels'])->map(fn ($l, $i) => [$l, Money::format($monthly['values'][$i])])->all()" />
+
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <x-card title="Son siparişler" class="lg:col-span-2" :padding="false">
             @if ($recentOrders->isEmpty())

@@ -53,6 +53,9 @@
                 ['label' => 'Cari Hesaplar', 'route' => 'business.accounts.index', 'icon' => 'users', 'active' => 'business.accounts.*'],
                 ['label' => 'Tahsilatlar', 'route' => 'business.collections.index', 'icon' => 'check-circle', 'active' => 'business.collections.*'],
             ]],
+            ['items' => array_values(array_filter([
+                ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'business.reports.index', 'icon' => 'layers', 'active' => 'business.reports.*'] : null,
+            ]))],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
                 ['label' => 'E-posta Ayarları', 'route' => 'business.email.settings', 'icon' => 'refresh', 'active' => 'business.email.*'],
@@ -67,6 +70,7 @@
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
                 ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
+                ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'dealer.reports.index', 'icon' => 'layers', 'active' => 'dealer.reports.*'] : null,
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,
             ]))],
         ],

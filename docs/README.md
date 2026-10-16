@@ -11,4 +11,5 @@
 | [07-asama-5-raporu.md](07-asama-5-raporu.md) | Aşama 5: sipariş ve ürün talepleri raporu |
 | [08-asama-6-raporu.md](08-asama-6-raporu.md) | Aşama 6: cari hesap raporu |
 | [09-asama-7-raporu.md](09-asama-7-raporu.md) | Aşama 7: iletişim raporu |
+| [10-asama-8-raporu.md](10-asama-8-raporu.md) | Aşama 8: dashboard ve raporlama raporu |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

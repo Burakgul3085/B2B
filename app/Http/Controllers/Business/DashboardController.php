@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Ledger\AccountAnalysis;
+use App\Domain\Reporting\DashboardMetrics;
+use App\Domain\Reporting\Reports\Options;
 use App\Http\Controllers\Controller;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
@@ -21,9 +23,31 @@ use Illuminate\View\View;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, DashboardMetrics $metrics): View
     {
         $business = $request->user()->business->load('settings');
+
+        // Dönem ve filtreler: göstergelere ve grafiklere aynı şekilde uygulanır.
+        $f = $request->validate([
+            'period' => ['nullable', 'in:'.implode(',', array_keys(DashboardMetrics::PERIODS))],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'dealer' => ['nullable', 'integer'],
+            'category' => ['nullable', 'integer'],
+        ]);
+        $f['period'] ??= 'month';
+        $range = $metrics->range($f['period'], $f['from'] ?? null, $f['to'] ?? null);
+        $analytics = [
+            'filters' => $f,
+            'range' => $range,
+            'kpis' => $metrics->kpis($range, $f),
+            'series' => $metrics->salesSeries($range, $f),
+            'status' => $metrics->statusGroups($range, $f),
+            'categories' => $metrics->categories($range, $f),
+            'dealers' => $metrics->dealers($range, $f),
+            'dealerOptions' => Options::dealers(),
+            'categoryOptions' => Options::categories(),
+        ];
         $warehouseId = $business->settings->default_warehouse_id;
 
         // Toplam stok ve stok değeri tüm depolardan; değer = alış fiyatı × miktar (alış fiyatı olmayan ürün hariç).
@@ -77,6 +101,6 @@ class DashboardController extends Controller
             ['label' => 'Stok girişi yapın', 'done' => bccomp($kpis['stock_qty'], '0', 3) > 0, 'route' => 'business.stock.create'],
         ];
 
-        return view('business.dashboard', compact('kpis', 'setup', 'critical', 'recentOrders', 'finance'));
+        return view('business.dashboard', compact('kpis', 'setup', 'critical', 'recentOrders', 'finance', 'analytics'));
     }
 }

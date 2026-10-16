@@ -9,6 +9,7 @@ use App\Http\Controllers\Dealer;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Platform;
 use App\Http\Controllers\PublicSite;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -126,6 +127,13 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::put('e-posta/sablon', [Business\EmailSettingsController::class, 'updateTemplate'])->name('email.template');
         Route::get('e-posta/kayitlar', [Business\EmailSettingsController::class, 'logs'])->name('email.logs');
         Route::post('e-posta/kayitlar/{log}/tekrar', [Business\EmailSettingsController::class, 'retry'])->name('email.retry');
+
+        // Raporlama merkezi
+        Route::middleware('module:reports')->group(function () {
+            Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
+            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1')->name('reports.export');
+        });
 
         // Cari hesaplar
         Route::get('cari-hesaplar', [Business\CurrentAccountController::class, 'index'])->name('accounts.index');
@@ -265,6 +273,11 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::delete('sepet/{item}', [Dealer\CartController::class, 'remove'])->name('cart.remove');
         Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1')->name('cart.submit');
         Route::get('cari-hesabim', Dealer\AccountStatementController::class)->name('account.statement');
+        Route::middleware('module:reports')->group(function () {
+            Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
+            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1')->name('reports.export');
+        });
         Route::middleware('module:messaging')->group(function () {
             Route::get('mesajlar', [Dealer\MessageController::class, 'index'])->name('messages.index');
             Route::get('mesajlar/yeni', [Dealer\MessageController::class, 'create'])->name('messages.create');

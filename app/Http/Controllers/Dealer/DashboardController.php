@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dealer;
 
+use App\Domain\Reporting\DashboardMetrics;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\Announcement;
@@ -15,7 +16,7 @@ class DashboardController extends Controller
 {
     use UsesDealerContext;
 
-    public function __invoke(): View
+    public function __invoke(DashboardMetrics $metrics): View
     {
         $relationship = $this->relationship()->load('currentAccount');
         $orders = Order::where('dealer_relationship_id', $relationship->id);
@@ -38,6 +39,7 @@ class DashboardController extends Controller
             'kpis' => $kpis,
             'recentOrders' => (clone $orders)->latest('id')->limit(5)->get(),
             'topProducts' => $topProducts,
+            'monthly' => $metrics->dealerMonthly($relationship->id),
             // Son 30 günün duyuruları: herkese veya bayinin grubuna.
             'announcements' => Announcement::whereNotNull('published_at')->where('published_at', '>=', now()->subDays(30))
                 ->where(fn ($q) => $q->whereNull('dealer_group_id')->orWhere('dealer_group_id', $relationship->dealer_group_id))
