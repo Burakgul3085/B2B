@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\BusinessModule;
 use App\Models\DealerRelationship;
+use App\Rules\NotBefore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -50,14 +51,14 @@ class BusinessController extends Controller
 
     public function store(Request $request, CreateBusiness $action): RedirectResponse
     {
-        $request->merge(['slug' => Str::slug((string) $request->input('slug'))]);
+        $request->merge(['slug' => Str::slug($request->scalar('slug'))]);
         $data = $request->validate($this->businessRules() + [
             'slug' => ['required', 'string', 'min:3', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:businesses,slug'],
             'owner_name' => ['required', 'string', 'max:120'],
             'owner_email' => ['required', 'email', 'max:255', 'unique:business_users,email'],
             'plan' => ['required', 'string', 'max:40'],
             'starts_on' => ['required', 'date'],
-            'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
         ], [], $this->attributes());
 
         $result = $action->handle(
@@ -118,7 +119,7 @@ class BusinessController extends Controller
         $data = $request->validate([
             'plan' => ['required', 'string', 'max:40'],
             'starts_on' => ['required', 'date'],
-            'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
             'max_dealers' => ['nullable', 'integer', 'min:1'],
             'max_products' => ['nullable', 'integer', 'min:1'],
             'note' => ['nullable', 'string', 'max:500'],

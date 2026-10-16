@@ -12,6 +12,7 @@ use App\Models\DealerGroup;
 use App\Models\DealerProductPrice;
 use App\Models\DealerRelationship;
 use App\Models\Product;
+use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,7 +107,7 @@ class DealerController extends Controller
         }
 
         if ($tab === 'preview') {
-            $term = trim((string) $request->query('q'));
+            $term = trim($request->scalar('q'));
             $products = Product::notArchived()->where('is_active', true)->with(['unit', 'taxRate'])
                 ->when($term !== '', function ($q) use ($term) {
                     $like = addcslashes($term, '%_\\');
@@ -207,7 +208,7 @@ class DealerController extends Controller
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('business_id', $request->user()->business_id)->whereNull('archived_at')],
             'price' => ['required', 'decimal:0,4', 'min:0', 'max:99999999999'],
             'starts_on' => ['nullable', 'date'],
-            'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
         ], [], ['product_id' => 'ürün', 'price' => 'fiyat', 'starts_on' => 'başlangıç', 'ends_on' => 'bitiş']);
 
         $price = $dealer->productPrices()->create($data);

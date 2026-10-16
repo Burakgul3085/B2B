@@ -9,6 +9,7 @@ use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
 use App\Models\CurrentAccountMovement;
 use App\Models\Order;
+use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,7 +55,7 @@ class CurrentAccountController extends Controller
 
     public function show(Request $request, CurrentAccount $account): View
     {
-        $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
+        $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', new NotBefore('from')]]);
         $from = $range['from'] ?? now()->subMonths(3)->startOfMonth()->toDateString();
         $to = $range['to'] ?? now()->toDateString();
 

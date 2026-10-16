@@ -139,7 +139,7 @@ class StockController extends Controller
     /** Ürün seçici için arama (ad, SKU, barkod). Yalnızca işletmenin kendi ürünleri. */
     public function lookup(Request $request)
     {
-        $term = trim((string) $request->query('q'));
+        $term = trim($request->scalar('q'));
         if (mb_strlen($term) < 2) {
             return response()->json([]);
         }

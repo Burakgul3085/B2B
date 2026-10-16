@@ -55,7 +55,7 @@ class CartController extends Controller
     public function update(Request $request, CartItem $item): RedirectResponse
     {
         $this->assertOwn($item);
-        $qty = Quantity::parse((string) $request->input('quantity'));
+        $qty = Quantity::parse($request->scalar('quantity'));
 
         try {
             $qty === null ? throw new DomainException('Geçerli bir miktar girin.') : $this->carts->update($item, $qty);

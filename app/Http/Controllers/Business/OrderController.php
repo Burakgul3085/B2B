@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class OrderController extends Controller
             'dealer' => ['nullable', 'integer'],
             'q' => ['nullable', 'string', 'max:40'],
             'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'to' => ['nullable', 'date', new NotBefore('from')],
         ]);
         $status = $filters['status'] ?? 'pending';
 

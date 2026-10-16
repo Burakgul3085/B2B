@@ -62,7 +62,7 @@ class CatalogSettingsController extends Controller
 
     public function storeUnit(Request $request): RedirectResponse
     {
-        $request->merge(['code' => Str::upper(Str::ascii((string) $request->input('code')))]);
+        $request->merge(['code' => Str::upper(Str::ascii($request->scalar('code')))]);
         $data = $request->validate([
             'code' => ['required', 'string', 'max:10', 'regex:/^[A-Z0-9]+$/',
                 Rule::unique('units', 'code')->where('business_id', $this->tenant->businessId())],

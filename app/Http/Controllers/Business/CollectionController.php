@@ -6,6 +6,7 @@ use App\Domain\Ledger\LedgerService;
 use App\Http\Controllers\Controller;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
+use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class CollectionController extends Controller
     {
         $filters = $request->validate([
             'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'to' => ['nullable', 'date', new NotBefore('from')],
             'method' => ['nullable', Rule::in(array_keys(CollectionEntry::METHODS))],
             'account' => ['nullable', 'integer'],
             'cancelled' => ['nullable', 'boolean'],

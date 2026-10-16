@@ -70,7 +70,7 @@ class WarehouseController extends Controller
     private function validated(Request $request, ?Warehouse $warehouse = null): array
     {
         $request->merge([
-            'code' => Str::upper(Str::ascii((string) $request->input('code'))),
+            'code' => Str::upper(Str::ascii($request->scalar('code'))),
             'is_active' => $request->boolean('is_active', true),
         ]);
 

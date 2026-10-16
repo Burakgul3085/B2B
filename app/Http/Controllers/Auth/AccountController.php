@@ -41,8 +41,8 @@ class AccountController extends Controller
         $user = $request->user($area->guard());
 
         $request->validate([
-            'current_password' => ['required', 'current_password:'.$area->guard()],
-            'password' => ['required', 'confirmed', Password::defaults(), 'different:current_password'],
+            'current_password' => ['bail', 'required', 'string', 'current_password:'.$area->guard()],
+            'password' => ['bail', 'required', 'string', 'confirmed', Password::defaults(), 'different:current_password'],
         ], [], ['current_password' => 'mevcut parola', 'password' => 'yeni parola']);
 
         $user->forceFill(['password' => $request->input('password'), 'remember_token' => Str::random(60)])->save();

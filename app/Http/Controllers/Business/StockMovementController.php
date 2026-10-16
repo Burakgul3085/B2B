@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Business;
 use App\Http\Controllers\Controller;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
+use App\Rules\NotBefore;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -18,7 +19,7 @@ class StockMovementController extends Controller
             'warehouse' => ['nullable', 'integer'],
             'type' => ['nullable', Rule::in(array_keys(StockMovement::TYPES))],
             'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'to' => ['nullable', 'date', new NotBefore('from')],
             'product' => ['nullable', 'integer'],
         ]);
 

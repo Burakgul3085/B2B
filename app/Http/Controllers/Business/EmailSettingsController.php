@@ -41,7 +41,7 @@ class EmailSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $setting = EmailSetting::first();
-        $request->merge(['app_password' => preg_replace('/\s+/', '', (string) $request->input('app_password'))]);
+        $request->merge(['app_password' => preg_replace('/\s+/', '', $request->scalar('app_password'))]);
 
         $data = $request->validate([
             'from_email' => ['required', 'email', 'max:255'],

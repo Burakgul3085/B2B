@@ -83,7 +83,8 @@ class StockCountController extends Controller
 
     public function removeLine(StockCount $count, StockCountLine $line): RedirectResponse
     {
-        abort_unless($count->status === 'draft' && $line->stock_count_id === $count->id, 409);
+        abort_unless($line->stock_count_id === $count->id, 404);
+        abort_unless($count->status === 'draft', 409);
         $line->delete();
 
         return back();

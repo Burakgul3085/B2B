@@ -92,8 +92,16 @@ class ProductService
      */
     public function validate(array $input, ?Product $product = null): array
     {
-        $input['barcode'] = isset($input['barcode']) && trim((string) $input['barcode']) !== '' ? trim((string) $input['barcode']) : null;
-        $input['sku'] = isset($input['sku']) ? trim((string) $input['sku']) : null;
+        // Dizi gelirse olduğu gibi bırakılır; doğrulama "metin olmalı" hatası verir.
+        foreach (['barcode', 'sku'] as $field) {
+            if (isset($input[$field]) && is_scalar($input[$field])) {
+                $input[$field] = trim((string) $input[$field]);
+            }
+        }
+        if (($input['barcode'] ?? '') === '') {
+            $input['barcode'] = null;
+        }
+        $input['sku'] ??= null;
         $input += ['pack_quantity' => 1, 'min_order_qty' => 1, 'order_step' => 1, 'critical_stock_level' => 0];
 
         $validator = Validator::make($input, $this->rules($product), [], $this->attributes());

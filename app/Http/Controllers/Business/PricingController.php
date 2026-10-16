@@ -12,6 +12,7 @@ use App\Models\DiscountRule;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\Product;
+use App\Rules\NotBefore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -46,7 +47,7 @@ class PricingController extends Controller
 
     public function showList(Request $request, PriceList $list): View
     {
-        $term = trim((string) $request->query('q'));
+        $term = trim($request->scalar('q'));
 
         $items = $list->items()->with('product:id,name,sku,list_price,dealer_price,price_includes_tax')
             ->when($term !== '', fn ($q) => $q->whereHas('product', function ($p) use ($term) {
@@ -138,7 +139,7 @@ class PricingController extends Controller
             'dealer_relationship_id' => ['nullable', 'required_if:target,dealer', 'integer', Rule::exists('dealer_relationships', 'id')->where('business_id', $businessId)],
             'percent' => ['required', 'decimal:0,2', 'gt:0', 'lt:100'],
             'starts_on' => ['nullable', 'date'],
-            'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
         ], ['*.required_if' => ':attribute seçilmelidir.'], [
             'name' => 'kural adı', 'product_id' => 'ürün', 'category_id' => 'kategori', 'dealer_group_id' => 'bayi grubu',
             'dealer_relationship_id' => 'bayi', 'percent' => 'indirim oranı', 'starts_on' => 'başlangıç', 'ends_on' => 'bitiş',
@@ -171,7 +172,7 @@ class PricingController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:120', Rule::unique('price_lists', 'name')->where('business_id', $request->user()->business_id)->ignore($list?->id)],
             'starts_on' => ['nullable', 'date'],
-            'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
+            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
             'is_active' => ['boolean'],
         ], [], ['name' => 'liste adı', 'starts_on' => 'başlangıç', 'ends_on' => 'bitiş']);
     }

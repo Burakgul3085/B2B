@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
+use App\Rules\NotBefore;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -17,7 +18,7 @@ class AccountStatementController extends Controller
 
     public function __invoke(Request $request, AccountAnalysis $analysis): View
     {
-        $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
+        $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', new NotBefore('from')]]);
         $from = $range['from'] ?? now()->subMonths(3)->startOfMonth()->toDateString();
         $to = $range['to'] ?? now()->toDateString();
 

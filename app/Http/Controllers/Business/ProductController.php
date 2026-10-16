@@ -234,7 +234,7 @@ class ProductController extends Controller
             $input[$flag] = $request->boolean($flag);
         }
         foreach (['pack_quantity', 'min_order_qty', 'order_step', 'critical_stock_level'] as $field) {
-            if (isset($input[$field]) && ($parsed = Quantity::parse($input[$field])) !== null) {
+            if (isset($input[$field]) && is_scalar($input[$field]) && ($parsed = Quantity::parse($input[$field])) !== null) {
                 $input[$field] = $parsed;
             }
         }
