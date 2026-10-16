@@ -96,8 +96,29 @@
                         @else
                             <x-badge tone="success">Etkin</x-badge>
                             <p class="mt-2 text-xs text-muted">Son giriş: {{ $business->user->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? 'Henüz giriş yapılmadı' }}</p>
+                            <form method="POST" action="{{ route('platform.businesses.password-reset', $business) }}" class="mt-3">@csrf<x-button variant="secondary" size="sm">Parola sıfırlama bağlantısı gönder</x-button></form>
                         @endif
                     </div>
+
+                    @if (session('reset_url'))
+                        <div class="mt-4 rounded-lg border border-amber-200 bg-warning-soft p-3 text-xs text-amber-900">
+                            <p class="font-semibold">Parola sıfırlama bağlantısı (demo ortamı)</p>
+                            <p class="mt-1">Sistem e-postası tanımlı olmadığı için gösteriliyor; canlıda yalnızca e-postayla gider.</p>
+                            <input readonly value="{{ session('reset_url') }}" class="field-input mt-2 font-mono text-xs" aria-label="Parola sıfırlama bağlantısı">
+                        </div>
+                    @endif
+
+                    <details class="mt-4 border-t border-line pt-4" @if ($errors->hasAny(['name', 'email', 'reason', 'user_email'])) open @endif>
+                        <summary class="cursor-pointer text-sm font-medium text-primary">Yetkili bilgilerini düzenle</summary>
+                        @error('user_email')<p class="mt-3 text-sm text-danger">{{ $message }}</p>@enderror
+                        <form method="POST" action="{{ route('platform.businesses.user', $business) }}" class="mt-3 space-y-4">
+                            @csrf @method('PUT')
+                            <x-field name="name" label="Ad soyad" :value="old('name', $business->user->name)" required />
+                            <x-field name="email" label="Giriş e-postası" type="email" :value="old('email', $business->user->email)" required hint="Doğrulama beklenmeden hemen değişir; eski ve yeni adrese bilgi gider." />
+                            <x-field name="reason" label="Gerekçe" textarea required hint="Denetim kaydına yazılır." />
+                            <x-button variant="secondary" size="sm">Kaydet</x-button>
+                        </form>
+                    </details>
                 @endif
             </x-card>
 

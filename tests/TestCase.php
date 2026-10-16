@@ -4,6 +4,7 @@ namespace Tests;
 
 use App\Domain\Platform\ProvisionBusinessDefaults;
 use App\Domain\Tenancy\TenantContext;
+use App\Http\Middleware\RequirePlatformTwoFactor;
 use App\Models\Business;
 use App\Models\BusinessUser;
 use App\Models\Dealer;
@@ -12,6 +13,7 @@ use App\Models\DealerUser;
 use App\Models\PlatformAdmin;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Str;
+use PragmaRX\Google2FA\Google2FA;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -50,6 +52,16 @@ abstract class TestCase extends BaseTestCase
         return app(TenantContext::class)->runAs($business->id, fn () => DealerRelationship::create([
             'dealer_id' => $dealerUser->dealer_id, 'dealer_code' => 'B'.Str::random(5), 'status' => $status,
         ]));
+    }
+
+    /** 2FA kurulmuş ve bu oturumda doğrulanmış platform yöneticisi olarak işlem yapar. */
+    protected function actingAsPlatformAdmin(): PlatformAdmin
+    {
+        $admin = $this->makePlatformAdmin();
+        $admin->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
+        $this->actingAs($admin, 'platform')->withSession([RequirePlatformTwoFactor::SESSION_KEY => true]);
+
+        return $admin;
     }
 
     protected function makePlatformAdmin(): PlatformAdmin

@@ -14,6 +14,7 @@
             ['items' => [
                 ['label' => 'Genel Durum', 'route' => 'platform.dashboard', 'icon' => 'home', 'active' => 'platform.dashboard'],
                 ['label' => 'İşletmeler', 'route' => 'platform.businesses.index', 'icon' => 'building', 'active' => 'platform.businesses.*'],
+                ['label' => 'Bayi Hesapları', 'route' => 'platform.dealer-accounts.index', 'icon' => 'users', 'active' => 'platform.dealer-accounts.*'],
                 ['label' => 'E-posta Altyapısı', 'route' => 'platform.email-status', 'icon' => 'inbox', 'active' => 'platform.email-status'],
                 ['label' => 'Denetim Kayıtları', 'route' => 'platform.audit-logs', 'icon' => 'file', 'active' => 'platform.audit-logs'],
             ]],

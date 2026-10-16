@@ -56,19 +56,36 @@
 
             <div class="space-y-6">
                 <x-card title="Hesap">
+                    @error('account_email')<div role="alert" class="mb-4 rounded-lg border border-red-200 bg-danger-soft px-3 py-2 text-sm text-red-900">{{ $message }}</div>@enderror
+                    @if (session('reset_url'))
+                        <div class="mb-4 rounded-lg border border-amber-200 bg-warning-soft p-3 text-xs text-amber-900">
+                            <p class="font-semibold">Parola sıfırlama bağlantısı (yalnızca demo ortamı)</p>
+                            <p class="mt-1">Canlı ortamda bu bağlantı size gösterilmez, yalnızca bayinin e-postasına gider.</p>
+                            <input readonly value="{{ session('reset_url') }}" class="field-input mt-2 font-mono text-xs" aria-label="Parola sıfırlama bağlantısı">
+                        </div>
+                    @endif
+                    <p class="text-xs text-muted">Giriş e-postası</p>
+                    <p class="mb-3 break-all text-sm font-medium">{{ $user?->email }}</p>
                     @if ($user?->status === 'pending_activation')
                         <x-badge tone="warning">Aktivasyon bekliyor</x-badge>
-                        <p class="mt-2 text-sm text-muted">Bayi henüz parolasını belirlemedi.</p>
-                        <form method="POST" action="{{ route('business.dealers.activation', $r) }}" class="mt-3">@csrf<x-button variant="secondary" size="sm" icon="refresh">Yeni aktivasyon bağlantısı</x-button></form>
+                        <p class="mt-2 text-sm text-muted">Bayi henüz parolasını belirlemedi. E-posta hatalı girildiyse düzeltin; aktivasyon bağlantısı yeni adrese gider.</p>
+                        <form method="POST" action="{{ route('business.dealers.email', $r) }}" class="mt-3 space-y-3">
+                            @csrf @method('PUT')
+                            <x-field name="email" label="Doğru e-posta adresi" type="email" :value="old('email', $user->email)" required />
+                            <x-button variant="secondary" size="sm">E-postayı düzelt ve bağlantı gönder</x-button>
+                        </form>
+                        <form method="POST" action="{{ route('business.dealers.activation', $r) }}" class="mt-2">@csrf<x-button variant="ghost" size="sm" icon="refresh">Aynı adrese yeni aktivasyon bağlantısı</x-button></form>
                     @else
                         <x-badge tone="success">Etkin</x-badge>
                         <p class="mt-2 text-xs text-muted">Son giriş: {{ $user?->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? '—' }}</p>
+                        <p class="mt-3 text-xs text-muted">Bayi hesabını etkinleştirdi; giriş e-postasını yalnızca bayi kendisi (Profil ve Güvenlik) veya platform yöneticisi değiştirebilir.</p>
+                        <form method="POST" action="{{ route('business.dealers.password-reset', $r) }}" class="mt-3">@csrf<x-button variant="secondary" size="sm">Parola sıfırlama bağlantısı gönder</x-button></form>
                     @endif
                 </x-card>
 
                 <x-card title="Cari bakiye">
                     <p class="text-2xl font-semibold tabular-nums">{{ Money::format($r->currentAccount?->balance ?? 0) }}</p>
-                    <p class="mt-1 text-xs text-muted">Cari hareketler Aşama 6'da eklenecek.</p>
+                    @if ($r->currentAccount)<a href="{{ route('business.accounts.show', $r->currentAccount) }}" class="mt-1 inline-block text-xs font-medium text-primary hover:underline">Cari hesap ekstresi</a>@endif
                 </x-card>
 
                 <x-card title="Bayi durumu">

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Security;
 
-use App\Http\Middleware\RequirePlatformTwoFactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\File;
@@ -120,7 +119,7 @@ class InputFuzzTest extends TestCase
         $this->actingAs($world['rel']->dealer->user, 'dealer');
         $problems = $this->fuzz($this->writeRoutes('dealer.'), $this->resolver($ids));
 
-        $this->actingAs($this->makePlatformAdmin(), 'platform')->withSession([RequirePlatformTwoFactor::SESSION_KEY => true]);
+        $this->actingAsPlatformAdmin();
         $problems = [...$problems, ...$this->fuzz($this->writeRoutes('platform.'), $this->resolver($ids))];
 
         $this->assertSame([], $problems, "Bozuk girdide sunucu hatası:\n".implode("\n", $problems));

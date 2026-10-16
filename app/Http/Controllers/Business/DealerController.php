@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Auth\AccountEmailService;
+use App\Domain\Auth\Area;
+use App\Domain\Auth\AuthTokenService;
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Notifications\Notifier;
 use App\Domain\Pricing\PriceResolver;
@@ -167,6 +170,43 @@ class DealerController extends Controller
 
         return back()->with('activation_url', $emailed ? null : $url)
             ->with('status', $emailed ? 'Yeni aktivasyon bağlantısı bayiye e-postayla gönderiliyor; önceki bağlantılar geçersiz oldu.' : 'Yeni aktivasyon bağlantısı oluşturuldu; önceki bağlantılar geçersiz oldu.');
+    }
+
+    /** Aktivasyonu tamamlanmamış bayinin hatalı e-postasını düzeltir ve aktivasyon bağlantısını yeni adrese gönderir. */
+    public function correctEmail(Request $request, DealerRelationship $dealer): RedirectResponse
+    {
+        $data = $request->validate(['email' => ['bail', 'required', 'string', 'email', 'max:255']], [], ['email' => 'e-posta adresi']);
+
+        try {
+            $url = $this->onboarding->correctPendingEmail($dealer, $data['email']);
+        } catch (DomainException $e) {
+            return back()->withErrors(['account_email' => $e->getMessage()])->withInput();
+        }
+
+        $emailed = app(Notifier::class)->dealerCreated($dealer->fresh(), $url)->status !== 'skipped';
+
+        return back()->with('activation_url', $emailed ? null : $url)
+            ->with('status', 'Giriş e-postası düzeltildi. '.($emailed ? 'Aktivasyon bağlantısı yeni adrese e-postayla gönderiliyor.' : 'Yeni aktivasyon bağlantısı oluşturuldu.').' Önceki bağlantılar geçersiz oldu.');
+    }
+
+    /** Etkin bayiye parola sıfırlama bağlantısı gönderir. Bağlantı toptancıya gösterilmez (yalnızca demo ortamında). */
+    public function sendPasswordReset(DealerRelationship $dealer, AccountEmailService $emails, AuthTokenService $tokens): RedirectResponse
+    {
+        $user = $dealer->dealer->user;
+        if ($user?->status !== 'active') {
+            return back()->withErrors(['account_email' => 'Parola sıfırlama yalnızca etkin bayi hesapları için gönderilebilir.']);
+        }
+
+        $url = $tokens->url(Area::Dealer, 'password_reset', $tokens->issue(Area::Dealer, $user->id, 'password_reset'));
+        $emailed = app(Notifier::class)->dealerPasswordReset($dealer, $url)->status !== 'skipped';
+        $this->audit->log('dealer.password_reset_sent', $dealer);
+
+        $reveal = $emails->revealsLinks() && ! $emailed;
+
+        return back()->with('reset_url', $reveal ? $url : null)->with('status', $emailed
+            ? "Parola sıfırlama bağlantısı {$user->email} adresine e-postayla gönderiliyor."
+            : ($reveal ? 'E-posta ayarınız olmadığı için bağlantı gönderilemedi; demo ortamında aşağıda gösteriliyor.'
+                : 'Bağlantı gönderilemedi: önce E-posta Ayarları ekranından Gmail hesabınızı tanımlayın.'));
     }
 
     public function storeAddress(Request $request, DealerRelationship $dealer): RedirectResponse

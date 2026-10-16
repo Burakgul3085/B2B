@@ -66,7 +66,7 @@ trait BuildsWorld
                 'brand' => Brand::create(['name' => 'Marka '.Str::random(4)])->id,
                 'variantGroup' => VariantGroup::create(['name' => 'Varyant', 'attribute_names' => ['Renk']])->id,
                 'unit' => Unit::create(['code' => 'U'.Str::upper(Str::random(4)), 'name' => 'Birim'])->id,
-                'taxRate' => TaxRate::create(['name' => 'Özel', 'rate' => random_int(21, 99).'.00'])->id,
+                'taxRate' => TaxRate::create(['name' => 'Özel', 'rate' => (string) ((int) TaxRate::max('rate') + 1).'.00'])->id,
                 'warehouse' => $this->defaultWarehouse($business)->id,
                 'group' => DealerGroup::create(['name' => 'Grup '.Str::random(4)])->id,
                 'dealer' => $rel->id,
@@ -90,6 +90,7 @@ trait BuildsWorld
                 'business_notification' => AppNotification::create(['recipient_side' => 'business', 'type' => 'x', 'title' => 'T', 'url' => '/toptanci'])->id,
                 'dealer_notification' => AppNotification::create(['recipient_side' => 'dealer', 'dealer_relationship_id' => $rel->id, 'type' => 'x', 'title' => 'T', 'url' => '/bayi'])->id,
                 'cart_item' => $cartItem->id,
+                'dealerUser' => $rel->dealer->user->id,
             ];
         });
 

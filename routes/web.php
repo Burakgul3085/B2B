@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Auth\ActivationController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Business;
@@ -45,12 +46,17 @@ $authRoutes = function (string $name, bool $activation) {
     });
 
     Route::post('cikis', [LoginController::class, 'destroy'])->middleware("auth:{$name}")->name('logout');
+
+    // Yeni giriş e-postasının doğrulanması: oturum gerekmez (bağlantı yeni adrese gelen gizli belirteç).
+    Route::get('e-posta-dogrula/{token}', [EmailVerificationController::class, 'show'])->name('email.verify');
+    Route::post('e-posta-dogrula', [EmailVerificationController::class, 'confirm'])->middleware('throttle:10,1')->name('email.confirm');
 };
 
 $accountRoutes = function () {
     Route::get('hesabim', [AccountController::class, 'show'])->name('account');
     Route::put('hesabim', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('hesabim/parola', [AccountController::class, 'updatePassword'])->name('account.password');
+    Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
 };
 
 /* ---------------- Platform yönetimi ---------------- */
@@ -76,6 +82,14 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::post('isletmeler/{business}/lisans', [Platform\BusinessController::class, 'storeLicense'])->name('businesses.licenses.store');
             Route::put('isletmeler/{business}/moduller', [Platform\BusinessController::class, 'updateModules'])->name('businesses.modules');
             Route::post('isletmeler/{business}/aktivasyon', [Platform\BusinessController::class, 'resendActivation'])->name('businesses.activation');
+            Route::put('isletmeler/{business}/yetkili', [Platform\BusinessController::class, 'updateUser'])->name('businesses.user');
+            Route::post('isletmeler/{business}/parola-sifirlama', [Platform\BusinessController::class, 'sendPasswordReset'])->middleware('throttle:10,1')->name('businesses.password-reset');
+
+            Route::get('bayi-hesaplari', [Platform\DealerAccountController::class, 'index'])->name('dealer-accounts.index');
+            Route::get('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'show'])->name('dealer-accounts.show');
+            Route::put('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'update'])->name('dealer-accounts.update');
+            Route::put('bayi-hesaplari/{dealerUser}/durum', [Platform\DealerAccountController::class, 'updateStatus'])->name('dealer-accounts.status');
+            Route::post('bayi-hesaplari/{dealerUser}/parola-sifirlama', [Platform\DealerAccountController::class, 'sendPasswordReset'])->middleware('throttle:10,1')->name('dealer-accounts.password-reset');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');
@@ -167,6 +181,8 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::put('bayiler/{dealer}', [Business\DealerController::class, 'update'])->name('dealers.update');
         Route::put('bayiler/{dealer}/durum', [Business\DealerController::class, 'updateStatus'])->name('dealers.status');
         Route::post('bayiler/{dealer}/aktivasyon', [Business\DealerController::class, 'activationLink'])->name('dealers.activation');
+        Route::put('bayiler/{dealer}/giris-eposta', [Business\DealerController::class, 'correctEmail'])->middleware('throttle:10,1')->name('dealers.email');
+        Route::post('bayiler/{dealer}/parola-sifirlama', [Business\DealerController::class, 'sendPasswordReset'])->middleware('throttle:5,10')->name('dealers.password-reset');
         Route::post('bayiler/{dealer}/adresler', [Business\DealerController::class, 'storeAddress'])->name('dealers.addresses.store');
         Route::put('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'updateAddress'])->name('dealers.addresses.update');
         Route::delete('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'archiveAddress'])->name('dealers.addresses.destroy');

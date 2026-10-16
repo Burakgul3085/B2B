@@ -52,6 +52,12 @@ class Notifier
             : $this->mailer->queue('relationship_added', $email, [], ['url' => route('dealer.login'), 'label' => 'Giriş yap'], [], 'dealer_relationship', $rel->id);
     }
 
+    /** Toptancının aktif bayisi için başlattığı parola sıfırlama (bağlantı toptancıya gösterilmez). */
+    public function dealerPasswordReset(DealerRelationship $rel, string $resetUrl): EmailLog
+    {
+        return $this->mailer->queue('dealer_password_reset', $this->dealerEmail($rel), [], ['url' => $resetUrl, 'label' => 'Yeni parola belirle'], [], 'dealer_relationship', $rel->id);
+    }
+
     public function applicationRejected(DealerApplication $a): void
     {
         $this->mailer->queue('application_rejected', $a->email, ['neden' => $a->decision_note], [], [], 'dealer_application', $a->id);

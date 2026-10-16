@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Auth\AccountEmailService;
+use App\Domain\Auth\Area;
 use App\Domain\Platform\CreateBusiness;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\BusinessModule;
 use App\Models\DealerRelationship;
 use App\Rules\NotBefore;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -155,6 +158,46 @@ class BusinessController extends Controller
         $this->audit->log('platform.activation_resent', $user, businessId: $business->id);
 
         return back()->with('status', 'Yeni aktivasyon bağlantısı oluşturuldu.')->with('activation', $result);
+    }
+
+    /** İşletme yetkilisinin adı ve giriş e-postası: doğrudan değişir, gerekçe zorunlu, eski ve yeni adrese bildirim. */
+    public function updateUser(Request $request, Business $business, AccountEmailService $emails): RedirectResponse
+    {
+        $user = $business->user ?? abort(404);
+        $data = $request->validate([
+            'name' => ['bail', 'required', 'string', 'max:120'],
+            'email' => ['bail', 'required', 'string', 'email', 'max:255'],
+            'reason' => ['bail', 'required', 'string', 'min:5', 'max:500'],
+        ], [], ['name' => 'ad soyad', 'email' => 'giriş e-postası', 'reason' => 'gerekçe']);
+
+        try {
+            if ($emails->normalize($data['email']) !== Str::lower($user->email)) {
+                $emails->changeByPlatform(Area::Business, $user, $data['email'], $data['reason']);
+            }
+        } catch (DomainException $e) {
+            return back()->withErrors(['user_email' => $e->getMessage()])->withInput();
+        }
+        if ($data['name'] !== $user->fresh()->name) {
+            $old = $user->name;
+            $user->forceFill(['name' => $data['name']])->save();
+            $this->audit->log('platform.user_name_changed', $user, ['name' => $old], ['name' => $data['name'], 'reason' => $data['reason']], businessId: $business->id);
+        }
+
+        $note = $user->fresh()->status === 'pending_activation' ? ' Hesap henüz etkinleşmediği için "Yeni bağlantı gönder" ile aktivasyon bağlantısını yeni adrese gönderin.' : '';
+
+        return back()->with('status', 'Yetkili bilgileri güncellendi; eski ve yeni adrese bilgi verildi.'.$note);
+    }
+
+    public function sendPasswordReset(Business $business, AccountEmailService $emails): RedirectResponse
+    {
+        $user = $business->user ?? abort(404);
+        if ($user->status !== 'active') {
+            return back()->withErrors(['user_email' => 'Parola sıfırlama yalnızca etkin hesaplar için gönderilebilir.']);
+        }
+        $result = $emails->sendPasswordReset(Area::Business, $user, 'Platform yöneticisi');
+        $this->audit->log('platform.password_reset_sent', $user, businessId: $business->id);
+
+        return back()->with('status', "Parola sıfırlama bağlantısı {$user->email} adresine gönderildi.")->with('reset_url', $result['url']);
     }
 
     private function businessRules(): array

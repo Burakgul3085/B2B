@@ -141,6 +141,38 @@ class DealerOnboarding
         return $this->tokens->url(Area::Dealer, 'activation', $plain);
     }
 
+    /**
+     * Henüz etkinleştirilmemiş bayi hesabının hatalı girilmiş e-postasını düzeltir ve yeni aktivasyon bağlantısı üretir.
+     * Etkin hesapta veya başka bir toptancıyla da ilişkili hesapta değiştirilemez (hesap bayiye aittir).
+     */
+    public function correctPendingEmail(DealerRelationship $relationship, string $newEmail): string
+    {
+        return DB::transaction(function () use ($relationship, $newEmail) {
+            $user = DealerUser::where('dealer_id', $relationship->dealer_id)->lockForUpdate()->firstOrFail();
+            if ($user->status !== 'pending_activation') {
+                throw new DomainException('Bayi hesabını etkinleştirdi; giriş e-postasını yalnızca bayi kendisi veya platform yöneticisi değiştirebilir.');
+            }
+            if (DealerRelationship::withoutGlobalScopes()->where('dealer_id', $relationship->dealer_id)->count() > 1) {
+                throw new DomainException('Bu bayi hesabı başka bir toptancıyla da ilişkili; e-posta değişikliği için platform yöneticisine başvurun.');
+            }
+
+            $email = Str::lower(trim($newEmail));
+            if (DealerUser::where('email', $email)->whereKeyNot($user->id)->exists()) {
+                throw new DomainException('Bu e-posta adresi başka bir bayi hesabında kullanılıyor.');
+            }
+
+            $old = $user->email;
+            $user->forceFill(['email' => $email])->save();
+            // Firma e-postası giriş e-postasıyla aynı girilmişse o da düzeltilir.
+            if (Str::lower((string) $relationship->dealer->email) === Str::lower($old)) {
+                $relationship->dealer->forceFill(['email' => $email])->save();
+            }
+            $this->audit->log('dealer.pending_email_corrected', $relationship, ['email' => $old], ['email' => $email]);
+
+            return $this->newActivationLink($relationship);
+        });
+    }
+
     private function onboard(array $dealerData, string $contactName, int $actorId, array $terms): array
     {
         $business = Business::with('licenses')->findOrFail($this->tenant->businessId());

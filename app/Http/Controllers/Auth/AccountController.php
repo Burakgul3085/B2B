@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
+use App\Domain\Auth\AuthTokenService;
 use App\Http\Controllers\Controller;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
-/** Profil ve güvenlik: ad ve parola değişikliği (üç alan için ortak). */
+/** Profil ve güvenlik: ad, giriş e-postası ve parola değişikliği (üç alan için ortak). */
 class AccountController extends Controller
 {
     public function __construct(private AuditLogger $audit) {}
@@ -21,7 +24,33 @@ class AccountController extends Controller
     {
         $area = $this->area($request);
 
-        return view('account.show', ['area' => $area, 'user' => $request->user($area->guard())]);
+        $user = $request->user($area->guard());
+
+        return view('account.show', [
+            'area' => $area,
+            'user' => $user,
+            'pendingEmail' => app(AuthTokenService::class)->pendingEmailChange($area, $user->id),
+        ]);
+    }
+
+    /** Giriş e-postası değişikliği: mevcut parola ile onaylanır, yeni adres doğrulanınca uygulanır. */
+    public function updateEmail(Request $request, AccountEmailService $emails): RedirectResponse
+    {
+        $area = $this->area($request);
+        $user = $request->user($area->guard());
+        $data = $request->validate([
+            'email' => ['bail', 'required', 'string', 'email', 'max:255'],
+            'email_password' => ['bail', 'required', 'string', 'current_password:'.$area->guard()],
+        ], [], ['email' => 'yeni e-posta adresi', 'email_password' => 'mevcut parola']);
+
+        try {
+            $result = $emails->requestChange($area, $user, $data['email']);
+        } catch (DomainException $e) {
+            return back()->withErrors(['email' => $e->getMessage()])->withInput();
+        }
+
+        return back()->with('status', "Doğrulama bağlantısı {$result['email']} adresine gönderildi. Bağlantıyı açana kadar mevcut e-postanızla giriş yapmaya devam edersiniz.")
+            ->with('email_verify_url', $result['url']);
     }
 
     public function updateProfile(Request $request): RedirectResponse
