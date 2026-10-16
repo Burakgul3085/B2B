@@ -54,16 +54,29 @@ class BusinessMailer
         ]);
 
         if ($configured) {
-            DB::afterCommit(fn () => SendBusinessEmail::dispatch($businessId, $log->id));
+            DB::afterCommit(fn () => $this->dispatchSafely($businessId, $log->id));
         }
 
         return $log;
+    }
+
+    /**
+     * Kuyruk senkron çalışsa bile (QUEUE_CONNECTION=sync) gönderim hatası isteği bozmaz;
+     * durum email_logs'a zaten yazılmıştır.
+     */
+    private function dispatchSafely(int $businessId, int $logId): void
+    {
+        try {
+            SendBusinessEmail::dispatch($businessId, $logId);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Başarısız e-postayı yeniden kuyruğa alır. */
     public function retry(EmailLog $log): void
     {
         $log->update(['status' => 'queued', 'last_error_code' => null]);
-        SendBusinessEmail::dispatch($log->business_id, $log->id);
+        $this->dispatchSafely($log->business_id, $log->id);
     }
 }

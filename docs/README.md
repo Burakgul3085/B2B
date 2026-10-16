@@ -10,4 +10,5 @@
 | [06-asama-4-raporu.md](06-asama-4-raporu.md) | Aşama 4: bayilik ve fiyatlandırma raporu |
 | [07-asama-5-raporu.md](07-asama-5-raporu.md) | Aşama 5: sipariş ve ürün talepleri raporu |
 | [08-asama-6-raporu.md](08-asama-6-raporu.md) | Aşama 6: cari hesap raporu |
+| [09-asama-7-raporu.md](09-asama-7-raporu.md) | Aşama 7: iletişim raporu |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

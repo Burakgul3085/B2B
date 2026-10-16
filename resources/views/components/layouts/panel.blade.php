@@ -109,7 +109,8 @@
                     <input name="q" value="{{ request()->routeIs('dealer.catalog') ? request('q') : '' }}" placeholder="Ürün adı, kodu veya barkod" aria-label="Katalogda ara"
                         class="w-full rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:bg-white focus:text-ink focus:ring-2 focus:ring-white/40">
                 </form>
-                <a href="{{ route('dealer.cart') }}" class="relative ml-auto rounded-lg p-2 hover:bg-white/10 lg:ml-0" aria-label="Sepet ({{ $cartCount }} ürün)">
+                <div class="ml-auto lg:ml-0"><x-notification-bell side="dealer" :relationship-id="$currentRelationship->id" dark /></div>
+                <a href="{{ route('dealer.cart') }}" class="relative rounded-lg p-2 hover:bg-white/10" aria-label="Sepet ({{ $cartCount }} ürün)">
                     <x-icon name="package" />
                     @if ($cartCount)<span class="absolute -top-0.5 -right-0.5 rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-primary-dark tabular-nums">{{ $cartCount }}</span>@endif
                 </a>
@@ -203,7 +204,10 @@
         <div class="flex min-w-0 flex-1 flex-col">
             <header class="relative flex h-16 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
                 <button type="button" class="rounded-md p-1.5 text-muted hover:bg-slate-100 lg:hidden" @click="nav = true" aria-label="Menüyü aç"><x-icon name="menu" /></button>
-                <div class="ml-auto flex items-center gap-1" x-data="{ open: false }" @click.outside="open = false">
+                @if ($area === Area::Business)
+                    <div class="ml-auto"><x-notification-bell side="business" /></div>
+                @endif
+                <div @class(['flex items-center gap-1', 'ml-auto' => $area !== Area::Business]) x-data="{ open: false }" @click.outside="open = false">
                     <button type="button" @click="open = !open" class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-ink hover:bg-slate-100" :aria-expanded="open">
                         <span class="flex size-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-muted">{{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}</span>
                         <span class="hidden sm:inline">{{ $user->name }}</span>

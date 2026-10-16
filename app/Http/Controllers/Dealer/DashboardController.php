@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dealer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
+use App\Models\Announcement;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductRequest;
@@ -37,6 +38,10 @@ class DashboardController extends Controller
             'kpis' => $kpis,
             'recentOrders' => (clone $orders)->latest('id')->limit(5)->get(),
             'topProducts' => $topProducts,
+            // Son 30 günün duyuruları: herkese veya bayinin grubuna.
+            'announcements' => Announcement::whereNotNull('published_at')->where('published_at', '>=', now()->subDays(30))
+                ->where(fn ($q) => $q->whereNull('dealer_group_id')->orWhere('dealer_group_id', $relationship->dealer_group_id))
+                ->latest('published_at')->limit(3)->get(),
             'arrived' => ProductRequest::where('dealer_relationship_id', $relationship->id)->where('status', 'stock_updated')
                 ->with('product:id,name')->latest('notified_at')->limit(5)->get(),
         ]);

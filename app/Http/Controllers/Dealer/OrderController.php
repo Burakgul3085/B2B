@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dealer;
 
+use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Http\Controllers\Controller;
@@ -61,7 +62,7 @@ class OrderController extends Controller
             return back()->withErrors(['order' => $e->getMessage()]);
         }
 
-        $notifier = app(\App\Domain\Notifications\Notifier::class);
+        $notifier = app(Notifier::class);
         $order->status === 'cancelled' ? $notifier->orderCancelledByDealer($order) : $notifier->cancelRequested($order);
 
         return back()->with('status', $order->status === 'cancelled' ? 'Siparişiniz iptal edildi.' : 'İptal talebiniz toptancıya iletildi.');

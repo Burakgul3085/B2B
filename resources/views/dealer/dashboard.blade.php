@@ -11,6 +11,13 @@
         <x-kpi label="Açık ürün talebi" :value="$kpis['open_requests']" :href="$currentBusiness->moduleEnabled('product_requests') ? route('dealer.requests.index') : null" :hint="$currentBusiness->moduleEnabled('product_requests') ? 'Taleplerim' : null" />
     </div>
 
+    @foreach ($announcements as $a)
+        <div class="mt-6 rounded-xl border border-blue-200 bg-info-soft p-4 text-sm text-sky-900">
+            <p class="font-semibold">{{ $a->title }} <span class="ml-1 text-xs font-normal opacity-75">{{ $a->published_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span></p>
+            <p class="mt-1 whitespace-pre-line">{{ $a->body }}</p>
+        </div>
+    @endforeach
+
     @if ($arrived->isNotEmpty())
         <div class="mt-6 rounded-xl border border-green-200 bg-success-soft p-4 text-sm text-green-900">
             <p class="font-semibold">Talep ettiğiniz ürünler stoğa girdi</p>

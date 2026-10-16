@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Inventory\Quantity;
+use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
 use App\Http\Controllers\Controller;
@@ -88,7 +89,7 @@ class CartController extends Controller
         }
 
         if ($order->wasRecentlyCreated) {
-            app(\App\Domain\Notifications\Notifier::class)->orderSubmitted($order);
+            app(Notifier::class)->orderSubmitted($order);
         }
 
         return redirect()->route('dealer.orders.show', $order)

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Dealer;
 
+use App\Domain\Auth\Area;
 use App\Domain\Messaging\MessagingService;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Concerns\HandlesMessaging;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\Attachment;
+use App\Models\Business;
 use App\Models\Conversation;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,7 +43,7 @@ class MessageController extends Controller
 
     public function index(Request $request): View
     {
-        return view('messages.index', $this->listConversations($request) + ['area' => \App\Domain\Auth\Area::Dealer, 'prefix' => 'dealer']);
+        return view('messages.index', $this->listConversations($request) + ['area' => Area::Dealer, 'prefix' => 'dealer']);
     }
 
     public function create(Request $request): View|RedirectResponse
@@ -52,7 +54,7 @@ class MessageController extends Controller
             return redirect()->route('dealer.messages.show', $existing);
         }
 
-        return view('messages.create', ['area' => \App\Domain\Auth\Area::Dealer, 'prefix' => 'dealer', 'context' => $context, 'dealers' => collect()]);
+        return view('messages.create', ['area' => Area::Dealer, 'prefix' => 'dealer', 'context' => $context, 'dealers' => collect()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -79,9 +81,9 @@ class MessageController extends Controller
         $this->messaging->markRead($conversation, 'dealer');
 
         return view('messages.show', [
-            'area' => \App\Domain\Auth\Area::Dealer, 'prefix' => 'dealer',
+            'area' => Area::Dealer, 'prefix' => 'dealer',
             'conversation' => $conversation->load('messages.attachments'),
-            'counterpart' => app(TenantContext::class)->hasBusiness() ? \App\Models\Business::find(app(TenantContext::class)->businessId())->display_name : '',
+            'counterpart' => app(TenantContext::class)->hasBusiness() ? Business::find(app(TenantContext::class)->businessId())->display_name : '',
             'counterpartRead' => (int) $conversation->reads()->where('side', 'business')->value('last_read_message_id'),
         ]);
     }

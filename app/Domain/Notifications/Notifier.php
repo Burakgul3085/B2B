@@ -4,6 +4,7 @@ namespace App\Domain\Notifications;
 
 use App\Domain\Mail\BusinessMailer;
 use App\Domain\Support\Money;
+use App\Domain\Tenancy\TenantContext;
 use App\Models\Announcement;
 use App\Models\AppNotification;
 use App\Models\BusinessUser;
@@ -192,7 +193,7 @@ class Notifier
 
     private function mailBusiness(string $key, array $vars, array $action, array $details, $related): void
     {
-        $to = BusinessUser::where('business_id', app(\App\Domain\Tenancy\TenantContext::class)->businessId())->where('status', 'active')->value('email');
+        $to = BusinessUser::where('business_id', app(TenantContext::class)->businessId())->where('status', 'active')->value('email');
         if ($to) {
             $this->mailer->queue($key, $to, $vars, $action, $details, $related ? Str::snake(class_basename($related)) : null, $related?->getKey());
         }

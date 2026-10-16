@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /** Mesajlaşma, bildirim merkezi, işletme bazlı e-posta ve duyurular (Bölüm 14–15). */
@@ -37,7 +38,7 @@ return new class extends Migration
             $table->index(['conversation_id', 'id']);
             $table->foreign(['business_id', 'conversation_id'])->references(['business_id', 'id'])->on('conversations')->cascadeOnDelete();
         });
-        \Illuminate\Support\Facades\DB::statement('ALTER TABLE messages ADD FULLTEXT messages_body_ft (body)');
+        DB::statement('ALTER TABLE messages ADD FULLTEXT messages_body_ft (body)');
 
         Schema::create('conversation_reads', function (Blueprint $table) {
             $table->id();

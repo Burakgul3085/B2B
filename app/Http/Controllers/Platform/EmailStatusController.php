@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Platform;
 
+use App\Domain\Mail\SystemMailer;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\EmailLog;
@@ -25,7 +26,7 @@ class EmailStatusController extends Controller
             'businesses' => Business::orderBy('display_name')->get(['id', 'display_name', 'status']),
             'settings' => $settings,
             'stats' => $stats,
-            'systemConfigured' => app(\App\Domain\Mail\SystemMailer::class)->isConfigured(),
+            'systemConfigured' => app(SystemMailer::class)->isConfigured(),
         ]);
     }
 }

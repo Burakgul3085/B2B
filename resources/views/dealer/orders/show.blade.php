@@ -2,6 +2,9 @@
     <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i')">
         <x-slot:breadcrumb><a href="{{ route('dealer.orders.index') }}" class="hover:underline">Siparişlerim</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+        @if ($currentBusiness->moduleEnabled('messaging'))
+            <x-button variant="secondary" size="sm" icon="inbox" :href="route('dealer.messages.create', ['context' => 'order', 'id' => $order->id])">Bu sipariş hakkında mesaj</x-button>
+        @endif
     </x-page-header>
 
     @error('order')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror

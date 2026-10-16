@@ -20,5 +20,15 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host 'MySQL calisiyor.' -ForegroundColor Green
 
 Set-Location $project
+
+# E-posta kuyrugu: ayri, kucultulmus pencerede calisir. Durdurmak icin o pencereyi kapatin.
+$worker = Get-CimInstance Win32_Process -Filter "Name = 'php.exe'" | Where-Object { $_.CommandLine -like '*queue:work*' }
+if (-not $worker) {
+    Start-Process -FilePath 'php' -ArgumentList 'artisan', 'queue:work', '--tries=3', '--sleep=3' -WorkingDirectory $project -WindowStyle Minimized
+    Write-Host 'E-posta kuyrugu baslatildi (kucultulmus pencere).' -ForegroundColor Green
+} else {
+    Write-Host 'E-posta kuyrugu zaten calisiyor.' -ForegroundColor Green
+}
+
 Write-Host 'Uygulama: http://localhost:8000  (durdurmak icin Ctrl+C)' -ForegroundColor Green
 php artisan serve

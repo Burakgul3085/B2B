@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\ProductRequestService;
 use App\Http\Controllers\Controller;
 use App\Models\ProductRequest;
@@ -49,7 +50,7 @@ class ProductRequestController extends Controller
 
         try {
             $this->requests->respond($productRequest, $data['status'], $data['response_note'] ?? null, $request->user()->id);
-            app(\App\Domain\Notifications\Notifier::class)->requestUpdated($productRequest->fresh(['product', 'relationship']));
+            app(Notifier::class)->requestUpdated($productRequest->fresh(['product', 'relationship']));
         } catch (DomainException $e) {
             return back()->withErrors(['request' => $e->getMessage()]);
         }

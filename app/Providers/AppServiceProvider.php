@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Domain\Mail\GmailTransport;
+use App\Domain\Mail\MailTransport;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\DealerApplication;
+use App\Models\Message;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
-        $this->app->bind(\App\Domain\Mail\MailTransport::class, \App\Domain\Mail\GmailTransport::class);
+        $this->app->bind(MailTransport::class, GmailTransport::class);
     }
 
     public function boot(): void
@@ -27,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
         // Polimorfik ilişkilerde sınıf adı yerine sabit takma ad saklanır.
         Relation::enforceMorphMap([
             'dealer_application' => DealerApplication::class,
-            'message' => \App\Models\Message::class,
+            'message' => Message::class,
         ]);
     }
 }

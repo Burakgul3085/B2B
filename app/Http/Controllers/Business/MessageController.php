@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Domain\Auth\Area;
 use App\Domain\Messaging\MessagingService;
 use App\Http\Controllers\Concerns\HandlesMessaging;
 use App\Http\Controllers\Controller;
@@ -39,7 +40,7 @@ class MessageController extends Controller
 
     public function index(Request $request): View
     {
-        return view('messages.index', $this->listConversations($request) + ['area' => \App\Domain\Auth\Area::Business, 'prefix' => 'business']);
+        return view('messages.index', $this->listConversations($request) + ['area' => Area::Business, 'prefix' => 'business']);
     }
 
     public function create(Request $request): View|RedirectResponse
@@ -55,7 +56,7 @@ class MessageController extends Controller
         }
 
         return view('messages.create', [
-            'area' => \App\Domain\Auth\Area::Business, 'prefix' => 'business', 'context' => $context,
+            'area' => Area::Business, 'prefix' => 'business', 'context' => $context,
             'dealers' => DealerRelationship::with('dealer:id,legal_name')->where('status', 'active')->orderBy('dealer_code')->get()
                 ->mapWithKeys(fn ($r) => [$r->id => $r->dealer_code.' · '.$r->dealer->legal_name]),
         ]);
@@ -86,7 +87,7 @@ class MessageController extends Controller
         $this->messaging->markRead($conversation, 'business');
 
         return view('messages.show', [
-            'area' => \App\Domain\Auth\Area::Business, 'prefix' => 'business',
+            'area' => Area::Business, 'prefix' => 'business',
             'conversation' => $conversation->load(['relationship.dealer', 'messages.attachments']),
             'counterpart' => $conversation->relationship->dealer->legal_name,
             'counterpartRead' => (int) $conversation->reads()->where('side', 'dealer')->value('last_read_message_id'),

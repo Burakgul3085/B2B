@@ -4,6 +4,9 @@
         <x-slot:breadcrumb><a href="{{ route('business.orders.index') }}" class="hover:underline">Siparişler</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
         <x-button variant="secondary" size="sm" :href="route('business.dealers.show', $order->relationship)">Bayi</x-button>
+        @if ($currentBusiness->moduleEnabled('messaging'))
+            <x-button variant="secondary" size="sm" icon="inbox" :href="route('business.messages.create', ['dealer' => $order->dealer_relationship_id, 'context' => 'order', 'id' => $order->id])">Mesaj</x-button>
+        @endif
     </x-page-header>
 
     @error('order')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror

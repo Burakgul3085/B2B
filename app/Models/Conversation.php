@@ -6,6 +6,7 @@ use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Toptancı ile bir bayi arasındaki konuşma. Başka işletme veya başka bayi göremez. */
 class Conversation extends Model
@@ -29,7 +30,7 @@ class Conversation extends Model
         return $this->hasMany(Message::class)->orderBy('id');
     }
 
-    public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function latestMessage(): HasOne
     {
         return $this->hasOne(Message::class)->latestOfMany();
     }
