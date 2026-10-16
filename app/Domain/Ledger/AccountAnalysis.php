@@ -6,6 +6,7 @@ use App\Models\CurrentAccount;
 use App\Models\CurrentAccountMovement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Vade yaşlandırma ve ekstre (docs/03-is-kurallari.md §6, C9). Hiçbir şey saklanmaz; her şey hareketlerden türetilir.
@@ -25,12 +26,63 @@ class AccountAnalysis
         return $this->agingFromMovements(CurrentAccountMovement::where('current_account_id', $account->id)->orderBy('id')->get(), $asOf);
     }
 
-    /** Birden çok hesap için tek sorguda yaşlandırma (cari listesi). @return array<int, array> hesap ID'sine göre */
+    /**
+     * Birden çok hesap için yaşlandırma (cari listesi, dashboard, rapor, hatırlatma) — tek SQL sorgusu.
+     *
+     * FIFO'da alacaklar en eski vadeden kapatıldığı için açık kalan borçlar, vadesi en yeni olan (ters
+     * çevrilmemiş) borçlardır ve toplamları bakiyeye eşittir (ters kayıt çiftleri bakiyede birbirini sıfırlar).
+     * Bu yüzden bütün hareketleri yüklemek yerine borçlar vade sırasıyla tersten toplanır ve bakiyeyi
+     * dolduran kısım alınır. Sonuç agingFromMovements() ile birebir aynıdır (AccountAgingEquivalenceTest).
+     *
+     * @return array<int, array> hesap ID'sine göre; items içinde movement modeli yerine movement_id bulunur
+     */
     public function agingMany(Collection $accounts, ?string $asOf = null): array
     {
-        $movements = CurrentAccountMovement::whereIn('current_account_id', $accounts->modelKeys())->orderBy('id')->get()->groupBy('current_account_id');
+        $today = $asOf ?? now()->toDateString();
+        $soon = Carbon::parse($today)->addDays(self::DUE_SOON_DAYS)->toDateString();
+        $result = $accounts->mapWithKeys(fn ($a) => [$a->id => [
+            'overdue' => '0.00', 'due_soon' => '0.00', 'not_due' => '0.00', 'open' => '0.00',
+            'credit' => bccomp((string) $a->balance, '0', 2) < 0 ? bcmul((string) $a->balance, '-1', 2) : '0.00',
+            'items' => collect(),
+        ]])->all();
 
-        return $accounts->mapWithKeys(fn ($a) => [$a->id => $this->agingFromMovements($movements->get($a->id, collect()), $asOf)])->all();
+        $positive = $accounts->filter(fn ($a) => bccomp((string) $a->balance, '0', 2) > 0)->pluck('id')->values()->all();
+        if ($positive === []) {
+            return $result;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($positive), '?'));
+        $rows = DB::select("
+            SELECT r.id, r.current_account_id, r.debit, r.due, r.cum, ca.balance
+            FROM (
+                SELECT m.id, m.current_account_id, m.debit, COALESCE(m.due_date, m.movement_date) AS due,
+                       SUM(m.debit) OVER (PARTITION BY m.current_account_id ORDER BY COALESCE(m.due_date, m.movement_date) DESC, m.id DESC) AS cum
+                FROM current_account_movements m
+                WHERE m.current_account_id IN ({$placeholders}) AND m.debit > 0 AND m.reverses_movement_id IS NULL
+                  AND NOT EXISTS (SELECT 1 FROM current_account_movements r WHERE r.reverses_movement_id = m.id)
+            ) r
+            JOIN current_accounts ca ON ca.id = r.current_account_id
+            WHERE r.cum - r.debit < ca.balance
+            ORDER BY r.current_account_id, r.due, r.id", $positive);
+
+        foreach ($rows as $row) {
+            // Bakiyeyi dolduran borcun yalnızca kalan kısmı açıktır.
+            $open = bcsub((string) $row->balance, bcsub((string) $row->cum, (string) $row->debit, 2), 2);
+            $open = bccomp($open, (string) $row->debit, 2) > 0 ? bcadd((string) $row->debit, '0', 2) : $open;
+            $due = Carbon::parse($row->due)->toDateString();
+            $bucket = $due < $today ? 'overdue' : ($due <= $soon ? 'due_soon' : 'not_due');
+
+            $aging = &$result[$row->current_account_id];
+            $aging[$bucket] = bcadd($aging[$bucket], $open, 2);
+            $aging['open'] = bcadd($aging['open'], $open, 2);
+            $aging['items']->push([
+                'movement_id' => $row->id, 'open' => $open, 'due' => $due, 'bucket' => $bucket,
+                'days_overdue' => $bucket === 'overdue' ? Carbon::parse($due)->diffInDays(Carbon::parse($today)) : 0,
+            ]);
+            unset($aging);
+        }
+
+        return $result;
     }
 
     public function agingFromMovements(Collection $movements, ?string $asOf = null): array

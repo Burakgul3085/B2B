@@ -68,9 +68,9 @@ class DealerVolumeReport extends Report
             ->leftJoin('current_accounts', 'current_accounts.dealer_relationship_id', '=', 'dealer_relationships.id')
             ->select('dealer_relationships.dealer_code', 'dealers.legal_name as dealer')
             ->selectRaw("{$case} as status_label")
-            ->selectRaw("(SELECT COUNT(*) FROM orders o WHERE o.dealer_relationship_id = dealer_relationships.id AND o.status IN {$ok} AND o.created_at BETWEEN ? AND ?) as orders", [$from, $to])
-            ->selectRaw("(SELECT COALESCE(SUM(o.grand_total), 0) FROM orders o WHERE o.dealer_relationship_id = dealer_relationships.id AND o.status IN {$ok} AND o.created_at BETWEEN ? AND ?) as amount", [$from, $to])
-            ->selectRaw('(SELECT MAX(o.created_at) FROM orders o WHERE o.dealer_relationship_id = dealer_relationships.id) as last_order_at')
+            ->selectRaw("(SELECT COUNT(*) FROM orders o WHERE o.business_id = dealer_relationships.business_id AND o.dealer_relationship_id = dealer_relationships.id AND o.status IN {$ok} AND o.created_at BETWEEN ? AND ?) as orders", [$from, $to])
+            ->selectRaw("(SELECT COALESCE(SUM(o.grand_total), 0) FROM orders o WHERE o.business_id = dealer_relationships.business_id AND o.dealer_relationship_id = dealer_relationships.id AND o.status IN {$ok} AND o.created_at BETWEEN ? AND ?) as amount", [$from, $to])
+            ->selectRaw('(SELECT MAX(o.created_at) FROM orders o WHERE o.business_id = dealer_relationships.business_id AND o.dealer_relationship_id = dealer_relationships.id) as last_order_at')
             ->selectRaw('COALESCE(current_accounts.balance, 0) as balance')
             ->when($f['status'] ?? null, fn ($q, $s) => $q->where('dealer_relationships.status', $s))
             ->when($f['group'] ?? null, fn ($q, $g) => $q->where('dealer_relationships.dealer_group_id', $g));

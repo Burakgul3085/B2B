@@ -68,3 +68,20 @@ php artisan platform:create-admin
 ```
 
 Platform yöneticisi arayüzden oluşturulamaz.
+
+## Testler
+
+```bash
+php artisan test
+```
+
+- `Unit`, `Feature` ve `Concurrency` paketleri birlikte çalışır (`b2b_test` veritabanı gerekir). Eşzamanlılık testleri gerçek ayrı PHP süreçleri başlatır.
+- `tests/Feature/Security`: rota taraması (başka işletme/bayi kaydına erişim, oturum zorunluluğu), bozuk girdi taraması ve güvenlik sertleştirme testleri. Yeni eklenen rotalar taramalara kendiliğinden girer; yeni bir rota parametresi eklenirse `tests/Concerns/BuildsWorld.php` içine o modelden bir kayıt eklenmelidir (test bunu açıkça söyler).
+
+### Performans ölçümü (büyük veri)
+
+```bash
+php artisan test --group=performance
+```
+
+300 bayi, 20.000 ürün ve 50.000 sipariş (~250.000 kalem) üretir, ana sayfaların ve raporların sürelerini ve sorgu sayılarını ölçer. Sonuçlar `storage/app/performans/sonuclar.md` dosyasına yazılır. Normal test koşusuna dahil değildir (yaklaşık 2–3 dakika). Boyutlar `PERF_DEALERS`, `PERF_PRODUCTS`, `PERF_ORDERS` ortam değişkenleriyle değiştirilebilir.

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Reporting;
 
+use App\Domain\Ledger\LedgerService;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Reporting\DashboardMetrics;
 use App\Domain\Reporting\ReportContext;
@@ -10,9 +11,11 @@ use App\Domain\Reporting\ReportRegistry;
 use App\Domain\Reporting\ReportRunner;
 use App\Models\Business;
 use App\Models\BusinessModule;
+use App\Models\CurrentAccount;
 use App\Models\DealerRelationship;
 use App\Models\Order;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use OpenSpout\Common\Entity\Cell\FormulaCell;
 use OpenSpout\Reader\XLSX\Reader;
@@ -191,6 +194,36 @@ class ReportingTest extends TestCase
         $this->actingAs($business->user, 'business')->get(route('business.reports.index'))->assertForbidden();
         $this->get(route('business.dashboard'))->assertOk()->assertDontSee(route('business.reports.index'));
         $this->actingAs($rel->dealer->user, 'dealer')->get(route('dealer.reports.show', 'my-orders'))->assertForbidden();
+    }
+
+    public function test_dashboard_cache_is_invalidated_by_any_order_change(): void
+    {
+        $business = $this->makeBusiness();
+        $rel = $this->orderingDealer($business);
+        $this->approvedOrder($business, $rel, '1');               // 12,00
+        $this->travel(10)->seconds();
+
+        $metrics = app(DashboardMetrics::class);
+        $snapshot = fn () => $this->inTenant($business, fn () => $metrics->snapshot($metrics->range('month'), ['period' => 'month']));
+        $this->assertSame('12.00', $snapshot()['kpis']['sales']);
+
+        // Önbellekten okunur: sipariş sorgusu çalışmaz (yalnızca sürüm ve tahsilat sorguları).
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->assertSame('12.00', $snapshot()['kpis']['sales']);
+        $this->assertLessThanOrEqual(2, count(DB::getQueryLog()));
+
+        // Yeni onay: sürüm değişir, sonuç hemen güncellenir (önbellek eski veri döndürmez).
+        $this->approvedOrder($business, $rel, '2');               // +24,00
+        $this->assertSame('36.00', $snapshot()['kpis']['sales']);
+        $this->travel(10)->seconds();
+        $this->assertSame('36.00', $snapshot()['kpis']['sales']);
+
+        // Tahsilat önbellekten bağımsız, her zaman canlı.
+        $account = $this->inTenant($business, fn () => CurrentAccount::where('dealer_relationship_id', $rel->id)->sole());
+        $this->inTenant($business, fn () => app(LedgerService::class)->recordCollection($account, [
+            'collected_on' => now()->toDateString(), 'amount' => '5.00', 'method' => 'cash'], $business->user->id));
+        $this->assertSame('5.00', $snapshot()['kpis']['collections']);
     }
 
     public function test_dashboard_metrics_use_only_approved_sales_and_compare_periods(): void

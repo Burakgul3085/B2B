@@ -37,14 +37,9 @@ class DashboardController extends Controller
         ]);
         $f['period'] ??= 'month';
         $range = $metrics->range($f['period'], $f['from'] ?? null, $f['to'] ?? null);
-        $analytics = [
+        $analytics = $metrics->snapshot($range, $f) + [
             'filters' => $f,
             'range' => $range,
-            'kpis' => $metrics->kpis($range, $f),
-            'series' => $metrics->salesSeries($range, $f),
-            'status' => $metrics->statusGroups($range, $f),
-            'categories' => $metrics->categories($range, $f),
-            'dealers' => $metrics->dealers($range, $f),
             'dealerOptions' => Options::dealers(),
             'categoryOptions' => Options::categories(),
         ];

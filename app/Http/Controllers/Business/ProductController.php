@@ -217,7 +217,7 @@ class ProductController extends Controller
             $query->where('brand_id', $brand);
         }
 
-        $stockSum = '(SELECT COALESCE(SUM(ws.quantity), 0) FROM warehouse_stock ws WHERE ws.product_id = products.id)';
+        $stockSum = '(SELECT COALESCE(SUM(ws.quantity), 0) FROM warehouse_stock ws WHERE ws.business_id = products.business_id AND ws.product_id = products.id)';
         match ($filters['stock'] ?? null) {
             'out' => $query->whereRaw("{$stockSum} <= 0"),
             'critical' => $query->whereRaw("{$stockSum} <= products.critical_stock_level")->whereRaw("{$stockSum} > 0"),

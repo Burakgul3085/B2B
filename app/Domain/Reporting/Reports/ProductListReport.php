@@ -70,7 +70,7 @@ class ProductListReport extends Report
             ->join('tax_rates', 'tax_rates.id', '=', 'products.tax_rate_id')
             ->select('products.sku', 'products.name', 'categories.name as category', 'brands.name as brand', 'units.name as unit',
                 'products.list_price', 'products.dealer_price', 'products.purchase_price', 'tax_rates.rate as vat_rate')
-            ->selectRaw('(SELECT COALESCE(SUM(ws.quantity), 0) FROM warehouse_stock ws WHERE ws.product_id = products.id) as stock')
+            ->selectRaw('(SELECT COALESCE(SUM(ws.quantity), 0) FROM warehouse_stock ws WHERE ws.business_id = products.business_id AND ws.product_id = products.id) as stock')
             ->selectRaw("CASE WHEN products.is_active = 1 THEN 'Aktif' ELSE 'Pasif' END as status")
             ->when($f['q'] ?? null, fn ($q, $t) => $q->where(fn ($q) => $q->where('products.name', 'like', Options::like($t))->orWhere('products.sku', 'like', Options::like($t))->orWhere('products.barcode', $t)))
             ->when($f['category'] ?? null, fn ($q, $c) => $q->whereIn('products.category_id', Options::categoryIds((int) $c)))

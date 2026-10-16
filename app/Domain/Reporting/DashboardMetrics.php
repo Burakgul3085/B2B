@@ -3,12 +3,14 @@
 namespace App\Domain\Reporting;
 
 use App\Domain\Reporting\Reports\Options;
+use App\Domain\Tenancy\TenantContext;
 use App\Models\CollectionEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -49,16 +51,44 @@ class DashboardMetrics
         ];
     }
 
+    /**
+     * Dashboard'un tüm sipariş ölçüleri. Uzun dönemlerde (12 ay, binlerce sipariş) toplama pahalı olduğu için
+     * sonuç önbelleğe alınır; anahtar işletme + filtreler + son sipariş değişikliğidir. Herhangi bir sipariş
+     * oluşturulduğunda veya durumu değiştiğinde anahtar değişir, yani eski veri gösterilmez. Son 5 saniyede
+     * değişiklik varsa (aynı saniye içindeki ardışık güncellemeler) önbellek kullanılmaz. Tahsilat her zaman canlıdır.
+     *
+     * @return array{kpis: array, series: array, status: array, categories: array, dealers: array}
+     */
+    public function snapshot(array $range, array $f): array
+    {
+        $build = fn () => [
+            'kpis' => $this->kpis($range, $f),
+            'series' => $this->salesSeries($range, $f),
+            'status' => $this->statusGroups($range, $f),
+            'categories' => $this->categories($range, $f),
+            'dealers' => $this->dealers($range, $f),
+        ];
+
+        $lastChange = Order::max('updated_at');
+        if ($lastChange === null || Carbon::parse($lastChange)->gt(now()->subSeconds(5))) {
+            return $build();
+        }
+
+        $key = sprintf('dashboard:%d:%s:%s', app(TenantContext::class)->businessId(),
+            md5(json_encode([$f['dealer'] ?? null, $f['category'] ?? null, $range['from']->toDateTimeString(), $range['to']->toDateTimeString()])),
+            Carbon::parse($lastChange)->format('YmdHis'));
+        $data = Cache::remember($key, now()->addHour(), $build);
+        $data['kpis']['collections'] = $this->collections($range, $f);
+
+        return $data;
+    }
+
     /** Dönem göstergeleri ve önceki dönemle karşılaştırma. */
     public function kpis(array $range, array $f): array
     {
         $current = $this->sales($range['from'], $range['to'], $f);
         $previous = $this->sales($range['prevFrom'], $range['prevTo'], $f);
-
-        $collections = CollectionEntry::whereNull('cancelled_at')
-            ->whereBetween('collected_on', [$range['from']->toDateString(), $range['to']->toDateString()])
-            ->when($f['dealer'] ?? null, fn ($q, $d) => $q->whereHas('account', fn ($a) => $a->where('dealer_relationship_id', $d)))
-            ->sum('amount');
+        $collections = $this->collections($range, $f);
 
         return [
             'sales' => $current['amount'],
@@ -66,8 +96,17 @@ class DashboardMetrics
             'orders' => $current['count'],
             'orders_prev' => $previous['count'],
             'average' => $current['count'] ? bcdiv($current['amount'], (string) $current['count'], 2) : '0.00',
-            'collections' => (string) $collections,
+            'collections' => $collections,
         ];
+    }
+
+    /** Dönemde iptal edilmemiş tahsilat toplamı. */
+    private function collections(array $range, array $f): string
+    {
+        return (string) CollectionEntry::whereNull('cancelled_at')
+            ->whereBetween('collected_on', [$range['from']->toDateString(), $range['to']->toDateString()])
+            ->when($f['dealer'] ?? null, fn ($q, $d) => $q->whereHas('account', fn ($a) => $a->where('dealer_relationship_id', $d)))
+            ->sum('amount');
     }
 
     /**
@@ -156,6 +195,15 @@ class DashboardMetrics
         return ['labels' => $labels, 'values' => $values];
     }
 
+    /** @var array<int, int[]> */
+    private array $categoryIds = [];
+
+    /** Kategori ve alt kategorileri; bir istekte her ölçü için yeniden sorgulanmaz. */
+    private function categoryIds(int $id): array
+    {
+        return $this->categoryIds[$id] ??= Options::categoryIds($id);
+    }
+
     private function orders(array $f): Builder
     {
         return Order::query()
@@ -163,7 +211,12 @@ class DashboardMetrics
             ->when($f['category'] ?? null, fn ($q, $c) => $q->whereExists(fn ($e) => $e->selectRaw('1')->from('order_items')
                 ->join('products', 'products.id', '=', 'order_items.product_id')
                 ->whereColumn('order_items.order_id', 'orders.id')
-                ->whereIn('products.category_id', Options::categoryIds((int) $c))));
+                ->whereIn('products.category_id', $this->categoryIds((int) $c))));
+    }
+
+    private function categoryProducts(int $category): Builder
+    {
+        return Product::whereIn('category_id', $this->categoryIds($category))->select('id');
     }
 
     private function fulfilled(Carbon $from, Carbon $to, array $f): Builder
@@ -175,8 +228,7 @@ class DashboardMetrics
     {
         return OrderItem::query()
             ->whereIn('order_items.order_id', $this->fulfilled($range['from'], $range['to'], array_diff_key($f, ['category' => 1]))->select('orders.id'))
-            ->when($f['category'] ?? null, fn ($q, $c) => $q->whereIn('order_items.product_id',
-                Product::whereIn('category_id', Options::categoryIds((int) $c))->select('id')));
+            ->when($f['category'] ?? null, fn ($q, $c) => $q->whereIn('order_items.product_id', $this->categoryProducts((int) $c)));
     }
 
     /** @return array{amount: string, count: int} */
