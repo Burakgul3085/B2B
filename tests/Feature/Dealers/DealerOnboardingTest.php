@@ -115,7 +115,7 @@ class DealerOnboardingTest extends TestCase
 
         // Bayi toptancının belirlediği şifreyle hemen giriş yapar.
         $this->flushSession();
-        $this->post('/bayi/login', ['email' => 'onur@ornek.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi/katalog');
+        $this->post('/bayi/login', ['email' => 'onur@ornek.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi');
         $this->get('/bayi')->assertOk()->assertSee($business->display_name);
     }
 
@@ -213,7 +213,7 @@ class DealerOnboardingTest extends TestCase
 
         $this->assertSame('active', DealerUser::where('email', 'ayse@bayi.test')->sole()->status);
         $this->flushSession();
-        $this->post('/bayi/login', ['email' => 'ayse@bayi.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi/katalog');
+        $this->post('/bayi/login', ['email' => 'ayse@bayi.test', 'password' => 'BayiParola2026'])->assertRedirect('/bayi');
         $this->assertSame('IZM-01', app(TenantContext::class)->runAs($business->id, fn () => DealerRelationship::sole()->dealer_code));
     }
 

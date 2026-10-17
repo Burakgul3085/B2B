@@ -149,7 +149,7 @@ class MessagingTest extends TestCase
         $this->actingAs($rel2->dealer->user, 'dealer');
         $this->get(route('dealer.notifications.open', $n1))->assertNotFound();
         $this->get(route('dealer.notifications.index'))->assertDontSee('Bayi 1 için');
-        $this->get(route('dealer.notifications.open', $evil))->assertRedirect(route('dealer.catalog'));
+        $this->get(route('dealer.notifications.open', $evil))->assertRedirect(route('dealer.home'));
     }
 
     public function test_announcement_targets_group_and_shows_on_dashboard(): void

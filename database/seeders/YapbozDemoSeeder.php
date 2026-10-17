@@ -85,6 +85,8 @@ class YapbozDemoSeeder extends Seeder
             });
         });
 
+        $this->call(StorefrontDemoSeeder::class);
+
         $this->command?->info('Yapboz Kırtasiye B2B ve Onur Kırtasiye demo verisi yüklendi.');
     }
 

@@ -18,11 +18,13 @@ use App\Models\DealerProductPrice;
 use App\Models\DealerRelationship;
 use App\Models\DiscountRule;
 use App\Models\EmailLog;
+use App\Models\HomeBanner;
 use App\Models\ImportJob;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\ProductImage;
 use App\Models\ProductRequest;
+use App\Models\Showcase;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
 use App\Models\TaxRate;
@@ -86,6 +88,8 @@ trait BuildsWorld
                 'message_attachment' => $this->attachment('message', $conversation->messages()->value('id')),
                 'announcement' => $announcementId = Announcement::create(['title' => 'Duyuru', 'body' => 'Metin', 'published_at' => now(), 'created_by' => $user->id])->id,
                 'announcement_attachment' => $this->attachment('announcement', $announcementId),
+                'banner' => HomeBanner::create(['link_type' => 'none', 'media_type' => 'image', 'media_path' => 'yok.webp', 'media_mime' => 'image/webp', 'media_size' => 1, 'text_position' => 'left'])->id,
+                'showcase' => Showcase::create(['name' => 'Vitrin', 'type' => 'manual'])->id,
                 'count' => $count->id,
                 'line' => StockCountLine::create(['stock_count_id' => $count->id, 'product_id' => $product->id, 'counted_qty' => '1'])->id,
                 'job' => ImportJob::create(['type' => 'products', 'original_name' => 'x.xlsx', 'created_by' => $user->id])->id,

@@ -61,6 +61,19 @@ Parolalar seeder dosyasındaki `DEV_PASSWORD` sabitindedir.
 
 E-postalar işletmenin **ana Gmail hesabıyla** gönderilir (toptancı paneli → E-posta Ayarları veya platform → işletme detayı). E-postaların gitmesi için kuyruk çalıştırıcısı açık olmalıdır; `baslat.ps1` bunu otomatik başlatır.
 
+## Yükleme sınırları (vitrin videoları)
+
+Toptancı vitrin slaytlarına 50 MB'a kadar video yükleyebilir. PHP'nin varsayılan sınırı daha düşüktür; `php.ini` içinde:
+
+```ini
+upload_max_filesize = 64M
+post_max_size = 64M
+```
+
+Sunucuda web sunucusu da aynı boyuta izin vermelidir (Nginx: `client_max_body_size 64m;`). Kod değiştikten sonra e-posta kuyruğunu yeniden başlatın (`php artisan queue:restart`), aksi hâlde işçi eski kodla çalışmaya devam eder.
+
+Örnek vitrin (slaytlar ve ürün vitrinleri): `php artisan db:seed --class=StorefrontDemoSeeder` (vitrin boşsa yükler).
+
 ## Platform yöneticisi oluşturma (sunucuda)
 
 ```bash

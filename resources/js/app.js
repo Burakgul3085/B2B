@@ -1,7 +1,10 @@
 import Alpine from 'alpinejs';
+import { enableUploadProgress, heroSlider } from './storefront.js';
 
 window.Alpine = Alpine;
+Alpine.data('heroSlider', heroSlider);
 Alpine.start();
+enableUploadProgress();
 
 // İçerik güvenlik politikası satır içi olay işleyicilerini (onsubmit="…") engeller; onay ve otomatik gönderim
 // bu yüzden öznitelikle tanımlanır: data-confirm="Soru?" (form veya buton), data-autosubmit (seçim değişince gönder).

@@ -40,6 +40,36 @@ class DemoImages
         return $this->toUpload($img, "{$shape}.png");
     }
 
+    /**
+     * Ürün çiziminin saydam arka planlı hâli (banner kompozisyonları için).
+     * $rotate verilirse çizimin kendi eğimine eklenir.
+     */
+    public function cutout(string $shape, array $colors = [], int $size = 600, float $rotate = 0): GdImage
+    {
+        $c = $colors + ['main' => '#2563eb', 'accent' => '#1e3a8a'];
+        $layer = $this->layer();
+        $this->{'draw'.ucfirst($shape)}($layer, $c);
+
+        $angle = $rotate + match ($shape) {
+            'pen', 'gel', 'pencil', 'highlighter' => 32,
+            'ruler' => 18,
+            'eraser', 'stapler' => 8,
+            default => 0,
+        };
+        if ($angle) {
+            $layer = imagerotate($layer, $angle, imagecolorallocatealpha($layer, 0, 0, 0, 127));
+        }
+
+        $out = imagecreatetruecolor($size, $size);
+        imagealphablending($out, false);
+        imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+        imagesavealpha($out, true);
+        $offset = (int) ((imagesx($layer) - self::WORK) / 2);
+        imagecopyresampled($out, $layer, 0, 0, $offset, $offset, $size, $size, self::WORK, self::WORK);
+
+        return $out;
+    }
+
     /** Hazır PNG verisinden yüklenmiş dosya üretir. */
     public function upload(string $png, string $name): UploadedFile
     {

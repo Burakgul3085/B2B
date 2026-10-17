@@ -129,6 +129,21 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
             Route::post('mesajlar/{conversation}', [Business\MessageController::class, 'reply'])->middleware('throttle:30,1')->name('messages.reply');
             Route::get('mesajlar/{conversation}/ek/{attachment}', [Business\MessageController::class, 'attachment'])->name('messages.attachment');
         });
+        // Vitrin: bayi ana sayfası slaytları ve ürün vitrinleri
+        Route::get('vitrin', [Business\StorefrontController::class, 'index'])->name('storefront.index');
+        Route::post('vitrin/slaytlar', [Business\StorefrontController::class, 'storeBanner'])->middleware('throttle:30,1')->name('storefront.banners.store');
+        Route::put('vitrin/slaytlar/{banner}', [Business\StorefrontController::class, 'updateBanner'])->middleware('throttle:30,1')->name('storefront.banners.update');
+        Route::delete('vitrin/slaytlar/{banner}', [Business\StorefrontController::class, 'destroyBanner'])->name('storefront.banners.destroy');
+        Route::post('vitrin/slaytlar/{banner}/tasi', [Business\StorefrontController::class, 'moveBanner'])->name('storefront.banners.move');
+        Route::get('vitrin/slaytlar/{banner}/medya', [Business\StorefrontController::class, 'media'])->name('storefront.banners.media');
+        Route::post('vitrin/vitrinler', [Business\StorefrontController::class, 'storeShowcase'])->name('storefront.showcases.store');
+        Route::put('vitrin/vitrinler/{showcase}', [Business\StorefrontController::class, 'updateShowcase'])->name('storefront.showcases.update');
+        Route::delete('vitrin/vitrinler/{showcase}', [Business\StorefrontController::class, 'destroyShowcase'])->name('storefront.showcases.destroy');
+        Route::post('vitrin/vitrinler/{showcase}/tasi', [Business\StorefrontController::class, 'moveShowcase'])->name('storefront.showcases.move');
+        Route::post('vitrin/vitrinler/{showcase}/urunler', [Business\StorefrontController::class, 'addProduct'])->name('storefront.showcases.products.store');
+        Route::delete('vitrin/vitrinler/{showcase}/urunler/{product}', [Business\StorefrontController::class, 'removeProduct'])->name('storefront.showcases.products.destroy');
+        Route::put('urunler/{product}/vitrinler', [Business\StorefrontController::class, 'productShowcases'])->name('products.showcases');
+
         Route::get('duyurular', [Business\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->middleware('throttle:20,1')->name('announcements.store');
         Route::get('duyurular/{announcement}/ek/{attachment}', [Business\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
@@ -277,7 +292,9 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('toptanci-sec', [Dealer\SelectBusinessController::class, 'show'])->name('select-business');
         Route::post('toptanci-sec', [Dealer\SelectBusinessController::class, 'store'])->name('select-business.store');
 
-        Route::get('/', Dealer\DashboardController::class)->name('dashboard');
+        Route::get('/', Dealer\HomeController::class)->name('home');
+        Route::get('vitrin/medya/{banner}', [Dealer\HomeController::class, 'media'])->name('storefront.media');
+        Route::get('hesap-ozeti', Dealer\DashboardController::class)->name('dashboard');
 
         Route::get('katalog', [Dealer\CatalogController::class, 'index'])->name('catalog');
         Route::get('katalog/{product}', [Dealer\CatalogController::class, 'show'])->name('catalog.show');

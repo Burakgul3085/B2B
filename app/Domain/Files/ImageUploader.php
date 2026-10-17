@@ -23,10 +23,10 @@ class ImageUploader
     private const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 
     /** @return string private disk üzerindeki yol */
-    public function store(UploadedFile $file, string $directory, int $maxEdge = 1600): string
+    public function store(UploadedFile $file, string $directory, int $maxEdge = 1600, int $maxBytes = self::MAX_BYTES, int $quality = 82): string
     {
-        if (! $file->isValid() || $file->getSize() > self::MAX_BYTES) {
-            throw new DomainException('Görsel en fazla 5 MB olabilir.');
+        if (! $file->isValid() || $file->getSize() > $maxBytes) {
+            throw new DomainException('Görsel en fazla '.intdiv($maxBytes, 1024 * 1024).' MB olabilir.');
         }
 
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath());
@@ -58,7 +58,7 @@ class ImageUploader
         imagecopyresampled($target, $source, 0, 0, 0, 0, imagesx($target), imagesy($target), $width, $height);
 
         ob_start();
-        imagewebp($target, null, 82);
+        imagewebp($target, null, $quality);
         $binary = (string) ob_get_clean();
 
         $path = trim($directory, '/').'/'.Str::random(40).'.webp';

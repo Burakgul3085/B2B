@@ -35,6 +35,7 @@
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
                 ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
                 ['label' => 'Fiyatlandırma', 'route' => 'business.pricing', 'icon' => 'percent', 'active' => ['business.pricing', 'business.price-lists.*']],
+                ['label' => 'Vitrin', 'route' => 'business.storefront.index', 'icon' => 'image', 'active' => 'business.storefront.*'],
             ]],
             ['label' => 'Bayiler', 'items' => [
                 ['label' => 'Bayiler', 'route' => 'business.dealers.index', 'icon' => 'users', 'active' => 'business.dealers.*'],
@@ -68,7 +69,8 @@
         ],
         Area::Dealer => [
             ['items' => array_values(array_filter([
-                ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
+                ['label' => 'Ana Sayfa', 'route' => 'dealer.home', 'icon' => 'home', 'active' => 'dealer.home'],
+                ['label' => 'Tüm Ürünler', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
             ]))],
@@ -103,7 +105,7 @@
     <header class="relative bg-primary-dark text-white" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
         <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
             <button type="button" class="-ml-1 rounded-md p-1.5 hover:bg-white/10 md:hidden" @click="nav = !nav" aria-label="Menü"><x-icon name="menu" /></button>
-            <a href="{{ route('dealer.catalog') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
+            <a href="{{ route('dealer.home') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
             <nav class="ml-6 hidden items-center gap-1 md:flex" aria-label="Ana menü">
                 @foreach ($nav as $group)
                     @foreach ($group['items'] as $item)

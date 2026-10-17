@@ -33,7 +33,7 @@ class BusinessSelectionTest extends TestCase
         $this->get(route('dealer.select-business'))->assertOk()->assertSee($a->display_name)->assertSee($b->display_name);
 
         $this->post(route('dealer.select-business.store'), ['relationship_id' => $relB->id])
-            ->assertRedirect(route('dealer.catalog'))
+            ->assertRedirect(route('dealer.home'))
             ->assertSessionHas(SetDealerContext::SESSION_KEY, $relB->id);
 
         $this->get('/bayi')->assertOk()->assertSee($b->display_name);

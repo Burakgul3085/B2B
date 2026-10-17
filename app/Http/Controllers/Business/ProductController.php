@@ -9,6 +9,8 @@ use App\Models\AuditLog;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Showcase;
+use App\Models\ShowcaseProduct;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\VariantGroup;
@@ -85,6 +87,8 @@ class ProductController extends Controller
             'stocks' => $stocks,
             'movements' => $product->movements()->with('warehouse')->limit(10)->get(),
             'history' => $history,
+            'manualShowcases' => Showcase::where('type', 'manual')->orderBy('sort')->get(['id', 'name', 'is_active']),
+            'productShowcaseIds' => ShowcaseProduct::where('product_id', $product->id)->pluck('showcase_id')->map(fn ($id) => (int) $id)->all(),
             'siblings' => $product->variant_group_id
                 ? Product::where('variant_group_id', $product->variant_group_id)->whereKeyNot($product->id)->notArchived()->get(['id', 'name', 'sku', 'variant_values'])
                 : collect(),

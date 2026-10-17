@@ -124,6 +124,25 @@
                 </x-card>
             @endif
 
+            <x-card title="Vitrinler" description="Ürünün bayi ana sayfasında yer alacağı vitrinler.">
+                @if ($manualShowcases->isEmpty())
+                    <p class="text-sm text-muted">Elle seçilen bir vitrin yok. <a href="{{ route('business.storefront.index', ['sekme' => 'vitrinler']) }}" class="font-medium text-primary hover:underline">Vitrin oluşturun →</a></p>
+                @else
+                    <form method="POST" action="{{ route('business.products.showcases', $product) }}" class="space-y-3">
+                        @csrf @method('PUT')
+                        @foreach ($manualShowcases as $showcase)
+                            <label class="flex items-center gap-3 rounded-lg px-1 py-1 text-sm hover:bg-slate-50">
+                                <input type="checkbox" name="showcases[]" value="{{ $showcase->id }}" @checked(in_array($showcase->id, $productShowcaseIds, true)) class="size-4 rounded border-slate-300 text-primary">
+                                <span class="flex-1">{{ $showcase->name }}</span>
+                                @unless ($showcase->is_active)<x-badge>Kapalı</x-badge>@endunless
+                            </label>
+                        @endforeach
+                        @error('showcases')<p class="text-sm text-danger">{{ $message }}</p>@enderror
+                        <x-button variant="secondary" size="sm" class="w-full">Vitrinleri kaydet</x-button>
+                    </form>
+                @endif
+            </x-card>
+
             @unless ($product->isArchived())
                 <x-card title="Diğer işlemler">
                     <form method="POST" action="{{ route('business.products.duplicate', $product) }}" class="space-y-3">

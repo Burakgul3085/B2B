@@ -13,6 +13,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductRequest;
+use App\Models\Showcase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -43,6 +44,7 @@ class CatalogController extends Controller
             'in_stock' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(['name', 'new', 'stock'])],
             'view' => ['nullable', Rule::in(['grid', 'list'])],
+            'showcase' => ['nullable', 'integer'],
         ]);
         $relationship = $this->relationship();
         $settings = $this->settings();
@@ -51,6 +53,8 @@ class CatalogController extends Controller
 
         $selectedCategories = array_map('intval', $filters['category']);
         $selectedBrands = array_map('intval', $filters['brand']);
+        // Ana sayfadaki elle seçilmiş bir vitrinin "Tümünü gör" bağlantısı.
+        $showcase = ! empty($filters['showcase']) ? Showcase::where('type', 'manual')->find($filters['showcase']) : null;
         // Ana kategori seçilirse alt kategorileri de kapsanır.
         $categoryIds = $selectedCategories
             ? array_merge($selectedCategories, Category::whereIn('parent_id', $selectedCategories)->pluck('id')->all())
@@ -69,6 +73,7 @@ class CatalogController extends Controller
             ->select('products.*')->selectRaw("COALESCE({$qtyExpr}, 0) as available_qty")
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($selectedBrands, fn ($q) => $q->whereIn('brand_id', $selectedBrands))
+            ->when($showcase, fn ($q) => $q->whereIn('products.id', $showcase->items()->pluck('product_id')))
             // Stokta olmayan ürünler her sıralamada en sona düşer (sayfalar arasında da).
             ->orderByRaw("CASE WHEN COALESCE({$qtyExpr}, 0) > 0 THEN 0 ELSE 1 END")
             ->when(($filters['sort'] ?? 'name') === 'new', fn ($q) => $q->latest('id'))
@@ -104,6 +109,7 @@ class CatalogController extends Controller
             'selectedCategories' => $selectedCategories,
             'selectedBrands' => $selectedBrands,
             'view' => $filters['view'] ?? 'grid',
+            'showcase' => $showcase,
             'settings' => $settings,
             'openRequests' => $openRequests,
             'categories' => $categories,

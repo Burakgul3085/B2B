@@ -131,6 +131,16 @@
         scrollbar-color: var(--color-slate-300) transparent;
     }
 
+    /* Ana sayfa slaytı: etkin noktadaki ilerleme çubuğu (süre JS'den gelir) */
+    .slider-progress {
+        animation: slider-progress 5s linear forwards;
+    }
+
+    @keyframes slider-progress {
+        from { width: 0; }
+        to { width: 100%; }
+    }
+
     /* Görsel önizleme penceresi: açılırken yumuşak belirme */
     .lightbox {
         animation: lightbox-in 0.18s ease-out;
