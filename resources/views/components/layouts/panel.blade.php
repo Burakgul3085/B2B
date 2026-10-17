@@ -71,13 +71,18 @@
                 ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
-                ['label' => 'Duyurular', 'route' => 'dealer.announcements.index', 'icon' => 'file', 'active' => 'dealer.announcements.*'],
-                ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
-                ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'dealer.reports.index', 'icon' => 'layers', 'active' => 'dealer.reports.*'] : null,
-                ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,
             ]))],
         ],
     };
+
+    // Bayi: üst menüde yalnızca alışveriş akışı; diğer sayfalar profil menüsünde.
+    $dealerMenu = $area === Area::Dealer ? array_values(array_filter([
+        ['label' => 'Duyurular', 'route' => 'dealer.announcements.index', 'icon' => 'file', 'active' => 'dealer.announcements.*'],
+        ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
+        ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'dealer.reports.index', 'icon' => 'layers', 'active' => 'dealer.reports.*'] : null,
+        ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'package', 'active' => 'dealer.requests.*'] : null,
+        ['label' => 'Hesap Özeti', 'route' => 'dealer.dashboard', 'icon' => 'home', 'active' => 'dealer.dashboard'],
+    ])) : [];
 
     $isPlatform = $area === Area::Platform;
     $brand = $isPlatform ? 'B2B Platform' : ($currentBusiness?->display_name ?? config('app.name'));
@@ -127,9 +132,16 @@
                     <span class="hidden max-w-48 truncate sm:inline">{{ $user->dealer->legal_name }}</span>
                     <x-icon name="chevron-down" class="size-4" />
                 </button>
-                <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-60 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
+                <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-64 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
                     @if ($currentRelationship ?? null)
-                        <a href="{{ route('dealer.dashboard') }}" class="block px-4 py-2 hover:bg-slate-50">Hesap Özeti</a>
+                        <div class="border-b border-line py-1">
+                            @foreach ($dealerMenu as $item)
+                                <a href="{{ route($item['route']) }}" @class([
+                                    'flex items-center gap-3 px-4 py-2 hover:bg-slate-50',
+                                    'bg-primary-soft font-medium text-primary' => request()->routeIs($item['active']),
+                                ])><x-icon :name="$item['icon']" class="size-4 text-muted" /> {{ $item['label'] }}</a>
+                            @endforeach
+                        </div>
                         <a href="{{ route('dealer.addresses.index') }}" class="block px-4 py-2 hover:bg-slate-50">Sevk Adresleri</a>
                         <a href="{{ route('dealer.profile') }}" class="block px-4 py-2 hover:bg-slate-50">İşletme Profili</a>
                     @endif
