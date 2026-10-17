@@ -27,6 +27,9 @@ class GmailTransport implements MailTransport
             $mailer->Subject = $mail['subject'];
             $mailer->Body = $mail['html'];
             $mailer->AltBody = $mail['text'];
+            foreach ($mail['inline'] ?? [] as $image) {
+                $mailer->addStringEmbeddedImage($image['data'], $image['cid'], $image['name'], PHPMailer::ENCODING_BASE64, $image['mime']);
+            }
             $mailer->send();
         } catch (PHPMailerException) {
             throw new MailFailure($this->classify($mailer->ErrorInfo));

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\Mail\BusinessEmailRenderer;
 use App\Domain\Mail\MailFailure;
 use App\Domain\Mail\MailTransport;
 use App\Domain\Mail\SecretBox;
@@ -45,16 +46,12 @@ class SendBusinessEmail implements ShouldQueue
 
             $business = Business::findOrFail($this->businessId);
             $log->increment('attempts');
+            $body = app(BusinessEmailRenderer::class)->render($business, $log->template_key, $log->subject, $log->payload);
 
             try {
                 $transport->send(
                     ['email' => $setting->from_email, 'name' => $setting->from_name ?: $business->display_name, 'password' => $secrets->decrypt($setting->app_password_encrypted)],
-                    [
-                        'to' => $log->to_email,
-                        'subject' => $log->subject,
-                        'html' => view('emails.business', ['business' => $business, 'subject' => $log->subject] + $log->payload)->render(),
-                        'text' => $log->payload['intro']."\n\n".($log->payload['action_url'] ?? ''),
-                    ],
+                    ['to' => $log->to_email, 'subject' => $log->subject] + $body,
                 );
             } catch (MailFailure $e) {
                 $log->update(['status' => 'failed', 'last_error_code' => $e->reason]);

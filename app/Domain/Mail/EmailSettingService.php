@@ -67,16 +67,11 @@ class EmailSettingService
 
         try {
             $transport->verify($sender);
-            $transport->send($sender, [
-                'to' => $setting->from_email,
-                'subject' => 'Test e-postası — '.$business->display_name,
-                'html' => view('emails.business', [
-                    'business' => $business, 'subject' => 'E-posta ayarınız çalışıyor',
-                    'intro' => 'Bu bir test e-postasıdır. Bayilere giden bütün e-postalar bu hesaptan gönderilecek; size gelen bildirimler de bu adrese düşecek.',
-                    'details' => [], 'action_url' => null,
-                ])->render(),
-                'text' => 'E-posta ayarınız çalışıyor.',
-            ]);
+            $transport->send($sender, ['to' => $setting->from_email, 'subject' => 'Test e-postası — '.$business->display_name]
+                + app(BusinessEmailRenderer::class)->render($business, null, 'E-posta ayarınız çalışıyor', [
+                    'intro' => "Tebrikler, Gmail hesabınız {$business->display_name} sistemine başarıyla bağlandı.\n\nBundan sonra bayilerinize giden bütün e-postalar (sipariş durumu, başvuru sonuçları, duyurular, mesaj bildirimleri) bu hesaptan gönderilecek; size gelen bildirimler de bu adrese düşecek.",
+                    'details' => ['Gönderen hesap' => $setting->from_email, 'Gönderen adı' => $setting->from_name ?: $business->display_name],
+                ]));
         } catch (MailFailure $e) {
             $setting->update(['status' => 'failed', 'last_tested_at' => now(), 'last_error_code' => $e->reason]);
             $this->audit->log('email.test_failed', null, [], ['reason' => $e->reason], businessId: $business->id);

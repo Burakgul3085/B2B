@@ -40,37 +40,13 @@ class DemoImages
         return $this->toUpload($img, "{$shape}.png");
     }
 
-    public function logo(string $text): UploadedFile
+    /** Hazır PNG verisinden yüklenmiş dosya üretir. */
+    public function upload(string $png, string $name): UploadedFile
     {
-        $w = 960;
-        $h = 320;
-        $img = imagecreatetruecolor($w * 2, $h * 2);
-        imagealphablending($img, false);
-        imagefill($img, 0, 0, imagecolorallocatealpha($img, 0, 0, 0, 127));
-        imagealphablending($img, true);
-        imagesavealpha($img, true);
+        $path = tempnam(sys_get_temp_dir(), 'demo').'.png';
+        file_put_contents($path, $png);
 
-        // Yapboz parçası: kare + iki çıkıntı
-        $this->roundRect($img, 60, 140, 420, 500, 46, $this->color($img, '#f97316'));
-        $this->circle($img, 240, 140, 70, $this->color($img, '#f97316'));
-        $this->circle($img, 420, 320, 70, $this->color($img, '#f97316'));
-        $this->circle($img, 240, 500, 60, imagecolorallocatealpha($img, 0, 0, 0, 127), false);
-        $this->roundRect($img, 130, 210, 350, 430, 30, $this->color($img, '#ffffff'));
-        $this->roundRect($img, 170, 250, 310, 390, 18, $this->color($img, '#1e3a8a'));
-
-        $bold = $this->font(true);
-        $regular = $this->font(false);
-        if ($bold) {
-            imagettftext($img, 118, 0, 540, 330, $this->color($img, '#1e3a8a'), $bold, $text);
-            imagettftext($img, 52, 0, 546, 450, $this->color($img, '#f97316'), $regular ?: $bold, 'KIRTASİYE · B2B');
-        }
-
-        $out = imagecreatetruecolor($w, $h);
-        imagealphablending($out, false);
-        imagesavealpha($out, true);
-        imagecopyresampled($out, $img, 0, 0, 0, 0, $w, $h, $w * 2, $h * 2);
-
-        return $this->toUpload($out, 'logo.png', false);
+        return new UploadedFile($path, $name, 'image/png', null, true);
     }
 
     /* ---------------- Çizimler (yatay/merkezde, 1600×1600 katman) ---------------- */

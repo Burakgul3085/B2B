@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Branding\PuzzleLogo;
 use App\Domain\Catalog\ProductService;
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Files\ImageUploader;
@@ -71,7 +72,7 @@ class YapbozDemoSeeder extends Seeder
         )['business'];
 
         $images = new DemoImages;
-        $business->update(['logo_path' => app(ImageUploader::class)->store($images->logo('Yapboz'), 'businesses/'.$business->id.'/logo', 480)]);
+        $business->update(['logo_path' => app(ImageUploader::class)->store($images->upload(PuzzleLogo::png(PuzzleLogo::withWordmark('Yapboz', 'Kırtasiye B2B')), 'logo.png'), 'businesses/'.$business->id.'/logo', 480)]);
 
         app(TenantContext::class)->runAs($business->id, function () use ($business, $images) {
             DB::transaction(function () use ($business, $images) {

@@ -6,7 +6,7 @@ interface MailTransport
 {
     /**
      * @param  array{email: string, name: ?string, password: string}  $sender
-     * @param  array{to: string, subject: string, html: string, text: string}  $mail
+     * @param  array{to: string, subject: string, html: string, text: string, inline?: list<array{cid: string, data: string, name: string, mime: string}>}  $mail  inline: HTML'de cid: ile kullanılan gömülü görseller
      *
      * @throws MailFailure
      */
