@@ -20,7 +20,7 @@
             </x-empty-state>
         </x-card>
     @else
-        <x-card :padding="false" x-data="{ selected: [], all: false }">
+        <x-card :padding="false" x-data="{ selected: [], all: false, preview: null }" @keydown.escape.window="preview = null">
             <form method="GET" class="grid gap-3 border-b border-line p-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
                 <x-field name="q" label="Ara" :value="$filters['q'] ?? ''" placeholder="Ad, kod veya barkod" class="lg:col-span-2" />
                 <x-field name="category" label="Kategori" :options="['' => 'Tümü'] + $categories" :value="$filters['category'] ?? ''" />
@@ -64,13 +64,19 @@
                                         <td><input type="checkbox" name="ids[]" value="{{ $product->id }}" x-model.number="selected" class="size-4 rounded" aria-label="{{ $product->name }} seç"></td>
                                         <td>
                                             <div class="flex items-center gap-3">
-                                                <div class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-slate-50">
-                                                    @if ($product->primaryImage)
+                                                @if ($product->primaryImage)
+                                                    {{-- Küçük görsele tıklanınca büyük önizleme açılır --}}
+                                                    <button type="button" class="group/thumb relative size-10 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-line bg-slate-50 transition hover:border-primary hover:ring-2 hover:ring-primary/20"
+                                                        @click="preview = {{ Js::from(['src' => route('business.images.show', $product->primaryImage), 'name' => $product->name, 'sku' => $product->sku, 'url' => route('business.products.show', $product)]) }}"
+                                                        aria-label="{{ $product->name }} görselini büyüt">
                                                         <img src="{{ route('business.images.show', $product->primaryImage) }}" alt="" class="size-full object-cover" loading="lazy">
-                                                    @else
+                                                        <span class="absolute inset-0 flex items-center justify-center bg-slate-900/40 text-white opacity-0 transition group-hover/thumb:opacity-100"><x-icon name="search" class="size-4" /></span>
+                                                    </button>
+                                                @else
+                                                    <div class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-slate-50">
                                                         <x-icon name="image" class="size-4 text-slate-300" />
-                                                    @endif
-                                                </div>
+                                                    </div>
+                                                @endif
                                                 <div class="min-w-0">
                                                     <a href="{{ route('business.products.show', $product) }}" class="font-medium text-ink hover:text-primary">{{ $product->name }}</a>
                                                     <p class="text-xs text-muted">{{ $product->sku }}@if ($product->variantLabel()) · {{ $product->variantLabel() }}@endif</p>
@@ -107,6 +113,26 @@
                     {{ $products->links() }}
                 </div>
             @endif
+
+            {{-- Görsel önizleme --}}
+            <template x-teleport="body">
+                <div x-cloak x-show="preview" role="dialog" aria-modal="true" :aria-label="preview?.name"
+                    class="lightbox fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm" @click.self="preview = null">
+                    <figure class="relative flex max-h-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                        <button type="button" class="absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-full bg-white/90 text-ink shadow hover:bg-white" @click="preview = null" aria-label="Kapat">
+                            <x-icon name="x" class="size-5" />
+                        </button>
+                        <img :src="preview?.src" :alt="preview?.name" class="max-h-[75vh] w-auto max-w-full object-contain">
+                        <figcaption class="flex items-center justify-between gap-4 border-t border-line px-5 py-3">
+                            <div class="min-w-0">
+                                <p class="truncate font-semibold text-ink" x-text="preview?.name"></p>
+                                <p class="font-mono text-xs text-muted" x-text="preview?.sku"></p>
+                            </div>
+                            <a :href="preview?.url" class="shrink-0 text-sm font-medium text-primary hover:underline">Ürüne git →</a>
+                        </figcaption>
+                    </figure>
+                </div>
+            </template>
         </x-card>
     @endif
 </x-layouts.panel>
