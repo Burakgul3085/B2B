@@ -1,6 +1,13 @@
 <?php
 
 return [
+    // Giriş sayfalarında görünen marka. Arka plan fotoğrafı isteğe bağlıdır:
+    // public/images/giris-{bayi|toptanci|platform}.jpg ya da hepsi için public/images/giris.jpg
+    'brand' => [
+        'name' => env('BRAND_NAME', env('APP_NAME', 'B2B Platform')),
+        'tagline' => env('BRAND_TAGLINE', 'Toptan ticaret ve bayi yönetimi'),
+    ],
+
     // Platform paneline erişebilecek IP adresleri (boşsa kısıt yok).
     'platform_allowed_ips' => env('PLATFORM_ALLOWED_IPS', ''),
 

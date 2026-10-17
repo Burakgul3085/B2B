@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\Route;
 | (bkz. App\Http\Middleware\UseAreaSession).
 */
 
-Route::view('/', 'welcome')->name('home');
+// Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
+Route::redirect('/', '/bayi/login')->name('home');
 
 // Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
 Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');

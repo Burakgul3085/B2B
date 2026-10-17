@@ -171,8 +171,12 @@ class PagesRenderTest extends TestCase
         }
     }
 
-    public function test_public_home_does_not_link_platform_login(): void
+    public function test_home_opens_dealer_login_without_linking_other_areas(): void
     {
-        $this->get('/')->assertOk()->assertSee('/toptanci/login')->assertSee('/bayi/login')->assertDontSee('/platform/login');
+        $this->get('/')->assertRedirect('/bayi/login');
+
+        $this->get('/bayi/login')->assertOk()->assertSee('/basvuru')
+            ->assertDontSee('/toptanci/login')->assertDontSee('/platform/login');
+        $this->get('/toptanci/login')->assertOk()->assertDontSee('/platform/login');
     }
 }

@@ -57,6 +57,15 @@
         @apply border-danger focus:ring-danger/15;
     }
 
+    /* Giriş sayfası arka planı: kenarlara doğru sönen ince ızgara */
+    .auth-grid {
+        background-image:
+            linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
+    }
+
     .table-base {
         @apply min-w-full divide-y divide-line text-sm;
     }
