@@ -10,13 +10,15 @@
 
     <div class="grid gap-6 lg:grid-cols-5">
         <div class="lg:col-span-3" x-data="{ active: 0 }">
-            <div class="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
-                @forelse ($product->images as $i => $image)
-                    <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}" class="size-full object-contain">
-                @empty
+            {{-- Görsel kendi oranında, çerçevesiz gösterilir: arkasında boş alan kalmaz. --}}
+            @forelse ($product->images as $i => $image)
+                <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
+                    class="mx-auto block h-auto max-h-[75vh] w-auto max-w-full rounded-2xl shadow-sm">
+            @empty
+                <div class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-line bg-white">
                     <x-icon name="image" class="size-12 text-slate-300" />
-                @endforelse
-            </div>
+                </div>
+            @endforelse
             @if ($product->images->count() > 1)
                 <div class="mt-3 flex gap-2">
                     @foreach ($product->images as $i => $image)
