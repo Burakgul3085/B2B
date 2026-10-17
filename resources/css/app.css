@@ -121,6 +121,16 @@
         }
     }
 
+    /* Katalog: seçili filtre etiketi ve ince kaydırma çubuğu */
+    .chip {
+        @apply inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-medium text-primary transition hover:border-primary/40 hover:bg-primary/10;
+    }
+
+    .filter-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-slate-300) transparent;
+    }
+
     .table-base {
         @apply min-w-full divide-y divide-line text-sm;
     }

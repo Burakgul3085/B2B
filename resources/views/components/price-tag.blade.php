@@ -16,6 +16,6 @@
     @endif
     <p @class(['font-semibold text-ink tabular-nums', 'text-lg' => $size === 'md', 'text-2xl' => $size === 'lg'])>
         {{ Money::formatUnit($shown) }}
-        <span class="text-xs font-normal text-muted">{{ $inclusive ? 'KDV dahil' : '+ KDV %'.rtrim(rtrim(number_format((float) $price->taxRate, 2, ',', ''), '0'), ',') }}</span>
+        <span class="text-xs font-normal whitespace-nowrap text-muted">{{ $inclusive ? 'KDV dahil' : '+ KDV %'.rtrim(rtrim(number_format((float) $price->taxRate, 2, ',', ''), '0'), ',') }}</span>
     </p>
 </div>

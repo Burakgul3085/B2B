@@ -1,66 +1,234 @@
-@php use App\Domain\Catalog\StockLevel; @endphp
-<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Katalog">
-    <x-page-header title="Katalog" :subtitle="number_format($products->total(), 0, ',', '.').' ürün · fiyatlar size özeldir'" />
+@php
+    use App\Domain\Catalog\StockLevel;
+    use App\Domain\Inventory\Quantity;
 
+    // Seçili bir filtreyi kaldıran bağlantı (diğer filtreler korunur).
+    $without = function (string $key, $value = null) {
+        $query = request()->except('page');
+        if ($value === null) {
+            unset($query[$key]);
+        } else {
+            $query[$key] = array_values(array_diff((array) ($query[$key] ?? []), [(string) $value]));
+        }
+
+        return route('dealer.catalog', $query);
+    };
+    $categoryNames = $categories->flatMap(fn ($c) => collect([$c])->merge($c->children))->pluck('name', 'id');
+    $brandNames = $brands->pluck('name', 'id');
+    $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false);
+    $taxLabel = fn ($rate) => '%'.rtrim(rtrim(number_format((float) $rate, 2, ',', ''), '0'), ',');
+@endphp
+<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Katalog">
     @error('cart')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
     @error('request')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
-    <div class="grid gap-6 lg:grid-cols-4">
-        <aside class="lg:col-span-1">
-            <form method="GET" class="space-y-5 rounded-xl border border-line bg-white p-4" x-data>
-                <x-field name="q" label="Ara" :value="$filters['q'] ?? ''" placeholder="Ad, kod, barkod" />
-                <div>
-                    <label for="f_category" class="mb-1.5 block text-sm font-medium">Kategori</label>
-                    <select id="f_category" name="category" class="field-input" @change="$el.form.submit()">
-                        <option value="">Tümü</option>
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-start" x-data="{ filtersOpen: false }">
+        {{-- ============ Filtre paneli ============ --}}
+        <aside class="lg:sticky lg:top-6 lg:w-72 lg:shrink-0">
+            <button type="button" class="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm font-semibold shadow-xs lg:hidden" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen">
+                <span class="inline-flex items-center gap-2"><x-icon name="filter" class="size-4" /> Filtreler</span>
+                <x-icon name="chevron-down" class="size-4 transition" x-bind:class="filtersOpen && 'rotate-180'" />
+            </button>
+
+            <form id="catalog-filters" method="GET" action="{{ route('dealer.catalog') }}"
+                x-show="filtersOpen" x-cloak class="mt-3 rounded-2xl border border-line bg-white shadow-xs lg:mt-0 lg:block!">
+                <input type="hidden" name="sort" value="{{ $filters['sort'] ?? 'name' }}">
+                <input type="hidden" name="view" value="{{ $view }}">
+                @if ($filters['in_stock'] ?? false)<input type="hidden" name="in_stock" value="1">@endif
+
+                <div class="flex items-center justify-between border-b border-line px-5 py-4">
+                    <h2 class="text-base font-semibold text-ink">Filtreler</h2>
+                    @if ($hasFilters)
+                        <a href="{{ route('dealer.catalog', array_filter(['view' => $view, 'sort' => $filters['sort'] ?? null])) }}" class="text-xs font-medium text-primary hover:underline">Tümünü temizle</a>
+                    @endif
+                </div>
+
+                <div class="border-b border-line px-5 py-4">
+                    <label for="f_q" class="sr-only">Ürün ara</label>
+                    <div class="relative">
+                        <x-icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                        <input id="f_q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Ad, kod veya barkod" class="field-input pl-9">
+                    </div>
+                </div>
+
+                {{-- Kategoriler --}}
+                <div role="group" aria-labelledby="f_cat_title" class="border-b border-line px-5 py-4">
+                    <h3 id="f_cat_title" class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Kategoriler</h3>
+                    <div class="filter-scroll max-h-72 space-y-0.5 overflow-y-auto pr-1">
                         @foreach ($categories as $cat)
-                            <option value="{{ $cat->id }}" @selected(($filters['category'] ?? null) == $cat->id)>{{ $cat->name }}</option>
+                            @continue($cat->product_count === 0 && ! in_array($cat->id, $selectedCategories, true))
+                            <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                                <input type="checkbox" name="category[]" value="{{ $cat->id }}" @checked(in_array($cat->id, $selectedCategories, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                                <span class="flex-1 text-sm font-medium text-ink">{{ $cat->name }}</span>
+                                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted tabular-nums">{{ number_format($cat->product_count, 0, ',', '.') }}</span>
+                            </label>
                             @foreach ($cat->children as $child)
-                                <option value="{{ $child->id }}" @selected(($filters['category'] ?? null) == $child->id)>&nbsp;&nbsp;— {{ $child->name }}</option>
+                                @continue($child->product_count === 0 && ! in_array($child->id, $selectedCategories, true))
+                                <label class="ml-5 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                                    <input type="checkbox" name="category[]" value="{{ $child->id }}" @checked(in_array($child->id, $selectedCategories, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                                    <span class="flex-1 text-sm text-ink/80">{{ $child->name }}</span>
+                                    <span class="text-[11px] text-muted tabular-nums">{{ number_format($child->product_count, 0, ',', '.') }}</span>
+                                </label>
                             @endforeach
                         @endforeach
-                    </select>
+                    </div>
                 </div>
-                <x-field name="brand" label="Marka" :options="['' => 'Tümü'] + $brands->all()" :value="$filters['brand'] ?? ''" @change="$el.form.submit()" />
-                <x-field name="sort" label="Sırala" :options="['name' => 'Ada göre', 'new' => 'En yeni', 'stock' => 'Stok (çoktan aza)']" :value="$filters['sort'] ?? 'name'" @change="$el.form.submit()" />
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="in_stock" value="1" @checked($filters['in_stock'] ?? false) class="size-4 rounded" @change="$el.form.submit()"> Sadece stoktakiler</label>
-                <div class="flex gap-2">
-                    <x-button variant="secondary" size="sm" class="flex-1">Uygula</x-button>
-                    <x-button variant="ghost" size="sm" :href="route('dealer.catalog')">Temizle</x-button>
+
+                {{-- Markalar --}}
+                <div role="group" aria-labelledby="f_brand_title" class="px-5 py-4" x-data="{ term: '' }">
+                    <h3 id="f_brand_title" class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Markalar</h3>
+                    @if ($brands->count() > 8)
+                        <input type="search" x-model="term" placeholder="Marka ara" aria-label="Marka ara" class="field-input mb-2 py-1.5 text-xs">
+                    @endif
+                    <div class="filter-scroll max-h-64 space-y-0.5 overflow-y-auto pr-1">
+                        @foreach ($brands as $brand)
+                            <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+                                x-show="! term || {{ Js::from(mb_strtolower($brand->name)) }}.includes(term.toLocaleLowerCase('tr'))">
+                                <input type="checkbox" name="brand[]" value="{{ $brand->id }}" @checked(in_array($brand->id, $selectedBrands, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                                <span class="flex-1 text-sm text-ink">{{ $brand->name }}</span>
+                                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted tabular-nums">{{ $brand->product_count }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="border-t border-line px-5 py-4">
+                    <x-button class="w-full" icon="search">Filtrele</x-button>
                 </div>
             </form>
         </aside>
 
-        <div class="lg:col-span-3">
+        {{-- ============ Sonuçlar ============ --}}
+        <section class="min-w-0 flex-1">
+            {{-- Araç çubuğu --}}
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-xs">
+                <p class="text-sm text-muted"><span class="text-lg font-semibold text-ink tabular-nums">{{ number_format($products->total(), 0, ',', '.') }}</span> ürün</p>
+
+                <div class="ml-auto flex flex-wrap items-center gap-3">
+                    <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+                        <input type="checkbox" name="in_stock" value="1" form="catalog-filters-stock" @checked($filters['in_stock'] ?? false) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                        Sadece stoktakiler
+                    </label>
+                    <form id="catalog-filters-stock" method="GET" action="{{ route('dealer.catalog') }}" class="contents">
+                        @foreach (request()->except(['in_stock', 'page', 'sort']) as $key => $value)
+                            @foreach ((array) $value as $v)<input type="hidden" name="{{ is_array($value) ? $key.'[]' : $key }}" value="{{ $v }}">@endforeach
+                        @endforeach
+                        <label for="f_sort" class="text-sm text-muted">Sırala</label>
+                        <select id="f_sort" name="sort" data-autosubmit class="field-input w-auto py-1.5 pr-8">
+                            @foreach (['name' => 'Ada göre (A-Z)', 'new' => 'En yeni ürünler', 'stock' => 'Stok (çoktan aza)'] as $value => $label)
+                                <option value="{{ $value }}" @selected(($filters['sort'] ?? 'name') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+
+                    <div class="flex overflow-hidden rounded-lg border border-line" role="group" aria-label="Görünüm">
+                        @foreach (['list' => 'Liste görünümü', 'grid' => 'Izgara görünümü'] as $mode => $label)
+                            <a href="{{ route('dealer.catalog', array_merge(request()->except('page'), ['view' => $mode])) }}" title="{{ $label }}" aria-label="{{ $label }}" @if ($view === $mode) aria-current="true" @endif
+                                @class(['flex size-9 items-center justify-center transition', 'bg-primary text-white' => $view === $mode, 'text-muted hover:bg-slate-50 hover:text-ink' => $view !== $mode])>
+                                <x-icon :name="$mode" class="size-4" />
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                @if ($hasFilters)
+                    <div class="flex w-full flex-wrap items-center gap-2 border-t border-line pt-3">
+                        @if (filled($filters['q'] ?? null))
+                            <a href="{{ $without('q') }}" class="chip">“{{ $filters['q'] }}” <x-icon name="x" class="size-3" /></a>
+                        @endif
+                        @foreach ($selectedCategories as $id)
+                            <a href="{{ $without('category', $id) }}" class="chip">{{ $categoryNames[$id] ?? 'Kategori' }} <x-icon name="x" class="size-3" /></a>
+                        @endforeach
+                        @foreach ($selectedBrands as $id)
+                            <a href="{{ $without('brand', $id) }}" class="chip">{{ $brandNames[$id] ?? 'Marka' }} <x-icon name="x" class="size-3" /></a>
+                        @endforeach
+                        @if ($filters['in_stock'] ?? false)
+                            <a href="{{ $without('in_stock') }}" class="chip">Stoktakiler <x-icon name="x" class="size-3" /></a>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
             @if ($products->isEmpty())
-                <x-card><x-empty-state icon="search" title="Ürün bulunamadı" text="Arama veya filtreleri değiştirmeyi deneyin." /></x-card>
-            @else
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <x-card class="mt-5"><x-empty-state icon="search" title="Ürün bulunamadı" text="Arama veya filtreleri değiştirmeyi deneyin." /></x-card>
+            @elseif ($view === 'list')
+                {{-- Liste görünümü --}}
+                <div class="mt-5 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
                     @foreach ($products as $product)
                         @php $level = StockLevel::for((string) $product->available_qty, (string) $product->critical_stock_level, $settings->stock_display, $product->unit->name); @endphp
-                        <article class="flex flex-col rounded-xl border border-line bg-white p-4 shadow-xs">
-                            <a href="{{ route('dealer.catalog.show', $product) }}" class="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-slate-50">
+                        <article class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                            <a href="{{ route('dealer.catalog.show', $product) }}" class="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
                                 @if ($product->primaryImage)
                                     <img src="{{ route('dealer.images.show', $product->primaryImage) }}" alt="{{ $product->name }}" class="size-full object-contain" loading="lazy">
                                 @else
-                                    <x-icon name="image" class="size-8 text-slate-300" />
+                                    <x-icon name="image" class="size-7 text-slate-300" />
                                 @endif
                             </a>
-                            <p class="text-xs font-medium tracking-wide text-muted uppercase">{{ $product->brand?->name }}</p>
-                            <a href="{{ route('dealer.catalog.show', $product) }}" class="mt-0.5 line-clamp-2 font-medium text-ink hover:text-primary">{{ $product->name }}</a>
-                            <p class="text-xs text-muted">{{ $product->sku }}@if ((float) $product->pack_quantity > 1) · Koli {{ \App\Domain\Inventory\Quantity::format($product->pack_quantity) }}@endif</p>
-                            <div class="mt-3 flex items-end justify-between gap-2">
-                                <x-price-tag :price="$prices[$product->id]" :display="$settings->price_display" />
-                                <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[11px] font-semibold tracking-wider text-muted uppercase">{{ $product->brand?->name }}</p>
+                                <a href="{{ route('dealer.catalog.show', $product) }}" class="font-semibold text-ink hover:text-primary">{{ $product->name }}</a>
+                                <p class="mt-0.5 font-mono text-xs text-muted">{{ $product->sku }}@if ((float) $product->pack_quantity > 1)<span class="font-sans"> · Koli {{ Quantity::format($product->pack_quantity) }}</span>@endif</p>
+                                <div class="mt-2 flex flex-wrap gap-1.5">
+                                    <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
+                                    <span class="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700">+KDV {{ $taxLabel($product->taxRate?->rate) }}</span>
+                                </div>
                             </div>
-                            <div class="mt-auto pt-4">
+                            <x-price-tag :price="$prices[$product->id]" :display="$settings->price_display" class="sm:w-40 sm:text-right" />
+                            <div class="sm:w-72">
                                 @include('dealer.catalog._add-form', ['product' => $product, 'level' => $level, 'hasOpenRequest' => $openRequests->has($product->id)])
                             </div>
                         </article>
                     @endforeach
                 </div>
-                @if ($products->hasPages())<div class="mt-6">{{ $products->links() }}</div>@endif
+            @else
+                {{-- Izgara görünümü --}}
+                <div class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    @foreach ($products as $product)
+                        @php
+                            $level = StockLevel::for((string) $product->available_qty, (string) $product->critical_stock_level, $settings->stock_display, $product->unit->name);
+                            $price = $prices[$product->id];
+                        @endphp
+                        <article class="group flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+                            <div class="relative">
+                                <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-square items-center justify-center overflow-hidden bg-linear-to-b from-white to-slate-50 p-5">
+                                    @if ($product->primaryImage)
+                                        <img src="{{ route('dealer.images.show', $product->primaryImage) }}" alt="{{ $product->name }}" class="size-full object-contain transition duration-300 group-hover:scale-105" loading="lazy">
+                                    @else
+                                        <x-icon name="image" class="size-10 text-slate-300" />
+                                    @endif
+                                </a>
+                                <div class="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+                                    <div class="flex flex-col items-start gap-1">
+                                        <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
+                                        @if ($price->hasDiscount())
+                                            <span class="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-bold text-white">%{{ rtrim(rtrim(number_format((float) $price->discountPercent, 2, ',', ''), '0'), ',') }} indirim</span>
+                                        @endif
+                                    </div>
+                                    <span class="rounded-md border border-emerald-200 bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700 backdrop-blur">+KDV {{ $taxLabel($product->taxRate?->rate) }}</span>
+                                </div>
+                                <a href="{{ route('dealer.catalog.show', $product) }}" class="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full border border-line bg-white text-muted opacity-0 shadow-sm transition group-hover:opacity-100 hover:text-primary focus:opacity-100" aria-label="{{ $product->name }} ürününü incele">
+                                    <x-icon name="eye" class="size-4" />
+                                </a>
+                            </div>
+
+                            <div class="flex flex-1 flex-col border-t border-line p-4">
+                                <p class="text-[11px] font-semibold tracking-wider text-muted uppercase">{{ $product->brand?->name }}</p>
+                                <a href="{{ route('dealer.catalog.show', $product) }}" class="mt-1 line-clamp-2 min-h-[2.75rem] font-semibold leading-snug text-ink hover:text-primary">{{ $product->name }}</a>
+                                <p class="mt-1 font-mono text-xs text-muted">{{ $product->sku }}@if ((float) $product->pack_quantity > 1)<span class="font-sans"> · Koli {{ Quantity::format($product->pack_quantity) }}</span>@endif</p>
+                                <div class="mt-3 flex items-end justify-between gap-2">
+                                    <x-price-tag :price="$price" :display="$settings->price_display" />
+                                    <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-muted">{{ $product->unit->name }}</span>
+                                </div>
+                                <div class="mt-auto pt-4">
+                                    @include('dealer.catalog._add-form', ['product' => $product, 'level' => $level, 'hasOpenRequest' => $openRequests->has($product->id)])
+                                </div>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
             @endif
-        </div>
+
+            @if ($products->hasPages())<div class="mt-6">{{ $products->links() }}</div>@endif
+        </section>
     </div>
 </x-layouts.panel>

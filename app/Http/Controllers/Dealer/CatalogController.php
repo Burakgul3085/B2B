@@ -31,33 +31,66 @@ class CatalogController extends Controller
 
     public function index(Request $request): View
     {
+        // Eski tekli bağlantılar (?category=5) da çalışsın: tek değer diziye çevrilir.
+        $request->merge(collect(['category', 'brand'])->mapWithKeys(fn ($k) => [$k => array_values(array_filter((array) $request->input($k, [])))])->all());
+
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'category' => ['nullable', 'integer'],
-            'brand' => ['nullable', 'integer'],
+            'category' => ['array', 'max:50'],
+            'category.*' => ['integer'],
+            'brand' => ['array', 'max:50'],
+            'brand.*' => ['integer'],
             'in_stock' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(['name', 'new', 'stock'])],
+            'view' => ['nullable', Rule::in(['grid', 'list'])],
         ]);
         $relationship = $this->relationship();
         $settings = $this->settings();
         $warehouseId = (int) $settings->default_warehouse_id;
         $qtyExpr = "(SELECT COALESCE(ws.quantity, 0) FROM warehouse_stock ws WHERE ws.product_id = products.id AND ws.warehouse_id = {$warehouseId})";
 
-        $products = CartService::orderableProducts()
-            ->with(['unit', 'brand', 'taxRate', 'primaryImage'])
-            ->select('products.*')->selectRaw("COALESCE({$qtyExpr}, 0) as available_qty")
+        $selectedCategories = array_map('intval', $filters['category']);
+        $selectedBrands = array_map('intval', $filters['brand']);
+        // Ana kategori seçilirse alt kategorileri de kapsanır.
+        $categoryIds = $selectedCategories
+            ? array_merge($selectedCategories, Category::whereIn('parent_id', $selectedCategories)->pluck('id')->all())
+            : [];
+
+        // Arama ve stok filtresi tüm sonuçlara ve filtre sayılarına uygulanır.
+        $base = fn () => CartService::orderableProducts()
             ->when($filters['q'] ?? null, function ($q, $term) {
                 $like = addcslashes($term, '%_\\');
                 $q->where(fn ($q) => $q->where('name', 'like', "%{$like}%")->orWhere('sku', 'like', "{$like}%")->orWhere('barcode', $term));
             })
-            ->when($filters['category'] ?? null, fn ($q, $c) => $q->where(fn ($q) => $q->where('category_id', $c)->orWhereIn('category_id', Category::where('parent_id', $c)->select('id'))))
-            ->when($filters['brand'] ?? null, fn ($q, $b) => $q->where('brand_id', $b))
-            ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"))
+            ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"));
+
+        $products = $base()
+            ->with(['unit', 'brand', 'taxRate', 'primaryImage'])
+            ->select('products.*')->selectRaw("COALESCE({$qtyExpr}, 0) as available_qty")
+            ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
+            ->when($selectedBrands, fn ($q) => $q->whereIn('brand_id', $selectedBrands))
             ->when(($filters['sort'] ?? 'name') === 'new', fn ($q) => $q->latest('id'))
             ->when(($filters['sort'] ?? 'name') === 'stock', fn ($q) => $q->orderByRaw("COALESCE({$qtyExpr}, 0) DESC"))
             ->orderBy('name')
             ->paginate(24)
             ->withQueryString();
+
+        // Filtre sayıları: her grup, diğer grubun seçimine göre sayılır.
+        $categoryCounts = $base()->when($selectedBrands, fn ($q) => $q->whereIn('brand_id', $selectedBrands))
+            ->whereNotNull('category_id')->groupBy('category_id')->selectRaw('category_id, COUNT(*) as c')->pluck('c', 'category_id');
+        $brandCounts = $base()->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
+            ->whereNotNull('brand_id')->groupBy('brand_id')->selectRaw('brand_id, COUNT(*) as c')->pluck('c', 'brand_id');
+
+        $categories = Category::where('is_active', true)->whereNull('parent_id')
+            ->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort')->orderBy('name')])
+            ->orderBy('sort')->orderBy('name')->get()
+            ->each(function ($cat) use ($categoryCounts) {
+                $cat->children->each(fn ($child) => $child->setAttribute('product_count', (int) ($categoryCounts[$child->id] ?? 0)));
+                $cat->setAttribute('product_count', (int) ($categoryCounts[$cat->id] ?? 0) + $cat->children->sum('product_count'));
+            });
+
+        $brands = Brand::where('is_active', true)->whereIn('id', $brandCounts->keys()->merge($selectedBrands))->orderBy('name')->get(['id', 'name'])
+            ->each(fn ($b) => $b->setAttribute('product_count', (int) ($brandCounts[$b->id] ?? 0)));
 
         $openRequests = ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)
             ->whereIn('product_id', $products->pluck('id'))->pluck('product_id')->flip();
@@ -66,10 +99,13 @@ class CatalogController extends Controller
             'products' => $products,
             'prices' => $this->prices->resolveMany($relationship, $products->getCollection()),
             'filters' => $filters,
+            'selectedCategories' => $selectedCategories,
+            'selectedBrands' => $selectedBrands,
+            'view' => $filters['view'] ?? 'grid',
             'settings' => $settings,
             'openRequests' => $openRequests,
-            'categories' => Category::where('is_active', true)->whereNull('parent_id')->with(['children' => fn ($q) => $q->where('is_active', true)])->orderBy('sort')->orderBy('name')->get(),
-            'brands' => Brand::where('is_active', true)->whereHas('products', fn ($q) => $q->whereNull('archived_at')->where('is_active', true)->where('visible_to_dealers', true))->orderBy('name')->pluck('name', 'id'),
+            'categories' => $categories,
+            'brands' => $brands,
         ]);
     }
 

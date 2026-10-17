@@ -26,6 +26,6 @@ class SelectBusinessController extends Controller
 
         $request->session()->put(SetDealerContext::SESSION_KEY, $relationship->id);
 
-        return redirect()->route('dealer.dashboard');
+        return redirect()->route('dealer.catalog');
     }
 }

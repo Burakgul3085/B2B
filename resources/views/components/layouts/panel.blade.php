@@ -68,7 +68,6 @@
         ],
         Area::Dealer => [
             ['items' => array_values(array_filter([
-                ['label' => 'Ana Sayfa', 'route' => 'dealer.dashboard', 'icon' => 'home', 'active' => 'dealer.dashboard'],
                 ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
@@ -98,7 +97,7 @@
     <header class="relative bg-primary-dark text-white" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
         <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
             <button type="button" class="-ml-1 rounded-md p-1.5 hover:bg-white/10 md:hidden" @click="nav = !nav" aria-label="Menü"><x-icon name="menu" /></button>
-            <a href="{{ route('dealer.dashboard') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
+            <a href="{{ route('dealer.catalog') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
             <nav class="ml-6 hidden items-center gap-1 md:flex" aria-label="Ana menü">
                 @foreach ($nav as $group)
                     @foreach ($group['items'] as $item)
@@ -129,6 +128,7 @@
                 </button>
                 <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-60 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
                     @if ($currentRelationship ?? null)
+                        <a href="{{ route('dealer.dashboard') }}" class="block px-4 py-2 hover:bg-slate-50">Hesap Özeti</a>
                         <a href="{{ route('dealer.addresses.index') }}" class="block px-4 py-2 hover:bg-slate-50">Sevk Adresleri</a>
                         <a href="{{ route('dealer.profile') }}" class="block px-4 py-2 hover:bg-slate-50">İşletme Profili</a>
                     @endif

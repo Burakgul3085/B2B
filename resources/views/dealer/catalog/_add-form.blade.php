@@ -20,16 +20,19 @@
     @endif
 @else
     @php $step = Quantity::format($product->order_step); $min = Quantity::format($product->min_order_qty); @endphp
-    <form method="POST" action="{{ route('dealer.cart.add') }}" class="flex gap-2"
+    {{-- Dar alanda miktar ve düğme alt alta, genişte yan yana dizilir. --}}
+    <div class="@container">
+    <form method="POST" action="{{ route('dealer.cart.add') }}" class="flex flex-col gap-2 @[16.5rem]:flex-row"
         x-data="{ q: {{ (float) $product->min_order_qty }}, step: {{ (float) $product->order_step }}, min: {{ (float) $product->min_order_qty }} }">
         @csrf
         <input type="hidden" name="product_id" value="{{ $product->id }}">
-        <div class="flex items-center rounded-lg border border-line">
-            <button type="button" class="px-2 py-1.5 text-muted hover:text-ink" @click="q = Math.max(min, +(q - step).toFixed(3))" aria-label="Azalt">−</button>
-            <input name="quantity" x-model="q" inputmode="decimal" class="w-16 border-0 p-1 text-center text-sm tabular-nums focus:ring-0" aria-label="Miktar">
-            <button type="button" class="px-2 py-1.5 text-muted hover:text-ink" @click="q = +(+q + step).toFixed(3)" aria-label="Artır">+</button>
+        <div class="flex h-10 w-full shrink-0 items-center overflow-hidden rounded-xl border border-line bg-white @[16.5rem]:w-auto">
+            <button type="button" class="flex h-full w-9 items-center justify-center text-lg text-muted transition hover:bg-slate-50 hover:text-ink" @click="q = Math.max(min, +(q - step).toFixed(3))" aria-label="Azalt">−</button>
+            <input name="quantity" x-model="q" inputmode="decimal" class="h-full min-w-0 flex-1 border-x border-y-0 border-line p-0 text-center @[16.5rem]:w-14 @[16.5rem]:flex-none text-sm font-semibold tabular-nums focus:ring-0" aria-label="Miktar">
+            <button type="button" class="flex h-full w-9 items-center justify-center text-lg text-muted transition hover:bg-slate-50 hover:text-ink" @click="q = +(+q + step).toFixed(3)" aria-label="Artır">+</button>
         </div>
-        <x-button size="sm" class="flex-1">Sepete ekle</x-button>
+        <x-button class="h-10 min-w-0 flex-1 rounded-xl! whitespace-nowrap" icon="cart">Sepete Ekle</x-button>
     </form>
-    <p class="mt-1 text-[11px] text-muted">En az {{ $min }}, {{ $step }}'er artar · {{ $product->unit->name }}</p>
+    </div>
+    <p class="mt-1.5 text-[11px] text-muted">En az {{ $min }}, {{ $step }}'er artar · {{ $product->unit->name }}</p>
 @endif

@@ -60,9 +60,10 @@ enum Area: string
         return $this->value.'.login';
     }
 
+    /** Girişten sonra açılan sayfa. Bayi doğrudan kataloga düşer. */
     public function homeRoute(): string
     {
-        return $this->value.'.dashboard';
+        return $this === self::Dealer ? 'dealer.catalog' : $this->value.'.dashboard';
     }
 
     public static function fromRequest(Request $request): ?self

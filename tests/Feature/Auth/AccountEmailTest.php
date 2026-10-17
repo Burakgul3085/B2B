@@ -96,7 +96,7 @@ class AccountEmailTest extends TestCase
         $this->assertSame(0, AuthToken::count());
 
         $this->flushSession();
-        $this->post(route('dealer.login.store'), ['email' => 'ayse@bayi.test', 'password' => 'BayiSifre2026'])->assertRedirect(route('dealer.dashboard'));
+        $this->post(route('dealer.login.store'), ['email' => 'ayse@bayi.test', 'password' => 'BayiSifre2026'])->assertRedirect(route('dealer.catalog'));
     }
 
     public function test_business_sets_new_password_for_dealer(): void
