@@ -15,6 +15,7 @@
         <div class="mt-6 rounded-xl border border-blue-200 bg-info-soft p-4 text-sm text-sky-900">
             <p class="font-semibold">{{ $a->title }} <span class="ml-1 text-xs font-normal opacity-75">{{ $a->published_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span></p>
             <p class="mt-1 whitespace-pre-line">{{ $a->body }}</p>
+            @include('partials.announcement-attachments', ['announcement' => $a, 'route' => 'dealer.announcements.attachment'])
         </div>
     @endforeach
 

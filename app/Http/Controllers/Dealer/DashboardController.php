@@ -43,7 +43,7 @@ class DashboardController extends Controller
             // Son 30 günün duyuruları: herkese veya bayinin grubuna.
             'announcements' => Announcement::whereNotNull('published_at')->where('published_at', '>=', now()->subDays(30))
                 ->where(fn ($q) => $q->whereNull('dealer_group_id')->orWhere('dealer_group_id', $relationship->dealer_group_id))
-                ->latest('published_at')->limit(3)->get(),
+                ->with('attachments')->latest('published_at')->limit(3)->get(),
             'arrived' => ProductRequest::where('dealer_relationship_id', $relationship->id)->where('status', 'stock_updated')
                 ->with('product:id,name')->latest('notified_at')->limit(5)->get(),
         ]);

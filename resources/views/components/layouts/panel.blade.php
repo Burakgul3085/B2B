@@ -71,6 +71,7 @@
                 ['label' => 'Katalog', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
+                ['label' => 'Duyurular', 'route' => 'dealer.announcements.index', 'icon' => 'file', 'active' => 'dealer.announcements.*'],
                 ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
                 ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'dealer.reports.index', 'icon' => 'layers', 'active' => 'dealer.reports.*'] : null,
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'inbox', 'active' => 'dealer.requests.*'] : null,

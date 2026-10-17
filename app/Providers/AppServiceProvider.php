@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Domain\Mail\GmailTransport;
 use App\Domain\Mail\MailTransport;
 use App\Domain\Tenancy\TenantContext;
+use App\Models\Announcement;
 use App\Models\DealerApplication;
 use App\Models\Message;
 use Illuminate\Database\Eloquent\Model;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Polimorfik ilişkilerde sınıf adı yerine sabit takma ad saklanır.
         Relation::enforceMorphMap([
+            'announcement' => Announcement::class,
             'dealer_application' => DealerApplication::class,
             'message' => Message::class,
         ]);

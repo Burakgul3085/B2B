@@ -130,7 +130,8 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
             Route::get('mesajlar/{conversation}/ek/{attachment}', [Business\MessageController::class, 'attachment'])->name('messages.attachment');
         });
         Route::get('duyurular', [Business\AnnouncementController::class, 'index'])->name('announcements.index');
-        Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->middleware('throttle:20,1')->name('announcements.store');
+        Route::get('duyurular/{announcement}/ek/{attachment}', [Business\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
         Route::get('bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('bildirimler/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
         Route::post('bildirimler/okundu', [NotificationController::class, 'readAll'])->name('notifications.read-all');
@@ -303,6 +304,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('bildirimler/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
         Route::post('bildirimler/okundu', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::get('duyurular', [Dealer\AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('duyurular/{announcement}/ek/{attachment}', [Dealer\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');

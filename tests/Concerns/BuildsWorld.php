@@ -4,6 +4,7 @@ namespace Tests\Concerns;
 
 use App\Domain\Messaging\MessagingService;
 use App\Domain\Ordering\CartService;
+use App\Models\Announcement;
 use App\Models\AppNotification;
 use App\Models\Attachment;
 use App\Models\Brand;
@@ -83,6 +84,8 @@ trait BuildsWorld
                 'application_attachment' => $this->attachment('dealer_application', $application->id),
                 'conversation' => $conversation->id,
                 'message_attachment' => $this->attachment('message', $conversation->messages()->value('id')),
+                'announcement' => $announcementId = Announcement::create(['title' => 'Duyuru', 'body' => 'Metin', 'published_at' => now(), 'created_by' => $user->id])->id,
+                'announcement_attachment' => $this->attachment('announcement', $announcementId),
                 'count' => $count->id,
                 'line' => StockCountLine::create(['stock_count_id' => $count->id, 'product_id' => $product->id, 'counted_qty' => '1'])->id,
                 'job' => ImportJob::create(['type' => 'products', 'original_name' => 'x.xlsx', 'created_by' => $user->id])->id,
@@ -120,7 +123,11 @@ trait BuildsWorld
         $dealerSide = str_starts_with($routeName, 'dealer.');
 
         return match ($param) {
-            'attachment' => str_contains($routeName, 'applications') ? $ids['application_attachment'] : $ids['message_attachment'],
+            'attachment' => match (true) {
+                str_contains($routeName, 'applications') => $ids['application_attachment'],
+                str_contains($routeName, 'announcements') => $ids['announcement_attachment'],
+                default => $ids['message_attachment'],
+            },
             'notification' => $dealerSide ? $ids['dealer_notification'] : $ids['business_notification'],
             'item' => $dealerSide ? $ids['cart_item'] : $ids['item'],
             default => $ids[$param] ?? null,

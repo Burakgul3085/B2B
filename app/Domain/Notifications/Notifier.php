@@ -171,10 +171,10 @@ class Notifier
             ->with('dealer.user')->get();
 
         foreach ($relationships as $rel) {
-            $this->toDealer($rel, 'announcement', $announcement->title, Str::limit($announcement->body, 200), route('dealer.dashboard'));
+            $this->toDealer($rel, 'announcement', $announcement->title, Str::limit($announcement->body, 200), route('dealer.announcements.index'));
             if ($announcement->send_email && $rel->dealer->user?->status === 'active') {
                 $this->mailer->queue('announcement', $rel->dealer->user->email, ['baslik' => $announcement->title, 'metin' => $announcement->body],
-                    ['url' => route('dealer.dashboard'), 'label' => 'Panele git'], [], 'announcement', $announcement->id);
+                    ['url' => route('dealer.announcements.index'), 'label' => 'Duyuruyu görüntüle'], [], 'announcement', $announcement->id);
             }
         }
 
