@@ -159,7 +159,7 @@
                         <article class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                             <a href="{{ route('dealer.catalog.show', $product) }}" class="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
                                 @if ($product->primaryImage)
-                                    <img src="{{ route('dealer.images.show', $product->primaryImage) }}" alt="{{ $product->name }}" class="size-full object-contain" loading="lazy">
+                                    <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" />
                                 @else
                                     <x-icon name="image" class="size-7 text-slate-300" />
                                 @endif
@@ -190,9 +190,9 @@
                         @endphp
                         <article class="group flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
                             <div class="relative">
-                                <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-square items-center justify-center overflow-hidden bg-linear-to-b from-white to-slate-50 p-5">
+                                <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-square items-center justify-center overflow-hidden bg-linear-to-b from-white to-slate-50">
                                     @if ($product->primaryImage)
-                                        <img src="{{ route('dealer.images.show', $product->primaryImage) }}" alt="{{ $product->name }}" class="size-full object-contain transition duration-300 group-hover:scale-105" loading="lazy">
+                                        <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" zoom />
                                     @else
                                         <x-icon name="image" class="size-10 text-slate-300" />
                                     @endif
