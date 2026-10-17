@@ -36,6 +36,21 @@ class DealerOrderingHttpTest extends TestCase
         $this->get(route('dealer.catalog.show', $visible))->assertOk()->assertDontSee('3,17');
     }
 
+    public function test_out_of_stock_products_are_listed_after_in_stock_ones_in_every_sort(): void
+    {
+        $business = $this->makeBusiness();
+        $rel = $this->orderingDealer($business);
+        $this->makeProduct($business, ['name' => 'A Stoksuz Defter']);
+        $this->stockUp($business, $this->makeProduct($business, ['name' => 'B Stoklu Kalem']), '10');
+        $this->stockUp($business, $this->makeProduct($business, ['name' => 'C Stoklu Silgi']), '5');
+
+        $this->actingAs($rel->dealer->user, 'dealer');
+        foreach (['name', 'new', 'stock'] as $sort) {
+            $this->get(route('dealer.catalog', ['sort' => $sort]))->assertOk()
+                ->assertSeeInOrder($sort === 'stock' ? ['B Stoklu Kalem', 'C Stoklu Silgi', 'A Stoksuz Defter'] : ['Stoklu', 'Stoklu', 'A Stoksuz Defter']);
+        }
+    }
+
     public function test_hidden_product_detail_and_image_are_not_accessible(): void
     {
         $business = $this->makeBusiness();

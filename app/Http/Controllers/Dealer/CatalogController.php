@@ -69,6 +69,8 @@ class CatalogController extends Controller
             ->select('products.*')->selectRaw("COALESCE({$qtyExpr}, 0) as available_qty")
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($selectedBrands, fn ($q) => $q->whereIn('brand_id', $selectedBrands))
+            // Stokta olmayan ürünler her sıralamada en sona düşer (sayfalar arasında da).
+            ->orderByRaw("CASE WHEN COALESCE({$qtyExpr}, 0) > 0 THEN 0 ELSE 1 END")
             ->when(($filters['sort'] ?? 'name') === 'new', fn ($q) => $q->latest('id'))
             ->when(($filters['sort'] ?? 'name') === 'stock', fn ($q) => $q->orderByRaw("COALESCE({$qtyExpr}, 0) DESC"))
             ->orderBy('name')
