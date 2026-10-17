@@ -66,6 +66,57 @@
         mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
     }
 
+    /* Yapboz logosu: parçalar yerine oturur, son parça ara ara kalkıp yerine geçer */
+    .puzzle-logo .pz {
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    .puzzle-logo.is-animated .pz {
+        animation: pz-in 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+    }
+
+    .puzzle-logo.is-animated .pz-a { --pz-x: -18px; --pz-y: -18px; --pz-r: -20deg; animation-delay: 0.05s; }
+    .puzzle-logo.is-animated .pz-b { --pz-x: 18px; --pz-y: -18px; --pz-r: 18deg; animation-delay: 0.2s; }
+    .puzzle-logo.is-animated .pz-c { --pz-x: -18px; --pz-y: 18px; --pz-r: 16deg; animation-delay: 0.35s; }
+    .puzzle-logo.is-animated .pz-d {
+        --pz-x: 22px;
+        --pz-y: 22px;
+        --pz-r: -24deg;
+        animation:
+            pz-in 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.5s both,
+            pz-snap 7s ease-in-out 2.5s infinite;
+    }
+
+    @keyframes pz-in {
+        from { opacity: 0; transform: translate(var(--pz-x), var(--pz-y)) rotate(var(--pz-r)) scale(0.85); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @keyframes pz-snap {
+        0%, 76%, 100% { transform: none; }
+        84% { transform: translate(7px, 7px) rotate(9deg); }
+        92% { transform: translate(-1px, -1px) rotate(-1deg); }
+    }
+
+    /* Arka plandaki büyük yapboz süsü */
+    .puzzle-float {
+        animation: pz-float 18s ease-in-out infinite;
+    }
+
+    @keyframes pz-float {
+        0%, 100% { transform: translateY(0) rotate(-8deg); }
+        50% { transform: translateY(-24px) rotate(-3deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .puzzle-logo.is-animated .pz,
+        .puzzle-logo.is-animated .pz-d,
+        .puzzle-float {
+            animation: none;
+        }
+    }
+
     .table-base {
         @apply min-w-full divide-y divide-line text-sm;
     }

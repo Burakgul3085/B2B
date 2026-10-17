@@ -4,8 +4,8 @@ return [
     // Giriş sayfalarında görünen marka. Arka plan fotoğrafı isteğe bağlıdır:
     // public/images/giris-{bayi|toptanci|platform}.jpg ya da hepsi için public/images/giris.jpg
     'brand' => [
-        'name' => env('BRAND_NAME', env('APP_NAME', 'B2B Platform')),
-        'tagline' => env('BRAND_TAGLINE', 'Toptan ticaret ve bayi yönetimi'),
+        'name' => env('BRAND_NAME', 'Yapboz Kırtasiye B2B'),
+        'tagline' => env('BRAND_TAGLINE', 'Kırtasiye toptan sipariş platformu'),
     ],
 
     // Platform paneline erişebilecek IP adresleri (boşsa kısıt yok).

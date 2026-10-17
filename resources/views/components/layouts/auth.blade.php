@@ -11,6 +11,8 @@
         Area::Dealer => [
             'icon' => 'package',
             'eyebrow' => 'Bayi Paneli',
+            'badge' => 'Bayi Girişi',
+            'badgeClass' => 'bg-blue-50 text-blue-800 ring-blue-200',
             'headline' => 'Toptan siparişleriniz tek panelde',
             'lead' => 'Size özel fiyatlarla katalogu inceleyin, siparişinizi verin, cari hesabınızı anlık takip edin.',
             'features' => [
@@ -24,6 +26,8 @@
         Area::Business => [
             'icon' => 'building',
             'eyebrow' => 'Toptancı Paneli',
+            'badge' => 'Toptancı Girişi',
+            'badgeClass' => 'bg-teal-50 text-teal-800 ring-teal-200',
             'headline' => 'İşletmenizi tek merkezden yönetin',
             'lead' => 'Ürün, stok, bayi, fiyat ve sipariş süreçleri; anlık raporlarla birlikte.',
             'features' => [
@@ -37,6 +41,8 @@
         Area::Platform => [
             'icon' => 'shield',
             'eyebrow' => 'Platform Yönetimi',
+            'badge' => 'Platform Yönetici Girişi',
+            'badgeClass' => 'bg-slate-100 text-slate-800 ring-slate-300',
             'headline' => 'Yetkili yönetim alanı',
             'lead' => 'Bu alan yalnızca platform yöneticileri içindir. Tüm girişler iki adımlı doğrulama ile korunur ve kayıt altına alınır.',
             'features' => [
@@ -60,7 +66,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>{{ $title }} · {{ $area->label() }} · {{ $brand }}</title>
+    <title>{{ $theme['badge'] }} · {{ $brand }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-graphite">
@@ -74,22 +81,44 @@
             <div class="absolute -top-40 -left-32 -z-10 size-[34rem] rounded-full blur-3xl {{ $theme['glow'] }}"></div>
             <div class="absolute -right-40 -bottom-48 -z-10 size-[30rem] rounded-full bg-white/5 blur-3xl"></div>
         @endif
+        <div class="pointer-events-none absolute -right-24 -bottom-28 -z-10 hidden text-white/[0.04] lg:block">
+            <x-puzzle-logo :animated="false" mono class="puzzle-float size-[34rem]" />
+        </div>
 
         <div class="mx-auto flex w-full max-w-6xl flex-col px-4 py-6 sm:px-8 lg:py-10">
             {{-- Üst şerit: marka --}}
-            <header class="flex items-center gap-3 text-white">
-                <span class="flex size-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
-                    <x-icon :name="$theme['icon']" class="size-5" />
-                </span>
-                <div class="leading-tight">
-                    <p class="font-semibold tracking-tight">{{ $brand }}</p>
-                    <p class="text-xs text-white/60">{{ $tagline }}</p>
+            <header class="flex items-center justify-between gap-4 text-white">
+                <div class="flex items-center gap-3 lg:invisible">
+                    <span class="flex size-12 items-center justify-center rounded-2xl bg-white/95 p-2 shadow-lg ring-1 shadow-black/20 ring-white/40">
+                        <x-puzzle-logo class="size-full" />
+                    </span>
+                    <div class="leading-tight">
+                        <p class="text-lg font-semibold tracking-tight">{{ $brand }}</p>
+                        <p class="text-xs text-white/60">{{ $tagline }}</p>
+                    </div>
                 </div>
+                <span class="hidden items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold ring-1 ring-white/20 backdrop-blur sm:inline-flex">
+                    <x-icon :name="$theme['icon']" class="size-3.5" /> {{ $theme['badge'] }}
+                </span>
             </header>
 
             <main class="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[1.1fr_minmax(0,28rem)] lg:gap-16">
                 {{-- Tanıtım (geniş ekran) --}}
                 <section class="hidden text-white lg:block">
+                    {{-- Marka: animasyonlu yapboz logosu --}}
+                    <div class="mb-10 flex items-center gap-5">
+                        <span class="relative flex size-24 items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-2xl ring-1 shadow-black/30 ring-white/50">
+                            <span class="absolute inset-0 -z-10 rounded-[1.75rem] bg-white/30 blur-2xl"></span>
+                            <x-puzzle-logo class="size-full" />
+                        </span>
+                        <div>
+                            <p class="text-3xl leading-none font-bold tracking-tight">{{ $brand }}</p>
+                            <p class="mt-2.5 inline-flex items-center gap-2 text-sm text-white/65">
+                                <span class="h-px w-6 bg-white/40"></span>{{ $tagline }}
+                            </p>
+                        </div>
+                    </div>
+
                     <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold tracking-wider uppercase ring-1 ring-white/15">
                         <span class="size-1.5 rounded-full bg-emerald-400"></span>{{ $theme['eyebrow'] }}
                     </p>
@@ -111,8 +140,10 @@
                 {{-- Giriş kartı --}}
                 <section class="w-full">
                     <div class="rounded-2xl bg-white/95 p-6 shadow-2xl ring-1 shadow-black/30 ring-white/40 backdrop-blur-xl sm:p-9">
-                        <p class="text-xs font-semibold tracking-wider text-primary uppercase lg:hidden">{{ $theme['eyebrow'] }}</p>
-                        <h1 class="mt-1 text-2xl font-semibold tracking-tight text-ink lg:mt-0">{{ $title }}</h1>
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 {{ $theme['badgeClass'] }}">
+                            <x-icon :name="$theme['icon']" class="size-3.5" /> {{ $theme['badge'] }}
+                        </span>
+                        <h1 class="mt-4 text-2xl font-semibold tracking-tight text-ink">{{ $title }}</h1>
                         @if ($subtitle)
                             <p class="mt-1.5 text-sm text-muted">{{ $subtitle }}</p>
                         @endif

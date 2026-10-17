@@ -1,8 +1,12 @@
 @php use App\Domain\Auth\Area; @endphp
-<x-layouts.auth :area="$area" title="Giriş yap" :subtitle="match ($area) {
-    Area::Dealer => 'Sipariş panelinize erişmek için hesabınızla giriş yapın.',
-    Area::Business => 'İşletme panelinize erişmek için giriş yapın.',
-    Area::Platform => 'Yönetici hesabınızla giriş yapın.',
+<x-layouts.auth :area="$area" :title="match ($area) {
+    Area::Dealer => 'Bayi hesabınıza giriş yapın',
+    Area::Business => 'Toptancı paneline giriş yapın',
+    Area::Platform => 'Yönetici girişi',
+}" :subtitle="match ($area) {
+    Area::Dealer => 'Size özel fiyatlar, siparişleriniz ve cari hesabınız için giriş yapın.',
+    Area::Business => 'Ürün, stok, bayi ve sipariş yönetimi için giriş yapın.',
+    Area::Platform => 'Bu alan yalnızca platform yöneticileri içindir.',
 }">
     <form method="POST" action="{{ route($area->value.'.login.store') }}" class="space-y-5" novalidate>
         @csrf
