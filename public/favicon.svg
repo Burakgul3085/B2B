@@ -1,1 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 112 112"><path fill="#f97316" d="M0 0H46V15A9 9 0 1 1 46 31V46H31A9 9 0 1 1 15 46H0Z"/><path fill="#0ea5e9" d="M54 0H100V46H85A9 9 0 1 1 69 46H54V31A9 9 0 1 0 54 15Z"/><path fill="#22c55e" d="M0 54H15A9 9 0 1 0 31 54H46V69A9 9 0 1 1 46 85V100H0Z"/><path fill="#facc15" d="M54 54H69A9 9 0 1 0 85 54H100V100H54V85A9 9 0 1 0 54 69Z"/></svg>
+<svg viewBox="-6 -6 212 212" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                            <linearGradient id="pz3500ea7a-a" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fdba74" />
+                    <stop offset="1" stop-color="#ea580c" />
+                </linearGradient>
+                            <linearGradient id="pz3500ea7a-b" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#7dd3fc" />
+                    <stop offset="1" stop-color="#0284c7" />
+                </linearGradient>
+                            <linearGradient id="pz3500ea7a-c" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#86efac" />
+                    <stop offset="1" stop-color="#16a34a" />
+                </linearGradient>
+                            <linearGradient id="pz3500ea7a-d" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fde68a" />
+                    <stop offset="1" stop-color="#eab308" />
+                </linearGradient>
+        </defs>
+    <g>
+                    <path
+                d="M0 0 L100 0 L100 35 C100 40 103 43 109 40 C119 36 127 43 127 50 C127 57 119 64 109 60 C103 57 100 60 100 65 L100 100 L65 100 C60 100 57 97 60 91 C64 81 57 73 50 73 C43 73 36 81 40 91 C43 97 40 100 35 100 L0 100 L0 0 Z"
+                 fill="url(#pz3500ea7a-a)" stroke="#0f172a" stroke-opacity="0.18" stroke-width="1.2" stroke-linejoin="round"  />
+                    <path
+                d="M100 0 L200 0 L200 100 L165 100 C160 100 157 103 160 109 C164 119 157 127 150 127 C143 127 136 119 140 109 C143 103 140 100 135 100 L100 100 L100 65 C100 60 103 57 109 60 C119 64 127 57 127 50 C127 43 119 36 109 40 C103 43 100 40 100 35 L100 0 Z"
+                 fill="url(#pz3500ea7a-b)" stroke="#0f172a" stroke-opacity="0.18" stroke-width="1.2" stroke-linejoin="round"  />
+                    <path
+                d="M0 100 L35 100 C40 100 43 97 40 91 C36 81 43 73 50 73 C57 73 64 81 60 91 C57 97 60 100 65 100 L100 100 L100 135 C100 140 97 143 91 140 C81 136 73 143 73 150 C73 157 81 164 91 160 C97 157 100 160 100 165 L100 200 L0 200 L0 100 Z"
+                 fill="url(#pz3500ea7a-c)" stroke="#0f172a" stroke-opacity="0.18" stroke-width="1.2" stroke-linejoin="round"  />
+                    <path
+                d="M100 100 L135 100 C140 100 143 103 140 109 C136 119 143 127 150 127 C157 127 164 119 160 109 C157 103 160 100 165 100 L200 100 L200 200 L100 200 L100 165 C100 160 97 157 91 160 C81 164 73 157 73 150 C73 143 81 136 91 140 C97 143 100 140 100 135 L100 100 Z"
+                 fill="url(#pz3500ea7a-d)" stroke="#0f172a" stroke-opacity="0.18" stroke-width="1.2" stroke-linejoin="round"  />
+            </g>
+</svg>

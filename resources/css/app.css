@@ -66,37 +66,41 @@
         mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
     }
 
-    /* Yapboz logosu: parçalar yerine oturur, son parça ara ara kalkıp yerine geçer */
-    .puzzle-logo .pz {
+    /*
+     * Yapboz logosu: sürekli oyun döngüsü. Parçalar dağılır, havada döner, yeniden birleşir ve
+     * yerine "tık" diye oturur; tüm tahta da hafifçe süzülür. Her parça biraz farklı zamanda hareket eder.
+     */
+    .puzzle-logo .pz,
+    .puzzle-logo .pz-board {
         transform-box: fill-box;
         transform-origin: center;
     }
 
+    .puzzle-logo.is-animated .pz-board {
+        animation: pz-bob 5.5s ease-in-out infinite;
+    }
+
     .puzzle-logo.is-animated .pz {
-        animation: pz-in 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+        animation: pz-play 7s cubic-bezier(0.45, 0, 0.25, 1) infinite;
     }
 
-    .puzzle-logo.is-animated .pz-a { --pz-x: -18px; --pz-y: -18px; --pz-r: -20deg; animation-delay: 0.05s; }
-    .puzzle-logo.is-animated .pz-b { --pz-x: 18px; --pz-y: -18px; --pz-r: 18deg; animation-delay: 0.2s; }
-    .puzzle-logo.is-animated .pz-c { --pz-x: -18px; --pz-y: 18px; --pz-r: 16deg; animation-delay: 0.35s; }
-    .puzzle-logo.is-animated .pz-d {
-        --pz-x: 22px;
-        --pz-y: 22px;
-        --pz-r: -24deg;
-        animation:
-            pz-in 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.5s both,
-            pz-snap 7s ease-in-out 2.5s infinite;
+    .puzzle-logo.is-animated .pz-b { animation-delay: 0.12s; }
+    .puzzle-logo.is-animated .pz-c { animation-delay: 0.24s; }
+    .puzzle-logo.is-animated .pz-d { animation-delay: 0.36s; }
+
+    @keyframes pz-play {
+        0%, 100% { transform: none; }
+        14% { transform: translate(calc(var(--pz-x) * 0.35), calc(var(--pz-y) * 0.35)) rotate(calc(var(--pz-r) * 0.3)) scale(1.03); }
+        30% { transform: translate(var(--pz-x), var(--pz-y)) rotate(var(--pz-r)) scale(1.05); }
+        44% { transform: translate(calc(var(--pz-x) * 0.85), calc(var(--pz-y) * 1.15)) rotate(calc(var(--pz-r) * -0.6)) scale(1.05); }
+        58% { transform: translate(calc(var(--pz-x) * 0.12), calc(var(--pz-y) * 0.12)) rotate(calc(var(--pz-r) * 0.15)) scale(1.02); }
+        63% { transform: translate(calc(var(--pz-x) * -0.05), calc(var(--pz-y) * -0.05)) scale(0.985); }
+        68% { transform: none; }
     }
 
-    @keyframes pz-in {
-        from { opacity: 0; transform: translate(var(--pz-x), var(--pz-y)) rotate(var(--pz-r)) scale(0.85); }
-        to { opacity: 1; transform: none; }
-    }
-
-    @keyframes pz-snap {
-        0%, 76%, 100% { transform: none; }
-        84% { transform: translate(7px, 7px) rotate(9deg); }
-        92% { transform: translate(-1px, -1px) rotate(-1deg); }
+    @keyframes pz-bob {
+        0%, 100% { transform: translateY(0) rotate(-2deg); }
+        50% { transform: translateY(-5px) rotate(2deg); }
     }
 
     /* Arka plandaki büyük yapboz süsü */
@@ -111,7 +115,7 @@
 
     @media (prefers-reduced-motion: reduce) {
         .puzzle-logo.is-animated .pz,
-        .puzzle-logo.is-animated .pz-d,
+        .puzzle-logo.is-animated .pz-board,
         .puzzle-float {
             animation: none;
         }

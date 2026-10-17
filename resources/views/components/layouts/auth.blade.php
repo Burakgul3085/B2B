@@ -89,9 +89,7 @@
             {{-- Üst şerit: marka --}}
             <header class="flex items-center justify-between gap-4 text-white">
                 <div class="flex items-center gap-3 lg:invisible">
-                    <span class="flex size-12 items-center justify-center rounded-2xl bg-white/95 p-2 shadow-lg ring-1 shadow-black/20 ring-white/40">
-                        <x-puzzle-logo class="size-full" />
-                    </span>
+                    <x-puzzle-logo class="size-14 shrink-0" />
                     <div class="leading-tight">
                         <p class="text-lg font-semibold tracking-tight">{{ $brand }}</p>
                         <p class="text-xs text-white/60">{{ $tagline }}</p>
@@ -106,9 +104,9 @@
                 {{-- Tanıtım (geniş ekran) --}}
                 <section class="hidden text-white lg:block">
                     {{-- Marka: animasyonlu yapboz logosu --}}
-                    <div class="mb-10 flex items-center gap-5">
-                        <span class="relative flex size-24 items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-2xl ring-1 shadow-black/30 ring-white/50">
-                            <span class="absolute inset-0 -z-10 rounded-[1.75rem] bg-white/30 blur-2xl"></span>
+                    <div class="mb-8 flex items-center gap-4">
+                        <span class="relative size-32 shrink-0">
+                            <span class="absolute inset-4 -z-10 rounded-full bg-white/20 blur-2xl"></span>
                             <x-puzzle-logo class="size-full" />
                         </span>
                         <div>
