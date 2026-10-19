@@ -107,7 +107,7 @@
 
 @if ($area === Area::Dealer)
     {{-- Bayi: katalog odaklı üst menü --}}
-    <header class="relative bg-primary-dark text-white" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
+    <header class="relative bg-primary-dark text-white print:hidden" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
         <div class="mx-auto flex h-[72px] max-w-[1840px] items-center gap-4 px-4 sm:px-6 lg:px-8">
             <button type="button" class="-ml-1 rounded-md p-1.5 hover:bg-white/10 md:hidden" @click="nav = !nav" aria-label="Menü"><x-icon name="menu" /></button>
             <a href="{{ route('dealer.home') }}" class="flex shrink-0 items-center gap-2.5">
@@ -192,7 +192,7 @@
         <div x-cloak x-show="nav" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" @click="nav = false"></div>
         <aside :class="nav ? 'translate-x-0' : '-translate-x-full'"
             @class([
-                'fixed inset-y-0 left-0 z-40 flex w-64 flex-col transition-transform lg:static lg:translate-x-0',
+                'fixed inset-y-0 left-0 z-40 flex w-64 flex-col transition-transform lg:static lg:translate-x-0 print:hidden',
                 'bg-graphite text-slate-200' => $isPlatform,
                 'border-r border-line bg-white' => ! $isPlatform,
             ])>
@@ -239,7 +239,7 @@
         </aside>
 
         <div class="flex min-w-0 flex-1 flex-col">
-            <header class="relative flex h-16 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
+            <header class="relative flex h-16 print:hidden items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
                 <button type="button" class="rounded-md p-1.5 text-muted hover:bg-slate-100 lg:hidden" @click="nav = true" aria-label="Menüyü aç"><x-icon name="menu" /></button>
                 @if ($area === Area::Business)
                     <div class="ml-auto"><x-notification-bell side="business" /></div>

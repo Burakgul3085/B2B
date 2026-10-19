@@ -304,8 +304,9 @@ class YapbozDemoSeeder extends Seeder
 
         $ledger->setOpening($account, '4850.00', now()->subDays(60)->toDateString(), 'Önceki sistemden devir bakiyesi');
         $ledger->recordCollection($account, ['collected_on' => now()->subDays(25)->toDateString(), 'amount' => '4850.00', 'method' => 'transfer', 'description' => 'Havale - devir bakiyesi kapanışı'], $userId);
-        $ledger->recordCollection($account, ['collected_on' => now()->subDays(12)->toDateString(), 'amount' => '15000.00', 'method' => 'transfer', 'description' => 'EFT dekont no 778451'], $userId);
-        $ledger->recordCollection($account, ['collected_on' => now()->subDays(2)->toDateString(), 'amount' => '2500.00', 'method' => 'cash', 'description' => 'Elden tahsilat'], $userId);
+        // Ödemeler siparişlerden sonra gelir (siparişler bugün onaylanır): ekstre gerçek hayattaki gibi okunur.
+        $ledger->recordCollection($account, ['collected_on' => now()->toDateString(), 'amount' => '15000.00', 'method' => 'transfer', 'description' => 'EFT dekont no 778451'], $userId);
+        $ledger->recordCollection($account, ['collected_on' => now()->toDateString(), 'amount' => '2500.00', 'method' => 'cash', 'description' => 'Elden tahsilat'], $userId);
     }
 
     private function communication(Business $business, DealerRelationship $rel): void

@@ -26,3 +26,10 @@ document.addEventListener('change', (event) => {
 if (document.querySelector('canvas[data-chart]')) {
     import('./charts.js').then(({ renderCharts }) => renderCharts());
 }
+
+// Yazdır düğmesi: data-print (ekstre). Sayfa düzeni print: sınıflarıyla yazdırmaya uyarlanır.
+document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-print]')) {
+        window.print();
+    }
+});

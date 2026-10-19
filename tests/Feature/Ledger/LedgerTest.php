@@ -209,7 +209,7 @@ class LedgerTest extends TestCase
         $relA1 = $this->orderingDealer($a);
         $relA2 = $this->orderingDealer($a);
         $accountA1 = $this->account($a, $relA1);
-        $collection = $this->inTenant($a, fn () => $this->ledger()->recordCollection($accountA1, ['collected_on' => now()->toDateString(), 'amount' => '5', 'method' => 'cash'], $a->user->id));
+        $collection = $this->inTenant($a, fn () => $this->ledger()->recordCollection($accountA1, ['collected_on' => now()->toDateString(), 'amount' => '5', 'method' => 'cash', 'description' => 'Kasa fişi 4471'], $a->user->id));
 
         $this->actingAs($b->user, 'business');
         $this->get(route('business.accounts.show', $accountA1))->assertNotFound();
@@ -219,9 +219,9 @@ class LedgerTest extends TestCase
 
         // Bayi yalnızca kendi carisini görür.
         $this->flushSession();
-        $this->actingAs($relA2->dealer->user, 'dealer')->get(route('dealer.account.statement'))->assertOk()->assertDontSee('Tahsilat — Nakit');
+        $this->actingAs($relA2->dealer->user, 'dealer')->get(route('dealer.account.statement'))->assertOk()->assertDontSee('Kasa fişi 4471');
         $this->flushSession();
-        $this->actingAs($relA1->dealer->user, 'dealer')->get(route('dealer.account.statement'))->assertOk()->assertSee('Tahsilat — Nakit');
+        $this->actingAs($relA1->dealer->user, 'dealer')->get(route('dealer.account.statement'))->assertOk()->assertSee('Nakit: Kasa fişi 4471');
     }
 
     public function test_ledger_pages_render(): void
