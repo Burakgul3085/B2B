@@ -108,39 +108,48 @@
 @if ($area === Area::Dealer)
     {{-- Bayi: katalog odaklı üst menü --}}
     <header class="relative bg-primary-dark text-white" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
-        <div class="mx-auto flex h-16 max-w-[1840px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex h-[72px] max-w-[1840px] items-center gap-4 px-4 sm:px-6 lg:px-8">
             <button type="button" class="-ml-1 rounded-md p-1.5 hover:bg-white/10 md:hidden" @click="nav = !nav" aria-label="Menü"><x-icon name="menu" /></button>
-            <a href="{{ route('dealer.home') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
+            <a href="{{ route('dealer.home') }}" class="flex shrink-0 items-center gap-2.5">
+                <x-puzzle-logo :animated="false" class="size-10" />
+                <span class="truncate text-base font-bold tracking-tight">{{ $brand }}</span>
+            </a>
             <nav class="ml-6 hidden items-center gap-1 md:flex" aria-label="Ana menü">
                 @foreach ($nav as $group)
                     @foreach ($group['items'] as $item)
                         @php $current = $item['current'] ?? request()->routeIs(...(array) $item['active']); @endphp
                         <a href="{{ route($item['route'], $item['params'] ?? []) }}" @class([
-                            'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap',
-                            'bg-white/15 text-white' => $current,
-                            'text-white/80 hover:bg-white/10 hover:text-white' => ! $current,
+                            'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition',
+                            'bg-white/15 text-white shadow-inner shadow-black/10' => $current,
+                            'text-white/75 hover:bg-white/10 hover:text-white' => ! $current,
                         ])>{{ $item['label'] }}@if (! empty($item['badge']))<span class="rounded-full bg-amber-400 px-1.5 py-px text-[11px] font-bold text-primary-dark tabular-nums">{{ $item['badge'] }}</span>@endif</a>
                     @endforeach
                 @endforeach
             </nav>
             @if ($currentRelationship)
                 @php $cartCount = app(\App\Domain\Ordering\CartService::class)->count($currentRelationship); @endphp
-                <form method="GET" action="{{ route('dealer.catalog') }}" class="ml-auto hidden max-w-xs flex-1 lg:block" role="search">
-                    <input name="q" value="{{ request()->routeIs('dealer.catalog') ? request('q') : '' }}" placeholder="Ürün adı, kodu veya barkod" aria-label="Katalogda ara"
-                        class="w-full rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:bg-white focus:text-ink focus:ring-2 focus:ring-white/40">
+                <form method="GET" action="{{ route('dealer.catalog') }}" class="relative ml-auto hidden max-w-md flex-1 lg:block" role="search">
+                    <x-icon name="search" class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-white/50" />
+                    <input name="q" value="{{ request()->routeIs('dealer.catalog') ? request('q') : '' }}" placeholder="Ürün adı, kodu veya barkod ile arayın" aria-label="Katalogda ara"
+                        class="peer w-full rounded-full border-0 bg-white/10 py-2.5 pr-4 pl-10 text-sm text-white ring-1 ring-white/10 placeholder:text-white/50 focus:bg-white focus:text-ink focus:ring-2 focus:ring-amber-300">
                 </form>
                 <div class="ml-auto lg:ml-0"><x-notification-bell side="dealer" :relationship-id="$currentRelationship->id" dark /></div>
                 <a href="{{ route('dealer.cart') }}" class="relative rounded-lg p-2 hover:bg-white/10" aria-label="Sepet ({{ $cartCount }} ürün)">
-                    <x-icon name="package" />
+                    <x-icon name="cart" />
                     @if ($cartCount)<span class="absolute -top-0.5 -right-0.5 rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-primary-dark tabular-nums">{{ $cartCount }}</span>@endif
                 </a>
             @endif
             <div @class(['flex items-center gap-2', 'ml-auto' => ! $currentRelationship]) x-data="{ open: false }" @click.outside="open = false">
-                <button type="button" @click="open = !open" class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-white/10" :aria-expanded="open">
-                    <span class="hidden max-w-48 truncate sm:inline">{{ $user->dealer->legal_name }}</span>
-                    <x-icon name="chevron-down" class="size-4" />
+                <button type="button" @click="open = !open" class="flex items-center gap-2.5 rounded-full py-1 pr-3 pl-1 text-sm ring-1 ring-white/15 transition hover:bg-white/10" :aria-expanded="open">
+                    @if ($user->dealer->logo_path)
+                        <span class="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 ring-2 ring-white/25"><img src="{{ route('dealer.logo') }}?v={{ $user->dealer->updated_at?->timestamp }}" alt="{{ $user->dealer->legal_name }} logosu" class="max-h-full max-w-full rounded-full object-contain"></span>
+                    @else
+                        <span class="flex size-8 items-center justify-center rounded-full bg-amber-400 text-sm font-bold text-primary-dark">{{ mb_substr($user->dealer->legal_name, 0, 1) }}</span>
+                    @endif
+                    <span class="hidden max-w-44 truncate font-medium sm:inline">{{ $user->dealer->legal_name }}</span>
+                    <x-icon name="chevron-down" class="size-4 text-white/70" />
                 </button>
-                <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-64 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
+                <div x-cloak x-show="open" x-transition class="absolute right-4 top-[68px] z-30 w-64 rounded-xl border border-line bg-white py-1 text-sm text-ink shadow-lg">
                     @if ($currentRelationship ?? null)
                         <div class="border-b border-line py-1">
                             @foreach ($dealerMenu as $item)

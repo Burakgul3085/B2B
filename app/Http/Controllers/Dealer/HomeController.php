@@ -21,7 +21,7 @@ class HomeController extends Controller
 
     public function __invoke(StorefrontQuery $storefront, CartService $cart): View
     {
-        $relationship = $this->relationship()->load('currentAccount');
+        $relationship = $this->relationship()->load(['currentAccount', 'group']);
         $settings = $this->settings();
 
         $showcases = $storefront->showcases($relationship, (int) $settings->default_warehouse_id);
@@ -36,6 +36,8 @@ class HomeController extends Controller
                 ->whereIn('product_id', $productIds)->pluck('product_id')->flip(),
             'summary' => [
                 'balance' => (string) ($relationship->currentAccount?->balance ?? '0'),
+                'code' => $relationship->dealer_code,
+                'group' => $relationship->group?->name,
                 'open_orders' => Order::where('dealer_relationship_id', $relationship->id)->whereIn('status', [...Order::PENDING, ...Order::ACTIVE_FULFILMENT])->count(),
                 'cart' => $cart->count($relationship),
             ],

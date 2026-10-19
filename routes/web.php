@@ -341,6 +341,9 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::put('sevk-adresleri/{address}', [Dealer\AddressController::class, 'update'])->name('addresses.update');
         Route::put('sevk-adresleri/{address}/varsayilan', [Dealer\AddressController::class, 'makeDefault'])->name('addresses.default');
         Route::delete('sevk-adresleri/{address}', [Dealer\AddressController::class, 'destroy'])->name('addresses.destroy');
+        Route::post('hesabim/logo', [Dealer\LogoController::class, 'update'])->middleware('throttle:20,1')->name('logo.update');
+        Route::delete('hesabim/logo', [Dealer\LogoController::class, 'destroy'])->name('logo.destroy');
+        Route::get('hesabim/logo', [Dealer\LogoController::class, 'show'])->name('logo');
         Route::get('isletme-profili', [Dealer\ProfileController::class, 'show'])->name('profile');
         Route::put('isletme-profili', [Dealer\ProfileController::class, 'update'])->name('profile.update');
 
