@@ -1,5 +1,5 @@
-{{-- Sipariş kalemleri ve toplamlar (toptancı ve bayi ortak). $order --}}
-@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; $approved = $order->stock_applied_at !== null; @endphp
+{{-- Sipariş kalemleri ve toplamlar (toptancı ve bayi ortak). $order, $imageRoute (isteğe bağlı: ürün görseli rotası; items.product.primaryImage yüklü olmalı) --}}
+@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; $approved = $order->stock_applied_at !== null; $imageRoute ??= null; @endphp
 <div class="overflow-x-auto">
     <table class="table-base">
         <thead>
@@ -16,7 +16,22 @@
             @foreach ($order->items as $item)
                 @php $short = $approved && bccomp((string) $item->quantity_approved, (string) $item->quantity_requested, 3) < 0; @endphp
                 <tr>
-                    <td><span class="font-medium">{{ $item->name }}</span><p class="text-xs text-muted">{{ $item->sku }}</p></td>
+                    <td>
+                        @if ($imageRoute)
+                            <div class="flex items-center gap-3">
+                                <span class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-1">
+                                    @if ($item->product?->primaryImage)
+                                        <img src="{{ route($imageRoute, $item->product->primaryImage) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
+                                    @else
+                                        <x-icon name="image" class="size-5 text-slate-300" />
+                                    @endif
+                                </span>
+                                <div class="min-w-0"><span class="font-medium">{{ $item->name }}</span><p class="text-xs text-muted">{{ $item->sku }}</p></div>
+                            </div>
+                        @else
+                            <span class="font-medium">{{ $item->name }}</span><p class="text-xs text-muted">{{ $item->sku }}</p>
+                        @endif
+                    </td>
                     <td class="text-right whitespace-nowrap tabular-nums">
                         @if ($approved)
                             {{ Quantity::format($item->quantity_requested) }} / <span @class(['font-semibold', 'text-warning' => $short])>{{ Quantity::format($item->quantity_approved) }}</span>

@@ -1,48 +1,119 @@
+@php
+    use App\Domain\Inventory\Quantity;
+    use App\Domain\Support\Money;
+    use Illuminate\Support\Carbon;
+
+    $placed = $order->created_at->timezone('Europe/Istanbul');
+    $closed = in_array($order->status, ['rejected', 'cancelled'], true);
+    $pieces = $order->items->reduce(fn ($c, $i) => bcadd($c, $i->effectiveQuantity(), 3), '0');
+@endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" :title="$order->order_no">
-    <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i')">
+    <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$placed->translatedFormat('d F Y, H:i').' tarihinde verildi'">
         <x-slot:breadcrumb><a href="{{ route('dealer.orders.index') }}" class="hover:underline">Siparişlerim</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+        <span class="print:hidden"><x-button variant="secondary" size="sm" icon="file" type="button" data-print>Yazdır</x-button></span>
         @if ($currentBusiness->moduleEnabled('messaging'))
-            <x-button variant="secondary" size="sm" icon="inbox" :href="route('dealer.messages.create', ['context' => 'order', 'id' => $order->id])">Bu sipariş hakkında mesaj</x-button>
+            <span class="print:hidden"><x-button variant="secondary" size="sm" icon="inbox" :href="route('dealer.messages.create', ['context' => 'order', 'id' => $order->id])">Mesaj gönder</x-button></span>
         @endif
+        <form method="POST" action="{{ route('dealer.orders.reorder', $order) }}" class="print:hidden">
+            @csrf
+            <x-button size="sm" icon="refresh">Tekrar sipariş ver</x-button>
+        </form>
     </x-page-header>
 
     @error('order')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
-    @if ($order->status === 'rejected' && $order->rejected_reason)
-        <div class="mb-6 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900"><b>Ret nedeni:</b> {{ $order->rejected_reason }}</div>
-    @endif
+    {{-- Sipariş nerede? --}}
+    <section class="mb-6 rounded-2xl border border-line bg-white px-5 py-6 shadow-xs sm:px-8">
+        @include('dealer.orders._progress', ['order' => $order])
+    </section>
+
+    {{-- Kısa bilgiler --}}
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
+            <p class="text-sm text-muted">Sipariş tutarı</p>
+            <p @class(['mt-1 text-2xl font-bold tabular-nums', 'text-ink' => ! $closed, 'text-slate-400 line-through' => $closed])>{{ Money::format($order->grand_total) }}</p>
+            <p class="text-xs text-muted">KDV dahil</p>
+        </div>
+        <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
+            <p class="text-sm text-muted">Ürünler</p>
+            <p class="mt-1 text-2xl font-bold text-ink tabular-nums">{{ $order->items->count() }} <span class="text-base font-medium text-muted">kalem</span></p>
+            <p class="text-xs text-muted">Toplam {{ Quantity::format($pieces) }} adet/paket</p>
+        </div>
+        <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
+            <p class="text-sm text-muted">Son ödeme günü</p>
+            @if ($dueDate && ! $closed)
+                @php $due = Carbon::parse($dueDate); $days = (int) Carbon::today()->diffInDays($due, false); @endphp
+                <p class="mt-1 text-2xl font-bold text-ink tabular-nums">{{ $due->format('d.m.Y') }}</p>
+                <p @class(['text-xs', 'font-semibold text-red-700' => $days < 0, 'text-muted' => $days >= 0])>{{ $days < 0 ? abs($days).' gün gecikti' : ($days === 0 ? 'Bugün' : $days.' gün kaldı') }} · <a href="{{ route('dealer.account.statement') }}" class="text-primary hover:underline">Cari hesap</a></p>
+            @else
+                <p class="mt-1 text-2xl font-bold text-slate-400">—</p>
+                <p class="text-xs text-muted">{{ $closed ? 'Borç kaydı oluşmadı' : 'Sipariş onaylanınca belirlenir' }}</p>
+            @endif
+        </div>
+        <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
+            <p class="text-sm text-muted">Planlanan teslim</p>
+            @if ($order->delivery_planned_on)
+                <p class="mt-1 text-2xl font-bold text-ink tabular-nums">{{ $order->delivery_planned_on->format('d.m.Y') }}</p>
+                <p class="text-xs text-muted">{{ $order->delivery_planned_on->translatedFormat('l') }}</p>
+            @else
+                <p class="mt-1 text-2xl font-bold text-slate-400">—</p>
+                <p class="text-xs text-muted">{{ $closed ? 'Teslimat yok' : 'Toptancınız bildirecek' }}</p>
+            @endif
+        </div>
+    </div>
+
     @if ($order->is_partial && $order->stock_applied_at)
-        <div class="mb-6 rounded-lg border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">Siparişiniz kısmi onaylandı: bazı kalemler stok nedeniyle istenenden az karşılandı. Tutar onaylanan miktarlara göre güncellendi.</div>
+        <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">
+            <x-icon name="alert" class="mt-0.5 size-4 shrink-0" />
+            <p><b>Kısmi onay:</b> bazı ürünler stok nedeniyle istediğinizden az gönderiliyor. Tabloda "İstenen / Onaylanan" sütununda görebilirsiniz; tutar onaylanan miktarlara göre hesaplandı.</p>
+        </div>
     @endif
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <x-card title="Ürünler" class="lg:col-span-2" :padding="false">@include('partials.order-items', ['order' => $order])</x-card>
+        <x-card title="Ürünler" class="lg:col-span-2 print:col-span-3" :padding="false">
+            @include('partials.order-items', ['order' => $order, 'imageRoute' => 'dealer.images.show'])
+        </x-card>
 
         <div class="space-y-6">
-            <x-card title="Sevk bilgileri">
-                <div class="space-y-1 text-sm">
-                    @foreach ($order->shippingLines() as $line)<p>{{ $line }}</p>@endforeach
+            <x-card title="Teslimat adresi">
+                <div class="flex gap-3 text-sm">
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-muted"><x-icon name="map-pin" class="size-4" /></span>
+                    <div class="space-y-0.5">
+                        <p class="font-semibold text-ink">{{ $order->ship_title }}</p>
+                        <p>{{ $order->ship_recipient }}</p>
+                        <p class="text-muted">{{ $order->ship_address }}</p>
+                        <p class="text-muted">{{ $order->ship_district }} / {{ $order->ship_city }}</p>
+                        <p class="flex items-center gap-1.5 pt-1 text-muted"><x-icon name="phone" class="size-3.5" />{{ $order->ship_phone }}</p>
+                        @if ($order->ship_note)<p class="pt-1 text-muted">Adres notu: {{ $order->ship_note }}</p>@endif
+                    </div>
                 </div>
-                @if ($order->delivery_planned_on || $order->delivery_note)
-                    <div class="mt-4 border-t border-line pt-3 text-sm">
-                        @if ($order->delivery_planned_on)<p><span class="text-muted">Planlanan teslim:</span> {{ $order->delivery_planned_on->format('d.m.Y') }}</p>@endif
-                        @if ($order->delivery_note)<p><span class="text-muted">Toptancı notu:</span> {{ $order->delivery_note }}</p>@endif
+                @if ($order->delivery_note || $order->dealer_note)
+                    <div class="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+                        @if ($order->dealer_note)<p><span class="block text-xs font-semibold text-muted uppercase">Sizin notunuz</span>{{ $order->dealer_note }}</p>@endif
+                        @if ($order->delivery_note)<p><span class="block text-xs font-semibold text-muted uppercase">Toptancı notu</span>{{ $order->delivery_note }}</p>@endif
                     </div>
                 @endif
-                @if ($order->dealer_note)<p class="mt-4 border-t border-line pt-3 text-sm"><span class="text-muted">Notunuz:</span> {{ $order->dealer_note }}</p>@endif
             </x-card>
 
-            <x-card title="Durum geçmişi">@include('partials.order-history', ['order' => $order])</x-card>
+            <x-card title="Durum geçmişi" class="print:hidden">@include('partials.order-history', ['order' => $order])</x-card>
 
             @if ($canCancel || $canRequestCancel)
-                <x-card :title="$canCancel ? 'Siparişi iptal et' : 'İptal talebi'" :description="$canCancel ? 'Sipariş henüz onaylanmadı; doğrudan iptal edebilirsiniz.' : 'Sipariş onaylandı; iptal için toptancınızın onayı gerekir.'">
-                    <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" data-confirm="Emin misiniz?">
-                        @csrf
-                        <x-field name="reason" label="İptal nedeni" textarea required />
-                        <x-button variant="danger" size="sm">{{ $canCancel ? 'İptal et' : 'İptal talebi gönder' }}</x-button>
-                    </form>
-                </x-card>
+                <div x-data="{ open: {{ $errors->has('reason') ? 'true' : 'false' }} }" class="print:hidden">
+                    <button type="button" x-show="!open" @click="open = true" class="w-full rounded-xl border border-dashed border-line px-4 py-3 text-sm font-medium text-muted transition hover:border-red-300 hover:text-red-700">
+                        {{ $canCancel ? 'Siparişi iptal et' : 'İptal talebi gönder' }}
+                    </button>
+                    <x-card x-cloak x-show="open" :title="$canCancel ? 'Siparişi iptal et' : 'İptal talebi'" :description="$canCancel ? 'Sipariş henüz onaylanmadı; doğrudan iptal edebilirsiniz.' : 'Sipariş onaylandı; iptal için toptancınızın onayı gerekir.'">
+                        <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" data-confirm="Emin misiniz?">
+                            @csrf
+                            <x-field name="reason" label="İptal nedeni" textarea required />
+                            <div class="flex items-center gap-3">
+                                <x-button variant="danger" size="sm">{{ $canCancel ? 'İptal et' : 'İptal talebi gönder' }}</x-button>
+                                <button type="button" @click="open = false" class="text-sm text-muted hover:text-ink">Vazgeç</button>
+                            </div>
+                        </form>
+                    </x-card>
+                </div>
             @endif
         </div>
     </div>

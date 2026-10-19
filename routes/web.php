@@ -331,6 +331,7 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('siparislerim/{order}/tekrar', [Dealer\OrderController::class, 'reorder'])->middleware('throttle:20,1')->name('orders.reorder');
         Route::middleware('module:product_requests')->group(function () {
             Route::get('taleplerim', [Dealer\ProductRequestController::class, 'index'])->name('requests.index');
             Route::post('taleplerim', [Dealer\ProductRequestController::class, 'store'])->name('requests.store');
