@@ -1,120 +1,70 @@
 @php
     use App\Domain\Support\Money;
 
-    $positions = [
-        'left' => ['justify-start text-left', 'items-start', 'bg-linear-to-r from-slate-950/80 via-slate-950/35 to-transparent'],
-        'center' => ['justify-center text-center', 'items-center', 'bg-slate-950/45'],
-        'right' => ['justify-end text-right', 'items-end', 'bg-linear-to-l from-slate-950/80 via-slate-950/35 to-transparent'],
-    ];
     $balance = $summary['balance'];
+    $dealerName = auth('dealer')->user()->dealer->legal_name;
+    $features = [
+        ['percent', 'Size özel fiyatlar', 'Grubunuza ve hesabınıza tanımlı fiyat ve indirimler her üründe hazır.'],
+        ['layers', 'Anlık stok bilgisi', 'Ürünün stokta olup olmadığını sipariş vermeden önce görün.'],
+        ['check-circle', 'Adım adım sipariş takibi', 'Onaydan teslime kadar siparişinizin her aşamasından haberdar olun.'],
+        ['file', 'Cari hesabınız elinizde', 'Bakiye, hareketler ve ekstreniz 7/24 tek tıkla erişilebilir.'],
+    ];
 @endphp
-<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Ana Sayfa">
-    {{-- ============ Slaytlar ============ --}}
+<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Ana Sayfa" wide>
+    {{-- ============ Ana slayt ============ --}}
     @if ($banners->isNotEmpty())
-        <section x-data="heroSlider({{ $banners->count() }})" @mouseenter="pause()" @mouseleave="resume()" @focusin="pause()" @focusout="resume()"
-            @touchstart.passive="touchStart($event)" @touchend="touchEnd($event)"
-            class="group/slider relative overflow-hidden rounded-3xl bg-slate-900 shadow-xl ring-1 shadow-slate-900/10 ring-black/5"
-            aria-roledescription="carousel" aria-label="Tanıtımlar">
-            <div class="relative aspect-[4/3] sm:aspect-[16/7] lg:aspect-[3/1]">
-                @foreach ($banners as $n => $banner)
-                    @php [$justify, $align, $scrim] = $positions[$banner->text_position] ?? $positions['left']; $hasText = $banner->title || $banner->subtitle; @endphp
-                    <div class="absolute inset-0 transition-opacity duration-700 ease-out" :class="i === {{ $n }} ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0'"
-                        role="group" aria-roledescription="slayt" aria-label="{{ $n + 1 }} / {{ $banners->count() }}" :aria-hidden="i !== {{ $n }}">
-                        <x-banner-media :banner="$banner" route="dealer.storefront.media" :index="$n" :eager="$n === 0" :loop="$banners->count() === 1" />
-
-                        @if ($hasText)
-                            <div class="absolute inset-0 {{ $scrim }}"></div>
-                            <div class="absolute inset-0 flex {{ $justify }} px-6 sm:px-12 lg:px-16">
-                                <div class="flex max-w-xl flex-col justify-center {{ $align }} gap-3 py-8 text-white sm:gap-4">
-                                    @if ($banner->title)
-                                        <h2 class="text-2xl leading-tight font-bold tracking-tight drop-shadow-sm sm:text-4xl lg:text-5xl">{{ $banner->title }}</h2>
-                                    @endif
-                                    @if ($banner->subtitle)
-                                        <p class="hidden max-w-md text-sm leading-relaxed text-white/85 sm:block sm:text-base lg:text-lg">{{ $banner->subtitle }}</p>
-                                    @endif
-                                    @if ($banner->url && $banner->button_label)
-                                        <a href="{{ $banner->url }}" class="mt-1 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-lg transition hover:bg-amber-300 sm:px-6 sm:py-3">
-                                            {{ $banner->button_label }} <x-icon name="arrow-right" class="size-4" />
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-                        @if ($banner->url && ! ($hasText && $banner->button_label))
-                            <a href="{{ $banner->url }}" class="absolute inset-0" aria-label="{{ $banner->title ?: 'Kampanyayı görüntüle' }}"></a>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-
-            @if ($banners->count() > 1)
-                {{-- Oklar: masaüstünde üzerine gelince belirir --}}
-                @foreach (['prev' => ['left-3 sm:left-5', 'Önceki', 'rotate-180'], 'next' => ['right-3 sm:right-5', 'Sonraki', '']] as $action => [$pos, $label, $rotate])
-                    <button type="button" @click="{{ $action }}()" aria-label="{{ $label }} slayt"
-                        class="absolute top-1/2 {{ $pos }} z-20 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/30 backdrop-blur-md transition hover:bg-white/30 sm:flex sm:opacity-0 sm:group-hover/slider:opacity-100 focus-visible:opacity-100">
-                        <x-icon name="arrow-right" class="size-5 {{ $rotate }}" />
-                    </button>
-                @endforeach
-
-                {{-- Noktalar: etkin olanda ilerleme çubuğu --}}
-                <div class="absolute inset-x-0 bottom-4 z-20 flex justify-center gap-2" role="tablist">
-                    @foreach ($banners as $n => $banner)
-                        <button type="button" @click="go({{ $n }})" role="tab" :aria-selected="i === {{ $n }}" aria-label="{{ $n + 1 }}. slayt"
-                            class="relative h-2 overflow-hidden rounded-full bg-white/40 transition-all duration-300" :class="i === {{ $n }} ? 'w-10' : 'w-2 hover:bg-white/70'">
-                            <span x-show="i === {{ $n }}" class="slider-progress absolute inset-y-0 left-0 rounded-full bg-white"
-                                :style="`animation-duration: ${duration}ms; animation-play-state: ${paused || reduced ? 'paused' : 'running'}`"></span>
-                        </button>
-                    @endforeach
-                </div>
-            @endif
-        </section>
+        @include('dealer._slider', ['slides' => $banners, 'variant' => 'hero'])
     @else
-        <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary-dark via-primary to-sky-700 px-6 py-14 text-white shadow-xl sm:px-12">
+        <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary-dark via-primary to-sky-700 px-6 py-16 text-white shadow-xl sm:px-14 lg:py-24">
             <div class="auth-grid absolute inset-0"></div>
-            <div class="relative max-w-xl">
+            <div class="relative max-w-2xl">
                 <p class="text-sm font-semibold tracking-wider text-white/70 uppercase">{{ $currentBusiness->display_name }}</p>
-                <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Toptan siparişleriniz tek panelde</h1>
-                <p class="mt-3 text-white/80">Size özel fiyatlarla güncel ürünlerimizi inceleyin, siparişinizi birkaç tıkla verin.</p>
-                <a href="{{ route('dealer.catalog') }}" class="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink shadow-lg hover:bg-amber-300">Tüm ürünlere göz atın <x-icon name="arrow-right" class="size-4" /></a>
+                <h1 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Toptan siparişleriniz tek panelde</h1>
+                <p class="mt-4 text-lg text-white/80">Size özel fiyatlarla güncel ürünlerimizi inceleyin, siparişinizi birkaç tıkla verin.</p>
+                <a href="{{ route('dealer.catalog') }}" class="mt-8 inline-flex items-center gap-2 rounded-full bg-amber-400 px-7 py-3.5 font-semibold text-slate-900 shadow-lg hover:bg-amber-300">Tüm ürünlere göz atın <x-icon name="arrow-right" class="size-4" /></a>
             </div>
         </section>
     @endif
 
     {{-- ============ Karşılama ve kısa hesap özeti ============ --}}
-    <section class="mt-6 flex flex-col gap-4 rounded-2xl border border-line bg-white p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
-        <div>
-            <p class="text-sm text-muted">Hoş geldiniz,</p>
-            <p class="text-lg font-semibold text-ink">{{ auth('dealer')->user()->dealer->legal_name }}</p>
+    <section class="mt-6 flex flex-col gap-4 rounded-2xl border border-line bg-white px-6 py-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-center gap-4">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-lg font-bold text-primary">{{ mb_substr($dealerName, 0, 1) }}</span>
+            <div>
+                <p class="text-sm text-muted">Hoş geldiniz,</p>
+                <p class="text-lg font-semibold text-ink">{{ $dealerName }}</p>
+            </div>
         </div>
-        <dl class="grid grid-cols-3 divide-x divide-line rounded-xl bg-slate-50 ring-1 ring-line lg:min-w-[34rem]">
-            <a href="{{ route('dealer.account.statement') }}" class="group px-4 py-3 transition hover:bg-white">
-                <dt class="text-xs text-muted">Cari bakiye</dt>
-                <dd @class(['mt-0.5 font-semibold tabular-nums', 'text-danger' => bccomp($balance, '0', 2) > 0, 'text-ink' => bccomp($balance, '0', 2) <= 0])>{{ Money::format($balance) }}</dd>
-            </a>
-            <a href="{{ route('dealer.orders.index') }}" class="group px-4 py-3 transition hover:bg-white">
-                <dt class="text-xs text-muted">Devam eden sipariş</dt>
-                <dd class="mt-0.5 font-semibold text-ink tabular-nums">{{ $summary['open_orders'] }}</dd>
-            </a>
-            <a href="{{ route('dealer.cart') }}" class="group px-4 py-3 transition hover:bg-white">
-                <dt class="text-xs text-muted">Sepetim</dt>
-                <dd class="mt-0.5 font-semibold text-ink tabular-nums">{{ $summary['cart'] }} ürün</dd>
-            </a>
+        <dl class="grid grid-cols-3 gap-2 sm:gap-3 lg:min-w-[40rem]">
+            @foreach ([
+                [route('dealer.account.statement'), 'Cari bakiye', Money::format($balance), bccomp($balance, '0', 2) > 0 ? 'text-danger' : 'text-ink', 'list'],
+                [route('dealer.orders.index'), 'Devam eden sipariş', $summary['open_orders'], 'text-ink', 'file'],
+                [route('dealer.cart'), 'Sepetim', $summary['cart'].' ürün', 'text-ink', 'cart'],
+            ] as [$href, $label, $value, $tone, $icon])
+                <a href="{{ $href }}" class="group flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-3 ring-1 ring-line transition hover:bg-white hover:ring-primary/30 sm:px-4">
+                    <span class="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-white text-muted ring-1 ring-line group-hover:text-primary sm:flex"><x-icon :name="$icon" class="size-4" /></span>
+                    <span class="min-w-0">
+                        <dt class="truncate text-xs text-muted">{{ $label }}</dt>
+                        <dd class="truncate font-semibold tabular-nums {{ $tone }}">{{ $value }}</dd>
+                    </span>
+                </a>
+            @endforeach
         </dl>
     </section>
 
     {{-- ============ Ürün vitrinleri ============ --}}
     @if ($showcases->isNotEmpty())
-        <section class="mt-10" x-data="{ tab: 0 }">
-            <div class="flex flex-wrap items-end justify-between gap-4 border-b border-line">
-                <div class="-mb-px flex max-w-full gap-1 overflow-x-auto" role="tablist" aria-label="Ürün vitrinleri">
+        <section class="mt-12" x-data="{ tab: 0 }">
+            <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line">
+                <div class="-mb-px flex max-w-full gap-2 overflow-x-auto" role="tablist" aria-label="Ürün vitrinleri">
                     @foreach ($showcases as $t => $section)
                         <button type="button" role="tab" @click="tab = {{ $t }}" :aria-selected="tab === {{ $t }}"
-                            class="shrink-0 border-b-2 px-4 pb-3 text-sm font-semibold whitespace-nowrap transition sm:text-base"
+                            class="shrink-0 border-b-[3px] px-4 pb-3 text-base font-semibold whitespace-nowrap transition sm:text-lg"
                             :class="tab === {{ $t }} ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-ink'">{{ $section['showcase']->name }}</button>
                     @endforeach
                 </div>
                 @foreach ($showcases as $t => $section)
-                    <a x-show="tab === {{ $t }}" @if ($t) x-cloak @endif href="{{ $section['more_url'] }}" class="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">Tümünü gör <x-icon name="arrow-right" class="size-4" /></a>
+                    <a x-show="tab === {{ $t }}" @if ($t) x-cloak @endif href="{{ $section['more_url'] }}" class="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-primary transition hover:bg-primary-soft">Tümünü gör <x-icon name="arrow-right" class="size-4" /></a>
                 @endforeach
             </div>
 
@@ -128,42 +78,65 @@
         </section>
     @endif
 
+    {{-- ============ Ara bant ============ --}}
+    @if ($strips->isNotEmpty())
+        @include('dealer._slider', ['slides' => $strips, 'variant' => 'strip', 'class' => 'mt-12'])
+    @endif
+
+    {{-- ============ Neden biz ============ --}}
+    <section class="mt-12">
+        <h2 class="text-center text-sm font-semibold tracking-[0.2em] text-muted uppercase">{{ $currentBusiness->display_name }} ile çalışmanın kolaylıkları</h2>
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach ($features as [$icon, $title, $text])
+                <div class="flex items-start gap-4 rounded-2xl border border-line bg-white p-5 shadow-xs">
+                    <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary"><x-icon :name="$icon" class="size-5" /></span>
+                    <div>
+                        <p class="font-semibold text-ink">{{ $title }}</p>
+                        <p class="mt-1 text-sm leading-relaxed text-muted">{{ $text }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
     {{-- ============ Tüm ürünler çağrısı ============ --}}
-    <section class="mt-12 overflow-hidden rounded-3xl bg-linear-to-r from-primary-dark to-primary text-white shadow-lg">
-        <div class="flex flex-col items-start gap-6 px-6 py-8 sm:px-10 lg:flex-row lg:items-center lg:justify-between">
+    <section class="relative mt-12 overflow-hidden rounded-3xl bg-linear-to-r from-primary-dark to-primary text-white shadow-lg">
+        <div class="auth-grid absolute inset-0"></div>
+        <div class="relative flex flex-col items-start gap-6 px-6 py-10 sm:px-12 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h2 class="text-xl font-bold tracking-tight sm:text-2xl">Aradığınızı bulamadınız mı?</h2>
-                <p class="mt-1 text-sm text-white/75">Kategori, marka ve stok durumuna göre süzerek tüm ürünlerimize göz atın.</p>
+                <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Aradığınızı bulamadınız mı?</h2>
+                <p class="mt-2 text-white/75">Kategori, marka ve stok durumuna göre süzerek tüm ürünlerimize göz atın.</p>
             </div>
-            <form method="GET" action="{{ route('dealer.catalog') }}" class="flex w-full max-w-md gap-2" role="search">
+            <form method="GET" action="{{ route('dealer.catalog') }}" class="flex w-full max-w-xl gap-2" role="search">
                 <input name="q" placeholder="Ürün adı, kodu veya barkod" aria-label="Ürün ara"
-                    class="min-w-0 flex-1 rounded-full border-0 bg-white/15 px-5 py-3 text-sm text-white placeholder:text-white/60 focus:bg-white focus:text-ink focus:ring-2 focus:ring-white/50">
-                <button class="shrink-0 rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink shadow hover:bg-amber-300">Ara</button>
+                    class="min-w-0 flex-1 rounded-full border-0 bg-white/15 px-6 py-3.5 text-white placeholder:text-white/60 focus:bg-white focus:text-ink focus:ring-2 focus:ring-white/50">
+                <button class="shrink-0 rounded-full bg-amber-400 px-7 py-3.5 font-semibold text-slate-900 shadow hover:bg-amber-300">Ara</button>
             </form>
         </div>
     </section>
 
     {{-- ============ Alt bilgi ============ --}}
-    <footer class="mt-12 border-t border-line pt-8 pb-2 text-sm text-muted">
-        <div class="flex flex-col gap-6 sm:flex-row sm:justify-between">
-            <div>
-                <p class="font-semibold text-ink">{{ $currentBusiness->display_name }}</p>
-                <p class="mt-1 max-w-sm">{{ $currentBusiness->legal_name }}@if ($currentBusiness->address)<br>{{ trim(implode(', ', array_filter([$currentBusiness->address, $currentBusiness->district, $currentBusiness->city]))) }}@endif</p>
+    <footer class="mt-12 rounded-3xl bg-primary-dark px-6 py-10 text-sm text-white/70 sm:px-12">
+        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="lg:col-span-2">
+                <p class="text-lg font-semibold text-white">{{ $currentBusiness->display_name }}</p>
+                <p class="mt-2 max-w-md leading-relaxed">{{ $currentBusiness->legal_name }}@if ($currentBusiness->address)<br>{{ trim(implode(', ', array_filter([$currentBusiness->address, $currentBusiness->district, $currentBusiness->city]))) }}@endif</p>
             </div>
-            <div class="flex gap-10">
-                <ul class="space-y-1.5">
-                    <li class="mb-2 text-xs font-semibold tracking-wider text-ink uppercase">Alışveriş</li>
-                    <li><a href="{{ route('dealer.catalog') }}" class="hover:text-primary">Tüm ürünler</a></li>
-                    <li><a href="{{ route('dealer.orders.index') }}" class="hover:text-primary">Siparişlerim</a></li>
-                    <li><a href="{{ route('dealer.account.statement') }}" class="hover:text-primary">Cari hesap</a></li>
-                </ul>
-                <ul class="space-y-1.5">
-                    <li class="mb-2 text-xs font-semibold tracking-wider text-ink uppercase">İletişim</li>
-                    @if ($currentBusiness->phone)<li><a href="tel:{{ preg_replace('/[^0-9+]/', '', $currentBusiness->phone) }}" class="hover:text-primary">{{ $currentBusiness->phone }}</a></li>@endif
-                    @if ($currentBusiness->email)<li><a href="mailto:{{ $currentBusiness->email }}" class="hover:text-primary">{{ $currentBusiness->email }}</a></li>@endif
-                    <li><a href="{{ route('dealer.announcements.index') }}" class="hover:text-primary">Duyurular</a></li>
-                </ul>
-            </div>
+            <ul class="space-y-2">
+                <li class="mb-3 text-xs font-semibold tracking-wider text-white uppercase">Alışveriş</li>
+                <li><a href="{{ route('dealer.catalog') }}" class="hover:text-white">Tüm ürünler</a></li>
+                <li><a href="{{ route('dealer.orders.index') }}" class="hover:text-white">Siparişlerim</a></li>
+                <li><a href="{{ route('dealer.account.statement') }}" class="hover:text-white">Cari hesap</a></li>
+                <li><a href="{{ route('dealer.dashboard') }}" class="hover:text-white">Hesap özeti</a></li>
+            </ul>
+            <ul class="space-y-2">
+                <li class="mb-3 text-xs font-semibold tracking-wider text-white uppercase">İletişim</li>
+                @if ($currentBusiness->phone)<li><a href="tel:{{ preg_replace('/[^0-9+]/', '', $currentBusiness->phone) }}" class="hover:text-white">{{ $currentBusiness->phone }}</a></li>@endif
+                @if ($currentBusiness->email)<li><a href="mailto:{{ $currentBusiness->email }}" class="hover:text-white">{{ $currentBusiness->email }}</a></li>@endif
+                <li><a href="{{ route('dealer.announcements.index') }}" class="hover:text-white">Duyurular</a></li>
+                @if ($currentBusiness->moduleEnabled('messaging'))<li><a href="{{ route('dealer.messages.index') }}" class="hover:text-white">Bize yazın</a></li>@endif
+            </ul>
         </div>
+        <p class="mt-8 border-t border-white/10 pt-6 text-xs text-white/50">© {{ now()->year }} {{ $currentBusiness->display_name }} · Bayi sipariş platformu</p>
     </footer>
 </x-layouts.panel>

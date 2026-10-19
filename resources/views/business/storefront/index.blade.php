@@ -45,14 +45,14 @@
             <div class="space-y-4 xl:col-span-3">
                 <div class="flex items-start gap-3 rounded-xl border border-blue-200 bg-info-soft px-4 py-3 text-sm text-sky-900">
                     <x-icon name="alert" class="mt-0.5 size-4 shrink-0" />
-                    <p>Slaytlar bayi ana sayfasında sırasıyla <strong>5 saniyede bir</strong> değişir; video slaytlar video bitene kadar gösterilir. Yüklediğiniz görseller ve videolar <strong>kırpılmaz</strong>. En iyi görünüm için 1920×640 (3:1) ölçüsünü kullanın.</p>
+                    <p>Slaytlar bayi ana sayfasında sırasıyla <strong>5 saniyede bir</strong> değişir; video slaytlar video bitene kadar gösterilir. Yüklediğiniz görseller ve videolar <strong>kırpılmaz</strong>. En iyi görünüm için <strong>ana slaytta 1920×600</strong>, <strong>ara bantta 1920×320</strong> piksel kullanın.</p>
                 </div>
 
                 @forelse ($banners as $banner)
                     @php [$label, $tone] = $status($banner); @endphp
                     <article class="overflow-hidden rounded-2xl border border-line bg-white shadow-xs" x-data="{ edit: {{ old('_banner') === 'b'.$banner->id ? 'true' : 'false' }} }">
                         <div class="flex flex-col gap-4 p-4 sm:flex-row">
-                            <div class="relative aspect-[3/1] w-full shrink-0 overflow-hidden rounded-xl sm:w-64">
+                            <div @class(['relative w-full shrink-0 overflow-hidden rounded-xl sm:w-64', 'aspect-[16/5]' => $banner->placement === 'hero', 'aspect-[6/1]' => $banner->placement !== 'hero'])>
                                 <x-banner-media :banner="$banner" route="business.storefront.banners.media" :index="$loop->index" loop />
                                 @if ($banner->title)
                                     <div class="absolute inset-0 flex items-center bg-linear-to-r from-slate-950/70 to-transparent px-3">
@@ -64,6 +64,7 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="text-xs font-semibold text-muted tabular-nums">#{{ $loop->iteration }}</span>
                                     <x-badge :tone="$tone">{{ $label }}</x-badge>
+                                    <x-badge :tone="$banner->placement === 'hero' ? 'primary' : 'info'">{{ HomeBanner::PLACEMENTS[$banner->placement]['label'] }}</x-badge>
                                     <x-badge tone="neutral">{{ $banner->isVideo() ? 'Video' : 'Görsel' }}</x-badge>
                                 </div>
                                 <p class="mt-1.5 truncate font-semibold text-ink">{{ $banner->title ?: 'Başlıksız slayt' }}</p>

@@ -33,8 +33,10 @@ class DemoBanners
 
         // Işık halkaları ve nokta ızgarası
         [$lr, $lg, $lb] = $this->rgb($light);
+        $ring = max(400, (int) ($h * 1.5));
         for ($i = 0; $i < 40; $i++) {
-            imagefilledellipse($img, (int) ($w * 0.72), (int) ($h * 0.5), (int) ($h * 1.5) - $i * 18, (int) ($h * 1.5) - $i * 18, imagecolorallocatealpha($img, $lr, $lg, $lb, 126 - intdiv($i, 3)));
+            $d = $ring - (int) ($i * $ring / 44);
+            imagefilledellipse($img, (int) ($w * 0.72), (int) ($h * 0.5), $d, $d, imagecolorallocatealpha($img, $lr, $lg, $lb, 126 - intdiv($i, 3)));
         }
         foreach ([[0.93, 0.12, 0.55], [0.55, 0.95, 0.35]] as [$cx, $cy, $s]) {
             imagesetthickness($img, max(2, (int) ($h / 200)));

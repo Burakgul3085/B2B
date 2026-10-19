@@ -32,7 +32,7 @@ class StorefrontController extends Controller
     public function index(Request $request): View
     {
         return view('business.storefront.index', [
-            'banners' => HomeBanner::with('group')->orderBy('sort')->orderBy('id')->get(),
+            'banners' => HomeBanner::with('group')->orderByRaw("placement = 'hero' DESC")->orderBy('sort')->orderBy('id')->get(),
             'showcases' => Showcase::with('items.product:id,name,sku')->orderBy('sort')->orderBy('id')->get(),
             'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
             'targets' => [
@@ -152,6 +152,7 @@ class StorefrontController extends Controller
             'media' => [$creating ? 'required' : 'nullable', ...$media],
             'mobile_media' => $image,
             'poster' => $image,
+            'placement' => ['nullable', Rule::in(array_keys(HomeBanner::PLACEMENTS))],
             'title' => ['nullable', 'string', 'max:120'],
             'subtitle' => ['nullable', 'string', 'max:240'],
             'button_label' => ['nullable', 'string', 'max:40'],

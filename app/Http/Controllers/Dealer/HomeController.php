@@ -29,6 +29,7 @@ class HomeController extends Controller
 
         return view('dealer.home', [
             'banners' => $storefront->banners($relationship),
+            'strips' => $storefront->banners($relationship, 'strip'),
             'showcases' => $showcases,
             'settings' => $settings,
             'openRequests' => ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)

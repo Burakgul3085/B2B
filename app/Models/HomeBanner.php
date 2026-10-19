@@ -21,10 +21,19 @@ class HomeBanner extends Model
         'showcase' => 'Vitrin',
     ];
 
+    /**
+     * Konumlar ve önerilen ölçüler. Bayi ekranındaki oranlar bunlardır; farklı oranlı dosyalar kırpılmaz,
+     * kalan alan görselin bulanık hâliyle dolar.
+     */
+    public const PLACEMENTS = [
+        'hero' => ['label' => 'Ana slayt', 'hint' => 'Sayfanın en üstündeki büyük alan', 'desktop' => '1920×600', 'mobile' => '1080×810', 'ratio' => '16:5'],
+        'strip' => ['label' => 'Ara bant', 'hint' => 'Ürün vitrinlerinin arasında ince şerit', 'desktop' => '1920×320', 'mobile' => '1080×540', 'ratio' => '6:1'],
+    ];
+
     public const TEXT_POSITIONS = ['left' => 'Solda', 'center' => 'Ortada', 'right' => 'Sağda'];
 
     protected $fillable = [
-        'title', 'subtitle', 'button_label', 'link_type', 'link_id', 'media_type', 'media_path', 'media_mime', 'media_size',
+        'placement', 'title', 'subtitle', 'button_label', 'link_type', 'link_id', 'media_type', 'media_path', 'media_mime', 'media_size',
         'mobile_media_path', 'poster_path', 'text_position', 'starts_on', 'ends_on', 'dealer_group_id', 'sort', 'is_active',
     ];
 

@@ -18,7 +18,7 @@
     $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase;
     $taxLabel = fn ($rate) => '%'.rtrim(rtrim(number_format((float) $rate, 2, ',', ''), '0'), ',');
 @endphp
-<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Katalog">
+<x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Katalog" wide>
     @error('cart')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
     @error('request')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
@@ -185,7 +185,7 @@
                 </div>
             @else
                 {{-- Izgara görünümü --}}
-                <div class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     @foreach ($products as $product)
                         @include('dealer.catalog._card', ['product' => $product])
                     @endforeach

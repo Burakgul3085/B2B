@@ -1,4 +1,4 @@
-@props(['area', 'title'])
+@props(['area', 'title', 'wide' => false])
 @php
     use App\Domain\Auth\Area;
 
@@ -103,7 +103,7 @@
 @if ($area === Area::Dealer)
     {{-- Bayi: katalog odaklı üst menü --}}
     <header class="relative bg-primary-dark text-white" @if ($currentBusiness?->accent_color) style="border-top: 4px solid {{ $currentBusiness->accent_color }}" @endif>
-        <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <div class="mx-auto flex h-16 max-w-[1840px] items-center gap-4 px-4 sm:px-6 lg:px-8">
             <button type="button" class="-ml-1 rounded-md p-1.5 hover:bg-white/10 md:hidden" @click="nav = !nav" aria-label="Menü"><x-icon name="menu" /></button>
             <a href="{{ route('dealer.home') }}" class="truncate text-base font-semibold">{{ $brand }}</a>
             <nav class="ml-6 hidden items-center gap-1 md:flex" aria-label="Ana menü">
@@ -167,7 +167,7 @@
         </nav>
     </header>
 
-    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <main @class(['mx-auto px-4 py-8 sm:px-6', 'max-w-[1840px] lg:px-8' => $wide, 'max-w-7xl' => ! $wide])>
         <x-flash />
         {{ $slot }}
     </main>

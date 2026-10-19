@@ -125,6 +125,7 @@ class BannerService
         $linkType = $data['link_type'] ?? 'none';
 
         return [
+            'placement' => $data['placement'] ?? 'hero',
             'title' => $data['title'] ?? null,
             'subtitle' => $data['subtitle'] ?? null,
             'button_label' => $linkType === 'none' ? null : ($data['button_label'] ?? null),

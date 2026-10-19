@@ -22,9 +22,9 @@ class StorefrontQuery
     public function __construct(private PriceResolver $prices) {}
 
     /** @return Collection<int, HomeBanner> her slayta `url` (tıklanınca gidilecek adres) eklenir */
-    public function banners(DealerRelationship $relationship): Collection
+    public function banners(DealerRelationship $relationship, string $placement = 'hero'): Collection
     {
-        return HomeBanner::visibleTo($relationship)->orderBy('sort')->orderBy('id')->get()
+        return HomeBanner::visibleTo($relationship)->where('placement', $placement)->orderBy('sort')->orderBy('id')->get()
             ->each(fn (HomeBanner $b) => $b->setAttribute('url', $this->linkUrl($b->link_type, $b->link_id)));
     }
 

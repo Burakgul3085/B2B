@@ -9,8 +9,10 @@ use App\Models\Business;
 use App\Models\Category;
 use App\Models\HomeBanner;
 use App\Models\Product;
+use App\Models\Showcase;
 use Database\Seeders\Support\DemoBanners;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Yapboz Kırtasiye için örnek vitrin: üç slayt ve dört ürün vitrini. Toptancı daha sonra Vitrin sayfasından değiştirir.
@@ -30,16 +32,20 @@ class StorefrontDemoSeeder extends Seeder
         }
 
         app(TenantContext::class)->runAs($business->id, function () {
+            // Vitrin ve slaytlar ayrı ayrı denetlenir; dolu olan bölüme dokunulmaz.
+            if (! Showcase::exists()) {
+                $this->showcases();
+            }
             if (HomeBanner::exists()) {
-                $this->command?->warn('Vitrin zaten dolu; demo vitrin yüklenmedi.');
+                $this->command?->warn('Slaytlar zaten var; demo slaytlar yüklenmedi.');
 
                 return;
             }
             $this->banners();
-            $this->showcases();
+            $this->strips();
         });
 
-        $this->command?->info('Demo vitrin yüklendi: 3 slayt, 4 ürün vitrini.');
+        $this->command?->info('Demo vitrin hazır.');
     }
 
     private function banners(): void
@@ -93,9 +99,76 @@ class StorefrontDemoSeeder extends Seeder
             ],
         ];
 
-        foreach ($slides as [$palette, $items, $text]) {
-            $service->create($text + ['text_position' => 'left', 'is_active' => true], ['media' => $art->make($palette, $items)]);
+        $videos = $this->videos();
+        foreach ($slides as $i => [$palette, $items, $text]) {
+            // Videolar (varsa) görsellerin arasına yerleştirilir: video, görsel, görsel, video, görsel.
+            if ($i === 0 && isset($videos['tanitim-yeni-sezon'])) {
+                $this->video($service, $videos['tanitim-yeni-sezon'], [
+                    'title' => 'Yeni sezon ürünleri raflarda',
+                    'subtitle' => 'Defterden kaleme, okul ve ofis ürünlerinde geniş çeşit; hepsi size özel fiyatlarla tek panelde.',
+                    'button_label' => 'Tüm ürünleri gör', 'link_type' => 'catalog',
+                ]);
+            }
+            $service->create($text + ['placement' => 'hero', 'text_position' => 'left', 'is_active' => true], ['media' => $art->make($palette, $items, 1920, 600)]);
+            if ($i === 1 && isset($videos['tanitim-urun-akisi'])) {
+                $this->video($service, $videos['tanitim-urun-akisi'], [
+                    'title' => 'Siparişiniz birkaç tıkla hazır',
+                    'subtitle' => 'Ürünü seçin, miktarı girin, sepete ekleyin. Siparişinizin her aşamasını panelden takip edin.',
+                    'button_label' => 'Siparişe başla', 'link_type' => 'catalog',
+                ]);
+            }
         }
+    }
+
+    /** Ara bant: vitrinlerin arasındaki ince şeritler. */
+    private function strips(): void
+    {
+        $art = new DemoBanners;
+        $service = app(BannerService::class);
+
+        $service->create([
+            'placement' => 'strip', 'title' => 'Siparişinizi 7/24 verin', 'subtitle' => 'Mesai saatini beklemeden; stok ve fiyatlar her an güncel.',
+            'button_label' => 'Hemen sipariş ver', 'link_type' => 'catalog', 'text_position' => 'left', 'is_active' => true,
+        ], ['media' => $art->make(['#0b1640', '#1e3a8a', '#38bdf8'], [
+            ['pen', ['main' => '#2563eb'], 0.70, 0.55, 0.95, -10],
+            ['notebook', ['main' => '#f97316', 'accent' => '#9a3412', 'label' => 'A4'], 0.80, 0.52, 1.05, 8],
+            ['sticky', ['set' => '#fde047,#f9a8d4,#93c5fd'], 0.90, 0.50, 0.95, 0],
+        ], 1920, 320)]);
+
+        $service->create([
+            'placement' => 'strip', 'title' => 'Cari hesabınız her an elinizde', 'subtitle' => 'Bakiye, hareketler ve ekstrenizi panelden görüntüleyin; telefonla sormanıza gerek yok.',
+            'link_type' => 'none', 'text_position' => 'left', 'is_active' => true,
+        ], ['media' => $art->make(['#042f2e', '#0f766e', '#5eead4'], [
+            ['folder', ['main' => '#3b82f6', 'accent' => '#1d4ed8'], 0.74, 0.52, 1.0, -6],
+            ['paper', ['main' => '#0f766e', 'accent' => '#134e4a'], 0.86, 0.52, 1.05, 4],
+        ], 1920, 320)]);
+    }
+
+    /** @return array<string, array{video: string, poster: ?string}> php artisan demo:videolar çıktısı */
+    private function videos(): array
+    {
+        $found = [];
+        foreach (glob(storage_path('app/demo-media/*.webm')) ?: [] as $file) {
+            $poster = substr($file, 0, -5).'.png';
+            $found[pathinfo($file, PATHINFO_FILENAME)] = ['video' => $file, 'poster' => is_file($poster) ? $poster : null];
+        }
+
+        return $found;
+    }
+
+    private function video(BannerService $service, array $files, array $text): void
+    {
+        $copy = function (string $path, string $mime) {
+            $tmp = tempnam(sys_get_temp_dir(), 'demo').'.'.pathinfo($path, PATHINFO_EXTENSION);
+            copy($path, $tmp);
+
+            return new UploadedFile($tmp, basename($path), $mime, null, true);
+        };
+
+        $service->create($text + ['placement' => 'hero', 'text_position' => 'left', 'is_active' => true], array_filter([
+            'media' => $copy($files['video'], 'video/webm'),
+            'poster' => $files['poster'] ? $copy($files['poster'], 'image/png') : null,
+        ]));
     }
 
     private function showcases(): void

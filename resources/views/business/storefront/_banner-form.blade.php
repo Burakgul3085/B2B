@@ -13,6 +13,8 @@
         'position' => old('text_position', $banner?->text_position ?? 'left'),
         'linkType' => old('link_type', $banner?->link_type ?? 'none'),
         'fileName' => '',
+        'placement' => old('placement', $banner?->placement ?? 'hero'),
+        'sizes' => collect(HomeBanner::PLACEMENTS)->map(fn ($p) => ['desktop' => $p['desktop'], 'mobile' => $p['mobile'], 'ratio' => $p['ratio']])->all(),
     ];
     $id = $editing ? 'b'.$banner->id : 'new';
 @endphp
@@ -22,9 +24,26 @@
     @csrf
     @if ($editing) @method('PUT') @endif
 
-    {{-- Canlı önizleme: bayinin göreceği oran (masaüstü 3:1), kırpma yok --}}
+    {{-- Konum --}}
     <div>
-        <div class="relative aspect-[3/1] overflow-hidden rounded-xl bg-slate-900 ring-1 ring-line">
+        <span class="mb-1.5 block text-sm font-medium text-ink">Konum</span>
+        <div class="grid grid-cols-2 gap-2" role="radiogroup">
+            @foreach (HomeBanner::PLACEMENTS as $value => $p)
+                <label class="relative flex cursor-pointer flex-col gap-2 rounded-xl border-2 p-3 transition" :class="placement === '{{ $value }}' ? 'border-primary bg-primary-soft/50' : 'border-line hover:border-primary/40'">
+                    <input type="radio" name="placement" value="{{ $value }}" x-model="placement" class="sr-only">
+                    <span class="flex h-10 items-center rounded-md bg-slate-200 px-1.5 py-1">
+                        <span @class(['block w-full rounded-sm bg-slate-400', 'h-6' => $value === 'hero', 'h-2.5' => $value !== 'hero'])></span>
+                    </span>
+                    <span class="text-sm font-semibold text-ink">{{ $p['label'] }}</span>
+                    <span class="text-[11px] leading-snug text-muted">{{ $p['hint'] }} · {{ $p['desktop'] }}</span>
+                </label>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Canlı önizleme: bayinin masaüstünde göreceği oran, kırpma yok --}}
+    <div>
+        <div class="relative overflow-hidden rounded-xl bg-slate-900 ring-1 ring-line" :class="placement === 'strip' ? 'aspect-[6/1]' : 'aspect-[16/5]'">
             <template x-if="preview && !isVideo">
                 <div class="absolute inset-0">
                     <img :src="preview" alt="" class="absolute inset-0 size-full scale-125 object-cover opacity-70 blur-xl">
@@ -64,7 +83,7 @@
         </label>
         <input id="media_{{ $id }}" type="file" name="media" class="sr-only" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
             @change="const f = $event.target.files[0]; if (f) { fileName = f.name; isVideo = f.type.startsWith('video/'); preview = URL.createObjectURL(f); }">
-        <p class="mt-1.5 text-xs text-muted">Önerilen: 1920×640 piksel (3:1). Videolar sessiz ve döngüde oynar; 10–20 saniyelik kısa videolar en iyi sonucu verir.</p>
+        <p class="mt-1.5 text-xs text-muted">Önerilen ölçü: <strong class="text-ink" x-text="sizes[placement].desktop + ' piksel (' + sizes[placement].ratio + ')'"></strong>. Videolar sessiz ve döngüde oynar; 10–20 saniyelik kısa videolar en iyi sonucu verir.</p>
     </div>
 
     {{-- Metin --}}
@@ -127,7 +146,7 @@
             <div>
                 <label for="mobile_{{ $id }}" class="mb-1.5 block text-sm font-medium text-ink">Mobil görsel</label>
                 <input id="mobile_{{ $id }}" type="file" name="mobile_media" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium">
-                <p class="mt-1 text-xs text-muted">Telefonda bu görsel gösterilir. Önerilen: 1080×810 (4:3). Boş bırakılırsa masaüstü görseli kullanılır.</p>
+                <p class="mt-1 text-xs text-muted">Telefonda bu görsel gösterilir. Önerilen: <span x-text="sizes[placement].mobile"></span>. Boş bırakılırsa masaüstü görseli kullanılır.</p>
                 @if ($editing && $banner->mobile_media_path)
                     <label class="mt-2 flex items-center gap-2 text-xs text-muted"><input type="checkbox" name="remove_mobile" value="1" class="size-3.5 rounded"> Mevcut mobil görseli kaldır</label>
                 @endif
