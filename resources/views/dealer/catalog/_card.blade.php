@@ -20,6 +20,7 @@
         <div class="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
             <div class="flex flex-col items-start gap-1">
                 <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
+@if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif
                 @if ($price->hasDiscount())
                     <span class="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-bold text-white">%{{ rtrim(rtrim(number_format((float) $price->discountPercent, 2, ',', ''), '0'), ',') }} indirim</span>
                 @endif

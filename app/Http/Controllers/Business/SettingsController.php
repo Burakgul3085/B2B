@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Catalog\NewProducts;
 use App\Domain\Files\ImageUploader;
 use App\Http\Controllers\Controller;
 use DomainException;
@@ -39,13 +40,16 @@ class SettingsController extends Controller
             'ledger_post_on' => ['required', Rule::in(['approval', 'completion'])],
             'default_payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'price_display' => ['required', Rule::in(['excl_vat', 'incl_vat'])],
+            'new_product_days' => ['sometimes', 'integer', Rule::in(NewProducts::DAY_OPTIONS)],
+            'new_products_since' => ['nullable', 'date', 'before_or_equal:today'],
         ], [], [
             'display_name' => 'görünen ad', 'accent_color' => 'vurgu rengi',
             'default_payment_term_days' => 'varsayılan vade (gün)',
+            'new_product_days' => 'yeni ürün süresi', 'new_products_since' => 'yeni ürün başlangıç tarihi',
         ]);
 
         $businessFields = ['display_name', 'phone', 'email', 'city', 'district', 'address', 'accent_color'];
-        $settingFields = ['stock_display', 'ledger_post_on', 'default_payment_term_days', 'price_display'];
+        $settingFields = ['stock_display', 'ledger_post_on', 'default_payment_term_days', 'price_display', 'new_product_days', 'new_products_since'];
 
         $old = $business->only($businessFields) + $business->settings->only($settingFields);
 

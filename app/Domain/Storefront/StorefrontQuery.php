@@ -123,7 +123,7 @@ class StorefrontQuery
         return match ($showcase->type) {
             'category' => route('dealer.catalog', ['category' => [$showcase->source_id]]),
             'brand' => route('dealer.catalog', ['brand' => [$showcase->source_id]]),
-            'new' => route('dealer.catalog', ['sort' => 'new']),
+            'new' => route('dealer.catalog', ['yeni' => 1]),
             'manual' => route('dealer.catalog', ['showcase' => $showcase->id]),
             default => route('dealer.catalog'),
         };

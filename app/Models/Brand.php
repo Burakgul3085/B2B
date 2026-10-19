@@ -12,7 +12,7 @@ class Brand extends Model
 
     protected $attributes = ['is_active' => true];
 
-    protected $fillable = ['name', 'is_active'];
+    protected $fillable = ['name', 'logo_path', 'is_active'];
 
     protected function casts(): array
     {

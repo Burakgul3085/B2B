@@ -60,6 +60,16 @@
             </div>
         </x-card>
 
+        <x-card title="Yeni ürünler" description="Bayi panelindeki &quot;Yeni Ürünler&quot; sayfası ve ürünlerdeki &quot;Yeni&quot; rozeti.">
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-field name="new_product_days" label="Yeni ürün süresi" :value="$settings->new_product_days ?? 30"
+                    :options="collect(\App\Domain\Catalog\NewProducts::DAY_OPTIONS)->mapWithKeys(fn ($d) => [$d => 'Son '.$d.' günde eklenenler'])->all()"
+                    hint="Bu süre içinde eklenen ürünler bayilere yeni olarak gösterilir." />
+                <x-field name="new_products_since" label="Bu tarihten önce eklenenleri yeni sayma" type="date" :value="$settings->new_products_since?->toDateString()"
+                    :max="now()->toDateString()" hint="İsteğe bağlı. İlk toplu ürün yüklemesinden sonraki günü seçin; o yüklemedeki ürünler yeni görünmez." />
+            </div>
+        </x-card>
+
         <div class="flex justify-end"><x-button>Ayarları kaydet</x-button></div>
     </form>
 </x-layouts.panel>

@@ -37,7 +37,7 @@
             <x-card>
                 <x-price-tag :price="$price" :display="$settings->price_display" size="lg" />
                 @if ($price->discountName)<p class="mt-1 text-xs text-success">{{ $price->discountName }}</p>@endif
-                <div class="mt-3"><x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge></div>
+                <div class="mt-3 flex flex-wrap gap-1.5"><x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>@if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif</div>
                 <dl class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
                     <div><dt class="text-muted">Birim</dt><dd class="font-medium">{{ $product->unit->name }}</dd></div>
                     <div><dt class="text-muted">Koli / paket içi</dt><dd class="font-medium">{{ Quantity::format($product->pack_quantity) }}</dd></div>

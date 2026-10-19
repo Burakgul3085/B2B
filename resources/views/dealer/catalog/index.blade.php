@@ -15,7 +15,8 @@
     };
     $categoryNames = $categories->flatMap(fn ($c) => collect([$c])->merge($c->children))->pluck('name', 'id');
     $brandNames = $brands->pluck('name', 'id');
-    $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase;
+    $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase || $onlyNew;
+    $newDays = (int) ($settings->new_product_days ?: 30);
     $taxLabel = fn ($rate) => '%'.rtrim(rtrim(number_format((float) $rate, 2, ',', ''), '0'), ',');
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Katalog" wide>
@@ -34,6 +35,7 @@
                 x-show="filtersOpen" x-cloak class="mt-3 rounded-2xl border border-line bg-white shadow-xs lg:mt-0 lg:block!">
                 <input type="hidden" name="sort" value="{{ $filters['sort'] ?? 'name' }}">
                 <input type="hidden" name="view" value="{{ $view }}">
+                @if ($onlyNew)<input type="hidden" name="yeni" value="1">@endif
                 @if ($filters['in_stock'] ?? false)<input type="hidden" name="in_stock" value="1">@endif
 
                 <div class="flex items-center justify-between border-b border-line px-5 py-4">
@@ -133,6 +135,9 @@
 
                 @if ($hasFilters)
                     <div class="flex w-full flex-wrap items-center gap-2 border-t border-line pt-3">
+                        @if ($onlyNew)
+                            <a href="{{ $without('yeni') }}" class="chip">Son {{ $newDays }} günde eklenenler <x-icon name="x" class="size-3" /></a>
+                        @endif
                         @if ($showcase)
                             <a href="{{ $without('showcase') }}" class="chip">Vitrin: {{ $showcase->name }} <x-icon name="x" class="size-3" /></a>
                         @endif
@@ -152,7 +157,22 @@
                 @endif
             </div>
 
-            @if ($products->isEmpty())
+            @if ($products->isEmpty() && $latest->isNotEmpty())
+                {{-- Yeni ürün yok: boş sayfa yerine son eklenenler --}}
+                <div class="mt-5 flex items-start gap-3 rounded-2xl border border-blue-200 bg-info-soft px-5 py-4 text-sky-900">
+                    <x-icon name="alert" class="mt-0.5 size-5 shrink-0" />
+                    <div>
+                        <p class="font-semibold">Son {{ $newDays }} günde yeni ürün eklenmedi.</p>
+                        <p class="mt-0.5 text-sm">En son eklenen ürünlerimize göz atabilirsiniz. Yeni ürünler eklendiğinde burada ve menüdeki "Yeni Ürünler" rozetinde görünür.</p>
+                    </div>
+                </div>
+                <h2 class="mt-8 text-lg font-bold tracking-tight text-ink">En son eklenen ürünler</h2>
+                <div class="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    @foreach ($latest as $product)
+                        @include('dealer.catalog._card', ['product' => $product])
+                    @endforeach
+                </div>
+            @elseif ($products->isEmpty())
                 <x-card class="mt-5"><x-empty-state icon="search" title="Ürün bulunamadı" text="Arama veya filtreleri değiştirmeyi deneyin." /></x-card>
             @elseif ($view === 'list')
                 {{-- Liste görünümü --}}
@@ -173,6 +193,7 @@
                                 <p class="mt-0.5 font-mono text-xs text-muted">{{ $product->sku }}@if ((float) $product->pack_quantity > 1)<span class="font-sans"> · Koli {{ Quantity::format($product->pack_quantity) }}</span>@endif</p>
                                 <div class="mt-2 flex flex-wrap gap-1.5">
                                     <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
+@if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif
                                     <span class="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700">+KDV {{ $taxLabel($product->taxRate?->rate) }}</span>
                                 </div>
                             </div>

@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Catalog\BrandLogo;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\VariantGroup;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Kategori, marka ve varyant grupları — tek sayfada, sekmeli. */
 class CatalogStructureController extends Controller
@@ -86,10 +90,41 @@ class CatalogStructureController extends Controller
         return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', 'Marka güncellendi.');
     }
 
-    public function destroyBrand(Brand $brand): RedirectResponse
+    /** Marka logosu: bayi Markalar sayfasında görünür. */
+    public function updateBrandLogo(Request $request, Brand $brand, BrandLogo $logos): RedirectResponse
+    {
+        $request->validate(['logo' => ['required', 'file', 'max:2048', 'mimes:jpg,jpeg,png,webp']], [], ['logo' => 'logo']);
+
+        try {
+            $logos->replace($brand, $request->file('logo'));
+        } catch (DomainException $e) {
+            return back()->withErrors(['logo' => $e->getMessage()]);
+        }
+
+        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', "\"{$brand->name}\" logosu güncellendi.");
+    }
+
+    public function destroyBrandLogo(Brand $brand, BrandLogo $logos): RedirectResponse
+    {
+        $logos->remove($brand);
+
+        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', "\"{$brand->name}\" logosu kaldırıldı.");
+    }
+
+    public function brandLogo(Brand $brand): StreamedResponse
+    {
+        abort_unless($brand->logo_path && Storage::disk('local')->exists($brand->logo_path), 404);
+
+        return Storage::disk('local')->response($brand->logo_path, null, ['Content-Type' => 'image/webp', 'Cache-Control' => 'private, max-age=86400', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function destroyBrand(Brand $brand, BrandLogo $logos): RedirectResponse
     {
         if (Product::where('brand_id', $brand->id)->exists()) {
             return back()->withErrors(['brand' => "\"{$brand->name}\" markasına bağlı ürün var. Silmek yerine pasif yapabilirsiniz."]);
+        }
+        if ($brand->logo_path) {
+            $logos->remove($brand);
         }
         $brand->delete();
 

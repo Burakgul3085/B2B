@@ -70,7 +70,12 @@
         Area::Dealer => [
             ['items' => array_values(array_filter([
                 ['label' => 'Ana Sayfa', 'route' => 'dealer.home', 'icon' => 'home', 'active' => 'dealer.home'],
-                ['label' => 'Tüm Ürünler', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*'],
+                ['label' => 'Tüm Ürünler', 'route' => 'dealer.catalog', 'icon' => 'package', 'active' => 'dealer.catalog*',
+                    'current' => request()->routeIs('dealer.catalog*') && ! request()->boolean('yeni')],
+                ['label' => 'Markalar', 'route' => 'dealer.brands.index', 'icon' => 'layers', 'active' => 'dealer.brands.*'],
+                $currentBusiness ? ['label' => 'Yeni Ürünler', 'route' => 'dealer.catalog', 'params' => ['yeni' => 1], 'icon' => 'plus', 'active' => 'dealer.catalog',
+                    'current' => request()->routeIs('dealer.catalog') && request()->boolean('yeni'),
+                    'badge' => \App\Domain\Catalog\NewProducts::count($currentBusiness->settings()->first())] : null,
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
             ]))],
@@ -109,11 +114,12 @@
             <nav class="ml-6 hidden items-center gap-1 md:flex" aria-label="Ana menü">
                 @foreach ($nav as $group)
                     @foreach ($group['items'] as $item)
-                        <a href="{{ route($item['route']) }}" @class([
-                            'rounded-md px-3 py-2 text-sm font-medium',
-                            'bg-white/15 text-white' => request()->routeIs(...(array) $item['active']),
-                            'text-white/80 hover:bg-white/10 hover:text-white' => ! request()->routeIs(...(array) $item['active']),
-                        ])>{{ $item['label'] }}</a>
+                        @php $current = $item['current'] ?? request()->routeIs(...(array) $item['active']); @endphp
+                        <a href="{{ route($item['route'], $item['params'] ?? []) }}" @class([
+                            'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap',
+                            'bg-white/15 text-white' => $current,
+                            'text-white/80 hover:bg-white/10 hover:text-white' => ! $current,
+                        ])>{{ $item['label'] }}@if (! empty($item['badge']))<span class="rounded-full bg-amber-400 px-1.5 py-px text-[11px] font-bold text-primary-dark tabular-nums">{{ $item['badge'] }}</span>@endif</a>
                     @endforeach
                 @endforeach
             </nav>
@@ -161,7 +167,7 @@
         <nav x-cloak x-show="nav" class="border-t border-white/10 px-4 py-2 md:hidden" aria-label="Mobil menü">
             @foreach ($nav as $group)
                 @foreach ($group['items'] as $item)
-                    <a href="{{ route($item['route']) }}" class="block rounded-md px-3 py-2 text-sm text-white/90 hover:bg-white/10">{{ $item['label'] }}</a>
+                    <a href="{{ route($item['route'], $item['params'] ?? []) }}" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/90 hover:bg-white/10">{{ $item['label'] }}@if (! empty($item['badge']))<span class="rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-primary-dark">{{ $item['badge'] }}</span>@endif</a>
                 @endforeach
             @endforeach
         </nav>

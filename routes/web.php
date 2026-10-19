@@ -250,6 +250,9 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('markalar', [Business\CatalogStructureController::class, 'storeBrand'])->name('brands.store');
         Route::put('markalar/{brand}', [Business\CatalogStructureController::class, 'updateBrand'])->name('brands.update');
         Route::delete('markalar/{brand}', [Business\CatalogStructureController::class, 'destroyBrand'])->name('brands.destroy');
+        Route::post('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'updateBrandLogo'])->name('brands.logo.update');
+        Route::delete('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'destroyBrandLogo'])->name('brands.logo.destroy');
+        Route::get('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'brandLogo'])->name('brands.logo');
         Route::post('varyant-gruplari', [Business\CatalogStructureController::class, 'storeVariantGroup'])->name('variant-groups.store');
         Route::put('varyant-gruplari/{variantGroup}', [Business\CatalogStructureController::class, 'updateVariantGroup'])->name('variant-groups.update');
 
@@ -296,6 +299,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('vitrin/medya/{banner}', [Dealer\HomeController::class, 'media'])->name('storefront.media');
         Route::get('hesap-ozeti', Dealer\DashboardController::class)->name('dashboard');
 
+        Route::get('markalar', [Dealer\BrandController::class, 'index'])->name('brands.index');
+        Route::get('markalar/{brand}/logo', [Dealer\BrandController::class, 'logo'])->name('brands.logo');
         Route::get('katalog', [Dealer\CatalogController::class, 'index'])->name('catalog');
         Route::get('katalog/{product}', [Dealer\CatalogController::class, 'show'])->name('catalog.show');
         Route::get('gorsel/{image}', [Dealer\CatalogController::class, 'image'])->name('images.show');

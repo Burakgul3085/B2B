@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dealer;
 
+use App\Domain\Catalog\NewProducts;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Pricing\PriceResolver;
@@ -45,12 +46,18 @@ class CatalogController extends Controller
             'sort' => ['nullable', Rule::in(['name', 'new', 'stock'])],
             'view' => ['nullable', Rule::in(['grid', 'list'])],
             'showcase' => ['nullable', 'integer'],
+            'yeni' => ['nullable', 'boolean'],
         ]);
         $relationship = $this->relationship();
         $settings = $this->settings();
         $warehouseId = (int) $settings->default_warehouse_id;
         $qtyExpr = "(SELECT COALESCE(ws.quantity, 0) FROM warehouse_stock ws WHERE ws.product_id = products.id AND ws.warehouse_id = {$warehouseId})";
 
+        // Yeni Ürünler: işletmenin yeni ürün süresi içinde eklenenler; varsayılan sıralama en yeni önce.
+        $onlyNew = (bool) ($filters['yeni'] ?? false);
+        if ($onlyNew && empty($filters['sort'])) {
+            $filters['sort'] = 'new';
+        }
         $selectedCategories = array_map('intval', $filters['category']);
         $selectedBrands = array_map('intval', $filters['brand']);
         // Ana sayfadaki elle seçilmiş bir vitrinin "Tümünü gör" bağlantısı.
@@ -66,7 +73,8 @@ class CatalogController extends Controller
                 $like = addcslashes($term, '%_\\');
                 $q->where(fn ($q) => $q->where('name', 'like', "%{$like}%")->orWhere('sku', 'like', "{$like}%")->orWhere('barcode', $term));
             })
-            ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"));
+            ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"))
+            ->when($onlyNew, fn ($q) => NewProducts::apply($q, $settings));
 
         $products = $base()
             ->with(['unit', 'brand', 'taxRate', 'primaryImage'])
@@ -99,12 +107,20 @@ class CatalogController extends Controller
         $brands = Brand::where('is_active', true)->whereIn('id', $brandCounts->keys()->merge($selectedBrands))->orderBy('name')->get(['id', 'name'])
             ->each(fn ($b) => $b->setAttribute('product_count', (int) ($brandCounts[$b->id] ?? 0)));
 
+        // Yeni ürün yoksa boş sayfa yerine en son eklenen ürünler önerilir.
+        $latest = $onlyNew && $products->total() === 0
+            ? CartService::orderableProducts()->with(['unit', 'brand', 'taxRate', 'primaryImage'])
+                ->select('products.*')->selectRaw("COALESCE({$qtyExpr}, 0) as available_qty")->latest('id')->limit(12)->get()
+            : collect();
+
         $openRequests = ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)
-            ->whereIn('product_id', $products->pluck('id'))->pluck('product_id')->flip();
+            ->whereIn('product_id', $products->pluck('id')->merge($latest->pluck('id')))->pluck('product_id')->flip();
 
         return view('dealer.catalog.index', [
             'products' => $products,
-            'prices' => $this->prices->resolveMany($relationship, $products->getCollection()),
+            'latest' => $latest,
+            'onlyNew' => $onlyNew,
+            'prices' => $this->prices->resolveMany($relationship, $products->getCollection()->merge($latest)),
             'filters' => $filters,
             'selectedCategories' => $selectedCategories,
             'selectedBrands' => $selectedBrands,
