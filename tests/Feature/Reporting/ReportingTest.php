@@ -280,6 +280,6 @@ class ReportingTest extends TestCase
         $monthly = $this->inTenant($business, fn () => $metrics->dealerMonthly($rel->id));
         $this->assertCount(12, $monthly['values']);
         $this->assertSame([60.0, 144.0], array_slice($monthly['values'], -2));
-        $this->actingAs($rel->dealer->user, 'dealer')->get(route('dealer.dashboard'))->assertOk()->assertSee('Aylık sipariş tutarı');
+        $this->actingAs($rel->dealer->user, 'dealer')->get(route('dealer.dashboard'))->assertOk()->assertSee('Aylık alımlarınız');
     }
 }
