@@ -1,7 +1,6 @@
 @php
     // Yol haritası: docs/13-magaza-mimarisi.md §13. Her aşama tamamlandıkça buradan kalkar ve menüye eklenir.
     $upcoming = [
-        ['package', 'Katalog', 'Kategori, marka, ürün, varyant, görsel ve fiyatlar'],
         ['layers', 'Stok', 'Mal girişi, sayım ve kritik stok uyarıları'],
         ['image', 'Vitrin', 'Ana sayfa, banner\'lar, kategori ve ürün sayfaları'],
         ['cart', 'Siparişler ve ödeme', 'iyzico, kapıda ödeme (Eskişehir) ve SMS doğrulama'],

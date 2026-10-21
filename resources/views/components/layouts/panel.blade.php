@@ -73,6 +73,11 @@
             ['items' => [
                 ['label' => 'Genel Bakış', 'route' => 'store_admin.dashboard', 'icon' => 'home', 'active' => 'store_admin.dashboard'],
             ]],
+            ['label' => 'Katalog', 'items' => [
+                ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],
+                ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
+                ['label' => 'Markalar', 'route' => 'store_admin.brands.index', 'icon' => 'layers', 'active' => 'store_admin.brands.*'],
+            ]],
             ['label' => 'Yönetim', 'items' => array_values(array_filter([
                 $user->is_super ? ['label' => 'Yöneticiler', 'route' => 'store_admin.admins.index', 'icon' => 'users', 'active' => 'store_admin.admins.*'] : null,
                 ['label' => 'İşlem Geçmişi', 'route' => 'store_admin.activity', 'icon' => 'list', 'active' => 'store_admin.activity'],

@@ -32,6 +32,43 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::delete('iki-adimli-dogrulama', [Admin\TwoFactorController::class, 'disable'])->name('two-factor.disable');
             $accountRoutes();
 
+            // Katalog (M2)
+            Route::prefix('katalog')->group(function () {
+                Route::get('urunler', [Admin\ProductController::class, 'index'])->name('products.index');
+                Route::get('urunler/yeni', [Admin\ProductController::class, 'create'])->name('products.create');
+                Route::post('urunler', [Admin\ProductController::class, 'store'])->name('products.store');
+                Route::post('urunler/toplu', [Admin\ProductController::class, 'bulk'])->name('products.bulk');
+                Route::get('urunler/ice-aktar', [Admin\ProductImportController::class, 'show'])->name('products.import');
+                Route::post('urunler/ice-aktar', [Admin\ProductImportController::class, 'store'])->middleware('throttle:10,1')->name('products.import.store');
+                Route::get('urunler/ice-aktar/sablon', [Admin\ProductImportController::class, 'template'])->name('products.import.template');
+                Route::get('urunler/{storeProduct}', [Admin\ProductController::class, 'edit'])->name('products.edit');
+                Route::put('urunler/{storeProduct}', [Admin\ProductController::class, 'update'])->name('products.update');
+                Route::delete('urunler/{storeProduct}', [Admin\ProductController::class, 'destroy'])->name('products.destroy');
+
+                Route::post('urunler/{storeProduct}/varyantlar', [Admin\ProductVariantController::class, 'store'])->name('variants.store');
+                Route::put('varyantlar/{storeVariant}', [Admin\ProductVariantController::class, 'update'])->name('variants.update');
+                Route::delete('varyantlar/{storeVariant}', [Admin\ProductVariantController::class, 'destroy'])->name('variants.destroy');
+
+                Route::post('urunler/{storeProduct}/gorseller', [Admin\ProductImageController::class, 'store'])->name('images.store');
+                Route::put('gorseller/{storeImage}/ana', [Admin\ProductImageController::class, 'primary'])->name('images.primary');
+                Route::delete('gorseller/{storeImage}', [Admin\ProductImageController::class, 'destroy'])->name('images.destroy');
+                Route::get('gorseller/{storeImage}', [Admin\ProductImageController::class, 'show'])->name('images.show');
+
+                Route::get('kategoriler', [Admin\CategoryController::class, 'index'])->name('categories.index');
+                Route::post('kategoriler', [Admin\CategoryController::class, 'store'])->name('categories.store');
+                Route::put('kategoriler/{storeCategory}', [Admin\CategoryController::class, 'update'])->name('categories.update');
+                Route::put('kategoriler/{storeCategory}/sira', [Admin\CategoryController::class, 'move'])->name('categories.move');
+                Route::delete('kategoriler/{storeCategory}', [Admin\CategoryController::class, 'destroy'])->name('categories.destroy');
+
+                Route::get('markalar', [Admin\BrandController::class, 'index'])->name('brands.index');
+                Route::post('markalar', [Admin\BrandController::class, 'store'])->name('brands.store');
+                Route::put('markalar/{storeBrand}', [Admin\BrandController::class, 'update'])->name('brands.update');
+                Route::delete('markalar/{storeBrand}', [Admin\BrandController::class, 'destroy'])->name('brands.destroy');
+                Route::post('markalar/{storeBrand}/logo', [Admin\BrandController::class, 'logo'])->name('brands.logo');
+                Route::delete('markalar/{storeBrand}/logo', [Admin\BrandController::class, 'removeLogo'])->name('brands.logo.destroy');
+                Route::get('markalar/{storeBrand}/logo', [Admin\ProductImageController::class, 'brandLogo'])->name('brands.logo.show');
+            });
+
             // Yönetici hesapları: yalnızca süper admin
             Route::middleware('store.super')->group(function () {
                 Route::get('yoneticiler', [Admin\AdminController::class, 'index'])->name('admins.index');

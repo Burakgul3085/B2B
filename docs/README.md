@@ -16,4 +16,5 @@
 | [12-revizyonlar.md](12-revizyonlar.md) | Sunum öncesi revizyonlar: raporlar, hesap ve e-posta kurgusu, bayilik başvurusu |
 | [13-magaza-mimarisi.md](13-magaza-mimarisi.md) | Mağaza (B2C) mimarisi ve tek toptancı revizyonu: kararlar, adresler, yetkiler, veri modeli, ödeme/kapıda ödeme/SMS/fatura/kargo, aşama planı (M0–M10) |
 | [14-magaza-m1-raporu.md](14-magaza-m1-raporu.md) | Mağaza M1: tek toptancı kilidi, alan adına göre ayrım, mağaza yöneticileri (süper admin), 2FA, işlem geçmişi, modül sınırı testi |
+| [15-magaza-m2-raporu.md](15-magaza-m2-raporu.md) | Mağaza M2: katalog — kategori ağacı, marka/logo, ürün ve seçenekler, KDV dahil fiyat, görseller, SEO, Excel ile aktarma |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

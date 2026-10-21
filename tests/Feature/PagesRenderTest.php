@@ -18,6 +18,9 @@ use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
 use App\Models\Store\StoreAdmin;
+use App\Models\Store\StoreBrand;
+use App\Models\Store\StoreCategory;
+use App\Models\Store\StoreProduct;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\VariantGroup;
@@ -68,6 +71,27 @@ class PagesRenderTest extends TestCase
             $this->get(route($name))->assertOk()->assertSee(config('store.name'))->assertDontSee('B2B Platform');
         }
         $this->get(route('store_admin.admins.edit', $admin))->assertOk()->assertSee('Ayşe Yönetici');
+
+        // Katalog (M2): boş ve dolu hâlleri
+        $this->get(route('store_admin.products.index'))->assertOk()->assertSee('Henüz ürün yok');
+        $root = StoreCategory::create(['name' => 'Kalemler', 'slug' => 'kalemler']);
+        $child = StoreCategory::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'parent_id' => $root->id]);
+        $brand = StoreBrand::create(['name' => 'Pensan', 'slug' => 'pensan']);
+        $single = StoreProduct::create(['name' => 'Defter', 'slug' => 'defter', 'category_id' => $root->id]);
+        $single->variants()->create(['sku' => 'D-1', 'price' => '10.00', 'vat_rate' => '20']);
+        $multi = StoreProduct::create(['name' => 'Jel Kalem 0.7', 'slug' => 'jel-kalem-07', 'category_id' => $child->id, 'brand_id' => $brand->id, 'variant_name' => 'Renk', 'is_published' => true]);
+        $multi->variants()->create(['sku' => 'J-M', 'option_value' => 'Mavi', 'price' => '24.90', 'compare_at_price' => '29.90', 'vat_rate' => '20']);
+        $multi->variants()->create(['sku' => 'J-S', 'option_value' => 'Siyah', 'price' => '26.90', 'vat_rate' => '20']);
+
+        $this->get(route('store_admin.products.index'))->assertOk()->assertSee('Jel Kalem 0.7')->assertSee('Kalemler › Jel Kalem');
+        $this->get(route('store_admin.products.create'))->assertOk();
+        $this->get(route('store_admin.products.edit', $single))->assertOk()->assertSee('Fiyat ve stok kodu');
+        $this->get(route('store_admin.products.edit', $multi))->assertOk()->assertSee('Renk seçenekleri')->assertSee('Siyah');
+        $this->get(route('store_admin.categories.index'))->assertOk()->assertSee('Jel Kalem');
+        $this->get(route('store_admin.categories.index', ['duzenle' => $child->id]))->assertOk()->assertSee('Düzenle: Jel Kalem');
+        $this->get(route('store_admin.brands.index'))->assertOk()->assertSee('Pensan');
+        $this->get(route('store_admin.products.import'))->assertOk();
+        $this->get(route('store_admin.activity'))->assertOk();
     }
 
     public function test_business_pages_render(): void
