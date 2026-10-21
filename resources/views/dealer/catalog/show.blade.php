@@ -10,20 +10,24 @@
 
     <div class="grid gap-6 lg:grid-cols-5">
         <div class="lg:col-span-3" x-data="{ active: 0 }">
-            {{-- Görsel kendi oranında, çerçevesiz gösterilir: arkasında boş alan kalmaz. --}}
-            @forelse ($product->images as $i => $image)
-                <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
-                    class="mx-auto block h-auto max-h-[75vh] w-auto max-w-full rounded-2xl shadow-sm">
-            @empty
+            {{-- Görsel beyaz bir sahnede, kırpılmadan ortalanır; beyaz fonu sahneyle birleşir (bkz. x-product-image). --}}
+            @if ($product->images->isNotEmpty())
+                <div class="isolate flex h-[min(70vh,36rem)] items-center justify-center rounded-2xl border border-line bg-white p-6 shadow-xs sm:p-10">
+                    @foreach ($product->images as $i => $image)
+                        <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
+                            class="max-h-full max-w-full object-contain mix-blend-multiply">
+                    @endforeach
+                </div>
+            @else
                 <div class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-line bg-white">
                     <x-icon name="image" class="size-12 text-slate-300" />
                 </div>
-            @endforelse
+            @endif
             @if ($product->images->count() > 1)
                 <div class="mt-3 flex gap-2">
                     @foreach ($product->images as $i => $image)
-                        <button type="button" @click="active = {{ $i }}" class="size-16 overflow-hidden rounded-lg border-2" :class="active === {{ $i }} ? 'border-primary' : 'border-line'" aria-label="Görsel {{ $i + 1 }}">
-                            <img src="{{ route('dealer.images.show', $image) }}" alt="" class="size-full object-cover">
+                        <button type="button" @click="active = {{ $i }}" class="flex size-16 items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1" :class="active === {{ $i }} ? 'border-primary' : 'border-line'" aria-label="Görsel {{ $i + 1 }}">
+                            <img src="{{ route('dealer.images.show', $image) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply">
                         </button>
                     @endforeach
                 </div>

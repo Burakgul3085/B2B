@@ -66,10 +66,10 @@
                                             <div class="flex items-center gap-3">
                                                 @if ($product->primaryImage)
                                                     {{-- Küçük görsele tıklanınca büyük önizleme açılır --}}
-                                                    <button type="button" class="group/thumb relative size-10 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-line bg-slate-50 transition hover:border-primary hover:ring-2 hover:ring-primary/20"
+                                                    <button type="button" class="group/thumb relative flex size-10 shrink-0 cursor-zoom-in items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-0.5 transition hover:border-primary hover:ring-2 hover:ring-primary/20"
                                                         @click="preview = {{ Js::from(['src' => route('business.images.show', $product->primaryImage), 'name' => $product->name, 'sku' => $product->sku, 'url' => route('business.products.show', $product)]) }}"
                                                         aria-label="{{ $product->name }} görselini büyüt">
-                                                        <img src="{{ route('business.images.show', $product->primaryImage) }}" alt="" class="size-full object-cover" loading="lazy">
+                                                        <img src="{{ route('business.images.show', $product->primaryImage) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
                                                         <span class="absolute inset-0 flex items-center justify-center bg-slate-900/40 text-white opacity-0 transition group-hover/thumb:opacity-100"><x-icon name="search" class="size-4" /></span>
                                                     </button>
                                                 @else

@@ -17,8 +17,8 @@
                     @foreach ($summary['lines'] as $line)
                         @php $p = $line['product']; @endphp
                         <li @class(['flex flex-wrap gap-4 px-5 py-4', 'bg-danger-soft/40' => $line['issue']])>
-                            <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-slate-50">
-                                @if ($p->primaryImage)<img src="{{ route('dealer.images.show', $p->primaryImage) }}" alt="" class="size-full object-cover">@else<x-icon name="image" class="size-5 text-slate-300" />@endif
+                            <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-1">
+                                @if ($p->primaryImage)<img src="{{ route('dealer.images.show', $p->primaryImage) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply">@else<x-icon name="image" class="size-5 text-slate-300" />@endif
                             </div>
                             <div class="min-w-0 flex-1">
                                 <a href="{{ route('dealer.catalog.show', $p) }}" class="font-medium hover:text-primary">{{ $p->name }}</a>

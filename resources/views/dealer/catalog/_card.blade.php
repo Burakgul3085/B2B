@@ -11,7 +11,7 @@
 @endphp
 <article class="group flex flex-col rounded-2xl border border-line bg-white p-3 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-slate-900/5">
     <div class="relative">
-        <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl bg-slate-50">
+        <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl bg-white">
             @if ($product->primaryImage)
                 <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" zoom />
             @else

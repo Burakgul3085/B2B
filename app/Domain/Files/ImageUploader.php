@@ -23,7 +23,7 @@ class ImageUploader
     private const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 
     /** @return string private disk üzerindeki yol */
-    public function store(UploadedFile $file, string $directory, int $maxEdge = 1600, int $maxBytes = self::MAX_BYTES, int $quality = 82): string
+    public function store(UploadedFile $file, string $directory, int $maxEdge = 1600, int $maxBytes = self::MAX_BYTES, int $quality = 82, bool $trimWhitespace = false, bool $sharpen = false): string
     {
         if (! $file->isValid() || $file->getSize() > $maxBytes) {
             throw new DomainException('Görsel en fazla '.intdiv($maxBytes, 1024 * 1024).' MB olabilir.');
@@ -51,11 +51,21 @@ class ImageUploader
             throw new DomainException('Görsel okunamadı; dosya bozuk olabilir.');
         }
 
+        if ($trimWhitespace && ($box = $this->contentBox($source)) !== null) {
+            $source = imagecrop($source, $box) ?: $source;
+            [$width, $height] = [imagesx($source), imagesy($source)];
+        }
+
         $scale = min(1, $maxEdge / max($width, $height));
         $target = imagecreatetruecolor(max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)));
         imagealphablending($target, false);
         imagesavealpha($target, true);
         imagecopyresampled($target, $source, 0, 0, 0, 0, imagesx($target), imagesy($target), $width, $height);
+
+        // Küçültme dokuyu (deri, kumaş, baskı) bir miktar yumuşatır; hafif netleştirme bunu geri kazandırır.
+        if ($sharpen && $scale < 0.9) {
+            imageconvolution($target, [[0, -0.5, 0], [-0.5, 3, -0.5], [0, -0.5, 0]], 1, 0);
+        }
 
         ob_start();
         imagewebp($target, null, $quality);
@@ -65,6 +75,81 @@ class ImageUploader
         Storage::disk('local')->put($path, $binary);
 
         return $path;
+    }
+
+    /**
+     * Ürünün çevresindeki beyaz (veya saydam) boşluğu bulur; kırpılacak alanı döndürür, gerek yoksa null.
+     * Yalnızca neredeyse saf beyaz piksel boşluk sayılır: açık renkli ürünler ve gölgeler korunur.
+     * Hız için tarama küçültülmüş kopyada yapılır, sonuç asıl boyuta ölçeklenir ve küçük bir pay bırakılır.
+     *
+     * @return array{x: int, y: int, width: int, height: int}|null
+     */
+    private function contentBox(GdImage $image): ?array
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $ratio = min(1, 400 / max($width, $height));
+        $w = max(1, (int) round($width * $ratio));
+        $h = max(1, (int) round($height * $ratio));
+
+        $probe = imagecreatetruecolor($w, $h);
+        imagealphablending($probe, false);
+        imagesavealpha($probe, true);
+        imagecopyresampled($probe, $image, 0, 0, 0, 0, $w, $h, $width, $height);
+
+        $rows = array_fill(0, $h, 0);
+        $cols = array_fill(0, $w, 0);
+        for ($y = 0; $y < $h; $y++) {
+            for ($x = 0; $x < $w; $x++) {
+                $c = imagecolorat($probe, $x, $y);
+                $transparent = (($c >> 24) & 0x7F) > 100;
+                $white = (($c >> 16) & 0xFF) >= 243 && (($c >> 8) & 0xFF) >= 243 && ($c & 0xFF) >= 243;
+                if (! $transparent && ! $white) {
+                    $rows[$y]++;
+                    $cols[$x]++;
+                }
+            }
+        }
+
+        // Tek tük JPEG gürültüsü içerik sayılmaz.
+        $isContent = fn (int $count, int $length) => $count >= max(2, $length * 0.005);
+        $top = $this->firstIndex($rows, fn ($n) => $isContent($n, $w));
+        if ($top === null) {
+            return null; // tamamen beyaz görsel
+        }
+        $bottom = $this->firstIndex(array_reverse($rows), fn ($n) => $isContent($n, $w));
+        $left = $this->firstIndex($cols, fn ($n) => $isContent($n, $h));
+        $right = $this->firstIndex(array_reverse($cols), fn ($n) => $isContent($n, $h));
+
+        // Asıl boyuta ölçekle; kenara yapışmasın diye içerik boyutunun %3'ü kadar pay bırak.
+        $x1 = $left / $ratio;
+        $y1 = $top / $ratio;
+        $x2 = ($w - $right) / $ratio;
+        $y2 = ($h - $bottom) / $ratio;
+        $pad = 0.03 * max($x2 - $x1, $y2 - $y1);
+        $x1 = (int) max(0, floor($x1 - $pad));
+        $y1 = (int) max(0, floor($y1 - $pad));
+        $x2 = (int) min($width, ceil($x2 + $pad));
+        $y2 = (int) min($height, ceil($y2 + $pad));
+
+        // Kazanç önemsizse dokunma.
+        if (($x2 - $x1) * ($y2 - $y1) > 0.92 * $width * $height) {
+            return null;
+        }
+
+        return ['x' => $x1, 'y' => $y1, 'width' => $x2 - $x1, 'height' => $y2 - $y1];
+    }
+
+    /** @param  list<int>  $counts */
+    private function firstIndex(array $counts, callable $matches): ?int
+    {
+        foreach ($counts as $i => $count) {
+            if ($matches($count)) {
+                return $i;
+            }
+        }
+
+        return null;
     }
 
     public function delete(?string $path): void

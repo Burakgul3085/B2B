@@ -254,7 +254,10 @@ class ProductService
             throw new DomainException('Bir ürüne en fazla '.self::MAX_IMAGES.' görsel eklenebilir.');
         }
 
-        $path = $this->images->store($file, 'businesses/'.$this->tenant->businessId().'/products/'.$product->id);
+        // Beyaz kenarlar kırpılır (her ürün kartı eşit doldurur); detay sayfasında doku net kalsın diye
+        // daha büyük ve daha yüksek kalitede saklanır.
+        $path = $this->images->store($file, 'businesses/'.$this->tenant->businessId().'/products/'.$product->id,
+            maxEdge: 2000, quality: 90, trimWhitespace: true, sharpen: true);
 
         return ProductImage::create([
             'product_id' => $product->id,

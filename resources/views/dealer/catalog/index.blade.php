@@ -180,7 +180,7 @@
                     @foreach ($products as $product)
                         @php $level = StockLevel::for((string) $product->available_qty, (string) $product->critical_stock_level, $settings->stock_display, $product->unit->name); @endphp
                         <article class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                            <a href="{{ route('dealer.catalog.show', $product) }}" class="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
+                            <a href="{{ route('dealer.catalog.show', $product) }}" class="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
                                 @if ($product->primaryImage)
                                     <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" />
                                 @else
