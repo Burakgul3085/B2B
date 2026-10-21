@@ -10,13 +10,28 @@
 
     <div class="grid gap-6 lg:grid-cols-5">
         <div class="lg:col-span-3" x-data="{ active: 0 }">
-            {{-- Görsel beyaz bir sahnede, kırpılmadan ortalanır; beyaz fonu sahneyle birleşir (bkz. x-product-image). --}}
+            {{--
+                Görsel beyaz bir sahnede, kırpılmadan ortalanır; beyaz fonu sahneyle birleşir (bkz. x-product-image).
+                Fareyle üzerine gelince imlecin olduğu nokta büyütülür, çıkınca normale döner (dokunmatikte kapalı).
+            --}}
             @if ($product->images->isNotEmpty())
-                <div class="isolate flex h-[min(70vh,36rem)] items-center justify-center rounded-2xl border border-line bg-white p-6 shadow-xs sm:p-10">
-                    @foreach ($product->images as $i => $image)
-                        <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
-                            class="max-h-full max-w-full object-contain mix-blend-multiply">
-                    @endforeach
+                <div class="relative isolate h-[min(70vh,36rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-xs"
+                    x-data="{ zoom: false, x: 50, y: 50 }"
+                    :class="zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'"
+                    @pointerenter="if ($event.pointerType === 'mouse') zoom = true"
+                    @pointerleave="zoom = false"
+                    @pointermove="if ($event.pointerType === 'mouse') { const r = $el.getBoundingClientRect(); x = ($event.clientX - r.left) / r.width * 100; y = ($event.clientY - r.top) / r.height * 100; zoom = true }">
+                    <div class="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-300 ease-out sm:p-10"
+                        :style="`transform-origin: ${x}% ${y}%; transform: scale(${zoom ? 2.2 : 1})`">
+                        @foreach ($product->images as $i => $image)
+                            <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
+                                class="max-h-full max-w-full object-contain mix-blend-multiply">
+                        @endforeach
+                    </div>
+                    <span class="pointer-events-none absolute right-3 bottom-3 hidden items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-muted shadow-sm ring-1 ring-line transition-opacity duration-200 md:inline-flex"
+                        :class="zoom && 'opacity-0'">
+                        <x-icon name="search" class="size-3.5" /> Yakınlaştırmak için üzerine gelin
+                    </span>
                 </div>
             @else
                 <div class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-line bg-white">
