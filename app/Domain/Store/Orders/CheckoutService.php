@@ -7,7 +7,9 @@ use App\Domain\Auth\Area;
 use App\Domain\Store\Cart\CartLine;
 use App\Domain\Store\Cart\CartSummary;
 use App\Domain\Store\Customers\AddressService;
+use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Support\Decimal;
 use App\Models\Store\District;
@@ -15,6 +17,7 @@ use App\Models\Store\Province;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreCustomerAddress;
+use App\Models\Store\StoreDiscount;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreSetting;
@@ -46,6 +49,8 @@ class CheckoutService
         private OrderService $orders,
         private OrderMailer $mailer,
         private AuditLogger $audit,
+        private DiscountService $discounts,
+        private AdminNotifier $notifier,
     ) {}
 
     public function cardAvailable(): bool
@@ -58,7 +63,7 @@ class CheckoutService
      *
      * @throws ValidationException|DomainException
      */
-    public function validate(array $input, ?StoreCustomer $customer, CartSummary $summary): array
+    public function validate(array $input, ?StoreCustomer $customer, CartSummary $summary, ?string $couponCode = null): array
     {
         if ($summary->isEmpty()) {
             throw new DomainException('Sepetiniz boş.');
@@ -120,13 +125,25 @@ class CheckoutService
         $district = District::findOrFail($shipping['district_id']);
         $subtotal = $summary->subtotal();
 
-        // Teslimat yöntemi
-        $options = $this->delivery->options($province->id, $district->id, $subtotal);
+        // İndirim (kupon veya kampanya): kişiye bağlı koşullar burada, e-posta ve telefonla denetlenir.
+        ['applied' => $discount, 'couponError' => $couponError] = $this->discounts->evaluate($summary, $couponCode, $email, $shipping['phone']);
+        if ($couponError) {
+            throw ValidationException::withMessages(['coupon' => $couponError.' Kuponu sepetinizden kaldırarak devam edebilirsiniz.']);
+        }
+        $discountTotal = $discount?->amount ?? '0.00';
+        $net = bcsub($subtotal, $discountTotal, 2);
+
+        // Teslimat yöntemi (ücretsiz kargo sınırı indirimli tutara göre)
+        $options = $this->delivery->options($province->id, $district->id, $net);
         $deliveryMethod = (string) ($input['delivery_method'] ?? '');
         if (! array_key_exists($deliveryMethod, $options)) {
             throw ValidationException::withMessages(['delivery_method' => 'Bu adres için geçerli bir teslimat yöntemi seçin.']);
         }
         $shippingFee = $options[$deliveryMethod];
+        $shippingWaived = '0.00';
+        if ($discount?->freeShipping) {
+            [$shippingWaived, $shippingFee] = [$shippingFee, '0.00'];
+        }
 
         // Ödeme yöntemi
         $paymentMethod = (string) ($input['payment_method'] ?? '');
@@ -137,7 +154,7 @@ class CheckoutService
             }
         } elseif ($paymentMethod === 'cod') {
             $codFee = $this->cod->fee();
-            $total = bcadd(bcadd($subtotal, $shippingFee, 2), $codFee, 2);
+            $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
             if ($refusal = $this->cod->refusal($deliveryMethod, $province->id, $district->id, $total, $shipping['phone'])) {
                 throw ValidationException::withMessages(['payment_method' => $refusal]);
             }
@@ -145,7 +162,8 @@ class CheckoutService
             throw ValidationException::withMessages(['payment_method' => 'Ödeme yöntemi seçin.']);
         }
 
-        $lines = array_map(fn (CartLine $l) => [
+        // Satır KDV'si indirimli satır tutarı üzerinden hesaplanır.
+        $lines = array_map(fn (CartLine $l, int $i) => [
             'variant_id' => $l->variant->id,
             'product_id' => $l->product->id,
             'product_name' => $l->product->name,
@@ -155,10 +173,11 @@ class CheckoutService
             'vat_rate' => (string) $l->variant->vat_rate,
             'quantity' => $l->quantity(),
             'line_total' => $l->total(),
-            'vat_amount' => $l->vat(),
-        ], $summary->orderable());
+            'discount_amount' => $discount?->shares[$i] ?? '0.00',
+            'vat_amount' => self::vatOf(bcsub($l->total(), $discount?->shares[$i] ?? '0.00', 2), (string) $l->variant->vat_rate),
+        ], $summary->orderable(), array_keys($summary->orderable()));
 
-        $total = bcadd(bcadd($subtotal, $shippingFee, 2), $codFee, 2);
+        $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
         $vatTotal = array_reduce($lines, fn ($s, $l) => bcadd($s, $l['vat_amount'], 2), '0.00');
         $vatTotal = bcadd($vatTotal, $this->includedVat(bcadd($shippingFee, $codFee, 2)), 2);
 
@@ -182,6 +201,11 @@ class CheckoutService
             'note' => $note ?: null,
             'lines' => $lines,
             'subtotal' => $subtotal,
+            'discount_total' => $discountTotal,
+            'discount' => $discount ? [
+                'id' => $discount->discount->id, 'code' => $discount->discount->code, 'name' => $discount->label(),
+                'amount' => $discountTotal, 'shipping_waived' => $shippingWaived,
+            ] : null,
             'shipping_fee' => $shippingFee,
             'cod_fee' => $codFee,
             'total' => $total,
@@ -199,7 +223,8 @@ class CheckoutService
      */
     public function place(array $draft, ?StoreCustomer $customer, StoreCart $cart, ?string $ip, ?string $userAgent): StoreOrder
     {
-        $order = DB::transaction(function () use ($draft, $customer, $cart, $ip, $userAgent) {
+        $sold = collect();
+        $order = DB::transaction(function () use ($draft, $customer, $cart, $ip, $userAgent, &$sold) {
             $shippingAddressText = implode(', ', array_filter([$draft['shipping']['neighborhood'], $draft['shipping']['address']]))
                 .' — '.$draft['shipping']['district'].' / '.$draft['shipping']['province'];
             $billingName = $draft['billing']['type'] === 'corporate' ? $draft['billing']['name'] : $draft['billing']['name_fallback'];
@@ -232,6 +257,10 @@ class CheckoutService
                 'billing_tax_number' => $draft['billing']['tax_number'],
                 'billing_address' => $draft['billing']['address'] ?? $shippingAddressText,
                 'subtotal' => $draft['subtotal'],
+                'discount_total' => $draft['discount_total'] ?? '0.00',
+                'discount_id' => $draft['discount']['id'] ?? null,
+                'discount_code' => $draft['discount']['code'] ?? null,
+                'discount_name' => $draft['discount']['name'] ?? null,
                 'shipping_fee' => $draft['shipping_fee'],
                 'cod_fee' => $draft['cod_fee'],
                 'total' => $draft['total'],
@@ -243,6 +272,7 @@ class CheckoutService
             ]);
             $order->forceFill(['order_no' => 'YB'.(100000 + $order->id)])->save();
             $order->items()->createMany($draft['lines']);
+            $this->redeem($order, $draft);
 
             $quantities = [];
             foreach ($draft['lines'] as $line) {
@@ -250,7 +280,7 @@ class CheckoutService
             }
 
             if ($isCod) {
-                $this->stock->sell($quantities, "order:{$order->id}", 'store_order', $order->id);
+                $sold = $this->stock->sell($quantities, "order:{$order->id}", 'store_order', $order->id);
                 $order->payments()->create(['driver' => 'cod', 'status' => 'initialized', 'amount' => $order->total]);
                 $cart->items()->delete();
             } else {
@@ -277,9 +307,38 @@ class CheckoutService
 
         if ($order->payment_method === 'cod') {
             $this->mailer->placed($order);
+            $this->notifier->newOrder($order);
+            $this->notifier->lowStock($sold);
         }
 
         return $order;
+    }
+
+    /**
+     * Kupon/kampanya kullanımını kaydeder. Kullanım sınırları indirim satırı kilitlenerek yeniden denetlenir;
+     * bu arada sınır dolduysa sipariş oluşmaz.
+     *
+     * @throws DomainException
+     */
+    private function redeem(StoreOrder $order, array $draft): void
+    {
+        if (empty($draft['discount'])) {
+            return;
+        }
+        $discount = StoreDiscount::whereKey($draft['discount']['id'])->lockForUpdate()->first();
+        if (! $discount || $reason = $this->discounts->refusal($discount, $draft['subtotal'], $draft['email'], $draft['phone'], $order->id)) {
+            throw new DomainException(($reason ?? 'Kupon artık geçerli değil.').' Sepetinizi kontrol edip yeniden deneyin.');
+        }
+        $discount->redemptions()->create([
+            'order_id' => $order->id, 'email' => $draft['email'], 'phone' => $draft['phone'],
+            'amount' => bcadd($draft['discount']['amount'], $draft['discount']['shipping_waived'], 2),
+        ]);
+    }
+
+    /** KDV dahil tutarın içindeki KDV: tutar × oran / (100 + oran), yarım yukarı yuvarlanır. */
+    public static function vatOf(string $amount, string $rate): string
+    {
+        return Decimal::round(bcdiv(bcmul($amount, $rate, 6), bcadd('100', $rate, 6), 6), 2);
     }
 
     /** Fiyata dahil KDV (hizmet bedelleri için %20). */
@@ -324,6 +383,7 @@ class CheckoutService
             'lines' => array_map(fn ($l) => ['name' => $l['product_name'].($l['option_label'] ? " ({$l['option_label']})" : ''), 'quantity' => $l['quantity'], 'total' => $l['line_total']], $draft['lines']),
             'shipping_fee' => $draft['shipping_fee'],
             'cod_fee' => $draft['cod_fee'],
+            'discount' => ($draft['discount_total'] ?? '0.00') !== '0.00' ? ['name' => $draft['discount']['name'], 'amount' => $draft['discount_total']] : null,
             'total' => $draft['total'],
             'payment' => StoreOrder::PAYMENT_METHODS[$draft['payment_method']],
             'delivery' => StoreOrder::DELIVERY_METHODS[$draft['delivery_method']],

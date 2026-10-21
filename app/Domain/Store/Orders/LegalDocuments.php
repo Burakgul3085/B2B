@@ -35,6 +35,9 @@ class LegalDocuments
     {
         $s = StoreSetting::values();
         $lines = implode("\n", array_map(fn ($l) => "- {$l['name']} × {$l['quantity']} — ".Money::format($l['total']), $order['lines']));
+        if (! empty($order['discount'])) {
+            $lines .= "\n- İndirim (".str_replace(['*', '_', '#', '[', ']', '<', '>'], ' ', $order['discount']['name']).') — −'.Money::format($order['discount']['amount']);
+        }
         $values = [
             'SATICI_UNVAN' => $s['company_title'] ?: config('store.name'),
             'SATICI_ADRES' => $s['address'] ?: '—',

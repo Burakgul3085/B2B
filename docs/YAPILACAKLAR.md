@@ -1,6 +1,6 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (Mağaza M7 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 21.10.2026 (Mağaza M8 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
@@ -12,10 +12,11 @@ M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico 
 - [ ] **Telefonla gelen iade talebi.** Yöneticinin müşteri adına iade talebi açması yok; talep yalnızca müşterinin sipariş sayfasından açılıyor.
 - [ ] **İadeden bağımsız para iadesi.** Ürün iadesi olmadan kısmi para iadesi (ör. eksik gönderim, gönül alma) yok; yalnızca iade talebi ve sipariş iptaliyle yapılıyor.
 
-### M8 — Kampanya, kupon, rapor
-- [ ] Kampanya ve kupon. Sepette kupon alanı yok; altyapı da henüz kurulmadı.
-- [ ] Mağaza raporları: satış, ürün, ödeme türü, kapıda ödeme tahsilatları.
-- [ ] Yönetici bildirimleri: yeni siparişte e-posta, kritik stok uyarısı.
+### M8'den kalanlar
+M8 tamamlandı (kampanya ve kupon, raporlar, yönetici bildirimleri). Kalanlar:
+- [ ] Kategori veya ürüne özel kupon (şimdilik kuponlar tüm sepete uygulanıyor).
+- [ ] Toplu kupon kodu üretme.
+- [ ] Kupon kullanım sınırı için eşzamanlılık testi (kilit var; ayrı paralel test yazılmadı).
 
 ### M9 — Yasal uyum ve yayın
 - [ ] Çerez onay bandı ve KVKK sayfalarının vitrine bağlanması.

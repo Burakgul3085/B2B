@@ -71,6 +71,7 @@
                 </ul>
                 <dl class="space-y-2 border-t border-line px-5 py-4 text-sm">
                     <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
+                    @if (bccomp((string) $order->discount_total, '0', 2) > 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat ({{ StoreOrder::DELIVERY_METHODS[$order->delivery_method] }})</dt><dd class="tabular-nums">{{ bccomp((string) $order->shipping_fee, '0', 2) > 0 ? Money::format($order->shipping_fee) : 'Ücretsiz' }}</dd></div>
                     @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
                     <div class="flex justify-between border-t border-line pt-3 text-base font-bold"><dt>Toplam</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>

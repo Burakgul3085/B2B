@@ -5,10 +5,12 @@ namespace App\Domain\Store\Orders;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\RefundService;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreCodBlock;
+use App\Models\Store\StoreDiscountRedemption;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreStockMovement;
 use DomainException;
@@ -28,12 +30,14 @@ class OrderService
         private CurrentActor $actor,
         private OrderMailer $mailer,
         private RefundService $refunds,
+        private AdminNotifier $notifier,
     ) {}
 
     /** Kart ödemesi doğrulandı: ayrılan stok satışa çevrilir. */
     public function markPaid(StoreOrder $order): StoreOrder
     {
-        $order = DB::transaction(function () use ($order) {
+        $sold = collect();
+        $order = DB::transaction(function () use ($order, &$sold) {
             $order = $this->lock($order);
             if ($order->status !== 'pending_payment') {
                 return $order; // ikinci geri dönüş / zamanlanmış kontrol: tekrar uygulanmaz
@@ -41,7 +45,7 @@ class OrderService
             // Ayırma süresi dolmuş ve stok bu arada satılmışsa ödeme yine de kaydedilir; yönetici uyarılır (iade/tedarik).
             $stockNote = null;
             try {
-                $this->stock->convert($order->stock_holder, 'store_order', $order->id);
+                $sold = $this->stock->convert($order->stock_holder, 'store_order', $order->id);
             } catch (DomainException) { // yetersiz stok veya bırakılmış ayırma
                 $stockNote = ' DİKKAT: ödeme süresi içinde stok tükendi; ürünleri tedarik edin veya ödemeyi iade edin.';
                 $this->audit->log('store.order_paid_without_stock', $order, [], ['order_no' => $order->order_no]);
@@ -57,6 +61,8 @@ class OrderService
 
         if ($order->wasChanged('status')) {
             $this->mailer->placed($order);
+            $this->notifier->newOrder($order);
+            $this->notifier->lowStock($sold);
         }
 
         return $order;
@@ -74,6 +80,7 @@ class OrderService
                 $this->stock->release($order->stock_holder);
             }
             $order->forceFill(['status' => 'payment_failed', 'payment_status' => 'failed'])->save();
+            $this->voidDiscount($order);
             $this->event($order, 'payment_failed', mb_substr($reason, 0, 500));
 
             return $order;
@@ -147,6 +154,7 @@ class OrderService
             $this->transition($order, ['shipped'], 'not_delivered', ['payment_status' => 'void', 'cancelled_at' => now(), 'cancel_reason' => mb_substr($reason, 0, 300)],
                 'Teslim alınmadı: '.$reason, 'store.order_not_delivered');
             $this->restockAll($order, 'not-delivered');
+            $this->voidDiscount($order);
             StoreCodBlock::firstOrCreate(['phone' => $order->phone], ['reason' => "Sipariş {$order->order_no} teslim alınmadı: ".mb_substr($reason, 0, 200), 'order_id' => $order->id]);
         });
     }
@@ -189,6 +197,7 @@ class OrderService
                     'payment_status' => $paidByCard ? 'refunded' : ($order->payment_method === 'cod' ? 'void' : 'failed')],
                 'İptal edildi: '.$reason, 'store.order_cancelled');
 
+            $this->voidDiscount($order);
             if ($wasPending && $order->stock_holder) {
                 $this->stock->release($order->stock_holder);
             } else {
@@ -231,6 +240,12 @@ class OrderService
                     "Sipariş {$order->order_no}: ".($reason === 'cancel' ? 'iptal' : 'teslim alınmadı'));
             }
         }
+    }
+
+    /** Satış gerçekleşmediyse kupon / kampanya kullanım hakkı geri verilir. */
+    private function voidDiscount(StoreOrder $order): void
+    {
+        StoreDiscountRedemption::where('order_id', $order->id)->update(['status' => 'void']);
     }
 
     private function lock(StoreOrder $order): StoreOrder

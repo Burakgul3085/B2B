@@ -24,7 +24,10 @@
             x-data="checkout(@js($alpine))">
             @csrf
             <div class="space-y-6 lg:col-span-2">
-                @if ($errors->any() && ! $errors->has('cart'))
+                @if ($errors->has('coupon') || $couponError)
+                    <p role="alert" class="rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $errors->first('coupon') ?: $couponError }}
+                        <a href="{{ route('store.cart') }}" class="font-medium underline">Sepete dön</a></p>
+                @elseif ($errors->any() && ! $errors->has('cart'))
                     <p class="rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">Lütfen işaretli alanları düzeltin.</p>
                 @endif
 
@@ -174,7 +177,13 @@
                     @endforeach
                 </ul>
                 <dl class="space-y-2 border-t border-line pt-4 text-sm">
-                    <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums" x-text="money(subtotal)">{{ Money::format($summary->subtotal()) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($summary->subtotal()) }}</dd></div>
+                    @if ($discount && bccomp($discount->amount, '0', 2) > 0)
+                        <div class="flex justify-between text-green-800"><dt>{{ $discount->label() }}</dt><dd class="tabular-nums">−{{ Money::format($discount->amount) }}</dd></div>
+                    @endif
+                    @if ($discount?->freeShipping)
+                        <p class="text-xs text-green-800">{{ $discount->label() }}: teslimat ücretsiz.</p>
+                    @endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums" x-text="Number(shippingFee) > 0 ? money(shippingFee) : 'Ücretsiz'"></dd></div>
                     <div class="flex justify-between" x-show="payment === 'cod' && Number(codFee) > 0" x-cloak><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums" x-text="money(codFee)"></dd></div>
                 </dl>

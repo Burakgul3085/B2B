@@ -104,6 +104,14 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'storeInvoice'])->name('orders.invoice.store');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
             Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
+            Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
+            Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
+            Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
+            Route::get('kampanyalar/yeni', [Admin\DiscountController::class, 'create'])->name('discounts.create');
+            Route::post('kampanyalar', [Admin\DiscountController::class, 'store'])->name('discounts.store');
+            Route::get('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'edit'])->name('discounts.edit');
+            Route::put('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'update'])->name('discounts.update');
+            Route::delete('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'destroy'])->name('discounts.destroy');
             Route::get('iadeler', [Admin\ReturnController::class, 'index'])->name('returns.index');
             Route::get('iadeler/{storeReturn}', [Admin\ReturnController::class, 'show'])->name('returns.show');
             Route::post('iadeler/{storeReturn}/onayla', [Admin\ReturnController::class, 'approve'])->name('returns.approve');
@@ -216,6 +224,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         // Sepet (M5)
         Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');
         Route::post('sepet', [Front\CartController::class, 'add'])->middleware('throttle:60,1,cart.add')->name('cart.add');
+        // Kod denemesi (kaba kuvvet) sınırlı.
+        Route::post('sepet/kupon', [Front\CartController::class, 'applyCoupon'])->middleware('throttle:10,1,cart.coupon')->name('cart.coupon');
+        Route::delete('sepet/kupon', [Front\CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
         Route::put('sepet/{item}', [Front\CartController::class, 'update'])->whereNumber('item')->name('cart.update');
         Route::delete('sepet/{item}', [Front\CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
 

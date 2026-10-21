@@ -64,12 +64,39 @@
                     <h2 class="text-lg font-semibold">Sipariş özeti</h2>
                     <dl class="mt-4 space-y-2 text-sm">
                         <div class="flex justify-between"><dt class="text-muted">Ürünler ({{ collect($summary->orderable())->sum(fn ($l) => $l->quantity()) }} adet)</dt><dd class="tabular-nums">{{ Money::format($summary->subtotal()) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="text-muted">Ödeme adımında hesaplanır</dd></div>
-                        @foreach ($summary->vatBreakdown() as $rate => $vat)
-                            <div class="flex justify-between text-xs"><dt class="text-muted">Tutara dahil KDV (%{{ $rate }})</dt><dd class="text-muted tabular-nums">{{ Money::format($vat) }}</dd></div>
-                        @endforeach
+                        @if ($discount && bccomp($discount->amount, '0', 2) > 0)
+                            <div class="flex justify-between text-green-800"><dt>{{ $discount->label() }}</dt><dd class="tabular-nums">−{{ Money::format($discount->amount) }}</dd></div>
+                        @endif
+                        <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd @class(['text-muted' => ! $discount?->freeShipping, 'text-green-800' => $discount?->freeShipping])>{{ $discount?->freeShipping ? 'Ücretsiz ('.$discount->label().')' : 'Ödeme adımında hesaplanır' }}</dd></div>
+                        @if (! $discount)
+                            @foreach ($summary->vatBreakdown() as $rate => $vat)
+                                <div class="flex justify-between text-xs"><dt class="text-muted">Tutara dahil KDV (%{{ $rate }})</dt><dd class="text-muted tabular-nums">{{ Money::format($vat) }}</dd></div>
+                            @endforeach
+                        @else
+                            <p class="text-xs text-muted">Fiyatlara KDV dahildir; KDV indirimli tutar üzerinden hesaplanır.</p>
+                        @endif
                     </dl>
-                    <div class="mt-4 flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums">{{ Money::format($summary->subtotal()) }}</span></div>
+                    <div class="mt-4 flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums">{{ Money::format(bcsub($summary->subtotal(), $discount?->amount ?? '0.00', 2)) }}</span></div>
+
+                    {{-- Kupon: tek indirim uygulanır; girilen kupon kampanyanın yerine geçer. --}}
+                    <div class="mt-4 border-t border-line pt-4">
+                        @if ($cart?->coupon_code)
+                            <div class="flex items-center justify-between gap-2 text-sm">
+                                <span>Kupon: <span class="font-mono font-semibold">{{ $cart->coupon_code }}</span></span>
+                                <form method="POST" action="{{ route('store.cart.coupon.remove') }}">@csrf @method('DELETE')<button class="text-muted hover:text-danger">Kaldır</button></form>
+                            </div>
+                            @if ($couponError)<p class="mt-1 text-xs text-danger">{{ $couponError }}</p>@endif
+                        @else
+                            <form method="POST" action="{{ route('store.cart.coupon') }}" class="flex gap-2">
+                                @csrf
+                                <label for="kupon" class="sr-only">Kupon kodu</label>
+                                <input id="kupon" name="code" value="{{ old('code') }}" maxlength="40" placeholder="Kupon kodu" autocomplete="off" class="field-input min-w-0 flex-1 uppercase">
+                                <button class="rounded-lg border border-line px-4 text-sm font-medium hover:bg-slate-50">Uygula</button>
+                            </form>
+                            @error('code')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                            @if ($discount)<p class="mt-1 text-xs text-muted">Kupon girerseniz kampanyanın yerine kupon uygulanır.</p>@endif
+                        @endif
+                    </div>
                     @if ($summary->hasIssues())
                         <button type="button" disabled class="mt-6 w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white opacity-50">Siparişi tamamla</button>
                         <p class="mt-2 text-center text-xs text-danger">Devam etmek için işaretli satırları düzenleyin.</p>

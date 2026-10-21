@@ -23,6 +23,15 @@
                     <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" />
                 </div>
             </x-card>
+            <x-card title="Yönetici bildirimleri" description="Yeni sipariş, iade talebi ve kritik stok için e-posta. Sistem e-posta hesabıyla gönderilir.">
+                <div class="space-y-4">
+                    <x-field name="notify_emails" label="Bildirim adresleri" :value="$settings['notify_emails']" maxlength="500" placeholder="siparis@ornek.com, depo@ornek.com"
+                        hint="Virgülle ayırın. Boş bırakılırsa etkin tüm mağaza yöneticilerine gönderilir." />
+                    <x-toggle name="notify_orders" label="Yeni sipariş" :checked="$settings['notify_orders'] === '1'" hint="Kartla ödemesi alınan veya kapıda ödemeli oluşturulan her sipariş." />
+                    <x-toggle name="notify_returns" label="Yeni iade talebi" :checked="$settings['notify_returns'] === '1'" />
+                    <x-toggle name="notify_low_stock" label="Kritik stok" :checked="$settings['notify_low_stock'] === '1'" hint="Satışla stok, ürünün kritik stok seviyesine indiğinde." />
+                </div>
+            </x-card>
             <x-card title="Görünüm ve arama motorları">
                 <div class="space-y-5">
                     <x-field name="announcement" label="Duyuru şeridi" :value="$settings['announcement']" maxlength="200" hint="Tüm sayfaların en üstünde görünür (ör. kampanya duyurusu). Boşsa gösterilmez." />

@@ -2,19 +2,36 @@
 
 namespace App\Http\Controllers\Store\Admin;
 
+use App\Domain\Store\Reports\StoreReports;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreAdmin;
+use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
+use App\Models\Store\StoreReturn;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Mağaza yönetimi ana sayfası. Mağaza modülleri sonraki aşamalarda (M2–M8) buraya eklenir. */
+/** Mağaza yönetimi ana sayfası: satış özeti, bekleyen işler, stok ve son işlemler. */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, StoreReports $reports): View
     {
+        $today = now('Europe/Istanbul')->toDateString();
+        $monthStart = now('Europe/Istanbul')->startOfMonth()->toDateString();
+
         return view('store.admin.dashboard', [
+            'today' => $reports->summary($today, $today),
+            'month' => $reports->summary($monthStart, $today),
+            'waiting' => [
+                ['Onay bekleyen (kapıda ödeme)', StoreOrder::where('status', 'awaiting_approval')->count(), route('store_admin.orders.index', ['status' => 'new'])],
+                ['Hazırlanacak (ödendi)', StoreOrder::where('status', 'paid')->count(), route('store_admin.orders.index', ['status' => 'new'])],
+                ['Yola çıkacak (hazırlanıyor)', StoreOrder::where('status', 'preparing')->count(), route('store_admin.orders.index', ['status' => 'preparing'])],
+                ['Yolda', StoreOrder::where('status', 'shipped')->count(), route('store_admin.orders.index', ['status' => 'shipped'])],
+                ['Yeni iade talebi', StoreReturn::where('status', 'requested')->count(), route('store_admin.returns.index', ['status' => 'requested'])],
+                ['Teslim alınacak iade', StoreReturn::where('status', 'approved')->count(), route('store_admin.returns.index', ['status' => 'approved'])],
+                ['Para iadesi bekleyen', StoreReturn::where('status', 'received')->count(), route('store_admin.returns.index', ['status' => 'received'])],
+            ],
             'admin' => $request->user('store_admin'),
             'activeAdmins' => StoreAdmin::where('is_active', true)->count(),
             'stats' => [

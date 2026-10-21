@@ -22,5 +22,6 @@
 | [18-magaza-m5-raporu.md](18-magaza-m5-raporu.md) | Mağaza M5: il/ilçe verisi, müşteri hesabı (üyelik, giriş, parola sıfırlama, hesabım), adres defteri, sepet (stok sınırı, güncel fiyat/KDV, girişte birleştirme) |
 | [19-magaza-m6-raporu.md](19-magaza-m6-raporu.md) | Mağaza M6: ödeme sayfası, siparişler, iyzico ödeme formu, Eskişehir içi kapıda ödeme (SMS doğrulama, engel listesi), Netgsm altyapısı, yasal metinler ve onaylar, yönetimde sipariş işlemleri |
 | [20-magaza-m7-raporu.md](20-magaza-m7-raporu.md) | Mağaza M7: kargo firmaları ve takip bağlantısı, iade talepleri (cayma hakkı), iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura; istek sınırı (throttle) anahtar hatası düzeltmesi |
+| [21-magaza-m8-raporu.md](21-magaza-m8-raporu.md) | Mağaza M8: kampanya ve kupon, raporlar ve Excel aktarma, yönetici bildirimleri, gösterge paneli |
 | [YAPILACAKLAR.md](YAPILACAKLAR.md) | Yapılmayanlar ve bekleyenler: kalan mağaza aşamaları (M7–M10), dışarıdan beklenen hesap ve bilgiler, B2B Aşama 10 ve eksik ekranlar |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

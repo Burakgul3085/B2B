@@ -137,11 +137,23 @@ class StorefrontAdmin
             'company_tax_office' => ['nullable', 'string', 'max:80'],
             'company_tax_number' => ['nullable', 'regex:/^\d{10,11}$/'],
             'company_mersis' => ['nullable', 'regex:/^\d{16}$/'],
+            'notify_emails' => ['nullable', 'string', 'max:500'],
         ], ['company_tax_number.regex' => 'Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalıdır.', 'company_mersis.regex' => 'MERSİS numarası 16 haneli olmalıdır.'], [
             'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
             'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'footer_about' => 'kısa tanıtım',
             'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
+            'notify_emails' => 'bildirim adresleri',
         ])->validate();
+
+        // Bildirim adresleri: virgülle ayrılmış e-postalar (en fazla 10).
+        $emails = array_values(array_unique(array_filter(array_map(fn ($e) => strtolower(trim($e)), preg_split('/[,;\s]+/', (string) ($data['notify_emails'] ?? ''))))));
+        if (count($emails) > 10 || array_filter($emails, fn ($e) => ! filter_var($e, FILTER_VALIDATE_EMAIL))) {
+            throw ValidationException::withMessages(['notify_emails' => 'Geçerli e-posta adreslerini virgülle ayırarak yazın (en fazla 10).']);
+        }
+        $data['notify_emails'] = $emails ? implode(', ', $emails) : null;
+        foreach (['notify_orders', 'notify_returns', 'notify_low_stock'] as $flag) {
+            $data[$flag] = filter_var($input[$flag] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0';
+        }
 
         $old = array_intersect_key(StoreSetting::values(), $data);
         StoreSetting::put(array_map(fn ($v) => $v === null ? null : trim($v), $data));

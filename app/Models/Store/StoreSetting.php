@@ -47,6 +47,12 @@ class StoreSetting extends Model
         'cod_max_open' => '1',               // aynı telefonda teslim edilmemiş en fazla kapıda ödemeli sipariş
         'cod_first_order_approval' => '1',   // ilk siparişte yönetici teyidi
 
+        // Yönetici bildirimleri (e-posta). Liste boşsa etkin tüm mağaza yöneticilerine gider.
+        'notify_emails' => null,
+        'notify_orders' => '1',
+        'notify_returns' => '1',
+        'notify_low_stock' => '1',
+
         // İade (cayma hakkı). Süre yasal en az 14 gündür.
         'return_days' => '14',
         'return_address' => null,            // boşsa mağaza adresi kullanılır

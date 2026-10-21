@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** Sepet: misafirde tarayıcı belirteciyle, üyede müşteriyle eşleşir. Fiyat saklanmaz. */
 class StoreCart extends Model
 {
-    protected $fillable = ['customer_id', 'token'];
+    protected $fillable = ['customer_id', 'token', 'coupon_code'];
 
     public function items(): HasMany
     {

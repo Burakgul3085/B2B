@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Customers\PhoneNumber;
+use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\InsufficientStoreStock;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\CodPolicy;
@@ -34,9 +35,10 @@ class CheckoutController extends Controller
 
     public function __construct(private CheckoutService $checkout, private CartService $carts, private CurrentCart $current) {}
 
-    public function show(Request $request, DeliveryRules $delivery, CodPolicy $cod): View|RedirectResponse
+    public function show(Request $request, DeliveryRules $delivery, CodPolicy $cod, DiscountService $discounts): View|RedirectResponse
     {
-        $summary = $this->carts->summary($this->current->find($request));
+        $cart = $this->current->find($request);
+        $summary = $this->carts->summary($cart);
         if ($summary->isEmpty()) {
             return redirect()->route('store.cart');
         }
@@ -46,19 +48,24 @@ class CheckoutController extends Controller
 
         $customer = $request->user('customer');
         $threshold = Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2);
+        // Önizleme: kişiye bağlı kupon koşulları (ilk sipariş, kişi başı kullanım) sipariş onayında denetlenir.
+        ['applied' => $discount, 'couponError' => $couponError] = $discounts->evaluate($summary, $cart?->coupon_code, $customer?->email, $customer?->phone);
+        $net = bcsub($summary->subtotal(), $discount?->amount ?? '0.00', 2);
 
         return view('store.front.checkout', [
             'summary' => $summary,
+            'discount' => $discount,
+            'couponError' => $couponError,
             'customer' => $customer,
             'addresses' => $customer ? $customer->addresses()->with(['province', 'district'])->get() : collect(),
             'provinces' => Province::orderBy('name')->pluck('name', 'id'),
             // Ekrandaki tutar önizlemesi için kurallar; sipariş tutarı sunucuda yeniden hesaplanır.
             'rules' => [
-                'subtotal' => $summary->subtotal(),
-                'cargoFee' => $delivery->cargoFee($summary->subtotal()),
+                'subtotal' => $net,
+                'cargoFee' => $discount?->freeShipping ? '0.00' : $delivery->cargoFee($net),
                 'freeThreshold' => $threshold,
                 'localEnabled' => StoreSetting::flag('local_delivery_enabled'),
-                'localFee' => Decimal::parse(StoreSetting::get('local_delivery_fee'), 2) ?? '0.00',
+                'localFee' => $discount?->freeShipping ? '0.00' : (Decimal::parse(StoreSetting::get('local_delivery_fee'), 2) ?? '0.00'),
                 'localProvince' => Province::ESKISEHIR,
                 'localDistricts' => $delivery->localDistrictIds(),
                 'codEnabled' => StoreSetting::flag('cod_enabled'),
@@ -76,7 +83,7 @@ class CheckoutController extends Controller
         $cart = $this->current->find($request) ?? abort(404);
 
         try {
-            $draft = $this->checkout->validate($request->all(), $customer, $this->carts->summary($cart));
+            $draft = $this->checkout->validate($request->all(), $customer, $this->carts->summary($cart), $cart->coupon_code);
         } catch (DomainException $e) {
             return redirect()->route('store.cart')->withErrors(['cart' => $e->getMessage()]);
         }
@@ -150,6 +157,10 @@ class CheckoutController extends Controller
             $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
         } catch (InsufficientStoreStock) {
             return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
+        } catch (DomainException $e) { // ör. kupon kullanım sınırı bu arada doldu
+            $request->session()->forget(self::DRAFT_KEY);
+
+            return redirect()->route('store.cart')->withErrors(['cart' => $e->getMessage()]);
         }
         $request->session()->forget(self::DRAFT_KEY);
 

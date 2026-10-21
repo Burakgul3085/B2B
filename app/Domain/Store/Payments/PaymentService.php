@@ -123,13 +123,14 @@ class PaymentService
     {
         [$first, $last] = array_pad(explode(' ', $order->shipping_name, 2), 2, '-');
         $address = $order->shippingOneLine();
+        // Kalem tutarı indirim payı düşülmüş tutardır; kalemlerin toplamı sipariş tutarına eşit olmalıdır.
         $items = $order->items()->get()->map(fn ($i) => [
             'id' => (string) $i->id,
             'name' => mb_substr($i->product_name.($i->option_label ? " ({$i->option_label})" : ''), 0, 200),
             'category1' => 'Kırtasiye',
             'itemType' => 'PHYSICAL',
-            'price' => number_format((float) $i->line_total, 2, '.', ''),
-        ])->all();
+            'price' => bcsub((string) $i->line_total, (string) $i->discount_amount, 2),
+        ])->filter(fn ($i) => bccomp($i['price'], '0', 2) > 0)->values()->all();
         $fees = bcadd((string) $order->shipping_fee, (string) $order->cod_fee, 2);
         if (bccomp($fees, '0', 2) > 0) {
             $items[] = ['id' => 'teslimat', 'name' => 'Teslimat ücreti', 'category1' => 'Hizmet', 'itemType' => 'VIRTUAL', 'price' => $fees];

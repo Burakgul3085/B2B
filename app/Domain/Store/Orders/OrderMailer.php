@@ -14,8 +14,6 @@ use App\Models\Store\StoreReturn;
  */
 class OrderMailer
 {
-    public function __construct(private SystemMailer $mailer) {}
-
     public function placed(StoreOrder $order): void
     {
         $intro = $order->payment_method === 'cod'
@@ -65,6 +63,9 @@ class OrderMailer
             foreach ($order->items()->get() as $item) {
                 $rows[] = [$item->product_name.($item->option_label ? " ({$item->option_label})" : '')." × {$item->quantity}", Money::format($item->line_total)];
             }
+            if (bccomp((string) $order->discount_total, '0', 2) > 0) {
+                $rows[] = [(string) $order->discount_name, '−'.Money::format($order->discount_total)];
+            }
             if (bccomp((string) $order->shipping_fee, '0', 2) > 0) {
                 $rows[] = ['Teslimat', Money::format($order->shipping_fee)];
             }
@@ -84,8 +85,7 @@ class OrderMailer
             'outro' => "Sipariş no: {$order->order_no}",
         ];
         $email = $order->email;
-        $mailer = $this->mailer;
 
-        dispatch(fn () => $mailer->send($email, $subject, $content))->afterResponse();
+        dispatch(fn () => app(SystemMailer::class)->send($email, $subject, $content))->afterResponse();
     }
 }

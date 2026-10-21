@@ -2,6 +2,7 @@
 
 namespace App\Domain\Store\Cart;
 
+use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCartItem;
@@ -20,7 +21,7 @@ class CartService
 {
     public const MAX_QUANTITY = 999;
 
-    public function __construct(private StoreStockService $stock) {}
+    public function __construct(private StoreStockService $stock, private DiscountService $discounts) {}
 
     public function forCustomer(StoreCustomer $customer): StoreCart
     {
@@ -98,8 +99,29 @@ class CartService
                 $qty = max(1, min($wanted, $available, self::MAX_QUANTITY));
                 StoreCartItem::updateOrCreate(['cart_id' => $cart->id, 'variant_id' => $item->variant_id], ['quantity' => $qty]);
             }
+            if ($guest->coupon_code && ! $cart->coupon_code) {
+                $cart->update(['coupon_code' => $guest->coupon_code]);
+            }
             $guest->delete();
         });
+    }
+
+    /**
+     * Sepete kupon kodu ekler (null: kaldırır). Kod yalnızca var olan ve şu an uygulanabilen bir kuponsa kaydedilir;
+     * kişiye bağlı koşullar ödeme adımında denetlenir.
+     *
+     * @throws DomainException
+     */
+    public function setCoupon(StoreCart $cart, ?string $code): void
+    {
+        $code = DiscountService::normalizeCode($code);
+        if ($code !== null) {
+            $error = $this->discounts->evaluate($this->summary($cart), $code)['couponError'];
+            if ($error) {
+                throw new DomainException($error);
+            }
+        }
+        $cart->update(['coupon_code' => $code]);
     }
 
     /** Sepetteki toplam ürün adedi (başlıktaki rozet). */

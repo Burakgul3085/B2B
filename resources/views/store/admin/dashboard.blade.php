@@ -1,11 +1,4 @@
-@php
-    // Yol haritası: docs/13-magaza-mimarisi.md §13. Her aşama tamamlandıkça buradan kalkar ve menüye eklenir.
-    $upcoming = [
-        ['cart', 'Siparişler ve ödeme', 'iyzico, kapıda ödeme (Eskişehir) ve SMS doğrulama'],
-        ['map-pin', 'Teslimat ve fatura', 'Kargo, kendi teslimatınız, iade ve e-Arşiv (Uyumsoft)'],
-        ['percent', 'Kampanya ve raporlar', 'Kupon, kampanya ve satış raporları'],
-    ];
-@endphp
+@php use App\Domain\Support\Money; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Genel Bakış">
     <x-page-header :title="'Hoş geldiniz, '.$admin->name" :subtitle="$admin->roleLabel().' · '.config('store.name').' mağaza yönetimi'" />
 
@@ -16,6 +9,12 @@
         </div>
     @endif
 
+    <div class="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <x-kpi label="Bugün sipariş" :value="$today['orders']" :hint="Money::format($today['gross'])" :href="route('store_admin.orders.index')" />
+        <x-kpi label="Bu ay net satış" :value="Money::format($month['net'])" :hint="$month['orders'].' sipariş · ortalama '.Money::format($month['average'])" :href="route('store_admin.reports.index')" />
+        <x-kpi label="Bu ay indirim" :value="Money::format($month['discounts'])" hint="Kupon ve kampanyalar" :href="route('store_admin.discounts.index')" />
+        <x-kpi label="Bu ay iade" :value="Money::format($month['refunds_in_period'])" hint="Yapılan para iadeleri" :href="route('store_admin.returns.index')" />
+    </div>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-kpi label="Yayındaki ürün" :value="$stats['published']" :hint="$stats['products'].' ürünün'" :href="route('store_admin.products.index', ['status' => 'published'])" />
         <x-kpi label="Kritik stok" :value="$stats['critical']" :href="route('store_admin.stock.index', ['status' => 'critical'])" hint="Listele" />
@@ -35,13 +34,13 @@
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
-        <x-card title="Yakında bu panelde" description="Mağaza modülleri aşama aşama eklenecek." class="lg:col-span-2">
-            <ul class="space-y-4">
-                @foreach ($upcoming as [$icon, $title, $text])
-                    <li class="flex gap-3">
-                        <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><x-icon :name="$icon" class="size-4" /></span>
-                        <div><p class="text-sm font-medium text-ink">{{ $title }}</p><p class="text-xs text-muted">{{ $text }}</p></div>
-                    </li>
+        <x-card title="Bekleyen işler" :padding="false" class="lg:col-span-2">
+            <ul class="divide-y divide-line text-sm">
+                @foreach ($waiting as [$label, $count, $url])
+                    <li><a href="{{ $url }}" class="flex items-center justify-between px-5 py-3 hover:bg-slate-50">
+                        <span @class(['text-muted' => $count === 0, 'font-medium text-ink' => $count > 0])>{{ $label }}</span>
+                        <span @class(['rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums', 'bg-amber-100 text-amber-900' => $count > 0, 'text-muted' => $count === 0])>{{ $count }}</span>
+                    </a></li>
                 @endforeach
             </ul>
         </x-card>

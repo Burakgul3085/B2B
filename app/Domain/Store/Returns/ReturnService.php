@@ -5,6 +5,7 @@ namespace App\Domain\Store\Returns;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Orders\OrderMailer;
 use App\Domain\Store\Payments\RefundService;
 use App\Domain\Support\Decimal;
@@ -36,6 +37,7 @@ class ReturnService
         private AuditLogger $audit,
         private CurrentActor $actor,
         private OrderMailer $mailer,
+        private AdminNotifier $notifier,
     ) {}
 
     public static function returnDays(): int
@@ -136,6 +138,7 @@ class ReturnService
 
         $this->mailer->returnUpdate($order, $return, 'İade talebiniz alındı',
             "{$return->return_no} numaralı iade talebinizi aldık. İnceledikten sonra size e-postayla bilgi vereceğiz.");
+        $this->notifier->returnRequested($return, $order);
 
         return $return;
     }
@@ -191,7 +194,8 @@ class ReturnService
         $order = $this->order($return);
         $amount = '0.00';
         foreach ($return->items()->with('orderItem')->get() as $item) {
-            $share = bcdiv(bcmul((string) $item->orderItem->line_total, (string) $item->quantity, 4), (string) $item->orderItem->quantity, 4);
+            $paid = bcsub((string) $item->orderItem->line_total, (string) $item->orderItem->discount_amount, 2); // indirim payı düşülür
+            $share = bcdiv(bcmul($paid, (string) $item->quantity, 4), (string) $item->orderItem->quantity, 4);
             $amount = bcadd($amount, Decimal::round($share, 2), 2);
         }
         if ($this->completesOrder($return)) {

@@ -78,6 +78,8 @@
                     'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
                 ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
                     'badge' => \App\Models\Store\StoreReturn::where('status', 'requested')->count()],
+                ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],
+                ['label' => 'Raporlar', 'route' => 'store_admin.reports.index', 'icon' => 'grid', 'active' => 'store_admin.reports.*'],
             ]],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],

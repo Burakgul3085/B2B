@@ -100,6 +100,8 @@
                 </table>
                 <dl class="space-y-1.5 border-t border-line p-5 text-sm">
                     <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
+                    @if (bccomp((string) $order->discount_total, '0', 2) > 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
+                    @if ($order->discount_name && bccomp((string) $order->discount_total, '0', 2) === 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd>Ücretsiz teslimat</dd></div>@endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums">{{ Money::format($order->shipping_fee) }}</dd></div>
                     @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
                     <div class="flex justify-between border-t border-line pt-2 text-base font-bold"><dt>Toplam</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>
