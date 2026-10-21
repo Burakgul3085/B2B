@@ -21,4 +21,5 @@
 | [17-magaza-m4-raporu.md](17-magaza-m4-raporu.md) | Mağaza M4: vitrin — yayın kapısı ve önizleme, ana sayfa, kategori/marka/arama listeleri, ürün sayfası, görsel boyutları, SEO (JSON-LD, sitemap, robots), banner/sayfa/ayar yönetimi |
 | [18-magaza-m5-raporu.md](18-magaza-m5-raporu.md) | Mağaza M5: il/ilçe verisi, müşteri hesabı (üyelik, giriş, parola sıfırlama, hesabım), adres defteri, sepet (stok sınırı, güncel fiyat/KDV, girişte birleştirme) |
 | [19-magaza-m6-raporu.md](19-magaza-m6-raporu.md) | Mağaza M6: ödeme sayfası, siparişler, iyzico ödeme formu, Eskişehir içi kapıda ödeme (SMS doğrulama, engel listesi), Netgsm altyapısı, yasal metinler ve onaylar, yönetimde sipariş işlemleri |
+| [YAPILACAKLAR.md](YAPILACAKLAR.md) | Yapılmayanlar ve bekleyenler: kalan mağaza aşamaları (M7–M10), dışarıdan beklenen hesap ve bilgiler, B2B Aşama 10 ve eksik ekranlar |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |
