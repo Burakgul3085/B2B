@@ -1,8 +1,10 @@
 import Alpine from 'alpinejs';
 import { enableUploadProgress, heroSlider } from './storefront.js';
+import { checkout } from './store-checkout.js';
 
 window.Alpine = Alpine;
 Alpine.data('heroSlider', heroSlider);
+Alpine.data('checkout', checkout);
 Alpine.start();
 enableUploadProgress();
 

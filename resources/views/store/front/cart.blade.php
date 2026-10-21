@@ -70,8 +70,12 @@
                         @endforeach
                     </dl>
                     <div class="mt-4 flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums">{{ Money::format($summary->subtotal()) }}</span></div>
-                    <button type="button" disabled class="mt-6 w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white opacity-60" title="Online sipariş çok yakında">Siparişi tamamla</button>
-                    <p class="mt-2 text-center text-xs text-muted">Online sipariş çok yakında açılıyor.</p>
+                    @if ($summary->hasIssues())
+                        <button type="button" disabled class="mt-6 w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white opacity-50">Siparişi tamamla</button>
+                        <p class="mt-2 text-center text-xs text-danger">Devam etmek için işaretli satırları düzenleyin.</p>
+                    @else
+                        <a href="{{ route('store.checkout') }}" class="mt-6 block w-full rounded-xl bg-primary px-6 py-3 text-center font-semibold text-white transition hover:bg-primary-hover">Siparişi tamamla</a>
+                    @endif
                     <a href="{{ route('store.products') }}" class="mt-4 block text-center text-sm font-medium text-primary hover:underline">Alışverişe devam et</a>
                 </aside>
             </div>

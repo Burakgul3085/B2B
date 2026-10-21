@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Store\Payments\PaymentService;
 use Database\Seeders\Support\DemoImages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -57,3 +58,10 @@ Artisan::command('demo:videolar', function () {
 
     return 0;
 })->purpose('Demo vitrin videolarını üretir (yerel)');
+
+// Mağaza: geri dönüşü gelmeyen kart ödemelerini iyzico'dan sorgulayıp sonuçlandırır, süresi dolanları kapatır (stok serbest kalır).
+Schedule::command('store:expire-pending-payments')->everyFiveMinutes()->withoutOverlapping();
+
+Artisan::command('store:expire-pending-payments', function (PaymentService $payments) {
+    $this->info($payments->expireStale().' bekleyen ödeme işlendi.');
+})->purpose('Mağaza: 30 dakikayı geçen ödeme bekleyen siparişleri sonuçlandırır');

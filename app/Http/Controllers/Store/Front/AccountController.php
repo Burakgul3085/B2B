@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Store\Front;
 use App\Domain\Store\Customers\CustomerService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCustomer;
+use App\Models\Store\StoreOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +23,7 @@ class AccountController extends Controller
         return view('store.front.account.show', [
             'customer' => $customer,
             'addresses' => $customer->addresses()->with(['province', 'district'])->get(),
+            'orders' => StoreOrder::where('customer_id', $customer->id)->latest('id')->limit(3)->get(),
         ]);
     }
 

@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [UseAreaSession::class]);
         $middleware->append(SecurityHeaders::class);
 
+        // iyzico ödeme geri dönüşü başka siteden POST edilir; sonuç sunucudan iyzico'ya sorularak doğrulanır.
+        $middleware->validateCsrfTokens(except: ['odeme/iyzico/donus']);
+
         // İşletme bağlamı, rota model bağlamasından ÖNCE kurulur: başka işletmenin kaydı
         // global scope nedeniyle bulunamaz ve 404 döner.
         $middleware->prependToPriorityList(SubstituteBindings::class, SetBusinessContext::class);

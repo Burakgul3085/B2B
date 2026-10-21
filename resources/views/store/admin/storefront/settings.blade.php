@@ -15,6 +15,14 @@
                     <x-field name="facebook" label="Facebook adresi" :value="$settings['facebook']" placeholder="https://facebook.com/..." />
                 </div>
             </x-card>
+            <x-card title="Satıcı bilgileri" description="Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve iletişim sayfasında kullanılır; iyzico başvurusunda da istenir.">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-field name="company_title" label="Ticari unvan" :value="$settings['company_title']" maxlength="200" class="sm:col-span-2" placeholder="ör. Yapboz Kırtasiye Ltd. Şti." />
+                    <x-field name="company_tax_office" label="Vergi dairesi" :value="$settings['company_tax_office']" maxlength="80" />
+                    <x-field name="company_tax_number" label="Vergi numarası" :value="$settings['company_tax_number']" inputmode="numeric" maxlength="11" />
+                    <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" />
+                </div>
+            </x-card>
             <x-card title="Görünüm ve arama motorları">
                 <div class="space-y-5">
                     <x-field name="announcement" label="Duyuru şeridi" :value="$settings['announcement']" maxlength="200" hint="Tüm sayfaların en üstünde görünür (ör. kampanya duyurusu). Boşsa gösterilmez." />

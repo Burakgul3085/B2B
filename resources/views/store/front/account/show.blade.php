@@ -18,8 +18,23 @@
 
         <div class="mt-8 space-y-10">
             <section id="siparisler" class="scroll-mt-40">
-                <h2 class="text-lg font-semibold">Siparişlerim</h2>
-                <div class="mt-4 rounded-2xl border border-dashed border-line px-6 py-10 text-center text-sm text-muted">Henüz siparişiniz yok. Online sipariş çok yakında açılıyor.</div>
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-semibold">Siparişlerim</h2>
+                    @if ($orders->isNotEmpty())<a href="{{ route('store.orders') }}" class="text-sm font-medium text-primary hover:underline">Tümü</a>@endif
+                </div>
+                @if ($orders->isEmpty())
+                    <div class="mt-4 rounded-2xl border border-dashed border-line px-6 py-10 text-center text-sm text-muted">Henüz siparişiniz yok.</div>
+                @else
+                    <ul class="mt-4 divide-y divide-line rounded-2xl border border-line">
+                        @foreach ($orders as $order)
+                            <li><a href="{{ route('store.orders.show', $order->order_no) }}" class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-slate-50">
+                                <span><span class="font-semibold">{{ $order->order_no }}</span> <span class="text-muted">· {{ $order->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span></span>
+                                <span class="flex items-center gap-3"><x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+                                    <span class="font-semibold tabular-nums">{{ \App\Domain\Support\Money::format($order->total) }}</span></span>
+                            </a></li>
+                        @endforeach
+                    </ul>
+                @endif
             </section>
 
             <section id="adresler" class="scroll-mt-40">

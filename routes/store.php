@@ -92,6 +92,24 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('ayarlar/yayin', [Admin\SettingsController::class, 'open'])->name('settings.open');
             });
 
+            // Siparişler (M6)
+            Route::get('siparisler', [Admin\OrderController::class, 'index'])->name('orders.index');
+            Route::get('siparisler/{storeOrder}', [Admin\OrderController::class, 'show'])->name('orders.show');
+            Route::post('siparisler/{storeOrder}/onayla', [Admin\OrderController::class, 'approve'])->name('orders.approve');
+            Route::post('siparisler/{storeOrder}/hazirla', [Admin\OrderController::class, 'prepare'])->name('orders.prepare');
+            Route::post('siparisler/{storeOrder}/yola-cikar', [Admin\OrderController::class, 'ship'])->name('orders.ship');
+            Route::post('siparisler/{storeOrder}/teslim', [Admin\OrderController::class, 'deliver'])->name('orders.deliver');
+            Route::post('siparisler/{storeOrder}/teslim-alinmadi', [Admin\OrderController::class, 'notDelivered'])->name('orders.not-delivered');
+            Route::post('siparisler/{storeOrder}/iptal', [Admin\OrderController::class, 'cancel'])->name('orders.cancel');
+            Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
+
+            Route::get('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'edit'])->name('payments.edit');
+            Route::put('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'update'])->name('payments.update');
+            Route::delete('ayarlar/odeme-teslimat/anahtar/{key}', [Admin\PaymentSettingsController::class, 'removeSecret'])->name('payments.secret.destroy');
+            Route::get('ayarlar/yasal-metinler', [Admin\LegalController::class, 'index'])->name('legal.index');
+            Route::get('ayarlar/yasal-metinler/{key}', [Admin\LegalController::class, 'edit'])->name('legal.edit');
+            Route::put('ayarlar/yasal-metinler/{key}', [Admin\LegalController::class, 'update'])->name('legal.update');
+
             // Stok (M3)
             Route::prefix('stok')->name('stock.')->group(function () {
                 Route::get('/', [Admin\StockController::class, 'index'])->name('index');
@@ -124,6 +142,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('sitemap.xml', [Front\SeoController::class, 'sitemap'])->name('sitemap');
     Route::get('onizleme', [Front\PreviewController::class, 'start'])->middleware('signed')->name('preview');
     Route::get('onizleme/kapat', [Front\PreviewController::class, 'end'])->name('preview.end');
+    // iyzico geri dönüşü: mağaza kapalıyken (önizlemede) de sonuçlanabilmeli
+    Route::post('odeme/iyzico/donus', [Front\CheckoutController::class, 'callback'])->middleware('throttle:60,1')->name('payment.callback');
 
     // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
     Route::middleware('store.open')->group(function () {
@@ -163,6 +183,19 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
             Route::delete('hesabim/adres/{address}', [Front\AddressController::class, 'destroy'])->whereNumber('address')->name('addresses.destroy');
         });
         Route::get('ilceler/{province}', [Front\AddressController::class, 'districts'])->whereNumber('province')->name('districts');
+
+        // Ödeme ve siparişler (M6)
+        Route::get('odeme', [Front\CheckoutController::class, 'show'])->name('checkout');
+        Route::post('odeme', [Front\CheckoutController::class, 'store'])->middleware('throttle:20,10')->name('checkout.store');
+        Route::get('odeme/dogrulama', [Front\CheckoutController::class, 'verifyForm'])->name('checkout.verify');
+        Route::post('odeme/dogrulama', [Front\CheckoutController::class, 'verify'])->middleware('throttle:20,10')->name('checkout.verify.store');
+        Route::post('odeme/dogrulama/yeniden', [Front\CheckoutController::class, 'resend'])->middleware('throttle:5,10')->name('checkout.verify.resend');
+        Route::get('yasal/{key}', [Front\CheckoutController::class, 'legal'])->name('legal');
+        Route::get('siparis/{orderNo}/{token}', [Front\OrderController::class, 'showByToken'])->middleware('throttle:60,1')->name('order');
+        Route::middleware(['auth:customer', 'auth.session'])->group(function () {
+            Route::get('hesabim/siparisler', [Front\OrderController::class, 'index'])->name('orders');
+            Route::get('hesabim/siparisler/{orderNo}', [Front\OrderController::class, 'showOwn'])->name('orders.show');
+        });
 
         // Sepet (M5)
         Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');

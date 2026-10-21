@@ -2,8 +2,10 @@
 
 namespace App\Models\Store;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 
 /**
  * Mağaza ayarları (anahtar → değer). Okumalar önbelleklenir; kayıtta önbellek temizlenir.
@@ -23,7 +25,43 @@ class StoreSetting extends Model
         'address' => null,
         'instagram' => null,
         'facebook' => null,
+
+        // Satıcı bilgileri (yasal metinler, iletişim sayfası, fatura)
+        'company_title' => null,
+        'company_tax_office' => null,
+        'company_tax_number' => null,
+        'company_mersis' => null,
+
+        // Teslimat (KDV dahil ücretler)
+        'shipping_cargo_fee' => '0.00',
+        'shipping_free_threshold' => null,   // bu tutar ve üzeri kargo ücretsiz
+        'local_delivery_enabled' => '1',     // Eskişehir'de kendi aracımızla teslimat
+        'local_delivery_fee' => '0.00',
+        'local_districts' => null,           // virgülle ilçe kimlikleri; boşsa Eskişehir'in tüm ilçeleri
+
+        // Kapıda ödeme (yalnızca kendi teslimatımızla, Eskişehir)
+        'cod_enabled' => '0',
+        'cod_min' => null,
+        'cod_max' => '3000.00',
+        'cod_fee' => '0.00',
+        'cod_max_open' => '1',               // aynı telefonda teslim edilmemiş en fazla kapıda ödemeli sipariş
+        'cod_first_order_approval' => '1',   // ilk siparişte yönetici teyidi
+
+        // Kartla ödeme (iyzico). Anahtarlar şifreli saklanır.
+        'card_enabled' => '0',
+        'iyzico_mode' => 'sandbox',
+        'iyzico_api_key' => null,
+        'iyzico_secret_key' => null,
+
+        // SMS (Netgsm). log: geliştirmede kod günlüğe yazılır, SMS gönderilmez.
+        'sms_driver' => 'log',
+        'netgsm_usercode' => null,
+        'netgsm_password' => null,
+        'netgsm_header' => null,
     ];
+
+    /** Veritabanında şifreli tutulan anahtarlar. */
+    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password'];
 
     private const CACHE_KEY = 'store.settings';
 
@@ -52,6 +90,32 @@ class StoreSetting extends Model
     public static function isOpen(): bool
     {
         return self::get('is_open') === '1';
+    }
+
+    public static function flag(string $key): bool
+    {
+        return self::get($key) === '1';
+    }
+
+    /** Şifreli anahtarın çözülmüş değeri (yoksa veya çözülemezse null). */
+    public static function secret(string $key): ?string
+    {
+        $value = self::get($key);
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    /** Şifreli anahtarı kaydeder; boş değer anahtarı siler. */
+    public static function putSecret(string $key, ?string $plain): void
+    {
+        self::put([$key => $plain === null || $plain === '' ? null : Crypt::encryptString($plain)]);
     }
 
     /** @param  array<string, ?string>  $values */

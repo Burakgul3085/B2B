@@ -13,7 +13,8 @@ use Illuminate\View\View;
 /** Mağaza ayarları: iletişim, duyuru, ana sayfa SEO'su, mağazayı açma/kapama ve önizleme bağlantısı. */
 class SettingsController extends Controller
 {
-    private const FIELDS = ['announcement', 'meta_title', 'meta_description', 'footer_about', 'phone', 'whatsapp', 'email', 'address', 'instagram', 'facebook'];
+    private const FIELDS = ['announcement', 'meta_title', 'meta_description', 'footer_about', 'phone', 'whatsapp', 'email', 'address', 'instagram', 'facebook',
+        'company_title', 'company_tax_office', 'company_tax_number', 'company_mersis'];
 
     public function __construct(private StorefrontAdmin $storefront) {}
 

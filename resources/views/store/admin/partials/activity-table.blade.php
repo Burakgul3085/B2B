@@ -20,8 +20,15 @@
         'store.page_created' => 'Sayfa eklendi', 'store.page_updated' => 'Sayfa güncellendi', 'store.page_deleted' => 'Sayfa silindi',
         'store.settings_updated' => 'Mağaza ayarları güncellendi', 'store.opened' => 'Mağaza ziyaretçilere açıldı', 'store.closed' => 'Mağaza ziyaretçilere kapatıldı',
         'store.stock_received' => 'Stok girişi', 'store.stock_counted' => 'Stok sayımı', 'store.stock_adjusted' => 'Stok düzeltmesi', 'store.stock_reversed' => 'Stok hareketi geri alındı',
+        'store.order_placed' => 'Yeni sipariş', 'store.order_approved' => 'Sipariş onaylandı', 'store.order_preparing' => 'Sipariş hazırlanıyor',
+        'store.order_shipped' => 'Sipariş yola çıktı', 'store.order_delivered' => 'Sipariş teslim edildi', 'store.order_not_delivered' => 'Sipariş teslim alınmadı',
+        'store.order_cancelled' => 'Sipariş iptal edildi', 'store.order_paid_without_stock' => 'Ödeme alındı, stok yetersiz (kontrol edin)',
+        'store.cod_unblocked' => 'Telefon kapıda ödeme engelinden çıkarıldı',
+        'store.legal_published' => 'Yasal metin yayımlandı', 'store.payment_settings_updated' => 'Ödeme ve teslimat ayarları güncellendi',
+        'store.payment_secret_removed' => 'Ödeme / SMS anahtarı silindi',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];
+    $legalTitles = \App\Models\Store\StoreLegalDocument::KEYS;
 @endphp
 @if ($logs->isEmpty())
     <x-empty-state icon="list" title="Henüz kayıt yok" class="py-8" />
@@ -35,12 +42,16 @@
                         $who = match ($log->actor_type) {
                             'store_admin' => $names[$log->actor_id] ?? 'Yönetici #'.$log->actor_id,
                             'platform' => 'Platform yöneticisi',
+                            'customer' => 'Müşteri',
                             default => '—',
                         };
                         $subject = $log->entity_type === 'StoreAdmin' && $log->entity_id !== $log->actor_id ? ($names[$log->entity_id] ?? null) : null;
                         $detail = match (true) {
                             $log->action === 'auth.login_failed' => $log->new_values['email'] ?? null,
                             $log->action === 'store.products_imported' => ($log->new_values['file'] ?? '').' · '.($log->new_values['created'] ?? 0).' eklendi, '.($log->new_values['updated'] ?? 0).' güncellendi',
+                            isset($log->new_values['order_no']) => 'Sipariş '.$log->new_values['order_no'],
+                            $log->action === 'store.legal_published' => ($legalTitles[$log->new_values['key'] ?? ''] ?? '').' · sürüm '.($log->new_values['version'] ?? ''),
+                            $log->action === 'store.cod_unblocked' => $log->old_values['phone'] ?? null,
                             isset($entityNames[$log->entity_type]) => $entityNames[$log->entity_type].' #'.$log->entity_id
                                 .(isset($log->new_values['name']) ? ' · '.$log->new_values['name'] : (isset($log->old_values['name']) ? ' · '.$log->old_values['name'] : ''))
                                 .(isset($log->new_values['sku']) ? ' · '.$log->new_values['sku'] : '')

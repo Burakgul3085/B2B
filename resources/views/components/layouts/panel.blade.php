@@ -73,6 +73,10 @@
             ['items' => [
                 ['label' => 'Genel Bakış', 'route' => 'store_admin.dashboard', 'icon' => 'home', 'active' => 'store_admin.dashboard'],
             ]],
+            ['label' => 'Satış', 'items' => [
+                ['label' => 'Siparişler', 'route' => 'store_admin.orders.index', 'icon' => 'file', 'active' => 'store_admin.orders.*',
+                    'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
+            ]],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],
                 ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
@@ -81,7 +85,11 @@
             ['label' => 'Vitrin', 'items' => [
                 ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
                 ['label' => 'Sayfalar', 'route' => 'store_admin.pages.index', 'icon' => 'file', 'active' => 'store_admin.pages.*'],
+            ]],
+            ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],
+                ['label' => 'Ödeme ve Teslimat', 'route' => 'store_admin.payments.edit', 'icon' => 'cart', 'active' => 'store_admin.payments.*'],
+                ['label' => 'Yasal Metinler', 'route' => 'store_admin.legal.index', 'icon' => 'shield', 'active' => 'store_admin.legal.*'],
             ]],
             ['label' => 'Stok', 'items' => [
                 ['label' => 'Stok Durumu', 'route' => 'store_admin.stock.index', 'icon' => 'warehouse', 'active' => 'store_admin.stock.index',

@@ -133,7 +133,12 @@ class StorefrontAdmin
             'address' => ['nullable', 'string', 'max:500'],
             'instagram' => ['nullable', 'url:https', 'max:255'],
             'facebook' => ['nullable', 'url:https', 'max:255'],
-        ], [], [
+            'company_title' => ['nullable', 'string', 'max:200'],
+            'company_tax_office' => ['nullable', 'string', 'max:80'],
+            'company_tax_number' => ['nullable', 'regex:/^\d{10,11}$/'],
+            'company_mersis' => ['nullable', 'regex:/^\d{16}$/'],
+        ], ['company_tax_number.regex' => 'Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalıdır.', 'company_mersis.regex' => 'MERSİS numarası 16 haneli olmalıdır.'], [
+            'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
             'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'footer_about' => 'kısa tanıtım',
             'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
         ])->validate();
