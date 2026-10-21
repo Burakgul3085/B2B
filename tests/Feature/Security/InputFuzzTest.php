@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\File;
@@ -154,6 +155,8 @@ class InputFuzzTest extends TestCase
     public function test_public_and_auth_forms_never_fail_with_server_error(): void
     {
         $business = $this->makeBusiness();
+        // Mağaza açık olmalı: kapalı mağaza 503 "yakında" döner ve formlar hiç çalışmaz.
+        StoreSetting::put(['is_open' => '1']);
         $ids = ['slug' => $business->slug];
 
         $routes = array_filter($this->writeRoutes(''), fn (Route $r) => preg_match('/(^public\.|\.login\.store$|\.password\.|\.activation\.store$)/', $r->getName()));

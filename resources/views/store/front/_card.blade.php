@@ -26,11 +26,25 @@
         @if ($product->brand)<p class="truncate text-[11px] font-semibold tracking-wider text-muted uppercase">{{ $product->brand->name }}</p>@endif
         <h3 class="mt-1 line-clamp-2 text-sm leading-snug font-medium"><a href="{{ $url }}" class="hover:text-primary">{{ $product->name }}</a></h3>
         @if ($variant)
-            <p class="mt-auto flex flex-wrap items-baseline gap-x-2 pt-2">
-                <span class="text-base font-bold tabular-nums">{{ Money::format($variant->price) }}</span>
-                @if ($variant->hasDiscount())<span class="text-xs text-muted line-through tabular-nums">{{ Money::format($variant->compare_at_price) }}</span>@endif
-                @if ($product->hasPriceRange())<span class="text-xs text-muted">başlayan fiyatlarla</span>@endif
-            </p>
+            <div class="mt-auto flex items-end justify-between gap-2 pt-2">
+                <p class="flex flex-wrap items-baseline gap-x-2">
+                    <span class="text-base font-bold tabular-nums">{{ Money::format($variant->price) }}</span>
+                    @if ($variant->hasDiscount())<span class="text-xs text-muted line-through tabular-nums">{{ Money::format($variant->compare_at_price) }}</span>@endif
+                    @if ($product->hasPriceRange())<span class="w-full text-xs text-muted">başlayan fiyatlarla</span>@endif
+                </p>
+                @if ($inStock)
+                    {{-- Tek seçenekli ürün doğrudan sepete eklenir; seçenekli ürünlerde seçim ürün sayfasında yapılır. --}}
+                    @if ($product->activeVariants->count() === 1)
+                        <form method="POST" action="{{ route('store.cart.add') }}">
+                            @csrf
+                            <input type="hidden" name="variant_id" value="{{ $variant->id }}">
+                            <button class="flex size-9 items-center justify-center rounded-full bg-primary text-white shadow-sm transition hover:bg-primary-hover" aria-label="{{ $product->name }} sepete ekle"><x-icon name="cart" class="size-4" /></button>
+                        </form>
+                    @else
+                        <a href="{{ $url }}" class="flex size-9 items-center justify-center rounded-full border border-line text-ink transition hover:border-primary hover:text-primary" aria-label="{{ $product->name }} seçenekleri"><x-icon name="arrow-right" class="size-4" /></a>
+                    @endif
+                @endif
+            </div>
         @endif
     </div>
 </article>

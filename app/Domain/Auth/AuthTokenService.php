@@ -61,6 +61,6 @@ class AuthTokenService
 
     public function url(Area $area, string $purpose, string $plain): string
     {
-        return route($area->value.'.password.reset', ['token' => $plain]);
+        return route($area->passwordResetRoute(), ['token' => $plain]);
     }
 }

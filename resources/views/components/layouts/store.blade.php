@@ -62,11 +62,23 @@
                 <input name="q" value="{{ request()->routeIs('store.search') ? request('q') : '' }}" placeholder="Ürün, marka veya ürün kodu arayın" aria-label="Mağazada ara"
                     class="w-full rounded-full border border-line bg-surface py-2.5 pr-4 pl-11 text-sm focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 focus:outline-none">
             </form>
-            @if ($storeSettings['phone'])
-                <a href="tel:{{ preg_replace('/[^\d+]/', '', $storeSettings['phone']) }}" class="ml-auto hidden items-center gap-2 text-sm font-medium text-ink hover:text-primary md:ml-0 lg:flex">
-                    <x-icon name="phone" class="size-4" /> {{ $storeSettings['phone'] }}
+            <div class="ml-auto flex items-center gap-1 md:ml-0">
+                @if ($storeSettings['phone'])
+                    <a href="tel:{{ preg_replace('/[^\d+]/', '', $storeSettings['phone']) }}" class="mr-3 hidden items-center gap-2 text-sm font-medium text-ink hover:text-primary xl:flex">
+                        <x-icon name="phone" class="size-4" /> {{ $storeSettings['phone'] }}
+                    </a>
+                @endif
+                <a href="{{ $storeCustomer ? route('store.account') : route('store.login') }}" class="flex items-center gap-2 rounded-lg p-2 text-sm font-medium hover:bg-slate-100 sm:px-3"
+                    aria-label="{{ $storeCustomer ? 'Hesabım' : 'Giriş yap' }}">
+                    <x-icon name="user" class="size-5" />
+                    <span class="hidden max-w-32 truncate sm:inline">{{ $storeCustomer ? $storeCustomer->first_name : 'Giriş yap' }}</span>
                 </a>
-            @endif
+                <a href="{{ route('store.cart') }}" class="relative flex items-center gap-2 rounded-lg p-2 text-sm font-medium hover:bg-slate-100 sm:px-3" aria-label="Sepet ({{ $cartCount }} ürün)">
+                    <x-icon name="cart" class="size-5" />
+                    <span class="hidden sm:inline">Sepet</span>
+                    @if ($cartCount)<span class="absolute top-0 right-0 min-w-5 rounded-full bg-primary px-1 text-center text-[11px] leading-5 font-bold text-white tabular-nums sm:static">{{ $cartCount }}</span>@endif
+                </a>
+            </div>
         </div>
         {{-- Mobil arama --}}
         <form method="GET" action="{{ route('store.search') }}" role="search" class="px-4 pb-3 md:hidden">
@@ -134,6 +146,19 @@
             </ul>
         </nav>
     </div>
+
+    {{-- Bildirimler --}}
+    @if (session('status') || $errors->has('cart'))
+        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8" role="status">
+            @if (session('status'))
+                <p class="flex flex-wrap items-center gap-3 rounded-xl border border-green-200 bg-success-soft px-4 py-3 text-sm text-green-900">
+                    <x-icon name="check-circle" class="size-4" /> {{ session('status') }}
+                    @if (session('cart_added'))<a href="{{ route('store.cart') }}" class="ml-auto font-semibold underline">Sepete git</a>@endif
+                </p>
+            @endif
+            @error('cart')<p class="flex items-center gap-3 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900"><x-icon name="alert" class="size-4" /> {{ $message }}</p>@enderror
+        </div>
+    @endif
 
     <main class="flex-1">{{ $slot }}</main>
 

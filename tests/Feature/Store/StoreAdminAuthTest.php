@@ -162,5 +162,10 @@ class StoreAdminAuthTest extends TestCase
         $this->get(route('store_admin.password.request'))->assertOk();
         $this->post(route('store_admin.password.email'), ['email' => 'yok@magaza.local'])
             ->assertSessionHas('status');
+
+        // Kayıtlı hesap için sıfırlama bağlantısı üretilir.
+        $admin = $this->admin();
+        $this->post(route('store_admin.password.email'), ['email' => $admin->email])->assertSessionHas('status');
+        $this->assertDatabaseHas('auth_tokens', ['guard' => 'store_admin', 'user_id' => $admin->id, 'purpose' => 'password_reset']);
     }
 }

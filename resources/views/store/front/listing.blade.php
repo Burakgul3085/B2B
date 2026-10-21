@@ -29,11 +29,13 @@
             </div>
         @endif
 
-        <form method="GET" class="mt-6 grid gap-8 lg:grid-cols-[15rem_1fr]">
-            @isset($searchTerm)<input type="hidden" name="q" value="{{ $searchTerm }}">@endisset
+        <div class="mt-6 grid gap-8 lg:grid-cols-[15rem_1fr]">
+            {{-- Filtre formu yalnızca kenar çubuğunu sarar; sıralama "form" özniteliğiyle ona bağlıdır (ızgaradaki sepet formları iç içe olmasın). --}}
 
             {{-- Filtreler --}}
-            <aside :class="filters ? 'block' : 'hidden'" class="space-y-6 lg:block" aria-label="Filtreler">
+            <aside :class="filters ? 'block' : 'hidden'" class="lg:block" aria-label="Filtreler">
+            <form id="filtreler" method="GET" class="space-y-6">
+                @isset($searchTerm)<input type="hidden" name="q" value="{{ $searchTerm }}">@endisset
                 @if ($brandFacets->isNotEmpty())
                     <fieldset>
                         <legend class="text-sm font-semibold">Marka</legend>
@@ -65,6 +67,7 @@
                     <x-button size="sm" class="flex-1">Uygula</x-button>
                     @if ($hasFilters)<x-button size="sm" variant="ghost" :href="url()->current().(isset($searchTerm) ? '?q='.urlencode($searchTerm) : '')">Temizle</x-button>@endif
                 </div>
+            </form>
             </aside>
 
             <div>
@@ -74,7 +77,7 @@
                     </button>
                     <label class="ml-auto flex items-center gap-2 text-sm">
                         <span class="text-muted">Sırala</span>
-                        <select name="sirala" class="field-input w-auto py-1.5" data-autosubmit>
+                        <select name="sirala" form="filtreler" class="field-input w-auto py-1.5" data-autosubmit>
                             @foreach (Catalog::SORTS as $key => $label)
                                 <option value="{{ $key }}" @selected(($filters['sirala'] ?? 'onerilen') === $key)>{{ $label }}</option>
                             @endforeach
@@ -97,6 +100,6 @@
                     @if ($products->hasPages())<div class="mt-10">{{ $products->links() }}</div>@endif
                 @endif
             </div>
-        </form>
+        </div>
     </div>
 </x-layouts.store>

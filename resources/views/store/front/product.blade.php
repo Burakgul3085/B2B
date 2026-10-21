@@ -113,18 +113,19 @@
                     <p x-show="v.available === 0" x-cloak class="flex items-center gap-2 text-sm font-medium text-danger"><span class="size-2 rounded-full bg-danger"></span> Tükendi</p>
                 </div>
 
-                {{-- Sepet M5'te devreye girer --}}
-                <div class="mt-6 flex flex-wrap items-stretch gap-3">
+                {{-- Sepete ekleme: adet ve stok sunucuda yeniden denetlenir --}}
+                <form method="POST" action="{{ route('store.cart.add') }}" class="mt-6 flex flex-wrap items-stretch gap-3">
+                    @csrf
+                    <input type="hidden" name="variant_id" :value="v.id" value="{{ $variantData[$initial]['id'] }}">
                     <div class="flex items-center rounded-xl border border-line">
                         <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="qty = Math.max(1, qty - 1)" aria-label="Azalt">−</button>
-                        <input type="number" x-model.number="qty" min="1" :max="v.available" class="w-12 border-0 text-center font-semibold focus:ring-0" aria-label="Adet">
+                        <input type="number" name="quantity" x-model.number="qty" min="1" :max="v.available" value="1" class="w-12 border-0 text-center font-semibold focus:ring-0" aria-label="Adet">
                         <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="qty = Math.min(v.available || 1, qty + 1)" aria-label="Artır">+</button>
                     </div>
-                    <button type="button" disabled class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white opacity-60" title="Online sipariş çok yakında">
-                        <x-icon name="cart" class="size-5" /> Sepete ekle
+                    <button :disabled="v.available === 0" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
+                        <x-icon name="cart" class="size-5" /> <span x-text="v.available === 0 ? 'Tükendi' : 'Sepete ekle'">Sepete ekle</span>
                     </button>
-                </div>
-                <p class="mt-2 text-xs text-muted">Online sipariş çok yakında açılıyor.</p>
+                </form>
 
                 @if ($product->description)
                     <div class="mt-10 border-t border-line pt-6">

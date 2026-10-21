@@ -136,6 +136,40 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
         Route::get('sayfa/{slug}', [Front\PageController::class, 'show'])->name('page');
 
+        // Müşteri girişi ve üyelik (M5)
+        Route::middleware('guest:customer')->group(function () {
+            Route::get('giris', [Front\AuthController::class, 'showLogin'])->name('login');
+            Route::post('giris', [Front\AuthController::class, 'login'])->middleware('throttle:20,1')->name('login.store');
+            Route::get('uye-ol', [Front\AuthController::class, 'showRegister'])->name('register');
+            Route::post('uye-ol', [Front\AuthController::class, 'register'])->middleware('throttle:10,60')->name('register.store');
+            Route::get('parolami-unuttum', [Front\AuthController::class, 'showForgot'])->name('password.request');
+            Route::post('parolami-unuttum', [Front\AuthController::class, 'sendReset'])->name('password.email');
+            Route::get('parola-sifirla/{token}', [Front\AuthController::class, 'showReset'])->name('password.reset');
+            Route::post('parola-sifirla', [Front\AuthController::class, 'reset'])->name('password.update');
+        });
+
+        Route::middleware(['auth:customer', 'auth.session'])->group(function () {
+            Route::post('cikis', [Front\AuthController::class, 'logout'])->name('logout');
+            Route::get('hesabim', [Front\AccountController::class, 'show'])->name('account');
+            Route::put('hesabim', [Front\AccountController::class, 'updateProfile'])->name('account.profile');
+            Route::put('hesabim/parola', [Front\AccountController::class, 'updatePassword'])->name('account.password');
+            Route::put('hesabim/e-posta', [Front\AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
+
+            Route::get('hesabim/adres/yeni', [Front\AddressController::class, 'create'])->name('addresses.create');
+            Route::post('hesabim/adres', [Front\AddressController::class, 'store'])->name('addresses.store');
+            Route::get('hesabim/adres/{address}', [Front\AddressController::class, 'edit'])->whereNumber('address')->name('addresses.edit');
+            Route::put('hesabim/adres/{address}', [Front\AddressController::class, 'update'])->whereNumber('address')->name('addresses.update');
+            Route::put('hesabim/adres/{address}/varsayilan', [Front\AddressController::class, 'makeDefault'])->whereNumber('address')->name('addresses.default');
+            Route::delete('hesabim/adres/{address}', [Front\AddressController::class, 'destroy'])->whereNumber('address')->name('addresses.destroy');
+        });
+        Route::get('ilceler/{province}', [Front\AddressController::class, 'districts'])->whereNumber('province')->name('districts');
+
+        // Sepet (M5)
+        Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');
+        Route::post('sepet', [Front\CartController::class, 'add'])->middleware('throttle:60,1')->name('cart.add');
+        Route::put('sepet/{item}', [Front\CartController::class, 'update'])->whereNumber('item')->name('cart.update');
+        Route::delete('sepet/{item}', [Front\CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
+
         Route::get('gorsel/urun/{storeImage}', [Front\MediaController::class, 'product'])->name('media.product');
         Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
         Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
