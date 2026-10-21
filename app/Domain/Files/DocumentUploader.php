@@ -48,7 +48,13 @@ class DocumentUploader
             throw new DomainException('Dosya en fazla '.intdiv($maxBytes, 1024 * 1024).' MB olabilir.');
         }
 
-        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath());
+        // Geçici dosya okunamıyorsa (silinmiş, antivirüs tarafından kilitlenmiş vb.) 500 değil doğrulama hatası.
+        $realPath = $file->getRealPath();
+        $mime = $realPath === false ? false : @(new \finfo(FILEINFO_MIME_TYPE))->file($realPath);
+        if ($mime === false) {
+            throw new DomainException('Dosya okunamadı; lütfen yeniden yükleyin.');
+        }
+
         if (isset($allowed[self::DOCX]) && in_array($mime, self::ZIP_LIKE, true)) {
             $mime = $this->officeOpenXmlType($file->getRealPath()) ?? 'invalid/office';
         } elseif (isset($allowed['application/msword']) && in_array($mime, self::OLE_LIKE, true)) {
