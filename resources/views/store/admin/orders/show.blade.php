@@ -5,7 +5,8 @@
     use App\Models\Store\StoreOrder;
 
     $isCod = $order->payment_method === 'cod';
-    $canCancel = in_array($order->status, ['pending_payment', 'awaiting_approval', 'preparing'], true) && $order->payment_status !== 'paid';
+    $canCancel = in_array($order->status, ['pending_payment', 'awaiting_approval', 'paid', 'preparing'], true);
+    $refundsOnCancel = $order->payment_method === 'card' && $order->isSettled();
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" :title="'Sipariş '.$order->order_no">
     <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i').' · '.StoreOrder::PAYMENT_METHODS[$order->payment_method].' · '.StoreOrder::DELIVERY_METHODS[$order->delivery_method]">
@@ -37,7 +38,8 @@
                         <form method="POST" action="{{ route('store_admin.orders.ship', $order) }}" class="flex flex-wrap items-end gap-3 rounded-xl bg-surface p-4">
                             @csrf
                             @if ($order->delivery_method === 'cargo')
-                                <x-field name="carrier" label="Kargo firması" required maxlength="60" class="w-48" />
+                                <x-field name="carrier_id" label="Kargo firması" :options="['' => 'Seçin'] + $carriers->all()" required class="w-48"
+                                    :hint="$carriers->isEmpty() ? 'Önce Ayarlar → Kargo Firmaları ekranından firma ekleyin.' : null" />
                                 <x-field name="tracking_number" label="Takip numarası" required maxlength="60" class="w-56" />
                                 <x-button icon="arrow-right">Kargoya verildi</x-button>
                             @else
@@ -65,15 +67,18 @@
                     @endif
 
                     @if ($canCancel)
-                        <form method="POST" action="{{ route('store_admin.orders.cancel', $order) }}" class="flex flex-wrap items-end gap-3 border-t border-line pt-4" data-confirm="Sipariş iptal edilsin mi? Müşteriye e-posta gönderilir.">
+                        <form method="POST" action="{{ route('store_admin.orders.cancel', $order) }}" class="flex flex-wrap items-end gap-3 border-t border-line pt-4"
+                            data-confirm="{{ $refundsOnCancel ? 'Sipariş iptal edilsin ve '.Money::format($order->refundableAmount()).' karta iade edilsin mi? Bu işlem geri alınamaz.' : 'Sipariş iptal edilsin mi? Müşteriye e-posta gönderilir.' }}">
                             @csrf
                             <x-field name="reason" label="İptal gerekçesi" required maxlength="200" class="min-w-64 flex-1" />
-                            <x-button variant="danger">Siparişi iptal et</x-button>
+                            <x-button variant="danger">{{ $refundsOnCancel ? 'İptal et ve ödemeyi iade et' : 'Siparişi iptal et' }}</x-button>
                         </form>
-                    @elseif ($order->payment_status === 'paid' && ! in_array($order->status, ['shipped', 'delivered'], true))
-                        <p class="border-t border-line pt-4 text-xs text-muted">Kartla ödenmiş siparişin iptali ödeme iadesiyle birlikte yapılır; iade işlemleri bir sonraki aşamada eklenecek.</p>
+                        @if ($refundsOnCancel)<p class="text-xs text-muted">Ödemenin tamamı ({{ Money::format($order->refundableAmount()) }}) iyzico üzerinden karta iade edilir; iade başarısız olursa sipariş iptal edilmez.</p>@endif
                     @endif
-                    @if (in_array($order->status, ['delivered', 'cancelled', 'not_delivered', 'payment_failed'], true))
+                    @if ($order->status === 'delivered')
+                        <p class="text-muted">Teslim edildi. İade talepleri müşterinin sipariş sayfasından açılır ve <a href="{{ route('store_admin.returns.index') }}" class="text-primary hover:underline">İadeler</a> bölümüne düşer.</p>
+                    @endif
+                    @if (in_array($order->status, ['cancelled', 'not_delivered', 'payment_failed'], true))
                         <p class="text-muted">Bu sipariş kapandı.</p>
                     @endif
                 </div>
@@ -99,14 +104,39 @@
                     @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
                     <div class="flex justify-between border-t border-line pt-2 text-base font-bold"><dt>Toplam</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>
                     <div class="flex justify-between text-xs text-muted"><dt>Dahil KDV</dt><dd class="tabular-nums">{{ Money::format($order->vat_total) }}</dd></div>
+                    @if (bccomp((string) $order->refunded_total, '0', 2) > 0)
+                        <div class="flex justify-between border-t border-line pt-2 text-danger"><dt>İade edilen</dt><dd class="tabular-nums">−{{ Money::format($order->refunded_total) }}</dd></div>
+                    @endif
                 </dl>
             </x-card>
+
+            @if ($order->returns->isNotEmpty() || $order->refunds->isNotEmpty())
+                <x-card title="İadeler" :padding="false">
+                    <ul class="divide-y divide-line text-sm">
+                        @foreach ($order->returns as $return)
+                            <li class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+                                <a href="{{ route('store_admin.returns.show', $return) }}" class="font-medium text-primary hover:underline">{{ $return->return_no }}</a>
+                                <span class="text-muted">{{ $return->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span>
+                                <x-badge :tone="$return->statusTone()">{{ $return->statusLabel() }}</x-badge>
+                            </li>
+                        @endforeach
+                        @foreach ($order->refunds as $refund)
+                            <li class="flex flex-wrap justify-between gap-2 px-5 py-3">
+                                <span>Para iadesi · {{ $refund->method === 'iyzico' ? 'karta (iyzico)' : 'elle' }}@if ($refund->note)<span class="block text-xs text-muted">{{ $refund->note }}</span>@endif
+                                    @if ($refund->error_message)<span class="block text-xs text-danger">{{ $refund->error_message }}</span>@endif</span>
+                                <span class="text-right"><span @class(['font-medium tabular-nums', 'text-danger line-through' => $refund->status === 'failed'])>{{ Money::format($refund->amount) }}</span>
+                                    <span class="block text-xs text-muted">{{ $refund->status === 'failed' ? 'Başarısız' : 'Yapıldı' }} · {{ $refund->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span></span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-card>
+            @endif
 
             <x-card title="Sipariş geçmişi" :padding="false">
                 <ol class="divide-y divide-line text-sm">
                     @foreach ($order->events as $event)
                         <li class="flex flex-wrap justify-between gap-2 px-5 py-3">
-                            <span><span class="font-medium">{{ StoreOrder::STATUSES[$event->status] ?? $event->status }}</span>@if ($event->note)<span class="block text-muted">{{ $event->note }}</span>@endif</span>
+                            <span><span class="font-medium">{{ StoreOrder::eventLabel($event->status) }}</span>@if ($event->note)<span class="block text-muted">{{ $event->note }}</span>@endif</span>
                             <span class="text-xs text-muted">{{ \Illuminate\Support\Carbon::parse($event->created_at)->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}
                                 · {{ match ($event->actor_type) { 'store_admin' => $actors[$event->actor_id] ?? 'Yönetici', 'customer' => 'Müşteri', null => 'Sistem', default => $event->actor_type } }}</span>
                         </li>
@@ -130,13 +160,32 @@
             <x-card title="Teslimat adresi">
                 <p class="text-sm">{{ $order->shipping_name }} · {{ PhoneNumber::format($order->shipping_phone) }}</p>
                 <p class="mt-1 text-sm text-slate-600">{{ $order->shippingOneLine() }}</p>
-                @if ($order->tracking_number)<p class="mt-2 text-sm">Kargo: {{ $order->carrier }} · <span class="font-mono">{{ $order->tracking_number }}</span></p>@endif
+                @if ($order->tracking_number)<p class="mt-2 text-sm">Kargo: {{ $order->carrier }} ·
+                    @if ($order->tracking_url)<a href="{{ $order->tracking_url }}" target="_blank" rel="noopener noreferrer" class="font-mono text-primary hover:underline">{{ $order->tracking_number }}</a>@else<span class="font-mono">{{ $order->tracking_number }}</span>@endif</p>@endif
                 @if ($order->customer_note)<p class="mt-3 rounded-lg bg-warning-soft p-3 text-sm text-amber-900">Not: {{ $order->customer_note }}</p>@endif
             </x-card>
             <x-card title="Fatura">
                 <p class="text-sm">{{ $order->billing_type === 'corporate' ? 'Kurumsal' : 'Bireysel' }} · {{ $order->billing_name }}</p>
                 @if ($order->billing_tax_number)<p class="text-sm text-muted">{{ $order->billing_tax_office ? $order->billing_tax_office.' / ' : 'TCKN: ' }}{{ $order->billing_tax_number }}</p>@endif
                 <p class="mt-1 text-sm text-slate-600">{{ $order->billing_address }}</p>
+                <div class="mt-4 border-t border-line pt-4">
+                    @if ($order->invoice)
+                        <p class="text-sm">Fatura no: <span class="font-medium">{{ $order->invoice->invoice_no }}</span> · {{ $order->invoice->issued_on->format('d.m.Y') }}</p>
+                        @if ($order->invoice->file_path)<a href="{{ route('store_admin.orders.invoice', $order) }}" class="mt-1 inline-block text-sm text-primary hover:underline">PDF dosyasını indir</a>@endif
+                    @endif
+                    @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true))
+                        <details @class(['mt-3' => $order->invoice]) @if (! $order->invoice || $errors->hasAny(['invoice_no', 'issued_on', 'file'])) open @endif>
+                            <summary class="cursor-pointer text-sm font-medium text-primary">{{ $order->invoice ? 'Faturayı değiştir' : 'Fatura ekle' }}</summary>
+                            <form method="POST" action="{{ route('store_admin.orders.invoice.store', $order) }}" enctype="multipart/form-data" class="mt-3 space-y-3">
+                                @csrf
+                                <x-field name="invoice_no" label="Fatura numarası" required maxlength="30" :value="$order->invoice?->invoice_no" />
+                                <x-field name="issued_on" label="Fatura tarihi" type="date" required :value="$order->invoice?->issued_on?->toDateString() ?? now('Europe/Istanbul')->toDateString()" />
+                                <x-field name="file" label="PDF" type="file" accept="application/pdf" :required="! $order->invoice" :hint="$order->invoice ? 'Boş bırakılırsa mevcut PDF korunur.' : 'En fazla 5 MB. Müşteri sipariş sayfasından indirir.'" />
+                                <x-button>Kaydet</x-button>
+                            </form>
+                        </details>
+                    @endif
+                </div>
             </x-card>
             <x-card title="Ödeme">
                 <p class="text-sm">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }} · <span class="font-medium">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span>

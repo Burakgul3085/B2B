@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Orders\InvoiceService;
+use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreOrder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Sipariş görüntüleme: üye kendi siparişini hesabından, misafir (ve e-postadaki bağlantı) sipariş numarası +
@@ -20,23 +23,53 @@ class OrderController extends Controller
         ]);
     }
 
-    public function showOwn(Request $request, string $orderNo): View
+    public function showOwn(Request $request, string $orderNo, ReturnService $returns): View
     {
-        $order = StoreOrder::where('order_no', $orderNo)->where('customer_id', $request->user('customer')->id)->firstOrFail();
-
-        return $this->render($order);
+        return $this->render($this->own($request, $orderNo), $returns, route('store.orders.return', $orderNo), route('store.orders.invoice', $orderNo));
     }
 
-    public function showByToken(string $orderNo, string $token): View
+    public function showByToken(string $orderNo, string $token, ReturnService $returns): View
+    {
+        $params = ['orderNo' => $orderNo, 'token' => $token];
+
+        return $this->render($this->byToken($orderNo, $token), $returns, route('store.order.return', $params), route('store.order.invoice', $params));
+    }
+
+    public function invoiceOwn(Request $request, string $orderNo, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->download($this->own($request, $orderNo));
+    }
+
+    public function invoiceByToken(string $orderNo, string $token, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->download($this->byToken($orderNo, $token));
+    }
+
+    private function own(Request $request, string $orderNo): StoreOrder
+    {
+        return StoreOrder::where('order_no', $orderNo)->where('customer_id', $request->user('customer')->id)->firstOrFail();
+    }
+
+    private function byToken(string $orderNo, string $token): StoreOrder
     {
         $order = StoreOrder::where('order_no', $orderNo)->firstOrFail();
         abort_unless(hash_equals($order->access_token, $token), 404);
 
-        return $this->render($order);
+        return $order;
     }
 
-    private function render(StoreOrder $order): View
+    private function render(StoreOrder $order, ReturnService $returns, string $returnUrl, string $invoiceUrl): View
     {
-        return view('store.front.order', ['order' => $order->load(['items', 'events', 'consents'])]);
+        $order->load(['items', 'events', 'consents', 'returns.items', 'invoice']);
+        $refusal = $returns->refusal($order);
+
+        return view('store.front.order', [
+            'order' => $order,
+            'returnUrl' => $returnUrl,
+            'invoiceUrl' => $invoiceUrl,
+            'canReturn' => $refusal === null,
+            'returnable' => $refusal === null ? $returns->returnableQuantities($order) : [],
+            'returnDeadline' => ReturnService::deadline($order),
+        ]);
     }
 }

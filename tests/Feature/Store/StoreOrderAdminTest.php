@@ -114,7 +114,7 @@ class StoreOrderAdminTest extends TestCase
 
         $form = ['shipping_cargo_fee' => '49,90', 'shipping_free_threshold' => '750', 'local_delivery_enabled' => '1', 'local_delivery_fee' => '0',
             'local_districts' => [District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id')],
-            'cod_enabled' => '1', 'cod_max' => '2.500,00', 'cod_fee' => '15', 'cod_max_open' => 2, 'cod_first_order_approval' => '1',
+            'cod_enabled' => '1', 'cod_max' => '2.500,00', 'cod_fee' => '15', 'cod_max_open' => 2, 'cod_first_order_approval' => '1', 'return_days' => 14,
             'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'iyzico_api_key' => 'api-123', 'iyzico_secret_key' => 'gizli-456', 'sms_driver' => 'log'];
 
         $this->put(route('store_admin.payments.update'), ['cod_max' => 'abc'] + $form)->assertSessionHasErrors('cod_max');

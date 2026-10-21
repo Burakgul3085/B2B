@@ -1,16 +1,16 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (Mağaza M6 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 21.10.2026 (Mağaza M7 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
-### M7 — Teslimat, iade ve fatura
-- [ ] Kargo firması altyapısı. Firmaya bağlı olmayan bir sürücü katmanı kurulacak, önce elle çalışacak. Şimdilik firma adı ve takip numarası elle giriliyor.
-- [ ] Müşteri iade talebi: talep, onay, ürünün geri alınması ve stoğa dönmesi.
-- [ ] iyzico üzerinden para iadesi (tam ve kısmi).
-- [ ] **Kartla ödenmiş siparişin iptali.** Şu an engelli; para iadesi gelince açılacak.
-- [ ] Elle fatura: fatura numarası ve PDF'in siparişe eklenmesi.
-- [ ] Uyumsoft e-Arşiv sürücüsü. Test kullanıcısı gelince yazılacak.
+### M7'den kalanlar
+M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura). Kalanlar:
+- [ ] **Uyumsoft e-Arşiv sürücüsü.** Uyumsoft API kullanıcısı ve test ortamı gelince yazılacak; şimdilik fatura numarası ve PDF elle ekleniyor.
+- [ ] **İade faturası / iptal faturası.** e-Arşiv bağlanınca iade ve iptallerde düzenlenecek belge mali müşavirle netleştirilecek.
+- [ ] **Kargo firması API'si:** Gönderi oluşturma, barkod, durum sorgulama. Anlaşma yapılan firmaya göre; şimdilik firma seçilip takip numarası elle giriliyor.
+- [ ] **Telefonla gelen iade talebi.** Yöneticinin müşteri adına iade talebi açması yok; talep yalnızca müşterinin sipariş sayfasından açılıyor.
+- [ ] **İadeden bağımsız para iadesi.** Ürün iadesi olmadan kısmi para iadesi (ör. eksik gönderim, gönül alma) yok; yalnızca iade talebi ve sipariş iptaliyle yapılıyor.
 
 ### M8 — Kampanya, kupon, rapor
 - [ ] Kampanya ve kupon. Sepette kupon alanı yok; altyapı da henüz kurulmadı.
@@ -48,7 +48,8 @@
 
 - **Ödeme yöntemleri kapalı.** Kapıda ödeme ve kartla ödeme varsayılan olarak kapalıdır; `Mağaza yönetimi → Ayarlar → Ödeme ve Teslimat` ekranından açılır.
 - **SMS gönderilmiyor.** SMS sürücüsü `log` modunda; kodlar `storage/logs/laravel.log` dosyasına yazılır. Canlı ortamda gerçek SMS ayarlanmadan kapıda ödeme açılamaz.
-- **iyzico yalnızca sahte yanıtlarla denendi.** Testler iyzico yanıtlarını taklit ediyor; gerçek sandbox anahtarlarıyla uçtan uca deneme yapılmadı.
+- **iyzico yalnızca sahte yanıtlarla denendi.** Ödeme ve para iadesi testleri iyzico yanıtlarını taklit ediyor; gerçek sandbox anahtarlarıyla uçtan uca deneme yapılmadı. Özellikle kalem bazında iade (`/payment/refund`) sandbox'ta mutlaka denenmeli.
+- **Kargo firmalarının takip bağlantıları boş.** `Ayarlar → Kargo Firmaları` ekranından her firmanın gönderi sorgulama adresi `{takip}` ile girilmeli.
 - **Mağaza ziyaretçilere kapalı.** "Yakında" sayfası gösteriliyor; görmek için önizleme bağlantısı gerekir.
 - **Geliştirme veritabanında mağaza verisi yok.** Mağaza yöneticisi, ürün ve stok bulunmuyor. Süper admin `Platform → Mağaza Yöneticileri` ekranından açılır, ürünler mağaza panelinden eklenir.
 - **İki adımlı doğrulama zorunlu.** Süper admin ilk girişte iki adımlı doğrulamayı kurmak zorundadır.

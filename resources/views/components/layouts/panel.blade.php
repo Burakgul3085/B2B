@@ -76,6 +76,8 @@
             ['label' => 'Satış', 'items' => [
                 ['label' => 'Siparişler', 'route' => 'store_admin.orders.index', 'icon' => 'file', 'active' => 'store_admin.orders.*',
                     'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
+                ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
+                    'badge' => \App\Models\Store\StoreReturn::where('status', 'requested')->count()],
             ]],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],
@@ -89,6 +91,7 @@
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],
                 ['label' => 'Ödeme ve Teslimat', 'route' => 'store_admin.payments.edit', 'icon' => 'cart', 'active' => 'store_admin.payments.*'],
+                ['label' => 'Kargo Firmaları', 'route' => 'store_admin.carriers.index', 'icon' => 'package', 'active' => 'store_admin.carriers.*'],
                 ['label' => 'Yasal Metinler', 'route' => 'store_admin.legal.index', 'icon' => 'shield', 'active' => 'store_admin.legal.*'],
             ]],
             ['label' => 'Stok', 'items' => [

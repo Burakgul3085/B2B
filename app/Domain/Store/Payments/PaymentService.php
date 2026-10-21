@@ -79,6 +79,13 @@ class PaymentService
                 'error_message' => isset($result['errorMessage']) ? mb_substr((string) $result['errorMessage'], 0, 300) : null,
                 'raw' => json_encode(Arr::only($result, ['status', 'paymentStatus', 'paymentId', 'price', 'paidPrice', 'basketId', 'installment',
                     'fraudStatus', 'cardType', 'cardAssociation', 'cardFamily', 'binNumber', 'lastFourDigits', 'errorCode', 'errorMessage', 'mdStatus'])),
+                // İade, kalem bazındaki işlem kimlikleri üzerinden yapılır (RefundService).
+                'item_transactions' => $paid ? json_encode(collect($result['itemTransactions'] ?? [])->map(fn ($t) => [
+                    'item_id' => (string) ($t['itemId'] ?? ''),
+                    'transaction_id' => (string) ($t['paymentTransactionId'] ?? ''),
+                    'paid_price' => number_format((float) ($t['paidPrice'] ?? $t['price'] ?? 0), 2, '.', ''),
+                    'refunded' => '0.00',
+                ])->filter(fn ($t) => $t['transaction_id'] !== '')->values()->all()) : null,
                 'updated_at' => now(),
             ]);
 

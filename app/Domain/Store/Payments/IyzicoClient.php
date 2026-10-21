@@ -56,6 +56,21 @@ class IyzicoClient
         ]);
     }
 
+    /**
+     * Kalem bazında para iadesi (iyzico "refund"). Ödemedeki her sepet kalemi ayrı işlem kimliğiyle iade edilir.
+     *
+     * @return array iyzico yanıtı (status: success | failure)
+     *
+     * @throws DomainException bağlantı hatası
+     */
+    public function refund(string $transactionId, string $amount, string $conversationId, ?string $ip): array
+    {
+        return $this->post('/payment/refund', [
+            'locale' => 'tr', 'conversationId' => $conversationId, 'paymentTransactionId' => $transactionId,
+            'price' => $amount, 'currency' => 'TRY', 'ip' => $ip ?? '127.0.0.1',
+        ]);
+    }
+
     /** @throws DomainException */
     private function post(string $path, array $body): array
     {

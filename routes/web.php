@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 $authRoutes = function (string $name) {
     Route::middleware("guest:{$name}")->group(function () {
         Route::get('login', [LoginController::class, 'show'])->name('login');
-        Route::post('login', [LoginController::class, 'store'])->middleware('throttle:20,1')->name('login.store');
+        Route::post('login', [LoginController::class, 'store'])->middleware('throttle:20,1,login.store')->name('login.store');
         Route::get('parolami-unuttum', [PasswordResetController::class, 'request'])->name('password.request');
         Route::post('parolami-unuttum', [PasswordResetController::class, 'email'])->name('password.email');
         Route::get('parola-sifirla/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
@@ -39,7 +39,7 @@ $accountRoutes = function () {
     Route::get('hesabim', [AccountController::class, 'show'])->name('account');
     Route::put('hesabim', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('hesabim/parola', [AccountController::class, 'updatePassword'])->name('account.password');
-    Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
+    Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10,account.email')->name('account.email');
 };
 
 // Mağaza ve mağaza yönetimi kendi alan adlarında; aynı adresli B2B rotalarından önce eşleşsinler diye önce kaydedilir.
@@ -54,7 +54,7 @@ Route::redirect('/', '/bayi/login')->name('home');
 // Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
 Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');
 Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
-Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60')->name('public.application.store');
+Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60,public.application.store')->name('public.application.store');
 Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
 Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
@@ -66,7 +66,7 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
         Route::get('iki-adimli-dogrulama/kurulum', [Platform\TwoFactorController::class, 'setup'])->name('two-factor.setup');
         Route::post('iki-adimli-dogrulama/kurulum', [Platform\TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
         Route::get('iki-adimli-dogrulama', [Platform\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
-        Route::post('iki-adimli-dogrulama', [Platform\TwoFactorController::class, 'verify'])->middleware('throttle:10,1')->name('two-factor.verify');
+        Route::post('iki-adimli-dogrulama', [Platform\TwoFactorController::class, 'verify'])->middleware('throttle:10,1,two-factor.verify')->name('two-factor.verify');
 
         Route::middleware('platform.2fa')->group(function () use ($accountRoutes) {
             Route::get('/', Platform\DashboardController::class)->name('dashboard');
@@ -82,7 +82,7 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::put('isletmeler/{business}/moduller', [Platform\BusinessController::class, 'updateModules'])->name('businesses.modules');
             Route::put('isletmeler/{business}/yetkili', [Platform\BusinessController::class, 'updateUser'])->name('businesses.user');
             Route::put('isletmeler/{business}/e-posta', [Platform\BusinessController::class, 'updateEmail'])->name('businesses.email');
-            Route::post('isletmeler/{business}/e-posta/test', [Platform\BusinessController::class, 'testEmail'])->middleware('throttle:5,10')->name('businesses.email.test');
+            Route::post('isletmeler/{business}/e-posta/test', [Platform\BusinessController::class, 'testEmail'])->middleware('throttle:5,10,businesses.email.test')->name('businesses.email.test');
 
             Route::get('basvurular', [Platform\ApplicationController::class, 'index'])->name('applications.index');
             Route::get('basvurular/{application}', [Platform\ApplicationController::class, 'show'])->whereNumber('application')->name('applications.show');
@@ -141,15 +141,15 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::middleware('module:messaging')->group(function () {
             Route::get('mesajlar', [Business\MessageController::class, 'index'])->name('messages.index');
             Route::get('mesajlar/yeni', [Business\MessageController::class, 'create'])->name('messages.create');
-            Route::post('mesajlar', [Business\MessageController::class, 'store'])->middleware('throttle:30,1')->name('messages.store');
+            Route::post('mesajlar', [Business\MessageController::class, 'store'])->middleware('throttle:30,1,messages.store')->name('messages.store');
             Route::get('mesajlar/{conversation}', [Business\MessageController::class, 'show'])->name('messages.show');
-            Route::post('mesajlar/{conversation}', [Business\MessageController::class, 'reply'])->middleware('throttle:30,1')->name('messages.reply');
+            Route::post('mesajlar/{conversation}', [Business\MessageController::class, 'reply'])->middleware('throttle:30,1,messages.reply')->name('messages.reply');
             Route::get('mesajlar/{conversation}/ek/{attachment}', [Business\MessageController::class, 'attachment'])->name('messages.attachment');
         });
         // Vitrin: bayi ana sayfası slaytları ve ürün vitrinleri
         Route::get('vitrin', [Business\StorefrontController::class, 'index'])->name('storefront.index');
-        Route::post('vitrin/slaytlar', [Business\StorefrontController::class, 'storeBanner'])->middleware('throttle:30,1')->name('storefront.banners.store');
-        Route::put('vitrin/slaytlar/{banner}', [Business\StorefrontController::class, 'updateBanner'])->middleware('throttle:30,1')->name('storefront.banners.update');
+        Route::post('vitrin/slaytlar', [Business\StorefrontController::class, 'storeBanner'])->middleware('throttle:30,1,storefront.banners.store')->name('storefront.banners.store');
+        Route::put('vitrin/slaytlar/{banner}', [Business\StorefrontController::class, 'updateBanner'])->middleware('throttle:30,1,storefront.banners.update')->name('storefront.banners.update');
         Route::delete('vitrin/slaytlar/{banner}', [Business\StorefrontController::class, 'destroyBanner'])->name('storefront.banners.destroy');
         Route::post('vitrin/slaytlar/{banner}/tasi', [Business\StorefrontController::class, 'moveBanner'])->name('storefront.banners.move');
         Route::get('vitrin/slaytlar/{banner}/medya', [Business\StorefrontController::class, 'media'])->name('storefront.banners.media');
@@ -162,7 +162,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::put('urunler/{product}/vitrinler', [Business\StorefrontController::class, 'productShowcases'])->name('products.showcases');
 
         Route::get('duyurular', [Business\AnnouncementController::class, 'index'])->name('announcements.index');
-        Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->middleware('throttle:20,1')->name('announcements.store');
+        Route::post('duyurular', [Business\AnnouncementController::class, 'store'])->middleware('throttle:20,1,announcements.store')->name('announcements.store');
         Route::get('duyurular/{announcement}/ek/{attachment}', [Business\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
         Route::get('bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('bildirimler/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
@@ -178,7 +178,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::middleware('module:reports')->group(function () {
             Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
-            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1')->name('reports.export');
+            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1,reports.export')->name('reports.export');
         });
 
         // Cari hesaplar
@@ -212,8 +212,8 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('bayiler/{dealer}', [Business\DealerController::class, 'show'])->name('dealers.show');
         Route::put('bayiler/{dealer}', [Business\DealerController::class, 'update'])->name('dealers.update');
         Route::put('bayiler/{dealer}/durum', [Business\DealerController::class, 'updateStatus'])->name('dealers.status');
-        Route::put('bayiler/{dealer}/giris-eposta', [Business\DealerController::class, 'correctEmail'])->middleware('throttle:10,1')->name('dealers.email');
-        Route::put('bayiler/{dealer}/sifre', [Business\DealerController::class, 'setPassword'])->middleware('throttle:10,1')->name('dealers.password');
+        Route::put('bayiler/{dealer}/giris-eposta', [Business\DealerController::class, 'correctEmail'])->middleware('throttle:10,1,dealers.email')->name('dealers.email');
+        Route::put('bayiler/{dealer}/sifre', [Business\DealerController::class, 'setPassword'])->middleware('throttle:10,1,dealers.password')->name('dealers.password');
         Route::post('bayiler/{dealer}/adresler', [Business\DealerController::class, 'storeAddress'])->name('dealers.addresses.store');
         Route::put('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'updateAddress'])->name('dealers.addresses.update');
         Route::delete('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'archiveAddress'])->name('dealers.addresses.destroy');
@@ -244,7 +244,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('urunler/toplu-fiyat', [Business\ProductController::class, 'priceUpdate'])->name('products.price.update');
         Route::middleware('module:import')->group(function () {
             Route::get('urunler/ice-aktar', [Business\ProductImportController::class, 'index'])->name('products.import');
-            Route::post('urunler/ice-aktar', [Business\ProductImportController::class, 'store'])->middleware('throttle:10,1')->name('products.import.store');
+            Route::post('urunler/ice-aktar', [Business\ProductImportController::class, 'store'])->middleware('throttle:10,1,products.import.store')->name('products.import.store');
             Route::get('urunler/ice-aktar/sablon', [Business\ProductImportController::class, 'template'])->name('products.import.template');
             Route::get('urunler/ice-aktar/{job}', [Business\ProductImportController::class, 'show'])->name('products.import.show');
         });
@@ -325,19 +325,19 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::post('sepet', [Dealer\CartController::class, 'add'])->name('cart.add');
         Route::put('sepet/{item}', [Dealer\CartController::class, 'update'])->name('cart.update');
         Route::delete('sepet/{item}', [Dealer\CartController::class, 'remove'])->name('cart.remove');
-        Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1')->name('cart.submit');
+        Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1,cart.submit')->name('cart.submit');
         Route::get('cari-hesabim', Dealer\AccountStatementController::class)->name('account.statement');
         Route::middleware('module:reports')->group(function () {
             Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
-            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1')->name('reports.export');
+            Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1,reports.export')->name('reports.export');
         });
         Route::middleware('module:messaging')->group(function () {
             Route::get('mesajlar', [Dealer\MessageController::class, 'index'])->name('messages.index');
             Route::get('mesajlar/yeni', [Dealer\MessageController::class, 'create'])->name('messages.create');
-            Route::post('mesajlar', [Dealer\MessageController::class, 'store'])->middleware('throttle:30,1')->name('messages.store');
+            Route::post('mesajlar', [Dealer\MessageController::class, 'store'])->middleware('throttle:30,1,messages.store')->name('messages.store');
             Route::get('mesajlar/{conversation}', [Dealer\MessageController::class, 'show'])->name('messages.show');
-            Route::post('mesajlar/{conversation}', [Dealer\MessageController::class, 'reply'])->middleware('throttle:30,1')->name('messages.reply');
+            Route::post('mesajlar/{conversation}', [Dealer\MessageController::class, 'reply'])->middleware('throttle:30,1,messages.reply')->name('messages.reply');
             Route::get('mesajlar/{conversation}/ek/{attachment}', [Dealer\MessageController::class, 'attachment'])->name('messages.attachment');
         });
         Route::get('bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
@@ -348,7 +348,7 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
-        Route::post('siparislerim/{order}/tekrar', [Dealer\OrderController::class, 'reorder'])->middleware('throttle:20,1')->name('orders.reorder');
+        Route::post('siparislerim/{order}/tekrar', [Dealer\OrderController::class, 'reorder'])->middleware('throttle:20,1,orders.reorder')->name('orders.reorder');
         Route::middleware('module:product_requests')->group(function () {
             Route::get('taleplerim', [Dealer\ProductRequestController::class, 'index'])->name('requests.index');
             Route::post('taleplerim', [Dealer\ProductRequestController::class, 'store'])->name('requests.store');
@@ -359,7 +359,7 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::put('sevk-adresleri/{address}', [Dealer\AddressController::class, 'update'])->name('addresses.update');
         Route::put('sevk-adresleri/{address}/varsayilan', [Dealer\AddressController::class, 'makeDefault'])->name('addresses.default');
         Route::delete('sevk-adresleri/{address}', [Dealer\AddressController::class, 'destroy'])->name('addresses.destroy');
-        Route::post('hesabim/logo', [Dealer\LogoController::class, 'update'])->middleware('throttle:20,1')->name('logo.update');
+        Route::post('hesabim/logo', [Dealer\LogoController::class, 'update'])->middleware('throttle:20,1,logo.update')->name('logo.update');
         Route::delete('hesabim/logo', [Dealer\LogoController::class, 'destroy'])->name('logo.destroy');
         Route::get('hesabim/logo', [Dealer\LogoController::class, 'show'])->name('logo');
         Route::get('isletme-profili', [Dealer\ProfileController::class, 'show'])->name('profile');

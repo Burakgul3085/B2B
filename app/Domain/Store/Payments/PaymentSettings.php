@@ -33,6 +33,8 @@ class PaymentSettings
             'cod_max' => ['nullable', 'string', 'max:20'],
             'cod_fee' => ['nullable', 'string', 'max:20'],
             'cod_max_open' => ['required', 'integer', 'min:1', 'max:10'],
+            'return_days' => ['required', 'integer', 'min:14', 'max:90'],
+            'return_address' => ['nullable', 'string', 'max:300'],
             'iyzico_mode' => ['required', 'in:sandbox,live'],
             'iyzico_api_key' => ['nullable', 'string', 'max:200'],
             'iyzico_secret_key' => ['nullable', 'string', 'max:200'],
@@ -43,6 +45,7 @@ class PaymentSettings
         ], [], [
             'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
+            'return_days' => 'iade süresi', 'return_address' => 'iade adresi',
         ])->validate();
 
         $errors = [];
@@ -80,6 +83,8 @@ class PaymentSettings
             // Tüm ilçeler seçiliyse boş bırakılır (yeni ilçe eklenirse kendiliğinden kapsar).
             'local_districts' => count($districts) === count($eskisehir) ? null : implode(',', $districts),
             'cod_max_open' => (string) $data['cod_max_open'],
+            'return_days' => (string) $data['return_days'],
+            'return_address' => trim((string) ($data['return_address'] ?? '')) ?: null,
             'iyzico_mode' => $data['iyzico_mode'],
             'sms_driver' => $data['sms_driver'],
             'netgsm_usercode' => trim((string) ($data['netgsm_usercode'] ?? '')) ?: null,

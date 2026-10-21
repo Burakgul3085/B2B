@@ -5,6 +5,7 @@ namespace App\Models\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Mağaza siparişi. Adres, fatura ve fiyatlar sipariş anındaki kopyadır.
@@ -34,6 +35,8 @@ class StoreOrder extends Model
         'cod_pending' => 'Kapıda tahsil edilecek',
         'collected' => 'Tahsil edildi',
         'void' => 'Tahsil edilmedi',
+        'partially_refunded' => 'Kısmen iade edildi',
+        'refunded' => 'İade edildi',
     ];
 
     public const PAYMENT_METHODS = ['card' => 'Kredi / banka kartı', 'cod' => 'Kapıda ödeme'];
@@ -76,6 +79,49 @@ class StoreOrder extends Model
     public function consents(): HasMany
     {
         return $this->hasMany(StoreOrderConsent::class, 'order_id')->orderBy('id');
+    }
+
+    public function carrierModel(): BelongsTo
+    {
+        return $this->belongsTo(StoreCarrier::class, 'carrier_id');
+    }
+
+    public function returns(): HasMany
+    {
+        return $this->hasMany(StoreReturn::class, 'order_id')->orderBy('id');
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(StoreRefund::class, 'order_id')->orderBy('id');
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(StoreInvoice::class, 'order_id');
+    }
+
+    /** Ödenen (kart) veya tahsil edilen (kapıda) tutar; iade bunun üzerinden yapılabilir. */
+    public function isSettled(): bool
+    {
+        return in_array($this->payment_status, ['paid', 'collected', 'partially_refunded'], true);
+    }
+
+    /** İade edilebilecek kalan tutar. */
+    public function refundableAmount(): string
+    {
+        return $this->isSettled() ? bcsub((string) $this->total, (string) $this->refunded_total, 2) : '0.00';
+    }
+
+    /** Sipariş geçmişi satırı: durum değişikliği veya iade / para iadesi / fatura kaydı. */
+    public static function eventLabel(string $status): string
+    {
+        return self::STATUSES[$status] ?? match ($status) {
+            'return' => 'İade',
+            'refund' => 'Para iadesi',
+            'invoice' => 'Fatura',
+            default => $status,
+        };
     }
 
     public function statusLabel(): string

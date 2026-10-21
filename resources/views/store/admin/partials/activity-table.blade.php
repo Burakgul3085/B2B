@@ -26,6 +26,11 @@
         'store.cod_unblocked' => 'Telefon kapıda ödeme engelinden çıkarıldı',
         'store.legal_published' => 'Yasal metin yayımlandı', 'store.payment_settings_updated' => 'Ödeme ve teslimat ayarları güncellendi',
         'store.payment_secret_removed' => 'Ödeme / SMS anahtarı silindi',
+        'store.return_requested' => 'İade talebi açıldı', 'store.return_approved' => 'İade onaylandı', 'store.return_rejected' => 'İade reddedildi',
+        'store.return_received' => 'İade ürünü teslim alındı', 'store.return_refunded' => 'İade tamamlandı',
+        'store.refund_succeeded' => 'Para iadesi yapıldı', 'store.refund_failed' => 'Para iadesi başarısız',
+        'store.invoice_added' => 'Fatura eklendi', 'store.invoice_replaced' => 'Fatura değiştirildi',
+        'store.carrier_created' => 'Kargo firması eklendi', 'store.carrier_updated' => 'Kargo firması güncellendi', 'store.carrier_deleted' => 'Kargo firması silindi',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];
     $legalTitles = \App\Models\Store\StoreLegalDocument::KEYS;

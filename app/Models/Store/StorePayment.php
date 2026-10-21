@@ -12,7 +12,7 @@ class StorePayment extends Model
 
     protected function casts(): array
     {
-        return ['raw' => 'array', 'installment' => 'integer'];
+        return ['raw' => 'array', 'item_transactions' => 'array', 'installment' => 'integer'];
     }
 
     public function order(): BelongsTo

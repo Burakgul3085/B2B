@@ -42,6 +42,13 @@
                 </div>
             </x-card>
 
+            <x-card title="İade (cayma hakkı)" description="Müşteri teslimden sonra bu süre içinde sipariş sayfasından iade talebi açabilir. Yasal en kısa süre 14 gündür.">
+                <div class="space-y-5">
+                    <x-field name="return_days" label="İade süresi (gün)" type="number" min="14" max="90" :value="$s['return_days']" required class="max-w-48" />
+                    <x-field name="return_address" label="İade gönderim adresi" textarea maxlength="300" :value="$s['return_address']" hint="Onaylanan iade e-postasında müşteriye gösterilir. Boşsa Mağaza Ayarları'ndaki adres kullanılır." />
+                </div>
+            </x-card>
+
             <x-card title="Kartla ödeme (iyzico)" :description="$iyzicoReady ? 'Anahtarlar kayıtlı.' : 'iyzico üye işyeri hesabı açıldığında API anahtarlarını girin. Test için iyzico sandbox anahtarları kullanılabilir.'">
                 <div class="space-y-5">
                     <x-toggle name="card_enabled" label="Kartla ödeme açık" :checked="$s['card_enabled'] === '1'" hint="Anahtarlar girilmeden müşteriye gösterilmez." />

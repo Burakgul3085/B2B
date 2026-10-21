@@ -5,9 +5,12 @@ namespace App\Domain\Store\Orders;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Payments\RefundService;
+use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreStockMovement;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +27,7 @@ class OrderService
         private AuditLogger $audit,
         private CurrentActor $actor,
         private OrderMailer $mailer,
+        private RefundService $refunds,
     ) {}
 
     /** Kart ödemesi doğrulandı: ayrılan stok satışa çevrilir. */
@@ -89,17 +93,22 @@ class OrderService
     }
 
     /** @throws DomainException */
-    public function ship(StoreOrder $order, ?string $carrier, ?string $tracking): void
+    public function ship(StoreOrder $order, ?int $carrierId, ?string $tracking): void
     {
-        $carrier = trim((string) $carrier) ?: null;
-        $tracking = trim((string) $tracking) ?: null;
-        if ($order->delivery_method === 'cargo' && (! $carrier || ! $tracking)) {
-            throw new DomainException('Kargo firması ve takip numarası girin.');
+        $extra = ['shipped_at' => now()];
+        $note = 'Teslimat için yola çıktı.';
+        if ($order->delivery_method === 'cargo') {
+            $carrier = $carrierId ? StoreCarrier::where('is_active', true)->find($carrierId) : null;
+            $tracking = trim((string) $tracking);
+            if (! $carrier || $tracking === '' || mb_strlen($tracking) > 60) {
+                throw new DomainException('Kargo firmasını seçin ve takip numarasını girin.');
+            }
+            // Firma adı ve takip bağlantısı siparişe kopyalanır; firma sonradan değişse de sipariş etkilenmez.
+            $extra += ['carrier_id' => $carrier->id, 'carrier' => $carrier->name, 'tracking_number' => $tracking, 'tracking_url' => $carrier->trackingUrl($tracking)];
+            $note = "Kargoya verildi: {$carrier->name} {$tracking}";
         }
 
-        $this->transition($order, ['paid', 'preparing'], 'shipped',
-            ['shipped_at' => now(), 'carrier' => $carrier, 'tracking_number' => $tracking],
-            $order->delivery_method === 'cargo' ? "Kargoya verildi: {$carrier} {$tracking}" : 'Teslimat için yola çıktı.', 'store.order_shipped');
+        $this->transition($order, ['paid', 'preparing'], 'shipped', $extra, $note, 'store.order_shipped');
         $this->mailer->shipped($order->fresh());
     }
 
@@ -152,23 +161,32 @@ class OrderService
     }
 
     /**
-     * Yola çıkmadan iptal. Kartla ödenmiş siparişlerde iade iyzico üzerinden yapılır (M7); şimdilik engellenir.
+     * Yola çıkmadan iptal. Kartla ödenmiş siparişte önce ödemenin tamamı iyzico üzerinden karta iade edilir;
+     * iade başarısız olursa sipariş iptal edilmez.
      *
      * @throws DomainException
      */
-    public function cancel(StoreOrder $order, string $reason): void
+    public function cancel(StoreOrder $order, string $reason, ?string $ip = null): void
     {
-        if ($order->payment_status === 'paid') {
-            throw new DomainException('Kartla ödenmiş sipariş, ödeme iadesiyle birlikte iptal edilmelidir (iade işlemleri bir sonraki aşamada eklenecek).');
-        }
+        $cancellable = ['pending_payment', 'awaiting_approval', 'paid', 'preparing'];
         if (trim($reason) === '') {
             throw new DomainException('İptal gerekçesi yazın.');
         }
+        if (! in_array($order->status, $cancellable, true)) {
+            throw new DomainException('Sipariş bu durumdayken bu işlem yapılamaz ('.$order->statusLabel().').');
+        }
 
-        DB::transaction(function () use ($order, $reason) {
+        $paidByCard = $order->payment_method === 'card' && in_array($order->payment_status, ['paid', 'partially_refunded'], true);
+        if ($paidByCard && bccomp($order->refundableAmount(), '0', 2) > 0) {
+            $this->refunds->refund($order, $order->refundableAmount(), 'iyzico', [], true, null, 'Sipariş iptali: '.mb_substr($reason, 0, 200), $ip);
+            $order->refresh();
+        }
+
+        DB::transaction(function () use ($order, $reason, $cancellable, $paidByCard) {
             $wasPending = $order->status === 'pending_payment';
-            $this->transition($order, ['pending_payment', 'awaiting_approval', 'preparing'], 'cancelled',
-                ['cancelled_at' => now(), 'cancel_reason' => mb_substr($reason, 0, 300), 'payment_status' => $order->payment_method === 'cod' ? 'void' : 'failed'],
+            $this->transition($order, $cancellable, 'cancelled',
+                ['cancelled_at' => now(), 'cancel_reason' => mb_substr($reason, 0, 300),
+                    'payment_status' => $paidByCard ? 'refunded' : ($order->payment_method === 'cod' ? 'void' : 'failed')],
                 'İptal edildi: '.$reason, 'store.order_cancelled');
 
             if ($wasPending && $order->stock_holder) {
@@ -196,12 +214,22 @@ class OrderService
         });
     }
 
-    /** Satılmış kalemleri stoğa geri alır (her kalem bir kez). */
+    /**
+     * Bu sipariş için stoktan düşülmüş kalemleri geri alır (her kalem bir kez). Ödeme süresi içinde stok tükenip satış
+     * hareketi oluşmadıysa (ödendi, stok yetersiz) geri alınacak bir şey yoktur.
+     */
     private function restockAll(StoreOrder $order, string $reason): void
     {
+        $sold = StoreStockMovement::where('reference_type', 'store_order')->where('reference_id', $order->id)
+            ->whereIn('type', ['sale', 'return'])->groupBy('variant_id')->selectRaw('variant_id, -SUM(quantity) as net')->pluck('net', 'variant_id');
+
         foreach ($order->items()->whereNotNull('variant_id')->get() as $item) {
-            $this->stock->restock($item->variant_id, $item->quantity, "order:{$order->id}:{$reason}:{$item->id}", 'store_order', $order->id,
-                "Sipariş {$order->order_no}: ".($reason === 'cancel' ? 'iptal' : 'teslim alınmadı'));
+            $quantity = min($item->quantity, (int) ($sold[$item->variant_id] ?? 0));
+            if ($quantity > 0) {
+                $sold[$item->variant_id] = (int) $sold[$item->variant_id] - $quantity;
+                $this->stock->restock($item->variant_id, $quantity, "order:{$order->id}:{$reason}:{$item->id}", 'store_order', $order->id,
+                    "Sipariş {$order->order_no}: ".($reason === 'cancel' ? 'iptal' : 'teslim alınmadı'));
+            }
         }
     }
 

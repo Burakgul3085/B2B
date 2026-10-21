@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Store\Admin;
 
+use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\OrderService;
 use App\Http\Controllers\Controller;
+use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreOrder;
 use DomainException;
@@ -11,8 +13,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** Mağaza siparişleri: liste, ayrıntı ve durum işlemleri (onay, hazırlama, yola çıkarma, teslim, iptal). */
+/** Mağaza siparişleri: liste, ayrıntı, durum işlemleri (onay, hazırlama, yola çıkarma, teslim, iptal) ve fatura. */
 class OrderController extends Controller
 {
     public function __construct(private OrderService $orders) {}
@@ -50,7 +53,8 @@ class OrderController extends Controller
     public function show(StoreOrder $storeOrder): View
     {
         return view('store.admin.orders.show', [
-            'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer']),
+            'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice']),
+            'carriers' => StoreCarrier::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id'),
             'blocked' => StoreCodBlock::where('phone', $storeOrder->phone)->first(),
             'actors' => ActivityController::adminNames(),
         ]);
@@ -68,9 +72,10 @@ class OrderController extends Controller
 
     public function ship(Request $request, StoreOrder $storeOrder): RedirectResponse
     {
-        $data = $request->validate(['carrier' => ['nullable', 'string', 'max:60'], 'tracking_number' => ['nullable', 'string', 'max:60']]);
+        $data = $request->validate(['carrier_id' => ['nullable', 'integer'], 'tracking_number' => ['nullable', 'string', 'max:60']]);
 
-        return $this->attempt(fn () => $this->orders->ship($storeOrder, $data['carrier'] ?? null, $data['tracking_number'] ?? null), 'Sipariş yola çıktı; müşteriye e-posta gönderildi.');
+        return $this->attempt(fn () => $this->orders->ship($storeOrder, isset($data['carrier_id']) ? (int) $data['carrier_id'] : null, $data['tracking_number'] ?? null),
+            'Sipariş yola çıktı; müşteriye e-posta gönderildi.');
     }
 
     public function deliver(Request $request, StoreOrder $storeOrder): RedirectResponse
@@ -89,7 +94,20 @@ class OrderController extends Controller
     {
         $reason = (string) $request->validate(['reason' => ['required', 'string', 'max:200']], [], ['reason' => 'gerekçe'])['reason'];
 
-        return $this->attempt(fn () => $this->orders->cancel($storeOrder, $reason), 'Sipariş iptal edildi; ürünler stoğa döndü.');
+        $paid = $storeOrder->payment_method === 'card' && $storeOrder->isSettled();
+
+        return $this->attempt(fn () => $this->orders->cancel($storeOrder, $reason, $request->ip()),
+            $paid ? 'Sipariş iptal edildi; ödeme karta iade edildi, ürünler stoğa döndü.' : 'Sipariş iptal edildi; ürünler stoğa döndü.');
+    }
+
+    public function storeInvoice(Request $request, StoreOrder $storeOrder, InvoiceService $invoices): RedirectResponse
+    {
+        return $this->attempt(fn () => $invoices->attach($storeOrder, $request->only(['invoice_no', 'issued_on']), $request->file('file')), 'Fatura kaydedildi.');
+    }
+
+    public function invoice(StoreOrder $storeOrder, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->download($storeOrder);
     }
 
     public function unblock(StoreCodBlock $storeCodBlock): RedirectResponse

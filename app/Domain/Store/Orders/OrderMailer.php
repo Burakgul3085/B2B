@@ -4,7 +4,9 @@ namespace App\Domain\Store\Orders;
 
 use App\Domain\Mail\SystemMailer;
 use App\Domain\Support\Money;
+use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreReturn;
 
 /**
  * Müşteriye sipariş e-postaları (sistem e-posta hesabıyla). Gönderim yanıt döndükten sonra yapılır;
@@ -31,16 +33,32 @@ class OrderMailer
             ? "Siparişiniz kargoya verildi. Kargo firması: {$order->carrier}, takip numarası: {$order->tracking_number}."
             : 'Siparişiniz teslimat için yola çıktı.';
 
-        $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', $intro, false);
+        $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', $intro, false,
+            $order->tracking_url ? [$order->tracking_url, 'Kargoyu takip et'] : null);
     }
 
     public function cancelled(StoreOrder $order): void
     {
+        $refund = $order->payment_status === 'refunded'
+            ? ' Ödemeniz kartınıza iade edildi; tutarın hesabınıza yansıması bankanıza göre birkaç gün sürebilir.'
+            : '';
         $this->send($order, "Siparişiniz iptal edildi — {$order->order_no}", 'Siparişiniz iptal edildi',
-            "{$order->order_no} numaralı siparişiniz iptal edildi. Sorularınız için bize ulaşabilirsiniz.", false);
+            "{$order->order_no} numaralı siparişiniz iptal edildi.{$refund} Sorularınız için bize ulaşabilirsiniz.", false);
     }
 
-    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems): void
+    public function returnUpdate(StoreOrder $order, StoreReturn $return, string $title, string $intro): void
+    {
+        $this->send($order, "{$title} — {$return->return_no}", $title, $intro, false);
+    }
+
+    public function invoiceReady(StoreOrder $order, StoreInvoice $invoice): void
+    {
+        $this->send($order, "Faturanız hazır — {$order->order_no}", 'Faturanız hazır',
+            "{$order->order_no} numaralı siparişinizin faturası ({$invoice->invoice_no}) hazır. Sipariş sayfasından indirebilirsiniz.", false);
+    }
+
+    /** @param  array{0: string, 1: string}|null  $action  ek bağlantı (adres, etiket); yoksa sipariş sayfası */
+    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null): void
     {
         $rows = [];
         if ($withItems) {
@@ -61,8 +79,8 @@ class OrderMailer
             'title' => $title,
             'intro' => $intro,
             'rows' => $rows,
-            'action_url' => route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]),
-            'action_label' => 'Siparişi görüntüle',
+            'action_url' => $action[0] ?? route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]),
+            'action_label' => $action[1] ?? 'Siparişi görüntüle',
             'outro' => "Sipariş no: {$order->order_no}",
         ];
         $email = $order->email;
