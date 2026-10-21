@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\Area;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\RequirePlatformTwoFactor;
+use App\Http\Middleware\RequireStoreTwoFactor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-/** Üç alanın giriş/çıkış işlemleri. Alan, isteğin URL önekinden belirlenir. */
+/** Giriş alanlarının giriş/çıkış işlemleri. Alan, isteğin URL önekinden (mağaza yönetiminde alan adından) belirlenir. */
 class LoginController extends Controller
 {
     public function __construct(private AuditLogger $audit) {}
@@ -70,6 +71,12 @@ class LoginController extends Controller
             $request->session()->forget(RequirePlatformTwoFactor::SESSION_KEY);
 
             return redirect()->route($user->hasTwoFactorEnabled() ? 'platform.two-factor.challenge' : 'platform.two-factor.setup');
+        }
+
+        if ($area === Area::StoreAdmin && $user->requiresTwoFactor()) {
+            $request->session()->forget(RequireStoreTwoFactor::SESSION_KEY);
+
+            return redirect()->route($user->hasTwoFactorEnabled() ? 'store_admin.two-factor.challenge' : 'store_admin.two-factor.setup');
         }
 
         return $this->redirectIntended($request, $area);

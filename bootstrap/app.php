@@ -3,8 +3,10 @@
 use App\Domain\Auth\Area;
 use App\Domain\Tenancy\MissingTenantContext;
 use App\Http\Middleware\EnsureModuleEnabled;
+use App\Http\Middleware\EnsureStoreSuperAdmin;
 use App\Http\Middleware\PlatformIpAllowlist;
 use App\Http\Middleware\RequirePlatformTwoFactor;
+use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetDealerContext;
@@ -38,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.2fa' => RequirePlatformTwoFactor::class,
             'platform.ip' => PlatformIpAllowlist::class,
             'module' => EnsureModuleEnabled::class,
+            'store.2fa' => RequireStoreTwoFactor::class,
+            'store.super' => EnsureStoreSuperAdmin::class,
         ]);
 
         // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.

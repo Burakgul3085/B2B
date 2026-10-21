@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Oturum başlatılmadan önce çalışır: isteğin ait olduğu alana göre çerez adını ve yolunu belirler.
- * /bayi isteğine tarayıcı toptancı veya platform çerezini hiç göndermez.
+ * /bayi isteğine tarayıcı toptancı veya platform çerezini hiç göndermez; mağaza alan adlarına B2B çerezi
+ * hiç gitmez (çerezler alan adına bağlıdır).
  */
 class UseAreaSession
 {
@@ -22,10 +23,15 @@ class UseAreaSession
         // Önceki istekten kalmış bir işletme bağlamı asla taşınmaz.
         $this->tenant->clear();
 
+        // Mağaza alan adlarında yalnızca mağaza rotaları çalışır; B2B adresleri orada yoktur.
+        if (Area::isStoreHost($request) && ! str_starts_with((string) $request->route()?->getName(), 'store')) {
+            abort(404);
+        }
+
         $area = Area::fromRequest($request);
 
         config([
-            'session.cookie' => $area?->cookieName() ?? 'b2b_public',
+            'session.cookie' => $area?->cookieName() ?? (Area::isStoreHost($request) ? 'magaza' : 'b2b_public'),
             'session.path' => $area ? '/'.$area->prefix() : '/',
         ]);
 

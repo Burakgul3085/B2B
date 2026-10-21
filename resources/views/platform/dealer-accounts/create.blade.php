@@ -6,7 +6,7 @@
     <form method="POST" action="{{ route('platform.dealer-accounts.store') }}" class="max-w-4xl space-y-6">
         @csrf
         <x-card title="Toptancı">
-            <x-field name="business_id" label="Hangi toptancının bayisi olacak?" :options="['' => 'Seçin'] + $businesses->all()" required class="sm:w-1/2"
+            <x-field name="business_id" label="Hangi toptancının bayisi olacak?" :options="$businesses->count() === 1 ? $businesses->all() : ['' => 'Seçin'] + $businesses->all()" required class="sm:w-1/2"
                 hint="Bayi kodu, vade ve cari hesap bu toptancının varsayılanlarıyla oluşturulur; toptancı sonradan değiştirebilir." />
         </x-card>
 

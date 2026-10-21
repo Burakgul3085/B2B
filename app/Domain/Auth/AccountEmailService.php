@@ -66,10 +66,10 @@ class AccountEmailService
     {
         $url = $this->tokens->url($area, 'password_reset', $this->tokens->issue($area, $user->id, 'password_reset'));
 
-        if ($area === Area::Platform) {
-            // Platform yöneticisinin hesabı bir işletmeye bağlı değildir; yalnızca sunucuda tanımlıysa sistem e-postası kullanılır.
+        if ($area === Area::Platform || $area === Area::StoreAdmin) {
+            // Platform ve mağaza yöneticisi hesapları B2B işletmesine bağlı değildir; yalnızca sunucuda tanımlıysa sistem e-postası kullanılır.
             return app(SystemMailer::class)->send($user->email, 'Parola sıfırlama', [
-                'title' => 'Parolanızı sıfırlayın', 'intro' => 'Platform yönetimi hesabınız için parola sıfırlama talebi aldık.',
+                'title' => 'Parolanızı sıfırlayın', 'intro' => ($area === Area::Platform ? 'Platform yönetimi' : 'Mağaza yönetimi').' hesabınız için parola sıfırlama talebi aldık.',
                 'action_url' => $url, 'action_label' => 'Yeni parola belirle',
             ]);
         }

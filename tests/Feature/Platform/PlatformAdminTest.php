@@ -74,6 +74,22 @@ class PlatformAdminTest extends TestCase
         $this->post('/toptanci/login', ['email' => 'ahmet@akgun.test', 'password' => 'ToptanSifre2026'])->assertRedirect('/toptanci');
     }
 
+    /** Sistem tek toptancı içindir (docs/13-magaza-mimarisi.md §4): bir işletme varken ikincisi açılamaz. */
+    public function test_second_business_cannot_be_created(): void
+    {
+        $this->actingAsVerifiedAdmin();
+        $this->makeBusiness();
+
+        $this->get(route('platform.businesses.index'))->assertOk()->assertDontSee(route('platform.businesses.create'));
+        $this->get(route('platform.businesses.create'))->assertRedirect(route('platform.businesses.index'));
+        $this->post(route('platform.businesses.store'), [
+            'legal_name' => 'İkinci Ltd.', 'display_name' => 'İkinci', 'slug' => 'ikinci', 'owner_name' => 'X', 'owner_email' => 'x@ikinci.test',
+            'owner_password' => 'ToptanSifre2026', 'plan' => 'Standart', 'starts_on' => now()->toDateString(),
+        ])->assertRedirect(route('platform.businesses.index'))->assertSessionHasErrors('business');
+
+        $this->assertSame(1, Business::count());
+    }
+
     public function test_second_user_for_same_business_is_impossible(): void
     {
         $business = $this->makeBusiness();

@@ -1,7 +1,7 @@
-@php use App\Domain\Auth\Area; use App\Models\Business; @endphp
+@php use App\Domain\Auth\Area; use App\Domain\Platform\CreateBusiness; use App\Models\Business; @endphp
 <x-layouts.panel :area="Area::Platform" title="Genel Durum">
     <x-page-header title="Genel Durum" subtitle="İşletmeler, lisanslar ve son platform işlemleri.">
-        <x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>
+        @if (CreateBusiness::allowed())<x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>@endif
     </x-page-header>
 
     <div class="grid gap-4 sm:grid-cols-3">

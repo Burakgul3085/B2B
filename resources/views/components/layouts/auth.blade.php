@@ -53,7 +53,26 @@
             'bg' => 'from-[#050608] via-[#0f141c] to-graphite',
             'glow' => 'bg-amber-400/15',
         ],
+        Area::StoreAdmin => [
+            'icon' => 'cart',
+            'eyebrow' => 'Mağaza Yönetimi',
+            'badge' => 'Mağaza Yönetim Girişi',
+            'badgeClass' => 'bg-violet-50 text-violet-800 ring-violet-200',
+            'headline' => 'Online mağazanızı tek yerden yönetin',
+            'lead' => 'Ürünler, stok, fiyatlar, siparişler, ödeme ve teslimat; mağazanın her şeyi bu panelde.',
+            'features' => [
+                ['package', 'Mağazaya özel ürün, fiyat ve stok'],
+                ['file', 'Sipariş, ödeme ve teslimat takibi'],
+                ['shield', 'Yönetici hesapları ve işlem geçmişi'],
+            ],
+            'bg' => 'from-[#1a0b33] via-[#2e1065] to-[#5b21b6]',
+            'glow' => 'bg-fuchsia-400/20',
+        ],
     };
+    if ($area === Area::StoreAdmin) {
+        $brand = config('store.name');
+        $tagline = 'Mağaza yönetim paneli';
+    }
 
     // İsteğe bağlı arka plan fotoğrafı: önce alana özel, sonra ortak dosya.
     $photo = collect([$area->prefix(), null])

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Inventory\StockService;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Middleware\RequirePlatformTwoFactor;
+use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DealerApplication;
@@ -16,6 +17,7 @@ use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
+use App\Models\Store\StoreAdmin;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\VariantGroup;
@@ -36,10 +38,36 @@ class PagesRenderTest extends TestCase
         $admin->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
         $this->actingAs($admin, 'platform')->withSession([RequirePlatformTwoFactor::SESSION_KEY => true]);
 
-        foreach (['/platform', '/platform/isletmeler', '/platform/isletmeler/yeni', "/platform/isletmeler/{$business->id}",
-            "/platform/isletmeler/{$business->id}/duzenle", '/platform/denetim-kayitlari', '/platform/hesabim'] as $url) {
+        $storeAdmin = StoreAdmin::create(['name' => 'Mağaza Süper', 'email' => 'super@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
+
+        foreach (['/platform', '/platform/isletmeler', "/platform/isletmeler/{$business->id}",
+            "/platform/isletmeler/{$business->id}/duzenle", '/platform/denetim-kayitlari', '/platform/hesabim',
+            '/platform/magaza-yoneticileri', '/platform/magaza-yoneticileri/yeni', "/platform/magaza-yoneticileri/{$storeAdmin->id}"] as $url) {
             $this->get($url)->assertOk()->assertSee('B2B Platform')->assertDontSee('İşletme Ayarları');
         }
+
+        // Tek toptancı: işletme varken yeni işletme formu açılmaz (docs/13-magaza-mimarisi.md §4).
+        $this->get('/platform/isletmeler/yeni')->assertRedirect('/platform/isletmeler');
+    }
+
+    public function test_platform_new_business_form_renders_when_there_is_no_business(): void
+    {
+        $this->actingAsPlatformAdmin();
+
+        $this->get('/platform/isletmeler/yeni')->assertOk();
+    }
+
+    public function test_store_admin_pages_render(): void
+    {
+        $super = StoreAdmin::create(['name' => 'Mağaza Süper', 'email' => 'super@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
+        $super->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
+        $admin = StoreAdmin::create(['name' => 'Ayşe Yönetici', 'email' => 'ayse@magaza.local', 'password' => self::PASSWORD]);
+        $this->actingAs($super, 'store_admin')->withSession([RequireStoreTwoFactor::SESSION_KEY => true]);
+
+        foreach (['store_admin.dashboard', 'store_admin.activity', 'store_admin.account', 'store_admin.admins.index', 'store_admin.admins.create'] as $name) {
+            $this->get(route($name))->assertOk()->assertSee(config('store.name'))->assertDontSee('B2B Platform');
+        }
+        $this->get(route('store_admin.admins.edit', $admin))->assertOk()->assertSee('Ayşe Yönetici');
     }
 
     public function test_business_pages_render(): void

@@ -59,6 +59,17 @@ Geliştirme verisi (`database/seeders/DevelopmentSeeder.php`, yalnızca `APP_ENV
 
 Parolalar seeder dosyasındaki `DEV_PASSWORD` sabitindedir.
 
+### Mağaza ve mağaza yönetimi (yerel adresler)
+
+Mağaza kendi alan adlarında çalışır (`.env`: `STORE_DOMAIN`, `STORE_ADMIN_DOMAIN`). `*.localhost` adresleri tarayıcıda ek ayar gerektirmez:
+
+| Alan | Adres |
+|---|---|
+| Mağaza | http://magaza.localhost:8000 |
+| Mağaza yönetimi | http://yonetim.localhost:8000 |
+
+İlk süper admin platformdan açılır: **Platform → Mağaza Yöneticileri → Yeni hesap** ("Süper admin" işaretli). Süper admin ilk girişte iki adımlı doğrulamayı kurar, ardından **Yöneticiler** sayfasından diğer yöneticileri açar. B2B adresleri (`/bayi`, `/toptanci`, `/platform`) mağaza alan adlarında açılmaz.
+
 E-postalar işletmenin **ana Gmail hesabıyla** gönderilir (toptancı paneli → E-posta Ayarları veya platform → işletme detayı). E-postaların gitmesi için kuyruk çalıştırıcısı açık olmalıdır; `baslat.ps1` bunu otomatik başlatır.
 
 ## Yükleme sınırları (vitrin videoları)

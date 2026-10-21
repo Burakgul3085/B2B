@@ -17,6 +17,7 @@
                 ['label' => 'Bayilik Başvuruları', 'route' => 'platform.applications.index', 'icon' => 'inbox', 'active' => 'platform.applications.*',
                     'badge' => \App\Models\DealerApplication::withoutBusinessScope()->whereIn('status', \App\Models\DealerApplication::OPEN)->count() ?: null],
                 ['label' => 'Bayi Hesapları', 'route' => 'platform.dealer-accounts.index', 'icon' => 'users', 'active' => 'platform.dealer-accounts.*'],
+                ['label' => 'Mağaza Yöneticileri', 'route' => 'platform.store-admins.index', 'icon' => 'cart', 'active' => 'platform.store-admins.*'],
                 ['label' => 'E-posta Altyapısı', 'route' => 'platform.email-status', 'icon' => 'inbox', 'active' => 'platform.email-status'],
                 ['label' => 'Denetim Kayıtları', 'route' => 'platform.audit-logs', 'icon' => 'file', 'active' => 'platform.audit-logs'],
             ]],
@@ -67,6 +68,17 @@
                 ['label' => 'Profil ve Güvenlik', 'route' => 'business.account', 'icon' => 'user', 'active' => 'business.account*'],
             ]],
         ],
+        // Mağaza yönetimi: modüller aşama aşama eklenir (docs/13-magaza-mimarisi.md §13).
+        Area::StoreAdmin => [
+            ['items' => [
+                ['label' => 'Genel Bakış', 'route' => 'store_admin.dashboard', 'icon' => 'home', 'active' => 'store_admin.dashboard'],
+            ]],
+            ['label' => 'Yönetim', 'items' => array_values(array_filter([
+                $user->is_super ? ['label' => 'Yöneticiler', 'route' => 'store_admin.admins.index', 'icon' => 'users', 'active' => 'store_admin.admins.*'] : null,
+                ['label' => 'İşlem Geçmişi', 'route' => 'store_admin.activity', 'icon' => 'list', 'active' => 'store_admin.activity'],
+                ['label' => 'Profil ve Güvenlik', 'route' => 'store_admin.account', 'icon' => 'user', 'active' => 'store_admin.account*'],
+            ]))],
+        ],
         Area::Dealer => [
             ['items' => array_values(array_filter([
                 ['label' => 'Ana Sayfa', 'route' => 'dealer.home', 'icon' => 'home', 'active' => 'dealer.home'],
@@ -92,7 +104,12 @@
     ])) : [];
 
     $isPlatform = $area === Area::Platform;
-    $brand = $isPlatform ? 'B2B Platform' : ($currentBusiness?->display_name ?? config('app.name'));
+    $isStore = $area === Area::StoreAdmin;
+    $brand = match (true) {
+        $isPlatform => 'B2B Platform',
+        $isStore => config('store.name'),
+        default => $currentBusiness?->display_name ?? config('app.name'),
+    };
 @endphp
 <!DOCTYPE html>
 <html lang="tr">
@@ -187,7 +204,7 @@
         {{ $slot }}
     </main>
 @else
-    {{-- Platform ve toptancı: sol menü --}}
+    {{-- Platform, toptancı ve mağaza yönetimi: sol menü --}}
     <div class="flex min-h-screen">
         <div x-cloak x-show="nav" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" @click="nav = false"></div>
         <aside :class="nav ? 'translate-x-0' : '-translate-x-full'"
@@ -201,6 +218,10 @@
                     <x-icon name="shield" class="size-5 text-white" />
                     <span class="font-semibold text-white">B2B Platform</span>
                     <span class="ml-auto rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-white uppercase">Platform</span>
+                @elseif ($isStore)
+                    <x-puzzle-logo :animated="false" class="size-8 shrink-0" />
+                    <span class="truncate font-semibold text-ink">{{ $brand }}</span>
+                    <span class="ml-auto rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-violet-800 uppercase">Mağaza</span>
                 @else
                     <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white">{{ mb_substr($brand, 0, 1) }}</span>
                     <span class="truncate font-semibold text-ink">{{ $brand }}</span>

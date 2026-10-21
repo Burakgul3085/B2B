@@ -81,7 +81,7 @@ Mevcut çok işletmeli altyapı (`BelongsToBusiness`, `SetBusinessContext`, işl
 
 | Grup | Tablolar |
 |---|---|
-| Yönetim | `store_admins` (is_super, is_active, 2FA), `store_audit_logs`, `store_settings` |
+| Yönetim | `store_admins` (is_super, is_active, 2FA), `store_settings`. İşlem geçmişi ortak `audit_logs` tablosundadır (mağaza kayıtları: `actor_type = store_admin` veya `action = store.*`); bu tablo B2B verisi değil, platform altyapısıdır. |
 | Katalog | `store_categories` (ağaç), `store_brands`, `store_products` (ürün grubu, açıklama, SEO), `store_product_variants` (satılabilir birim: SKU, barkod, varyant etiketi, KDV dahil fiyat, üstü çizili fiyat, KDV oranı, desi/ağırlık, aktiflik), `store_product_images` |
 | Stok | `store_stock_movements` (yalnızca eklenir: giriş, sayım, satış, iade, iptal), `store_stock_holds` (ödeme sırasında geçici ayırma, bitiş zamanlı) |
 | Müşteri | `store_customers`, `store_customer_addresses` |

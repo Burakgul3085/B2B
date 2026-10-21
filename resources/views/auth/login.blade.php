@@ -3,10 +3,12 @@
     Area::Dealer => 'Bayi hesabınıza giriş yapın',
     Area::Business => 'Toptancı paneline giriş yapın',
     Area::Platform => 'Yönetici girişi',
+    Area::StoreAdmin => 'Mağaza yönetimine giriş yapın',
 }" :subtitle="match ($area) {
     Area::Dealer => 'Size özel fiyatlar, siparişleriniz ve cari hesabınız için giriş yapın.',
     Area::Business => 'Ürün, stok, bayi ve sipariş yönetimi için giriş yapın.',
     Area::Platform => 'Bu alan yalnızca platform yöneticileri içindir.',
+    Area::StoreAdmin => 'Bu alan yalnızca mağaza yöneticileri içindir.',
 }">
     <form method="POST" action="{{ route($area->value.'.login.store') }}" class="space-y-5" novalidate>
         @csrf
@@ -47,6 +49,7 @@
             'w-full py-3! text-base! shadow-md',
             'bg-teal-700! hover:bg-teal-800!' => $area === Area::Business,
             'bg-slate-900! hover:bg-slate-800!' => $area === Area::Platform,
+            'bg-violet-700! hover:bg-violet-800!' => $area === Area::StoreAdmin,
         ])>
             Giriş yap <x-icon name="arrow-right" class="size-4" />
         </x-button>

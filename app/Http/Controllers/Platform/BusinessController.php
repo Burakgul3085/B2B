@@ -53,13 +53,21 @@ class BusinessController extends Controller
         return view('platform.businesses.index', compact('businesses', 'filters'));
     }
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (! CreateBusiness::allowed()) {
+            return redirect()->route('platform.businesses.index')->withErrors(['business' => 'Sistem tek toptancı içindir; yeni işletme açılamaz.']);
+        }
+
         return view('platform.businesses.create');
     }
 
     public function store(Request $request, CreateBusiness $action): RedirectResponse
     {
+        if (! CreateBusiness::allowed()) {
+            return redirect()->route('platform.businesses.index')->withErrors(['business' => 'Sistem tek toptancı içindir; yeni işletme açılamaz.']);
+        }
+
         $request->merge(['slug' => Str::slug($request->scalar('slug'))]);
         $data = $request->validate($this->businessRules() + [
             'slug' => ['required', 'string', 'min:3', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:businesses,slug'],
@@ -71,11 +79,15 @@ class BusinessController extends Controller
             'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
         ], [], $this->attributes());
 
-        $result = $action->handle(
-            collect($data)->only(['slug', 'legal_name', 'display_name', 'tax_office', 'tax_number', 'phone', 'email', 'city', 'district', 'address'])->all(),
-            ['name' => $data['owner_name'], 'email' => Str::lower($data['owner_email']), 'password' => $data['owner_password']],
-            ['plan' => $data['plan'], 'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'] ?? null],
-        );
+        try {
+            $result = $action->handle(
+                collect($data)->only(['slug', 'legal_name', 'display_name', 'tax_office', 'tax_number', 'phone', 'email', 'city', 'district', 'address'])->all(),
+                ['name' => $data['owner_name'], 'email' => Str::lower($data['owner_email']), 'password' => $data['owner_password']],
+                ['plan' => $data['plan'], 'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'] ?? null],
+            );
+        } catch (DomainException $e) {
+            return redirect()->route('platform.businesses.index')->withErrors(['business' => $e->getMessage()]);
+        }
 
         return redirect()->route('platform.businesses.show', $result['business'])
             ->with('status', 'İşletme oluşturuldu. Yetkili, belirlediğiniz e-posta ve şifreyle toptancı paneline hemen giriş yapabilir.');

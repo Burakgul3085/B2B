@@ -12,20 +12,10 @@ use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Üç ayrı giriş alanı: /platform, /toptanci, /bayi.
+| B2B'nin üç giriş alanı: /platform, /toptanci, /bayi. Mağaza ve mağaza yönetimi routes/store.php'dedir.
 | Her grup yalnızca kendi guard'ını kullanır; oturum çerezleri URL önekine bağlıdır
 | (bkz. App\Http\Middleware\UseAreaSession).
 */
-
-// Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
-Route::redirect('/', '/bayi/login')->name('home');
-
-// Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
-Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');
-Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
-Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60')->name('public.application.store');
-Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
-Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
 /**
  * Her alanın ortak kimlik rotaları: giriş, çıkış, parola sıfırlama, hesap. Aktivasyon bağlantısı yoktur;
@@ -50,6 +40,19 @@ $accountRoutes = function () {
     Route::put('hesabim/parola', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::post('hesabim/e-posta', [AccountController::class, 'updateEmail'])->middleware('throttle:5,10')->name('account.email');
 };
+
+// Mağaza ve mağaza yönetimi kendi alan adlarında; aynı adresli B2B rotalarından önce eşleşsinler diye önce kaydedilir.
+require __DIR__.'/store.php';
+
+// Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
+Route::redirect('/', '/bayi/login')->name('home');
+
+// Herkese açık: toptancıya özel bayilik başvurusu ve işletme logosu
+Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');
+Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
+Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60')->name('public.application.store');
+Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
+Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
 /* ---------------- Platform yönetimi ---------------- */
 Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(function () use ($authRoutes, $accountRoutes) {
@@ -89,6 +92,16 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::get('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'show'])->name('dealer-accounts.show');
             Route::put('bayi-hesaplari/{dealerUser}', [Platform\DealerAccountController::class, 'update'])->name('dealer-accounts.update');
             Route::put('bayi-hesaplari/{dealerUser}/durum', [Platform\DealerAccountController::class, 'updateStatus'])->name('dealer-accounts.status');
+
+            // Mağaza yönetimi hesapları (süper admin yalnızca buradan açılır)
+            Route::get('magaza-yoneticileri', [Platform\StoreAdminController::class, 'index'])->name('store-admins.index');
+            Route::get('magaza-yoneticileri/yeni', [Platform\StoreAdminController::class, 'create'])->name('store-admins.create');
+            Route::post('magaza-yoneticileri', [Platform\StoreAdminController::class, 'store'])->name('store-admins.store');
+            Route::get('magaza-yoneticileri/{storeAdmin}', [Platform\StoreAdminController::class, 'show'])->name('store-admins.show');
+            Route::put('magaza-yoneticileri/{storeAdmin}', [Platform\StoreAdminController::class, 'update'])->name('store-admins.update');
+            Route::put('magaza-yoneticileri/{storeAdmin}/sifre', [Platform\StoreAdminController::class, 'password'])->name('store-admins.password');
+            Route::put('magaza-yoneticileri/{storeAdmin}/durum', [Platform\StoreAdminController::class, 'status'])->name('store-admins.status');
+            Route::delete('magaza-yoneticileri/{storeAdmin}/iki-adimli-dogrulama', [Platform\StoreAdminController::class, 'resetTwoFactor'])->name('store-admins.two-factor');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');

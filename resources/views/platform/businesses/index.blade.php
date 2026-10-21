@@ -1,7 +1,7 @@
-@php use App\Models\Business; @endphp
+@php use App\Domain\Platform\CreateBusiness; use App\Models\Business; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Platform" title="İşletmeler">
-    <x-page-header title="İşletmeler" subtitle="Platformu kullanan toptancı işletmeleri.">
-        <x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>
+    <x-page-header title="İşletmeler" subtitle="Sistem tek toptancı içindir; işletme açıldıktan sonra yenisi eklenemez.">
+        @if (CreateBusiness::allowed())<x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>@endif
     </x-page-header>
 
     <x-card :padding="false">
@@ -12,8 +12,8 @@
         </form>
 
         @if ($businesses->isEmpty())
-            <x-empty-state icon="building" title="İşletme bulunamadı" text="Filtreleri temizleyin veya yeni bir işletme ekleyin.">
-                <x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>
+            <x-empty-state icon="building" title="İşletme bulunamadı" text="Filtreleri temizleyin veya toptancı işletmesini ekleyin.">
+                @if (CreateBusiness::allowed())<x-button :href="route('platform.businesses.create')" icon="plus">Yeni işletme</x-button>@endif
             </x-empty-state>
         @else
             <div class="overflow-x-auto">
