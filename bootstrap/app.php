@@ -3,6 +3,7 @@
 use App\Domain\Auth\Area;
 use App\Domain\Tenancy\MissingTenantContext;
 use App\Http\Middleware\EnsureModuleEnabled;
+use App\Http\Middleware\EnsureStoreOpen;
 use App\Http\Middleware\EnsureStoreSuperAdmin;
 use App\Http\Middleware\PlatformIpAllowlist;
 use App\Http\Middleware\RequirePlatformTwoFactor;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'module' => EnsureModuleEnabled::class,
             'store.2fa' => RequireStoreTwoFactor::class,
             'store.super' => EnsureStoreSuperAdmin::class,
+            'store.open' => EnsureStoreOpen::class,
         ]);
 
         // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.

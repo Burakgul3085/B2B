@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Store\Admin;
 use App\Http\Controllers\Store\Front;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 /* ---------------- Mağaza yönetim paneli ---------------- */
 Route::domain(config('store.admin_domain'))->name('store_admin.')->group(function () use ($authRoutes, $accountRoutes) {
+    Route::get('robots.txt', RobotsController::class)->name('robots');
     $authRoutes('store_admin');
 
     Route::middleware(['auth:store_admin', 'auth.session'])->group(function () use ($accountRoutes) {
@@ -69,6 +71,27 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('markalar/{storeBrand}/logo', [Admin\ProductImageController::class, 'brandLogo'])->name('brands.logo.show');
             });
 
+            // Vitrin (M4)
+            Route::prefix('vitrin')->group(function () {
+                Route::get('bannerlar', [Admin\BannerController::class, 'index'])->name('banners.index');
+                Route::post('bannerlar', [Admin\BannerController::class, 'store'])->name('banners.store');
+                Route::put('bannerlar/{storeBanner}', [Admin\BannerController::class, 'update'])->name('banners.update');
+                Route::put('bannerlar/{storeBanner}/sira', [Admin\BannerController::class, 'move'])->name('banners.move');
+                Route::delete('bannerlar/{storeBanner}', [Admin\BannerController::class, 'destroy'])->name('banners.destroy');
+                Route::get('bannerlar/{storeBanner}/gorsel', [Admin\BannerController::class, 'image'])->name('banners.image');
+
+                Route::get('sayfalar', [Admin\PageController::class, 'index'])->name('pages.index');
+                Route::get('sayfalar/yeni', [Admin\PageController::class, 'create'])->name('pages.create');
+                Route::post('sayfalar', [Admin\PageController::class, 'store'])->name('pages.store');
+                Route::get('sayfalar/{storePage}', [Admin\PageController::class, 'edit'])->name('pages.edit');
+                Route::put('sayfalar/{storePage}', [Admin\PageController::class, 'update'])->name('pages.update');
+                Route::delete('sayfalar/{storePage}', [Admin\PageController::class, 'destroy'])->name('pages.destroy');
+
+                Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
+                Route::put('ayarlar', [Admin\SettingsController::class, 'update'])->name('settings.update');
+                Route::put('ayarlar/yayin', [Admin\SettingsController::class, 'open'])->name('settings.open');
+            });
+
             // Stok (M3)
             Route::prefix('stok')->name('stock.')->group(function () {
                 Route::get('/', [Admin\StockController::class, 'index'])->name('index');
@@ -96,5 +119,25 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
 
 /* ---------------- Mağaza (herkese açık) ---------------- */
 Route::domain(config('store.domain'))->name('store.')->group(function () {
-    Route::get('/', Front\HomeController::class)->name('home');
+    // Kapalıyken de çalışanlar: arama motoru dosyaları ve önizleme
+    Route::get('robots.txt', [Front\SeoController::class, 'robots'])->name('robots');
+    Route::get('sitemap.xml', [Front\SeoController::class, 'sitemap'])->name('sitemap');
+    Route::get('onizleme', [Front\PreviewController::class, 'start'])->middleware('signed')->name('preview');
+    Route::get('onizleme/kapat', [Front\PreviewController::class, 'end'])->name('preview.end');
+
+    // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
+    Route::middleware('store.open')->group(function () {
+        Route::get('/', Front\HomeController::class)->name('home');
+        Route::get('urunler', [Front\ListingController::class, 'index'])->name('products');
+        Route::get('kategori/{slug}', [Front\ListingController::class, 'category'])->name('category');
+        Route::get('marka/{slug}', [Front\ListingController::class, 'brand'])->name('brand');
+        Route::get('markalar', [Front\PageController::class, 'brands'])->name('brands');
+        Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1')->name('search');
+        Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
+        Route::get('sayfa/{slug}', [Front\PageController::class, 'show'])->name('page');
+
+        Route::get('gorsel/urun/{storeImage}', [Front\MediaController::class, 'product'])->name('media.product');
+        Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
+        Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
+    });
 });

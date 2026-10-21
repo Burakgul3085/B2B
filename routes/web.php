@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Platform;
 use App\Http\Controllers\PublicSite;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RobotsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -43,6 +44,9 @@ $accountRoutes = function () {
 
 // Mağaza ve mağaza yönetimi kendi alan adlarında; aynı adresli B2B rotalarından önce eşleşsinler diye önce kaydedilir.
 require __DIR__.'/store.php';
+
+// B2B arama motorlarına kapalıdır.
+Route::get('robots.txt', RobotsController::class)->name('robots');
 
 // Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
 Route::redirect('/', '/bayi/login')->name('home');

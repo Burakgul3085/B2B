@@ -37,6 +37,28 @@ class StoreProduct extends Model
         return $this->hasMany(StoreProductVariant::class, 'product_id')->orderBy('sort')->orderBy('id');
     }
 
+    /** Mağazada satılan (etkin) varyantlar. */
+    public function activeVariants(): HasMany
+    {
+        return $this->variants()->where('is_active', true);
+    }
+
+    /** En ucuz etkin varyant (vitrin kartındaki fiyat). activeVariants yüklü olmalıdır. */
+    public function cheapestVariant(): ?StoreProductVariant
+    {
+        return $this->activeVariants->sortBy(fn ($v) => [(float) $v->price, $v->sort, $v->id])->first();
+    }
+
+    public function inStock(): bool
+    {
+        return $this->activeVariants->contains(fn ($v) => $v->stock_quantity > 0);
+    }
+
+    public function hasPriceRange(): bool
+    {
+        return $this->activeVariants->pluck('price')->unique()->count() > 1;
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(StoreProductImage::class, 'product_id')->orderBy('sort')->orderBy('id');

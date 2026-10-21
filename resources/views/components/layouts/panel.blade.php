@@ -78,6 +78,11 @@
                 ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
                 ['label' => 'Markalar', 'route' => 'store_admin.brands.index', 'icon' => 'layers', 'active' => 'store_admin.brands.*'],
             ]],
+            ['label' => 'Vitrin', 'items' => [
+                ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
+                ['label' => 'Sayfalar', 'route' => 'store_admin.pages.index', 'icon' => 'file', 'active' => 'store_admin.pages.*'],
+                ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],
+            ]],
             ['label' => 'Stok', 'items' => [
                 ['label' => 'Stok Durumu', 'route' => 'store_admin.stock.index', 'icon' => 'warehouse', 'active' => 'store_admin.stock.index',
                     'badge' => \App\Models\Store\StoreProductVariant::whereNotNull('critical_stock')->whereColumn('stock_quantity', '<=', 'critical_stock')->count()],

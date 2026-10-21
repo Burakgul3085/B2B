@@ -4,6 +4,7 @@ namespace App\Domain\Store\Catalog;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Storefront\ImageVariants;
 use App\Domain\Support\Decimal;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
@@ -29,7 +30,7 @@ class ProductService
 
     public const MAX_VARIANTS = 100;
 
-    public function __construct(private AuditLogger $audit, private ImageUploader $images) {}
+    public function __construct(private AuditLogger $audit, private ImageUploader $images, private ImageVariants $variants) {}
 
     /**
      * Ürün ve ilk varyantı birlikte oluşturulur.
@@ -114,6 +115,7 @@ class ProductService
 
         foreach ($paths as $path) {
             $this->images->delete($path);
+            $this->variants->forget($path);
         }
     }
 
@@ -212,6 +214,7 @@ class ProductService
         $product = $image->loadMissing('product')->product;
         $image->delete();
         $this->images->delete($image->path);
+        $this->variants->forget($image->path);
         $this->audit->log('store.product_image_removed', $product, ['image_id' => $image->id]);
     }
 

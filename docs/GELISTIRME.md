@@ -70,6 +70,8 @@ Mağaza kendi alan adlarında çalışır (`.env`: `STORE_DOMAIN`, `STORE_ADMIN_
 
 İlk süper admin platformdan açılır: **Platform → Mağaza Yöneticileri → Yeni hesap** ("Süper admin" işaretli). Süper admin ilk girişte iki adımlı doğrulamayı kurar, ardından **Yöneticiler** sayfasından diğer yöneticileri açar. B2B adresleri (`/bayi`, `/toptanci`, `/platform`) mağaza alan adlarında açılmaz.
 
+Mağaza varsayılan olarak **kapalıdır**; ziyaretçi "Çok yakında" sayfasını görür. Gezmek için mağaza yönetiminde **Vitrin → Mağaza Ayarları → Mağazayı önizle** (veya Genel Bakış'taki bağlantı) kullanılır; açmak için aynı sayfadaki "Mağazayı aç" düğmesi.
+
 E-postalar işletmenin **ana Gmail hesabıyla** gönderilir (toptancı paneli → E-posta Ayarları veya platform → işletme detayı). E-postaların gitmesi için kuyruk çalıştırıcısı açık olmalıdır; `baslat.ps1` bunu otomatik başlatır.
 
 ## Yükleme sınırları (vitrin videoları)

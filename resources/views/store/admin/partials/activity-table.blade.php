@@ -16,6 +16,9 @@
         'store.category_created' => 'Kategori eklendi', 'store.category_updated' => 'Kategori güncellendi', 'store.category_deleted' => 'Kategori silindi',
         'store.brand_created' => 'Marka eklendi', 'store.brand_updated' => 'Marka güncellendi', 'store.brand_deleted' => 'Marka silindi',
         'store.brand_logo_updated' => 'Marka logosu güncellendi', 'store.brand_logo_removed' => 'Marka logosu kaldırıldı',
+        'store.banner_created' => 'Banner eklendi', 'store.banner_updated' => 'Banner güncellendi', 'store.banner_deleted' => 'Banner silindi',
+        'store.page_created' => 'Sayfa eklendi', 'store.page_updated' => 'Sayfa güncellendi', 'store.page_deleted' => 'Sayfa silindi',
+        'store.settings_updated' => 'Mağaza ayarları güncellendi', 'store.opened' => 'Mağaza ziyaretçilere açıldı', 'store.closed' => 'Mağaza ziyaretçilere kapatıldı',
         'store.stock_received' => 'Stok girişi', 'store.stock_counted' => 'Stok sayımı', 'store.stock_adjusted' => 'Stok düzeltmesi', 'store.stock_reversed' => 'Stok hareketi geri alındı',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];

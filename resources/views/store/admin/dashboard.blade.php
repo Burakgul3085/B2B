@@ -1,7 +1,6 @@
 @php
     // Yol haritası: docs/13-magaza-mimarisi.md §13. Her aşama tamamlandıkça buradan kalkar ve menüye eklenir.
     $upcoming = [
-        ['image', 'Vitrin', 'Ana sayfa, banner\'lar, kategori ve ürün sayfaları'],
         ['cart', 'Siparişler ve ödeme', 'iyzico, kapıda ödeme (Eskişehir) ve SMS doğrulama'],
         ['map-pin', 'Teslimat ve fatura', 'Kargo, kendi teslimatınız, iade ve e-Arşiv (Uyumsoft)'],
         ['percent', 'Kampanya ve raporlar', 'Kupon, kampanya ve satış raporları'],
@@ -23,7 +22,17 @@
         <x-kpi label="Stokta yok (satışta)" :value="$stats['out']" :href="route('store_admin.stock.index', ['status' => 'out'])" hint="Listele" />
         <x-kpi label="Etkin yönetici" :value="$activeAdmins" :href="$admin->is_super ? route('store_admin.admins.index') : null" :hint="$admin->is_super ? 'Yöneticileri yönet' : null" />
     </div>
-    <p class="mt-3 text-xs text-muted">Mağaza adresi: <span class="font-medium text-ink">{{ config('store.domain') }}</span> — henüz yayında değil; ziyaretçiler "yakında" sayfasını görür.</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white px-5 py-3 text-sm shadow-xs">
+        @if (\App\Models\Store\StoreSetting::isOpen())
+            <x-badge tone="success">Mağaza açık</x-badge>
+            <a href="{{ route('store.home') }}" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">{{ config('store.domain') }}</a>
+        @else
+            <x-badge tone="warning">Mağaza kapalı</x-badge>
+            <span class="text-muted">Ziyaretçiler "yakında" sayfasını görüyor.</span>
+            <a href="{{ \App\Http\Controllers\Store\Admin\SettingsController::previewUrl() }}" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">Mağazayı önizle</a>
+        @endif
+        <a href="{{ route('store_admin.settings.edit') }}" class="ml-auto text-muted hover:underline">Yayın ayarları</a>
+    </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
         <x-card title="Yakında bu panelde" description="Mağaza modülleri aşama aşama eklenecek." class="lg:col-span-2">

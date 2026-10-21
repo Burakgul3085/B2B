@@ -18,4 +18,5 @@
 | [14-magaza-m1-raporu.md](14-magaza-m1-raporu.md) | Mağaza M1: tek toptancı kilidi, alan adına göre ayrım, mağaza yöneticileri (süper admin), 2FA, işlem geçmişi, modül sınırı testi |
 | [15-magaza-m2-raporu.md](15-magaza-m2-raporu.md) | Mağaza M2: katalog — kategori ağacı, marka/logo, ürün ve seçenekler, KDV dahil fiyat, görseller, SEO, Excel ile aktarma |
 | [16-magaza-m3-raporu.md](16-magaza-m3-raporu.md) | Mağaza M3: stok — yalnızca eklenen hareketler, giriş/sayım/düzeltme, ters kayıt, kritik stok, ödeme sırasında ayırma, eşzamanlılık testleri |
+| [17-magaza-m4-raporu.md](17-magaza-m4-raporu.md) | Mağaza M4: vitrin — yayın kapısı ve önizleme, ana sayfa, kategori/marka/arama listeleri, ürün sayfası, görsel boyutları, SEO (JSON-LD, sitemap, robots), banner/sayfa/ayar yönetimi |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

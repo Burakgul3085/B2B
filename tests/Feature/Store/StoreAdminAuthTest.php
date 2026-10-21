@@ -44,7 +44,7 @@ class StoreAdminAuthTest extends TestCase
 
         // B2B'nin kökü bayi girişine gider; mağaza kökü mağazadır.
         $this->get('http://localhost/')->assertRedirect('/bayi/login');
-        $this->get('http://magaza.localhost/')->assertOk()->assertSee('Online mağazamız çok yakında açılıyor');
+        $this->get('http://magaza.localhost/')->assertStatus(503)->assertSee('Online mağazamız çok yakında açılıyor');
     }
 
     public function test_admin_without_two_factor_logs_in_directly(): void
