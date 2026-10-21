@@ -22,6 +22,7 @@
         ['compare_at_price', 'Üstü çizili fiyat (₺)', $money($variant?->compare_at_price), false, 'text', 'İndirim göstermek için; satış fiyatından yüksek olmalı.'],
         ['desi', 'Desi', $variant?->desi !== null ? $money($variant->desi) : '', false, 'text', 'Kargo ücreti için.'],
         ['weight_grams', 'Ağırlık (gram)', $variant?->weight_grams, false, 'number', null],
+        ['critical_stock', 'Kritik stok', $variant?->critical_stock, false, 'number', 'Stok bu adede inince uyarı verilir.'],
     ];
 @endphp
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -8,6 +8,7 @@ use App\Domain\Support\Decimal;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
 use App\Models\Store\StoreProductVariant;
+use App\Models\Store\StoreStockMovement;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -92,9 +93,18 @@ class ProductService
         });
     }
 
-    /** Ürün kalıcı olarak silinir (görselleriyle). Satışı olan ürünün silinmesi M5'te engellenecek; o zamana kadar yayından kaldırma önerilir. */
+    /**
+     * Ürün kalıcı olarak silinir (görselleriyle). Stok hareketi olan ürün silinemez: hareketler yalnızca eklenir
+     * ve geçmişi korunur; böyle ürünler yayından kaldırılır.
+     *
+     * @throws DomainException
+     */
     public function delete(StoreProduct $product): void
     {
+        if (StoreStockMovement::whereIn('variant_id', $product->variants()->select('id'))->exists()) {
+            throw new DomainException('Stok hareketi olan ürün silinemez. Mağazadan kaldırmak için yayından kaldırın.');
+        }
+
         $paths = $product->images()->pluck('path');
 
         DB::transaction(function () use ($product) {
@@ -167,6 +177,9 @@ class ProductService
         $product = $variant->loadMissing('product')->product;
         if ($product->variants()->count() <= 1) {
             throw new DomainException('Ürünün son varyantı silinemez.');
+        }
+        if ($variant->movements()->exists()) {
+            throw new DomainException('Stok hareketi olan seçenek silinemez; "Satışta" seçeneğini kapatın.');
         }
         if ($product->is_published && $variant->is_active
             && ! $product->variants()->whereKeyNot($variant->id)->where('is_active', true)->exists()) {
@@ -326,6 +339,14 @@ class ProductService
             }
         }
 
+        $critical = null;
+        if (! $blank('critical_stock')) {
+            $critical = filter_var(trim((string) $input['critical_stock']), FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 1000000]]);
+            if ($critical === false) {
+                $errors['critical_stock'] = 'Kritik stok 0 veya daha büyük bir tam sayı olmalıdır.';
+            }
+        }
+
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
@@ -339,6 +360,7 @@ class ProductService
             'vat_rate' => $vat,
             'desi' => $desi,
             'weight_grams' => $weight,
+            'critical_stock' => $critical,
             'is_active' => filter_var($input['is_active'] ?? true, FILTER_VALIDATE_BOOL),
         ];
     }

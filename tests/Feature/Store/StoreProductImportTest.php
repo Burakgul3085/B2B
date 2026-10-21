@@ -8,6 +8,7 @@ use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
+use App\Models\Store\StoreStockMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use OpenSpout\Common\Entity\Row;
@@ -83,6 +84,24 @@ class StoreProductImportTest extends TestCase
         $this->assertSame(['79.90', '109.90', '20.00', '8690000000100'], [$variant->price, $variant->compare_at_price, $variant->vat_rate, $variant->barcode]);
         $this->assertSame('Spiralli Defter A4 (Yeni)', $variant->product()->value('name'));
         $this->assertSame(2, StoreProduct::count());
+    }
+
+    public function test_stock_column_is_an_initial_receipt_for_new_and_a_count_for_existing_products(): void
+    {
+        $header = ['Stok Kodu', 'Ürün Adı', 'Satış Fiyatı (KDV Dahil)', 'KDV Oranı', 'Stok', 'Kritik Stok'];
+        $this->post(route('store_admin.products.import.store'), ['file' => $this->xlsx([['STK-1', 'Silgi', '5', 20, 40, 5], ['STK-2', 'Kalemtıraş', '7', 20, '', '']], $header)]);
+        $this->assertSame(0, session('import_result')['failed']);
+
+        $silgi = StoreProductVariant::where('sku', 'STK-1')->firstOrFail();
+        $this->assertSame([40, 5], [$silgi->stock_quantity, $silgi->critical_stock]);
+        $this->assertSame(0, StoreProductVariant::where('sku', 'STK-2')->value('stock_quantity'));
+        $this->assertSame(['receipt'], StoreStockMovement::pluck('type')->all());
+
+        // Yeniden yükleme: stok o değere getirilir (sayım), boş hücre stoğa dokunmaz; geçersiz değer satır hatasıdır.
+        $this->post(route('store_admin.products.import.store'), ['file' => $this->xlsx([['STK-1', '', '', '', 33, ''], ['STK-2', '', '', '', 'x', '']], ['Stok Kodu', 'Ürün Adı', 'Satış Fiyatı (KDV Dahil)', 'KDV Oranı', 'Stok', 'Kritik Stok'])]);
+        $this->assertSame(['updated' => 1, 'failed' => 1], array_intersect_key(session('import_result'), array_flip(['updated', 'failed'])));
+        $this->assertSame(33, $silgi->fresh()->stock_quantity);
+        $this->assertSame([['receipt', 40], ['count', -7]], StoreStockMovement::orderBy('id')->get()->map(fn ($m) => [$m->type, $m->quantity])->all());
     }
 
     public function test_missing_category_is_an_error_unless_creation_is_allowed(): void

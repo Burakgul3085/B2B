@@ -47,12 +47,12 @@ class ProductImportController extends Controller
             $writer->addRow(Row::fromValuesWithStyle(array_values(ProductImporter::COLUMNS), (new Style)->withFontBold(true)));
             // Tek seçenekli ürün
             $writer->addRow(Row::fromValues(['DFT-A4-80', 'Spiralli Defter A4 80 Yaprak', '', '', '', '8690000000100', 'Defterler > Spiralli Defter', 'Örnek Marka',
-                'Kareli, sert kapak', '89,90', '109,90', 20, '0,5', 450, 'Evet']));
+                'Kareli, sert kapak', '89,90', '109,90', 20, '0,5', 450, 'Evet', 120, 10]));
             // Seçenekli ürün: aynı "Ürün Grubu" değerine sahip satırlar tek ürünün renkleridir
             $writer->addRow(Row::fromValues(['JEL-07-MAVI', 'Jel Kalem 0.7 mm', 'JEL-07-MAVI', 'Renk', 'Mavi', '', 'Kalemler > Jel Kalem', 'Örnek Marka',
-                'Hızlı kuruyan mürekkep', '24,90', '', 20, '', 15, 'Evet']));
+                'Hızlı kuruyan mürekkep', '24,90', '', 20, '', 15, 'Evet', 300, 20]));
             $writer->addRow(Row::fromValues(['JEL-07-SIYAH', 'Jel Kalem 0.7 mm', 'JEL-07-MAVI', 'Renk', 'Siyah', '', 'Kalemler > Jel Kalem', 'Örnek Marka',
-                '', '24,90', '', 20, '', 15, 'Evet']));
+                '', '24,90', '', 20, '', 15, 'Evet', 250, 20]));
             $writer->close();
         }, 'magaza-urun-sablonu.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }

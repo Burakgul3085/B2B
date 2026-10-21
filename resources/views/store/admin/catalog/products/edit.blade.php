@@ -98,6 +98,33 @@
                     </div>
                 </x-card>
             @endif
+
+            {{-- Stok --}}
+            <x-card title="Stok" description="Mağaza stoğu. Satılabilir = stok − ödeme aşamasında ayrılan." :padding="false">
+                <x-slot:actions><a href="{{ route('store_admin.stock.movements', ['q' => $product->name]) }}" class="text-sm font-medium text-primary hover:underline">Hareketler</a></x-slot:actions>
+                <ul class="divide-y divide-line">
+                    @foreach ($product->variants as $variant)
+                        @php $reserved = $held[$variant->id] ?? 0; @endphp
+                        <li x-data="{ open: false }">
+                            <div class="flex flex-wrap items-center gap-3 px-5 py-3">
+                                <span class="min-w-0 flex-1">
+                                    <span class="font-medium text-ink">{{ $variant->option_value ?? $product->name }}</span>
+                                    <span class="block text-xs text-muted">{{ $variant->sku }}@if ($variant->critical_stock !== null) · kritik seviye {{ $variant->critical_stock }}@endif</span>
+                                </span>
+                                <span class="text-right text-sm tabular-nums">
+                                    <span @class(['text-lg font-semibold', 'text-danger' => $variant->stock_quantity === 0, 'text-warning' => $variant->stock_quantity > 0 && $variant->isCritical()])>{{ number_format($variant->stock_quantity, 0, ',', '.') }}</span>
+                                    <span class="text-muted">adet</span>
+                                    @if ($reserved)<span class="block text-xs text-muted">{{ $reserved }} ayrılmış</span>@endif
+                                </span>
+                                <button type="button" @click="open = ! open" class="text-sm font-medium text-primary hover:underline" :aria-expanded="open">Stok işlemi</button>
+                            </div>
+                            <div x-show="open" x-cloak class="border-t border-line bg-slate-50/60 px-5 py-4">
+                                @include('store.admin.stock._actions', ['variant' => $variant])
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </x-card>
         </div>
 
         <div class="space-y-6">

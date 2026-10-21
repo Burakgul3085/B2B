@@ -78,6 +78,11 @@
                 ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
                 ['label' => 'Markalar', 'route' => 'store_admin.brands.index', 'icon' => 'layers', 'active' => 'store_admin.brands.*'],
             ]],
+            ['label' => 'Stok', 'items' => [
+                ['label' => 'Stok Durumu', 'route' => 'store_admin.stock.index', 'icon' => 'warehouse', 'active' => 'store_admin.stock.index',
+                    'badge' => \App\Models\Store\StoreProductVariant::whereNotNull('critical_stock')->whereColumn('stock_quantity', '<=', 'critical_stock')->count()],
+                ['label' => 'Stok Hareketleri', 'route' => 'store_admin.stock.movements', 'icon' => 'refresh', 'active' => 'store_admin.stock.movements'],
+            ]],
             ['label' => 'Yönetim', 'items' => array_values(array_filter([
                 $user->is_super ? ['label' => 'Yöneticiler', 'route' => 'store_admin.admins.index', 'icon' => 'users', 'active' => 'store_admin.admins.*'] : null,
                 ['label' => 'İşlem Geçmişi', 'route' => 'store_admin.activity', 'icon' => 'list', 'active' => 'store_admin.activity'],

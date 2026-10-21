@@ -16,6 +16,7 @@
         'store.category_created' => 'Kategori eklendi', 'store.category_updated' => 'Kategori güncellendi', 'store.category_deleted' => 'Kategori silindi',
         'store.brand_created' => 'Marka eklendi', 'store.brand_updated' => 'Marka güncellendi', 'store.brand_deleted' => 'Marka silindi',
         'store.brand_logo_updated' => 'Marka logosu güncellendi', 'store.brand_logo_removed' => 'Marka logosu kaldırıldı',
+        'store.stock_received' => 'Stok girişi', 'store.stock_counted' => 'Stok sayımı', 'store.stock_adjusted' => 'Stok düzeltmesi', 'store.stock_reversed' => 'Stok hareketi geri alındı',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];
 @endphp
@@ -39,7 +40,9 @@
                             $log->action === 'store.products_imported' => ($log->new_values['file'] ?? '').' · '.($log->new_values['created'] ?? 0).' eklendi, '.($log->new_values['updated'] ?? 0).' güncellendi',
                             isset($entityNames[$log->entity_type]) => $entityNames[$log->entity_type].' #'.$log->entity_id
                                 .(isset($log->new_values['name']) ? ' · '.$log->new_values['name'] : (isset($log->old_values['name']) ? ' · '.$log->old_values['name'] : ''))
-                                .(isset($log->new_values['sku']) ? ' · '.$log->new_values['sku'] : ''),
+                                .(isset($log->new_values['sku']) ? ' · '.$log->new_values['sku'] : '')
+                                .(isset($log->new_values['quantity']) ? ' · '.sprintf('%+d', $log->new_values['quantity']).' adet' : '')
+                                .(isset($log->new_values['stock'], $log->old_values['stock']) ? ' · '.$log->old_values['stock'].' → '.$log->new_values['stock'] : ''),
                             default => $subject,
                         };
                     @endphp

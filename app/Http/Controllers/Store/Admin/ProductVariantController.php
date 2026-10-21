@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 /** Ürün varyantları (satılabilir birimler). Hatalar, hangi varyantın formunda oluştuysa orada gösterilir. */
 class ProductVariantController extends Controller
 {
-    private const FIELDS = ['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'is_active'];
+    private const FIELDS = ['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'critical_stock', 'is_active'];
 
     public function __construct(private ProductService $products) {}
 

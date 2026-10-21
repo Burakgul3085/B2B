@@ -1,7 +1,6 @@
 @php
     // Yol haritası: docs/13-magaza-mimarisi.md §13. Her aşama tamamlandıkça buradan kalkar ve menüye eklenir.
     $upcoming = [
-        ['layers', 'Stok', 'Mal girişi, sayım ve kritik stok uyarıları'],
         ['image', 'Vitrin', 'Ana sayfa, banner\'lar, kategori ve ürün sayfaları'],
         ['cart', 'Siparişler ve ödeme', 'iyzico, kapıda ödeme (Eskişehir) ve SMS doğrulama'],
         ['map-pin', 'Teslimat ve fatura', 'Kargo, kendi teslimatınız, iade ve e-Arşiv (Uyumsoft)'],
@@ -18,14 +17,13 @@
         </div>
     @endif
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <x-kpi label="Yayındaki ürün" :value="$stats['published']" :hint="$stats['products'].' ürünün'" :href="route('store_admin.products.index', ['status' => 'published'])" />
+        <x-kpi label="Kritik stok" :value="$stats['critical']" :href="route('store_admin.stock.index', ['status' => 'critical'])" hint="Listele" />
+        <x-kpi label="Stokta yok (satışta)" :value="$stats['out']" :href="route('store_admin.stock.index', ['status' => 'out'])" hint="Listele" />
         <x-kpi label="Etkin yönetici" :value="$activeAdmins" :href="$admin->is_super ? route('store_admin.admins.index') : null" :hint="$admin->is_super ? 'Yöneticileri yönet' : null" />
-        <div class="rounded-xl border border-line bg-white p-5 shadow-xs sm:col-span-2">
-            <p class="text-sm font-medium text-muted">Mağaza adresi</p>
-            <p class="mt-2 truncate text-xl font-semibold tracking-tight text-ink">{{ config('store.domain') }}</p>
-            <p class="mt-1 text-xs text-muted">Mağaza henüz yayında değil; ziyaretçiler "yakında" sayfasını görür.</p>
-        </div>
     </div>
+    <p class="mt-3 text-xs text-muted">Mağaza adresi: <span class="font-medium text-ink">{{ config('store.domain') }}</span> — henüz yayında değil; ziyaretçiler "yakında" sayfasını görür.</p>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
         <x-card title="Yakında bu panelde" description="Mağaza modülleri aşama aşama eklenecek." class="lg:col-span-2">

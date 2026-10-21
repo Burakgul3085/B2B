@@ -47,6 +47,7 @@
                                     <th>Ürün</th>
                                     <th class="hidden md:table-cell">Kategori / Marka</th>
                                     <th class="text-right">Fiyat</th>
+                                    <th class="text-right">Stok</th>
                                     <th>Durum</th>
                                 </tr>
                             </thead>
@@ -75,6 +76,7 @@
                                         <td class="text-right whitespace-nowrap tabular-nums">
                                             {{ Money::format($product->min_price) }}@if (bccomp((string) $product->max_price, (string) $product->min_price, 2) > 0)<span class="text-muted"> – {{ Money::format($product->max_price) }}</span>@endif
                                         </td>
+                                        <td @class(['text-right tabular-nums', 'font-semibold text-danger' => (int) $product->total_stock === 0])>{{ number_format((int) $product->total_stock, 0, ',', '.') }}</td>
                                         <td>
                                             @if ($product->is_published)<x-badge tone="success">Yayında</x-badge>@else<x-badge tone="warning">Taslak</x-badge>@endif
                                             @if ($product->is_featured)<x-badge tone="primary" class="mt-1">Öne çıkan</x-badge>@endif

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Store\Catalog;
 
+use App\Domain\Store\Inventory\StoreStockService;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreProduct;
@@ -50,12 +51,19 @@ class ProductImporter
         'desi' => 'Desi',
         'weight_grams' => 'Ağırlık (gr)',
         'is_published' => 'Yayında',
+        'stock' => 'Stok',
+        'critical_stock' => 'Kritik Stok',
     ];
 
     /** @var array<string, int> grup anahtarı => ürün id (bu dosyada oluşturulan/bulunan) */
     private array $groups = [];
 
-    public function __construct(private ProductService $products, private CategoryService $categories, private BrandService $brands) {}
+    public function __construct(
+        private ProductService $products,
+        private CategoryService $categories,
+        private BrandService $brands,
+        private StoreStockService $inventory,
+    ) {}
 
     /**
      * @return array{total: int, created: int, updated: int, failed: int, errors: list<array{row: int, message: string}>}
@@ -128,38 +136,71 @@ class ProductImporter
             'category_id' => $this->categoryId($values['category'] ?? null, $createMissing),
             'brand_id' => $this->brandId($values['brand'] ?? null, $createMissing),
         ];
-        $variantInput = array_intersect_key($values, array_flip(['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams']));
+        $variantInput = array_intersect_key($values, array_flip(['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'critical_stock']));
         $published = $this->bool($values['is_published'] ?? null);
+        $stock = $this->parseStock($values['stock'] ?? null);
 
         // 1) Var olan varyant: güncelle. Boş bırakılan ürün hücreleri mevcut değeri korur.
         $variant = StoreProductVariant::where('sku', (string) $values['sku'])->first();
         if ($variant) {
-            $product = $variant->loadMissing('product')->product;
-            $current = $product->only(['name', 'variant_name', 'description', 'category_id', 'brand_id', 'slug', 'seo_title', 'seo_description', 'is_featured']);
-            $given = array_filter($productInput, fn ($v) => $v !== null && $v !== '');
-            $this->products->update($product, $given + $current + ['is_published' => $published ?? $product->is_published]);
-            // Dosyada olmayan sütun değişmez; sütun var ama hücre boşsa isteğe bağlı alan temizlenir.
-            $existing = $variant->only(['barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams']);
-            $existing['vat_rate'] = rtrim(rtrim((string) $existing['vat_rate'], '0'), '.');
-            $this->products->updateVariant($variant->fresh(), $variantInput + $existing + ['is_active' => $variant->is_active]);
-            $this->rememberGroup($values, $product->id);
+            $this->updateExisting($variant, $productInput, $variantInput, $published, $values);
+            // Stok sütunu doluysa sayım olarak uygulanır: stok bu değere getirilir, fark hareket olarak yazılır.
+            if ($stock !== null) {
+                $this->inventory->count($variant->fresh(), $stock, 'Excel ile stok güncelleme');
+            }
 
             return 'updated';
         }
 
         // 2) Gruptaki ürüne yeni varyant
         if ($productId = $this->groupProductId($values)) {
-            $product = StoreProduct::findOrFail($productId);
-            $this->products->addVariant($product, $variantInput);
-
-            return 'created';
+            $variant = $this->products->addVariant(StoreProduct::findOrFail($productId), $variantInput);
+        } else {
+            // 3) Yeni ürün
+            $product = $this->products->create($productInput + ['is_published' => $published ?? false], $variantInput);
+            $this->rememberGroup($values, $product->id);
+            $variant = $product->variants()->firstOrFail();
         }
 
-        // 3) Yeni ürün
-        $product = $this->products->create($productInput + ['is_published' => $published ?? false], $variantInput);
-        $this->rememberGroup($values, $product->id);
+        if ($stock) {
+            $this->inventory->receive($variant, $stock, 'Excel ile ilk stok');
+        }
 
         return 'created';
+    }
+
+    /** Boş bırakılan ürün hücreleri mevcut değeri korur; dosyada olmayan varyant sütunu değişmez, sütun var ama hücre boşsa isteğe bağlı alan temizlenir. */
+    private function updateExisting(StoreProductVariant $variant, array $productInput, array $variantInput, ?bool $published, array $values): void
+    {
+        $product = $variant->loadMissing('product')->product;
+        $current = $product->only(['name', 'variant_name', 'description', 'category_id', 'brand_id', 'slug', 'seo_title', 'seo_description', 'is_featured']);
+        $given = array_filter($productInput, fn ($v) => $v !== null && $v !== '');
+        $this->products->update($product, $given + $current + ['is_published' => $published ?? $product->is_published]);
+
+        $existing = $variant->only(['barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'critical_stock']);
+        $existing['vat_rate'] = rtrim(rtrim((string) $existing['vat_rate'], '0'), '.');
+        // Zorunlu alanlarda boş hücre "değiştirme" demektir.
+        foreach (['price', 'vat_rate', 'option_value'] as $required) {
+            if (array_key_exists($required, $variantInput) && trim((string) $variantInput[$required]) === '') {
+                unset($variantInput[$required]);
+            }
+        }
+        $this->products->updateVariant($variant->fresh(), $variantInput + $existing + ['is_active' => $variant->is_active]);
+        $this->rememberGroup($values, $product->id);
+    }
+
+    /** @throws DomainException */
+    private function parseStock(mixed $value): ?int
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $qty = filter_var(trim((string) $value), FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 1000000]]);
+        if ($qty === false) {
+            throw new DomainException('Stok 0 veya daha büyük bir tam sayı olmalıdır.');
+        }
+
+        return $qty;
     }
 
     private function groupProductId(array $values): ?int

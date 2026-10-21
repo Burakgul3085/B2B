@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Inventory\StockService;
+use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Middleware\RequirePlatformTwoFactor;
 use App\Http\Middleware\RequireStoreTwoFactor;
@@ -92,6 +93,15 @@ class PagesRenderTest extends TestCase
         $this->get(route('store_admin.brands.index'))->assertOk()->assertSee('Pensan');
         $this->get(route('store_admin.products.import'))->assertOk();
         $this->get(route('store_admin.activity'))->assertOk();
+
+        // Stok (M3)
+        $stock = app(StoreStockService::class);
+        $stock->receive($multi->variants()->first(), 12, 'İlk giriş');
+        $stock->hold('checkout:x', [$multi->variants()->first()->id => 2]);
+        $this->get(route('store_admin.stock.index'))->assertOk()->assertSee('J-M')->assertSee('Stok işlemi');
+        $this->get(route('store_admin.stock.movements'))->assertOk()->assertSee('İlk giriş')->assertSee('Geri al');
+        $this->get(route('store_admin.products.edit', $multi))->assertOk()->assertSee('2 ayrılmış');
+        $this->get(route('store_admin.dashboard'))->assertOk()->assertSee('Kritik stok');
     }
 
     public function test_business_pages_render(): void

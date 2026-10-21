@@ -69,6 +69,16 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('markalar/{storeBrand}/logo', [Admin\ProductImageController::class, 'brandLogo'])->name('brands.logo.show');
             });
 
+            // Stok (M3)
+            Route::prefix('stok')->name('stock.')->group(function () {
+                Route::get('/', [Admin\StockController::class, 'index'])->name('index');
+                Route::get('hareketler', [Admin\StockController::class, 'movements'])->name('movements');
+                Route::post('hareketler/{storeMovement}/geri-al', [Admin\StockController::class, 'reverse'])->name('reverse');
+                Route::post('{storeVariant}/giris', [Admin\StockController::class, 'receive'])->name('receive');
+                Route::post('{storeVariant}/sayim', [Admin\StockController::class, 'count'])->name('count');
+                Route::post('{storeVariant}/duzeltme', [Admin\StockController::class, 'adjust'])->name('adjust');
+            });
+
             // Yönetici hesapları: yalnızca süper admin
             Route::middleware('store.super')->group(function () {
                 Route::get('yoneticiler', [Admin\AdminController::class, 'index'])->name('admins.index');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Catalog\CategoryService;
 use App\Domain\Store\Catalog\ProductService;
+use App\Domain\Store\Inventory\StoreStockService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
@@ -39,6 +40,7 @@ class ProductController extends Controller
             ->withCount('variants')
             ->withMin('variants as min_price', 'price')
             ->withMax('variants as max_price', 'price')
+            ->withSum('variants as total_stock', 'stock_quantity')
             ->orderBy(self::SORTS[$filters['sort'] ?? 'updated'], ($filters['dir'] ?? ($filters['sort'] ?? null ? 'asc' : 'desc')))
             ->orderBy('id', 'desc')
             ->paginate(25)
@@ -67,7 +69,7 @@ class ProductController extends Controller
             );
         } catch (ValidationException $e) {
             // Varyant alanları formda variant[...] adındadır.
-            $variantKeys = ['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams'];
+            $variantKeys = ['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'critical_stock'];
             $errors = collect($e->errors())->mapWithKeys(fn ($messages, $key) => [(in_array($key, $variantKeys, true) ? "variant.{$key}" : $key) => $messages]);
 
             return back()->withErrors($errors->all())->withInput();
@@ -81,7 +83,9 @@ class ProductController extends Controller
     {
         $storeProduct->load(['variants', 'images', 'category']);
 
-        return view('store.admin.catalog.products.edit', $this->formData($storeProduct));
+        return view('store.admin.catalog.products.edit', $this->formData($storeProduct) + [
+            'held' => app(StoreStockService::class)->activeHeld($storeProduct->variants->pluck('id')->all()),
+        ]);
     }
 
     public function update(Request $request, StoreProduct $storeProduct): RedirectResponse
@@ -97,7 +101,11 @@ class ProductController extends Controller
 
     public function destroy(StoreProduct $storeProduct): RedirectResponse
     {
-        $this->products->delete($storeProduct);
+        try {
+            $this->products->delete($storeProduct);
+        } catch (DomainException $e) {
+            return back()->withErrors(['product' => $e->getMessage()]);
+        }
 
         return redirect()->route('store_admin.products.index')->with('status', "\"{$storeProduct->name}\" silindi.");
     }

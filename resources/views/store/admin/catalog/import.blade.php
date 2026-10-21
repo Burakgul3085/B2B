@@ -51,7 +51,8 @@
                 <li><b>Seçenekli ürünler</b> (renk, boyut): her seçenek ayrı satırdır. Aynı ürünün satırlarına aynı <b>Ürün Grubu</b> değerini yazın (ör. ilk seçeneğin stok kodu), <b>Seçenek Adı</b>na "Renk", <b>Seçenek</b>e "Mavi" gibi değer girin.</li>
                 <li><b>Kategori</b> alt kategorilerle yazılabilir: <span class="font-mono text-xs">Kalemler &gt; Jel Kalem</span>.</li>
                 <li><b>Yayında</b>: "Evet" yazılmazsa yeni ürünler taslak olarak eklenir; görselleri ekledikten sonra yayına alabilirsiniz.</li>
-                <li>Güncellemede dosyada olmayan sütunlar değişmez. Görseller panelden eklenir.</li>
+                <li><b>Stok</b>: yeni üründe ilk stok girişi olur; mevcut üründe stok bu adede getirilir (sayım gibi, fark hareket olarak kaydedilir). Boş bırakılırsa stoğa dokunulmaz. <b>Kritik Stok</b>: stok bu adede inince uyarı verilir.</li>
+                <li>Güncellemede dosyada olmayan sütunlar değişmez; fiyat ve KDV gibi zorunlu hücreler boşsa mevcut değer korunur. Görseller panelden eklenir.</li>
             </ul>
         </x-card>
     </div>
