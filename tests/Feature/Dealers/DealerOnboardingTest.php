@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Dealers;
 
+use App\Domain\Files\DocumentUploader;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\CurrentAccount;
 use App\Models\DealerAddress;
 use App\Models\DealerApplication;
 use App\Models\DealerRelationship;
 use App\Models\DealerUser;
+use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -57,10 +59,21 @@ class DealerOnboardingTest extends TestCase
 
         $this->post("/basvuru/{$business->slug}", $this->form(['consent' => null]))->assertSessionHasErrors('consent');
 
-        $fake = UploadedFile::fake()->createWithContent('belge.pdf', '<?php system($_GET["c"]); ?>');
+        // PDF uzantılı ama PDF olmayan içerik. (Webshell benzeri içerik Windows'ta antivirüsün geçici dosyayı kilitlemesine yol açıyor.)
+        $fake = UploadedFile::fake()->createWithContent('belge.pdf', '<html><body>Bu bir PDF değil.</body></html>');
         $this->post("/basvuru/{$business->slug}", $this->form(['documents' => [$fake]]))->assertSessionHasErrors();
 
         $this->assertCount(0, $this->applications($business));
+    }
+
+    public function test_unreadable_upload_is_a_domain_error_not_a_crash(): void
+    {
+        Storage::fake('local');
+        $file = UploadedFile::fake()->createWithContent('belge.pdf', "%PDF-1.4\n%x");
+        unlink($file->getPathname());
+
+        $this->expectException(DomainException::class);
+        app(DocumentUploader::class)->store($file, 'test', 'dealer_application', 1);
     }
 
     public function test_honeypot_submissions_are_silently_dropped(): void
