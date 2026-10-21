@@ -219,9 +219,9 @@ Her aşama B2B'deki düzende ilerler: testler, aşama raporu, push.
 | iyzico üye işyeri başvurusu | Müşteri | Yayından sonra |
 | Kargo firması anlaşması | Müşteri | İsteğe bağlı, yayından sonra |
 
-## 15. `CLAUDE.md` için önerilen değişiklikler
+## 15. `CLAUDE.md` değişiklikleri (uygulandı)
 
-Onaydan sonra "Değişmez kurallar" şöyle güncellenir:
+"Değişmez kurallar" şöyle güncellendi:
 
 - Sistem **tek toptancı** içindir (Yapboz). Çok işletmeli altyapı korunur ama ikinci işletme açılamaz.
 - **Beş giriş alanı:** B2B'de `/platform`, `/toptanci`, `/bayi`; mağazada `yonetim` alt alan adı (`store_admin`) ve mağaza alan adı (`customer`). Ortak `users` tablosu yoktur.
