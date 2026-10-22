@@ -40,6 +40,7 @@ export function checkout(settings) {
             return Number(this.codFee) > 0 ? 'Nakit veya kart · ' + this.money(this.codFee) + ' hizmet bedeli' : 'Teslimatta nakit veya kartla';
         },
         get total() { return Number(this.subtotal) + Number(this.shippingFee) + (this.payment === 'cod' ? Number(this.codFee) : 0); },
+        positive(v) { return Number(v) > 0; },
         money(v) { return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(v)); },
     };
 }

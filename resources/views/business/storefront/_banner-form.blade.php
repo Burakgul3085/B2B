@@ -20,7 +20,7 @@
 @endphp
 <form method="POST" enctype="multipart/form-data" data-upload-progress class="space-y-5"
     action="{{ $editing ? route('business.storefront.banners.update', $banner) : route('business.storefront.banners.store') }}"
-    x-data="{{ Js::from($state) }}">
+    x-data="bannerForm(@alpine($state))">
     @csrf
     @if ($editing) @method('PUT') @endif
 
@@ -82,7 +82,7 @@
             </span>
         </label>
         <input id="media_{{ $id }}" type="file" name="media" class="sr-only" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-            @change="const f = $event.target.files[0]; if (f) { fileName = f.name; isVideo = f.type.startsWith('video/'); preview = URL.createObjectURL(f); }">
+            @change="pickMedia($event)">
         <p class="mt-1.5 text-xs text-muted">Önerilen ölçü: <strong class="text-ink" x-text="sizes[placement].desktop + ' piksel (' + sizes[placement].ratio + ')'"></strong>. Videolar sessiz ve döngüde oynar; 10–20 saniyelik kısa videolar en iyi sonucu verir.</p>
     </div>
 

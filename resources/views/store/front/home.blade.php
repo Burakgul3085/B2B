@@ -8,7 +8,7 @@
     {{-- Banner'lar --}}
     @if ($banners->isNotEmpty())
         <section class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8" aria-label="Kampanyalar"
-            x-data="{ i: 0, n: {{ $banners->count() }}, timer: null, start() { if (this.n > 1) this.timer = setInterval(() => this.i = (this.i + 1) % this.n, 6000) }, stop() { clearInterval(this.timer) } }"
+            x-data="bannerRotator({{ $banners->count() }})"
             x-init="start()" @mouseenter="stop()" @mouseleave="start()">
             <div class="relative overflow-hidden rounded-3xl bg-slate-100">
                 @foreach ($banners as $index => $banner)

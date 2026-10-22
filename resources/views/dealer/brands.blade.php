@@ -47,7 +47,7 @@
         @endif
 
         {{-- ============ Tüm markalar (A–Z) ============ --}}
-        <section class="mt-10" x-data="{ term: '', match(name) { const t = this.term.trim().toLocaleLowerCase('tr'); return ! t || name.includes(t); } }">
+        <section class="mt-10" x-data="textFilter">
             <div class="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold tracking-tight text-ink">Tüm markalar (A–Z)</h2>
@@ -76,14 +76,14 @@
                 @foreach (['#', ...$letters] as $letter)
                     @continue(! $groups->has($letter))
                     @php $items = $groups[$letter]; @endphp
-                    <div id="harf-{{ $letter === '#' ? 'diger' : $letter }}" class="scroll-mt-20" x-show="{{ Js::from($items->map($search)->values()) }}.some(n => match(n))">
+                    <div id="harf-{{ $letter === '#' ? 'diger' : $letter }}" class="scroll-mt-20" x-show="matchAny(@alpine($items->map($search)->values()))">
                         <div class="flex items-center gap-3">
                             <span class="text-2xl font-bold text-primary">{{ $letter }}</span>
                             <span class="h-px flex-1 bg-line"></span>
                         </div>
                         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
                             @foreach ($items as $brand)
-                                <a href="{{ $url($brand) }}" x-show="match({{ Js::from($search($brand)) }})"
+                                <a href="{{ $url($brand) }}" x-show="match(@alpine($search($brand)))"
                                     class="group flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 shadow-xs transition hover:border-primary/40 hover:shadow-md">
                                     <span class="min-w-0 flex-1 truncate font-semibold text-ink group-hover:text-primary" title="{{ $brand->name }}">{{ $brand->name }}</span>
                                     <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-muted tabular-nums group-hover:bg-primary-soft group-hover:text-primary">{{ $brand->product_count }}</span>
@@ -93,7 +93,7 @@
                     </div>
                 @endforeach
 
-                <p x-cloak x-show="term && ! {{ Js::from($brands->map($search)->values()) }}.some(n => match(n))" class="rounded-xl border border-dashed border-line bg-white px-4 py-8 text-center text-sm text-muted">
+                <p x-cloak x-show="term && ! matchAny(@alpine($brands->map($search)->values()))" class="rounded-xl border border-dashed border-line bg-white px-4 py-8 text-center text-sm text-muted">
                     “<span x-text="term"></span>” ile eşleşen marka bulunamadı.
                 </p>
             </div>

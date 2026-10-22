@@ -49,15 +49,15 @@
     <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         @include('store.front._breadcrumbs', ['items' => $breadcrumbs])
 
-        <div class="mt-6 grid gap-10 lg:grid-cols-2" x-data="{ variants: @js($variantData), index: {{ $initial }}, qty: 1, get v() { return this.variants[this.index] } }">
+        <div class="mt-6 grid gap-10 lg:grid-cols-2" x-data="productVariants(@alpine($variantData), {{ $initial }})">
             {{-- Görseller: imleçle büyütme (dokunmatikte kapalı) --}}
             <div x-data="{ active: 0 }">
                 @if ($product->images->isNotEmpty())
                     <div class="relative isolate aspect-square overflow-hidden rounded-2xl border border-line bg-white"
-                        x-data="{ zoom: false, x: 50, y: 50 }" :class="zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'"
-                        @pointerenter="if ($event.pointerType === 'mouse') zoom = true" @pointerleave="zoom = false"
-                        @pointermove="if ($event.pointerType === 'mouse') { const r = $el.getBoundingClientRect(); x = ($event.clientX - r.left) / r.width * 100; y = ($event.clientY - r.top) / r.height * 100; zoom = true }">
-                        <div class="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-300 ease-out sm:p-10" :style="`transform-origin: ${x}% ${y}%; transform: scale(${zoom ? 2.2 : 1})`">
+                        x-data="imageZoom" :class="zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'"
+                        @pointerenter="enter($event)" @pointerleave="zoom = false"
+                        @pointermove="move($event)">
+                        <div class="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-300 ease-out sm:p-10" :style="zoomStyle">
                             @foreach ($product->images as $i => $image)
                                 <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ $imageUrl($image, 1000) }}" alt="{{ $product->name }}{{ $i ? ' görsel '.($i + 1) : '' }}"
                                     class="max-h-full max-w-full object-contain mix-blend-multiply" @if ($i) loading="lazy" @else fetchpriority="high" @endif>
@@ -99,7 +99,7 @@
                         <p class="text-sm font-semibold">{{ $product->variant_name }}: <span class="font-normal" x-text="v.option">{{ $variantData[$initial]['option'] }}</span></p>
                         <div class="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="{{ $product->variant_name }}">
                             @foreach ($variantData as $i => $data)
-                                <button type="button" role="radio" @click="index = {{ $i }}; qty = 1" :aria-checked="index === {{ $i }}"
+                                <button type="button" role="radio" @click="select({{ $i }})" :aria-checked="index === {{ $i }}"
                                     :class="index === {{ $i }} ? 'border-primary bg-primary-soft text-primary ring-1 ring-primary' : 'border-line hover:border-slate-400'"
                                     class="relative rounded-xl border px-4 py-2 text-sm font-medium {{ $data['available'] ? '' : 'text-muted line-through decoration-slate-400' }}">{{ $data['option'] }}</button>
                             @endforeach
@@ -118,9 +118,9 @@
                     @csrf
                     <input type="hidden" name="variant_id" :value="v.id" value="{{ $variantData[$initial]['id'] }}">
                     <div class="flex items-center rounded-xl border border-line">
-                        <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="qty = Math.max(1, qty - 1)" aria-label="Azalt">−</button>
+                        <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="decrease()" aria-label="Azalt">−</button>
                         <input type="number" name="quantity" x-model.number="qty" min="1" :max="v.available" value="1" class="w-12 border-0 text-center font-semibold focus:ring-0" aria-label="Adet">
-                        <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="qty = Math.min(v.available || 1, qty + 1)" aria-label="Artır">+</button>
+                        <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="increase()" aria-label="Artır">+</button>
                     </div>
                     <button :disabled="v.available === 0" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
                         <x-icon name="cart" class="size-5" /> <span x-text="v.available === 0 ? 'Tükendi' : 'Sepete ekle'">Sepete ekle</span>

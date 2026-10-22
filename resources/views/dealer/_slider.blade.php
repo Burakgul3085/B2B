@@ -12,7 +12,7 @@
     $aspect = $hero ? 'aspect-[4/3] sm:aspect-[2/1] lg:aspect-[16/5]' : 'aspect-[2/1] sm:aspect-[4/1] lg:aspect-[6/1]';
 @endphp
 <section x-data="heroSlider({{ $slides->count() }})" @mouseenter="pause()" @mouseleave="resume()" @focusin="pause()" @focusout="resume()"
-    @touchstart.passive="touchStart($event)" @touchend="touchEnd($event)"
+    @touchstart.passive="touchStart($event)" @touchend="touchEnd($event)" @slide-video-ended="videoEnded($event.detail)"
     class="group/slider relative overflow-hidden bg-slate-900 shadow-xl ring-1 shadow-slate-900/10 ring-black/5 {{ $hero ? 'rounded-3xl' : 'rounded-2xl' }} {{ $class ?? '' }}"
     aria-roledescription="carousel" aria-label="{{ $hero ? 'Tanıtımlar' : 'Kampanyalar' }}">
     <div class="relative {{ $aspect }}">
@@ -74,7 +74,7 @@
                 <button type="button" @click="go({{ $n }})" role="tab" :aria-selected="i === {{ $n }}" aria-label="{{ $n + 1 }}. slayt"
                     class="relative h-2 overflow-hidden rounded-full bg-white/40 transition-all duration-300" :class="i === {{ $n }} ? 'w-10' : 'w-2 hover:bg-white/70'">
                     <span x-show="i === {{ $n }}" class="slider-progress absolute inset-y-0 left-0 rounded-full bg-amber-400"
-                        :style="`animation-duration: ${duration}ms; animation-play-state: ${paused || reduced ? 'paused' : 'running'}`"></span>
+                        :style="progressStyle"></span>
                 </button>
             @endforeach
         </div>

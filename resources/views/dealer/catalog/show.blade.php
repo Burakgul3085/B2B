@@ -16,13 +16,13 @@
             --}}
             @if ($product->images->isNotEmpty())
                 <div class="relative isolate h-[min(70vh,36rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-xs"
-                    x-data="{ zoom: false, x: 50, y: 50 }"
+                    x-data="imageZoom"
                     :class="zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'"
-                    @pointerenter="if ($event.pointerType === 'mouse') zoom = true"
+                    @pointerenter="enter($event)"
                     @pointerleave="zoom = false"
-                    @pointermove="if ($event.pointerType === 'mouse') { const r = $el.getBoundingClientRect(); x = ($event.clientX - r.left) / r.width * 100; y = ($event.clientY - r.top) / r.height * 100; zoom = true }">
+                    @pointermove="move($event)">
                     <div class="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-300 ease-out sm:p-10"
-                        :style="`transform-origin: ${x}% ${y}%; transform: scale(${zoom ? 2.2 : 1})`">
+                        :style="zoomStyle">
                         @foreach ($product->images as $i => $image)
                             <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
                                 class="max-h-full max-w-full object-contain mix-blend-multiply">

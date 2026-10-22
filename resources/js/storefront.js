@@ -63,6 +63,10 @@ export function heroSlider(count, interval = 5000) {
             }
         },
 
+        get progressStyle() {
+            return `animation-duration: ${this.duration}ms; animation-play-state: ${this.paused || this.reduced ? 'paused' : 'running'}`;
+        },
+
         touchStart(event) { this.startX = event.touches[0].clientX; },
         touchEnd(event) {
             if (this.startX === null) {

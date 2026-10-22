@@ -18,13 +18,13 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-        // İçerik güvenlik politikası: yalnızca kendi kaynaklarımız. Alpine ifadeleri için 'unsafe-eval',
-        // bileşenlerdeki style özellikleri için 'unsafe-inline' (stil) gerekir; satır içi <script> yoktur.
+        // İçerik güvenlik politikası: yalnızca kendi kaynaklarımız; satır içi <script> ve eval yoktur (Alpine'in
+        // CSP sürümü kullanılır). Bileşenlerdeki style özellikleri için 'unsafe-inline' (stil) gerekir.
         // Vite geliştirme sunucusu (npm run dev) çalışırken politika uygulanmaz.
         if (! Vite::isRunningHot()) {
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-eval'",
+                "script-src 'self'",
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' data: blob:",
                 "font-src 'self'",

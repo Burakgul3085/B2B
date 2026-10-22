@@ -1,9 +1,9 @@
 @php use App\Models\DealerApplication; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" title="Bayilik Başvuruları">
     <x-page-header title="Bayilik Başvuruları" subtitle="Başvuru formunuzdan gelen talepler.">
-        <div x-data="{ copied: false }" class="flex items-center gap-2">
+        <div x-data="copyLink" class="flex items-center gap-2">
             <input readonly value="{{ route('public.application', $currentBusiness->slug) }}" class="field-input w-72 font-mono text-xs" x-ref="url" aria-label="Başvuru formu adresi">
-            <x-button type="button" variant="secondary" icon="copy" @click="navigator.clipboard.writeText($refs.url.value); copied = true"><span x-text="copied ? 'Kopyalandı' : 'Form linki'">Form linki</span></x-button>
+            <x-button type="button" variant="secondary" icon="copy" @click="copy()"><span x-text="copied ? 'Kopyalandı' : 'Form linki'">Form linki</span></x-button>
         </div>
     </x-page-header>
 

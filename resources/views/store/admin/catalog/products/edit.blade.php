@@ -18,7 +18,7 @@
         <div class="space-y-6 xl:col-span-2">
             {{-- Ürün bilgileri --}}
             <x-card title="Ürün bilgileri">
-                <form method="POST" action="{{ route('store_admin.products.update', $product) }}" x-data="{ option: @js(old('variant_name', $product->variant_name ?? '')) }">
+                <form method="POST" action="{{ route('store_admin.products.update', $product) }}" x-data="{ option: @alpine(old('variant_name', $product->variant_name ?? '')) }">
                     @csrf @method('PUT')
                     @include('store.admin.catalog.products._fields', ['product' => $product])
                     @unless ($hasOptions)
@@ -48,7 +48,7 @@
                     <ul class="divide-y divide-line">
                         @foreach ($product->variants as $variant)
                             @php $bag = 'variant'.$variant->id; $failed = $errors->getBag($bag)->any(); @endphp
-                            <li x-data="{ open: @js($failed) }">
+                            <li x-data="{ open: @alpine($failed) }">
                                 <div class="flex flex-wrap items-center gap-3 px-5 py-3">
                                     <button type="button" @click="open = ! open" class="flex min-w-0 flex-1 items-center gap-3 text-left" :aria-expanded="open">
                                         <x-icon name="chevron-down" class="size-4 shrink-0 text-muted transition" ::class="open && 'rotate-180'" />
@@ -82,7 +82,7 @@
                             </li>
                         @endforeach
                     </ul>
-                    <div class="border-t border-line px-5 py-4" x-data="{ open: @js($newBag->any()) }">
+                    <div class="border-t border-line px-5 py-4" x-data="{ open: @alpine($newBag->any()) }">
                         <button type="button" x-show="! open" @click="open = true" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                             <x-icon name="plus" class="size-4" /> Yeni {{ mb_strtolower($product->variant_name) }} ekle
                         </button>

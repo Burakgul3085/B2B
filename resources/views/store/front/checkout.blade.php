@@ -21,7 +21,7 @@
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Siparişi tamamla</h1>
 
         <form method="POST" action="{{ route('store.checkout.store') }}" class="mt-6 grid gap-8 lg:grid-cols-3"
-            x-data="checkout(@js($alpine))">
+            x-data="checkout(@alpine($alpine))">
             @csrf
             <x-store.bot-trap />
             <div class="space-y-6 lg:col-span-2">
@@ -109,12 +109,12 @@
                         <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="delivery === 'cargo' ? 'border-primary ring-1 ring-primary' : 'border-line'">
                             <input type="radio" name="delivery_method" value="cargo" x-model="delivery" class="mt-0.5 size-4 text-primary">
                             <span><span class="font-semibold">Kargo</span><span class="block text-muted" x-text="money(cargoFee) === money(0) ? 'Ücretsiz' : money(cargoFee)"></span>
-                                <template x-if="freeThreshold && Number(cargoFee) > 0"><span class="block text-xs text-muted" x-text="money(freeThreshold) + ' ve üzeri ücretsiz'"></span></template></span>
+                                <template x-if="freeThreshold && positive(cargoFee)"><span class="block text-xs text-muted" x-text="money(freeThreshold) + ' ve üzeri ücretsiz'"></span></template></span>
                         </label>
                         <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! isLocal ? 'cursor-not-allowed opacity-50 border-line' : (delivery === 'local' ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
                             <input type="radio" name="delivery_method" value="local" x-model="delivery" :disabled="! isLocal" class="mt-0.5 size-4 text-primary">
                             <span><span class="font-semibold">Mağaza teslimatı</span>
-                                <span class="block text-muted" x-text="isLocal ? (Number(localFee) > 0 ? money(localFee) : 'Ücretsiz') : 'Yalnızca Eskişehir içi'"></span>
+                                <span class="block text-muted" x-text="isLocal ? (positive(localFee) ? money(localFee) : 'Ücretsiz') : 'Yalnızca Eskişehir içi'"></span>
                                 <span class="block text-xs text-muted">Kendi aracımızla, kapıda ödeme seçeneğiyle</span></span>
                         </label>
                     </div>
@@ -185,8 +185,8 @@
                     @if ($discount?->freeShipping)
                         <p class="text-xs text-green-800">{{ $discount->label() }}: teslimat ücretsiz.</p>
                     @endif
-                    <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums" x-text="Number(shippingFee) > 0 ? money(shippingFee) : 'Ücretsiz'"></dd></div>
-                    <div class="flex justify-between" x-show="payment === 'cod' && Number(codFee) > 0" x-cloak><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums" x-text="money(codFee)"></dd></div>
+                    <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums" x-text="positive(shippingFee) ? money(shippingFee) : 'Ücretsiz'"></dd></div>
+                    <div class="flex justify-between" x-show="payment === 'cod' && positive(codFee)" x-cloak><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums" x-text="money(codFee)"></dd></div>
                 </dl>
                 <div class="flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums" x-text="money(total)"></span></div>
                 <p class="text-xs text-muted">Fiyatlara KDV dahildir.</p>

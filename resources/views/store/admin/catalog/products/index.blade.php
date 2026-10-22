@@ -43,7 +43,7 @@
                         <table class="table-base">
                             <thead>
                                 <tr>
-                                    <th class="w-10"><input type="checkbox" class="size-4 rounded" aria-label="Tümünü seç" x-model="all" @change="selected = all ? @js($products->pluck('id')) : []"></th>
+                                    <th class="w-10"><input type="checkbox" class="size-4 rounded" aria-label="Tümünü seç" x-model="all" @change="selected = all ? @alpine($products->pluck('id')) : []"></th>
                                     <th>Ürün</th>
                                     <th class="hidden md:table-cell">Kategori / Marka</th>
                                     <th class="text-right">Fiyat</th>

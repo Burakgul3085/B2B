@@ -77,7 +77,7 @@
                 </div>
 
                 {{-- Markalar --}}
-                <div role="group" aria-labelledby="f_brand_title" class="px-5 py-4" x-data="{ term: '' }">
+                <div role="group" aria-labelledby="f_brand_title" class="px-5 py-4" x-data="textFilter">
                     <h3 id="f_brand_title" class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Markalar</h3>
                     @if ($brands->count() > 8)
                         <input type="search" x-model="term" placeholder="Marka ara" aria-label="Marka ara" class="field-input mb-2 py-1.5 text-xs">
@@ -85,7 +85,7 @@
                     <div class="filter-scroll max-h-64 space-y-0.5 overflow-y-auto pr-1">
                         @foreach ($brands as $brand)
                             <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-                                x-show="! term || {{ Js::from(mb_strtolower($brand->name)) }}.includes(term.toLocaleLowerCase('tr'))">
+                                x-show="match(@alpine(mb_strtolower($brand->name)))">
                                 <input type="checkbox" name="brand[]" value="{{ $brand->id }}" @checked(in_array($brand->id, $selectedBrands, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
                                 <span class="flex-1 text-sm text-ink">{{ $brand->name }}</span>
                                 <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted tabular-nums">{{ $brand->product_count }}</span>

@@ -1,10 +1,14 @@
-import Alpine from 'alpinejs';
+import Alpine from '@alpinejs/csp';
+import * as components from './components.js';
 import { enableUploadProgress, heroSlider } from './storefront.js';
 import { checkout } from './store-checkout.js';
 import { cookieConsent } from './store-consent.js';
 import { initTheme, themeSwitch } from './theme.js';
 
+// Alpine'in CSP sürümü: ifadeler eval olmadan yorumlanır (politikada 'unsafe-eval' yok). Mantık içeren
+// davranışlar bileşen olarak tanımlanır; şablon ifadeleri npm run denetim:alpine ile sınanır.
 window.Alpine = Alpine;
+Object.entries(components).forEach(([name, component]) => Alpine.data(name, component));
 Alpine.data('heroSlider', heroSlider);
 Alpine.data('checkout', checkout);
 Alpine.data('cookieConsent', cookieConsent);

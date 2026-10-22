@@ -63,5 +63,5 @@ B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hat
 - [ ] İsteğe bağlı: mağaza vitrini (müşteri tarafı) için koyu tema.
 
 ### Teknik borç
-- [ ] **CSP'de `'unsafe-eval'` (bilinçli olarak bırakıldı).** Alpine'in CSP sürümü denendi; birden fazla deyim, ok fonksiyonu, `?.`, `??`, genel nesneler (JSON, Math…) gibi yapıları desteklemediği için 45 şablondaki 300'ü aşkın ifadenin JS bileşenlerine taşınması ve tüm arayüzün yeniden sınanması gerekir. Satır içi script yok ve Blade çıktıyı kaçırdığı için risk düşük; ayrı bir çalışma olarak planlanmalı.
+- [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.
 - Cari yaşlandırma (tek SQL sorgusu) ve demo videoları (Python ile üretiliyor) notları eskimişti; kapatıldı.

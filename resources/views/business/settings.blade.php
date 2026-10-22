@@ -24,9 +24,9 @@
         </x-card>
 
         <x-card title="Bayilik başvuru sayfanız" description="Bu bağlantıyı web sitenizde veya müşterilerinizle paylaşın.">
-            <div class="flex gap-2" x-data="{ copied: false }">
+            <div class="flex gap-2" x-data="copyLink">
                 <input readonly value="{{ route('public.application', $business->slug) }}" class="field-input font-mono text-xs" x-ref="url" aria-label="Başvuru adresi">
-                <x-button type="button" variant="secondary" @click="navigator.clipboard.writeText($refs.url.value); copied = true"><span x-text="copied ? 'Kopyalandı' : 'Kopyala'">Kopyala</span></x-button>
+                <x-button type="button" variant="secondary" @click="copy()"><span x-text="copied ? 'Kopyalandı' : 'Kopyala'">Kopyala</span></x-button>
             </div>
             <a href="{{ route('public.application', $business->slug) }}" target="_blank" rel="noopener" class="mt-3 inline-block text-sm text-primary hover:underline">Sayfayı aç</a>
         </x-card>

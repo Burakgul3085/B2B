@@ -26,7 +26,7 @@
 
     @if ($canApprove)
         {{-- Onay ekranı: kalem bazında miktar, depo ve teslimat bilgisi --}}
-        <form method="POST" action="{{ route('business.orders.approve', $order) }}" x-data="{ wh: '{{ old('warehouse_id', $order->warehouse_id) }}', stock: {{ Js::from($stock) }} }"
+        <form method="POST" action="{{ route('business.orders.approve', $order) }}" x-data="{ wh: '{{ old('warehouse_id', $order->warehouse_id) }}', stock: @alpine($stock) }"
             data-confirm="Sipariş onaylansın mı? Onaylanan miktarlar stoktan düşülecek.">
             @csrf
             <x-card title="Onay" description="Stoğu yetmeyen kalemlerde miktarı düşürerek kısmi onay verebilirsiniz. Kesin stok kontrolü onay anında yapılır." :padding="false" class="mb-6">

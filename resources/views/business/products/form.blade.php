@@ -46,9 +46,9 @@
         </x-card>
 
         @if ($variantGroups->isNotEmpty())
-            <x-card title="Varyant" description="Renk, boyut gibi seçenekleri olan ürünleri aynı grupta toplayın. Her varyant kendi kodu, stoğu ve fiyatı olan ayrı üründür."
-                x-data="{ group: '{{ old('variant_group_id', $product->variant_group_id) }}', groups: {{ Js::from($groups) }} }">
-                <div class="grid gap-5 sm:grid-cols-3">
+            <x-card title="Varyant" description="Renk, boyut gibi seçenekleri olan ürünleri aynı grupta toplayın. Her varyant kendi kodu, stoğu ve fiyatı olan ayrı üründür.">
+                <div class="grid gap-5 sm:grid-cols-3"
+                    x-data="{ group: '{{ old('variant_group_id', $product->variant_group_id) }}', groups: @alpine($groups), values: @alpine(old('variant_values', $product->variant_values ?? [])) }">
                     <div>
                         <label for="f_variant_group_id" class="mb-1.5 block text-sm font-medium">Varyant grubu</label>
                         <select id="f_variant_group_id" name="variant_group_id" x-model="group" class="field-input">
@@ -60,7 +60,7 @@
                         <div>
                             <label class="mb-1.5 block text-sm font-medium" x-text="attr"></label>
                             <input type="text" :name="'variant_values[' + attr + ']'" class="field-input" maxlength="60"
-                                :value="{{ Js::from(old('variant_values', $product->variant_values ?? [])) }}[attr] ?? ''">
+                                :value="values[attr] || ''">
                         </div>
                     </template>
                 </div>

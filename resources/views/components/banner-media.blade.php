@@ -16,7 +16,7 @@
             <img src="{{ $poster }}" alt="" aria-hidden="true" loading="{{ $loading }}" class="absolute inset-0 size-full scale-125 object-cover opacity-60 blur-2xl">
         @endif
         <video data-slide="{{ $index }}" @if ($poster) poster="{{ $poster }}" @endif muted playsinline @if ($loop) loop @endif
-            preload="{{ $eager ? 'auto' : 'metadata' }}" x-on:ended="typeof videoEnded === 'function' && videoEnded({{ $index }})"
+            preload="{{ $eager ? 'auto' : 'metadata' }}" x-on:ended="$dispatch('slide-video-ended', {{ $index }})"
             class="relative size-full object-contain" aria-label="{{ $banner->title ?: 'Tanıtım videosu' }}">
             <source src="{{ $src }}" type="{{ $banner->media_mime }}">
         </video>

@@ -13,18 +13,7 @@
 
         {{-- İl seçilince ilçeler sunucudan yüklenir; ilçe-il uyumu sunucuda ayrıca denetlenir. --}}
         <form method="POST" action="{{ $editing ? route('store.addresses.update', $address->id) : route('store.addresses.store') }}" class="mt-6 space-y-5 rounded-2xl border border-line p-6"
-            x-data="{
-                province: @js($provinceId ?: ''), district: @js($districtId ?: ''), districts: [], loading: false,
-                async load(keep) {
-                    if (! keep) this.district = '';
-                    this.districts = [];
-                    if (! this.province) return;
-                    this.loading = true;
-                    const res = await fetch('/ilceler/' + this.province, { headers: { Accept: 'application/json' } });
-                    this.districts = res.ok ? await res.json() : [];
-                    this.loading = false;
-                }
-            }" x-init="load(true)">
+            x-data="addressForm(@alpine($provinceId ?: ''), @alpine($districtId ?: ''))" x-init="load(true)">
             @csrf @if ($editing) @method('PUT') @endif
             <x-field name="title" label="Adres başlığı" :value="$address->title" required maxlength="40" placeholder="Ev, İş…" />
             <div class="grid gap-5 sm:grid-cols-2">

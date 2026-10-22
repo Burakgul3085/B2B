@@ -3,7 +3,7 @@
         <x-slot:breadcrumb><a href="{{ route('store_admin.products.index') }}" class="hover:underline">Ürünler</a></x-slot:breadcrumb>
     </x-page-header>
 
-    <form method="POST" action="{{ route('store_admin.products.store') }}" class="space-y-6" x-data="{ option: @js(old('variant_name', '')) }">
+    <form method="POST" action="{{ route('store_admin.products.store') }}" class="space-y-6" x-data="{ option: @alpine(old('variant_name', '')) }">
         @csrf
         <x-card title="Ürün bilgileri">
             @include('store.admin.catalog.products._fields', ['product' => $product])

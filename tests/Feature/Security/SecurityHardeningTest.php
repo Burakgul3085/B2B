@@ -4,6 +4,7 @@ namespace Tests\Feature\Security;
 
 use App\Models\DealerAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\Concerns\CreatesOrders;
 use Tests\TestCase;
 
@@ -22,6 +23,8 @@ class SecurityHardeningTest extends TestCase
         $this->assertStringContainsString("default-src 'self'", $csp);
         $this->assertStringContainsString("frame-ancestors 'none'", $csp);
         $this->assertStringContainsString("object-src 'none'", $csp);
+        $this->assertStringContainsString("script-src 'self';", $csp);
+        $this->assertStringNotContainsString('unsafe-eval', $csp);
         $this->assertStringNotContainsString('*', $csp);
         $response->assertHeaderMissing('Strict-Transport-Security');
 
@@ -130,5 +133,13 @@ class SecurityHardeningTest extends TestCase
         foreach ([route('dealer.catalog'), route('dealer.catalog.show', $product), route('dealer.orders.show', $order)] as $url) {
             $this->get($url)->assertOk()->assertDontSee($payload, false);
         }
+    }
+
+    public function test_alpine_directive_prints_html_escaped_json_literal(): void
+    {
+        // Alpine'in CSP sürümü JSON.parse çağıramaz; veri, öznitelikte kaçırılmış bir nesne sabiti olarak basılır.
+        $html = Blade::render('<div x-data="f(@alpine($v))"></div>', ['v' => ['ad' => '<script>"Ş\'/', 'n' => 2, 'yok' => null]]);
+
+        $this->assertSame('<div x-data="f({&quot;ad&quot;:&quot;&lt;script&gt;\&quot;Ş&#039;/&quot;,&quot;n&quot;:2,&quot;yok&quot;:null})"></div>', $html);
     }
 }

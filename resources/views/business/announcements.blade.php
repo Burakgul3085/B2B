@@ -23,7 +23,7 @@
         </x-card>
         <x-card title="Yeni duyuru">
             <form method="POST" action="{{ route('business.announcements.store') }}" enctype="multipart/form-data" class="space-y-4" data-confirm="Duyuru yayımlansın mı?"
-                x-data="{ names: [], tooBig: false }">
+                x-data="fileList({{ \App\Http\Controllers\Business\AnnouncementController::MAX_TOTAL_BYTES }})">
                 @csrf
                 <x-field name="title" label="Başlık" required maxlength="160" />
                 <x-field name="body" label="Metin" textarea required />
@@ -37,7 +37,7 @@
                     </label>
                     <input id="announcement_files" type="file" name="files[]" multiple class="sr-only"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,application/pdf,image/jpeg,image/png"
-                        @change="names = Array.from($event.target.files).map(f => f.name); tooBig = Array.from($event.target.files).reduce((t, f) => t + f.size, 0) > {{ \App\Http\Controllers\Business\AnnouncementController::MAX_TOTAL_BYTES }}">
+                        @change="pick($event)">
                     <ul x-show="names.length" x-cloak class="mt-2 space-y-1 text-xs text-ink">
                         <template x-for="n in names" :key="n"><li class="flex items-center gap-1.5 truncate"><x-icon name="file" class="size-3.5 shrink-0 text-muted" /><span x-text="n" class="truncate"></span></li></template>
                     </ul>

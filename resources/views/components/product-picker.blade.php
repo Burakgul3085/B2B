@@ -1,24 +1,13 @@
 @props(['name' => 'product_id', 'label' => 'Ürün', 'product' => null, 'required' => true])
 @php $selected = old($name) && ! $product ? \App\Models\Product::find(old($name)) : $product; @endphp
-<div x-data="{
-        q: '', results: [], open: false, loading: false,
-        selected: @js($selected ? ['id' => $selected->id, 'name' => $selected->name, 'sku' => $selected->sku] : null),
-        async search() {
-            if (this.q.trim().length < 2) { this.results = []; return; }
-            this.loading = true;
-            const res = await fetch('{{ route('business.stock.lookup') }}?q=' + encodeURIComponent(this.q), { headers: { 'Accept': 'application/json' } });
-            this.results = res.ok ? await res.json() : [];
-            this.loading = false; this.open = true;
-        },
-        pick(p) { this.selected = p; this.open = false; this.q = ''; this.$dispatch('product-picked', p); }
-    }" {{ $attributes->only('class') }}>
+<div x-data="productPicker('{{ route('business.stock.lookup') }}', @alpine($selected ? ['id' => $selected->id, 'name' => $selected->name, 'sku' => $selected->sku] : null))" {{ $attributes->only('class') }}>
     <label class="mb-1.5 block text-sm font-medium">{{ $label }}@if ($required)<span class="text-danger"> *</span>@endif</label>
-    <input type="hidden" name="{{ $name }}" :value="selected?.id">
+    <input type="hidden" name="{{ $name }}" :value="selected && selected.id">
 
     <template x-if="selected">
         <div class="flex items-center justify-between rounded-lg border border-line bg-slate-50 px-3 py-2 text-sm">
             <span><span class="font-medium" x-text="selected.name"></span> <span class="text-muted" x-text="'· ' + selected.sku"></span></span>
-            <button type="button" class="text-sm font-medium text-primary hover:underline" @click="selected = null; $nextTick(() => $refs.search.focus())">Değiştir</button>
+            <button type="button" class="text-sm font-medium text-primary hover:underline" @click="change()">Değiştir</button>
         </div>
     </template>
 

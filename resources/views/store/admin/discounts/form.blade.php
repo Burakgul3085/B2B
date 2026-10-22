@@ -14,7 +14,7 @@
 
     <div class="grid gap-6 xl:grid-cols-3">
         <form method="POST" action="{{ $d->exists ? route('store_admin.discounts.update', $d) : route('store_admin.discounts.store') }}"
-            class="space-y-6 xl:col-span-2" x-data="{ kind: @js($kind), type: @js(old('type', $d->type)) }">
+            class="space-y-6 xl:col-span-2" x-data="{ kind: @alpine($kind), type: @alpine(old('type', $d->type)) }">
             @csrf @if ($d->exists) @method('PUT') @endif
 
             <x-card title="İndirim">

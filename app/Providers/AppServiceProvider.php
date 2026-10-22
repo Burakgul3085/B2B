@@ -11,6 +11,7 @@ use App\Models\Message;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -36,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Password::defaults(fn () => Password::min(10)->letters()->numbers());
+
+        // Alpine ifadelerine sunucu verisi: @alpine($dizi) JSON'u HTML varlıklarıyla kaçırılmış nesne/dizi sabiti
+        // olarak basar. @js() dizileri JSON.parse(...) ile sardığı için Alpine'in CSP sürümünde çalışmaz.
+        Blade::directive('alpine', fn (string $expression) => "<?php echo e(json_encode({$expression}, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)); ?>");
 
         // Polimorfik ilişkilerde sınıf adı yerine sabit takma ad saklanır.
         Relation::enforceMorphMap([

@@ -30,7 +30,7 @@
                 <h2 id="analiz" class="text-lg font-semibold text-ink">Satış analizi</h2>
                 <p class="text-sm text-muted">{{ $rangeText }} · önceki dönem: {{ $a['range']['prevFrom']->format('d.m.Y') }} – {{ $a['range']['prevTo']->format('d.m.Y') }}</p>
             </div>
-            <form method="GET" action="{{ route('business.dashboard') }}" class="flex flex-wrap items-end gap-2" x-data="{ period: @js($af['period']) }">
+            <form method="GET" action="{{ route('business.dashboard') }}" class="flex flex-wrap items-end gap-2" x-data="{ period: @alpine($af['period']) }">
                 <div>
                     <label for="d_period" class="mb-1 block text-xs font-medium text-muted">Dönem</label>
                     <select id="d_period" name="period" x-model="period" class="field-input py-1.5 text-sm">
