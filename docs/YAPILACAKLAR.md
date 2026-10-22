@@ -1,6 +1,6 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (B2B eksikleri sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 22.10.2026 (CSP ve vitrin koyu teması sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
@@ -60,7 +60,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 
 ### Eksik ekranlar ve özellikler
 B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).
-- [ ] İsteğe bağlı: mağaza vitrini (müşteri tarafı) için koyu tema.
+- [x] Mağaza vitrini (müşteri tarafı) için koyu tema: alt bilgide **Tema: Açık / Koyu / Sistem**; Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi.
 
 ### Teknik borç
 - [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.

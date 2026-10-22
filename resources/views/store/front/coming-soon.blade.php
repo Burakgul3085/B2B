@@ -1,5 +1,6 @@
+@php $themeMode = in_array(request()->cookie('tema'), ['dark', 'auto'], true) ? request()->cookie('tema') : 'light'; @endphp
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" @class(['dark' => $themeMode === 'dark'])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

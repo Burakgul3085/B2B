@@ -1,5 +1,5 @@
 /**
- * Panel teması: "light" (açık), "dark" (koyu) veya "auto" (sistem). Tercih "tema" çerezinde 1 yıl saklanır;
+ * Panel ve vitrin teması: "light" (açık), "dark" (koyu) veya "auto" (sistem). Tercih "tema" çerezinde 1 yıl saklanır;
  * sunucu sayfayı doğru sınıfla gönderir (açık/koyu arası yanıp sönme olmaz). "auto"da tarayıcının ayarı izlenir.
  */
 const COOKIE = 'tema';

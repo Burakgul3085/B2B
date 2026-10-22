@@ -9,7 +9,7 @@
             <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 @foreach ($brands as $brand)
                     <a href="{{ route('store.brand', $brand->slug) }}" class="group flex flex-col items-center rounded-2xl border border-line bg-white p-5 text-center transition hover:border-primary/40 hover:shadow-md">
-                        <span class="flex h-16 w-full items-center justify-center">
+                        <span @class(['flex h-16 w-full items-center justify-center', 'rounded-lg bg-[#fff] p-1.5' => $brand->logo_path])>
                             @if ($brand->logo_path)
                                 <img src="{{ route('store.media.brand', $brand) }}?v={{ $brand->updated_at?->timestamp }}" alt="{{ $brand->name }} logosu" class="max-h-full max-w-full object-contain" loading="lazy">
                             @else

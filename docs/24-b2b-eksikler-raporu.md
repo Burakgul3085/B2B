@@ -30,6 +30,8 @@
 
 ## 6. Koyu tema
 - Yönetim panellerinde (platform, toptancı, bayi, mağaza yönetimi) kullanıcı menüsünde **Tema: Açık / Koyu / Sistem**. Tercih `tema` çerezinde 1 yıl; sayfa sunucudan doğru sınıfla gelir (yanıp sönme olmaz), "Sistem" tarayıcı ayarını izler.
+- Mağaza vitrininde de aynı tercih alt bilgideki **Tema** seçicisinden yapılır (çerez vitrin alan adında ayrı tutulur). Ürün görsellerinin ve marka logolarının zemini her temada beyaz kalır. Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi: metin yönetimde değiştirilmemişse migration yeni sürüm ekler, değiştirilmişse satır Ayarlar → Yasal Metinler'den eklenmelidir.
+- Koyu temada beyaz yazılı dolu durum renkleri (tehlike, başarı, uyarı, bilgi düğme ve rozetleri) okunabilirlik için koyu tonlarla gösterilir.
 - Tasarım token'ları koyu değerlerle değişir; şablonlarda doğrudan kullanılan sık renk sınıfları (beyaz kart, açık gri zeminler, durum renkleri, form alanları) ayrıca karşılanır. Grafikler açılıştaki temaya göre renklenir. Ürün görselleri beyaz zeminde kalır.
 - Mağaza vitrini (müşteri tarafı) açık temada kalır.
 

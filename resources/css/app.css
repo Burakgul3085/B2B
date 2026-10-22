@@ -176,9 +176,10 @@
 }
 
 /*
-| Koyu tema (yönetim panelleri). <html class="dark"> iken tasarım token'ları koyu değerlerle değişir; şablonlarda
-| doğrudan kullanılan sık renk sınıfları da aşağıda karşılanır. Bu kurallar katmansızdır (@layer dışında), bu yüzden
-| Tailwind yardımcı sınıflarının önüne geçer. Tercih kullanıcı menüsünden seçilir ("tema" çerezi).
+| Koyu tema (yönetim panelleri ve mağaza vitrini). <html class="dark"> iken tasarım token'ları koyu değerlerle değişir;
+| şablonlarda doğrudan kullanılan sık renk sınıfları da aşağıda karşılanır. Bu kurallar katmansızdır (@layer dışında),
+| bu yüzden Tailwind yardımcı sınıflarının önüne geçer. Tercih panellerde kullanıcı menüsünden, vitrinde alt bilgiden
+| seçilir ("tema" çerezi). Ürün görsellerinin zemini bg-[#fff] ile her temada beyaz kalır.
 */
 .dark {
     color-scheme: dark;
@@ -242,6 +243,14 @@
 .dark .text-violet-800,
 .dark .text-violet-700 { color: #c4b5fd; }
 .dark .bg-violet-50 { background-color: #1f1a3a; }
+.dark .ring-violet-200 { --tw-ring-color: #4c1d95; }
+.dark .focus\:bg-white:focus { background-color: #0d1424; }
+/* Koyu temada durum renkleri açıldığı için üzerlerindeki beyaz yazı okunmaz; dolu düğme ve rozetlerde zemin koyulaşır. */
+.dark .text-white.bg-danger { background-color: #b91c1c; }
+.dark .text-white.bg-danger:hover { background-color: #991b1b; }
+.dark .text-white.bg-success { background-color: #15803d; }
+.dark .text-white.bg-warning { background-color: #b45309; }
+.dark .text-white.bg-info { background-color: #0369a1; }
 
 /* Görseller koyu zeminde çok parlamasın; ürün görselleri beyaz zeminli kutuda kalır. */
 .dark .shadow-xs,

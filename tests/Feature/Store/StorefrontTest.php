@@ -190,4 +190,18 @@ class StorefrontTest extends TestCase
         $this->get('http://localhost/robots.txt')->assertOk()->assertSee('Disallow: /');
         $this->get('http://yonetim.localhost/robots.txt')->assertOk()->assertSee('Disallow: /');
     }
+
+    public function test_storefront_follows_the_theme_cookie(): void
+    {
+        $this->get(self::HOST.'/')->assertOk()->assertSee('<html lang="tr" class="">', false)->assertSee('x-data="themeSwitch"', false);
+        $this->withUnencryptedCookie('tema', 'dark')->get(self::HOST.'/')->assertSee('<html lang="tr" class="dark">', false);
+        $this->withUnencryptedCookie('tema', 'auto')->get(self::HOST.'/')->assertDontSee('class="dark"', false); // sistem: tarayıcıda uygulanır
+        $this->withUnencryptedCookie('tema', '"><script>')->get(self::HOST.'/')->assertSee('<html lang="tr" class="">', false);
+
+        // Çerez politikası tema tercih çerezini listeler
+        $this->get(self::HOST.'/yasal/gizlilik-cerez')->assertOk()->assertSee('Seçtiğiniz görünümün (açık/koyu) hatırlanması');
+
+        StoreSetting::put(['is_open' => '0']);
+        $this->withUnencryptedCookie('tema', 'dark')->get(self::HOST.'/')->assertStatus(503)->assertSee('<html lang="tr" class="dark">', false);
+    }
 }

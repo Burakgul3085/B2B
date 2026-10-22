@@ -16,8 +16,9 @@
     $whatsapp = $storeSettings['whatsapp'] ? preg_replace('/\D/', '', $storeSettings['whatsapp']) : null;
     $b2bLogin = rtrim(config('app.url'), '/').'/bayi/login';
 @endphp
+@php $themeMode = in_array(request()->cookie('tema'), ['dark', 'auto'], true) ? request()->cookie('tema') : 'light'; @endphp
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" @class(['dark' => $themeMode === 'dark'])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -214,6 +215,7 @@
         <div class="border-t border-line">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
                 <p class="text-xs text-muted">© {{ now()->year }} {{ $storeSettings['company_title'] ?: $storeName }}. Fiyatlara KDV dahildir.</p>
+                <x-theme-switch inline />
                 @if ($storeSettings['payment_logos_path'])
                     <img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-7 w-auto" loading="lazy">
                 @endif

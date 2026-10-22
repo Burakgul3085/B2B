@@ -27,6 +27,7 @@ class SecurityHeaders
                 "script-src 'self'",
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' data: blob:",
+                "media-src 'self' blob:", // vitrin slayt formunda seçilen videonun önizlemesi (blob:)
                 "font-src 'self'",
                 "connect-src 'self'",
                 "object-src 'none'",

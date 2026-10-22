@@ -19,7 +19,7 @@
                     @foreach ($summary->lines as $line)
                         @php $url = route('store.product', $line->product->slug); @endphp
                         <li @class(['flex gap-4 p-4 sm:p-5', 'bg-danger-soft/30' => $line->issue])>
-                            <a href="{{ $url }}" class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white p-1 sm:size-24">
+                            <a href="{{ $url }}" class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-[#fff] p-1 sm:size-24">
                                 @if ($line->product->primaryImage)
                                     <img src="{{ route('store.media.product', ['storeImage' => $line->product->primaryImage, 'w' => 320]) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply">
                                 @else

@@ -53,7 +53,7 @@
             {{-- Görseller: imleçle büyütme (dokunmatikte kapalı) --}}
             <div x-data="{ active: 0 }">
                 @if ($product->images->isNotEmpty())
-                    <div class="relative isolate aspect-square overflow-hidden rounded-2xl border border-line bg-white"
+                    <div class="relative isolate aspect-square overflow-hidden rounded-2xl border border-line bg-[#fff]"
                         x-data="imageZoom" :class="zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'"
                         @pointerenter="enter($event)" @pointerleave="zoom = false"
                         @pointermove="move($event)">
@@ -67,7 +67,7 @@
                     @if ($product->images->count() > 1)
                         <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
                             @foreach ($product->images as $i => $image)
-                                <button type="button" @click="active = {{ $i }}" class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-white p-1.5"
+                                <button type="button" @click="active = {{ $i }}" class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-[#fff] p-1.5"
                                     :class="active === {{ $i }} ? 'border-primary' : 'border-line'" aria-label="Görsel {{ $i + 1 }}">
                                     <img src="{{ $imageUrl($image, 320) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply" loading="lazy">
                                 </button>

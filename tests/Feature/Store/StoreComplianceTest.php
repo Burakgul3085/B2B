@@ -145,4 +145,26 @@ class StoreComplianceTest extends TestCase
         Storage::disk('local')->assertMissing($path);
         $this->get(self::HOST.'/gorsel/odeme-logolari')->assertNotFound();
     }
+
+    public function test_theme_cookie_row_is_added_to_unedited_cookie_policy_as_a_new_version(): void
+    {
+        $migration = require database_path('migrations/2026_11_08_000100_add_theme_cookie_to_store_cookie_policy.php');
+        $row = '| `tema` | Tercih | Seçtiğiniz görünümün (açık/koyu) hatırlanması; yalnızca tema seçtiğinizde yazılır | 1 yıl |
+';
+        $policy = fn () => StoreLegalDocument::where('key', 'gizlilik-cerez')->orderByDesc('version');
+
+        // Eski kurulum: ilk sürüm tema satırı olmadan; yönetimde değiştirilmemiş
+        $policy()->first()->update(['body' => str_replace($row, '', str_replace('
+', '
+', $policy()->first()->body))]);
+        $migration->up();
+        $this->assertSame(2, $policy()->first()->version);
+        $this->assertStringContainsString('`tema`', $policy()->first()->body);
+
+        // Yönetimde düzenlenmiş metne dokunulmaz
+        StoreLegalDocument::where('key', 'gizlilik-cerez')->where('version', 2)->delete();
+        $policy()->first()->update(['body' => 'Kendi metnimiz']);
+        $migration->up();
+        $this->assertSame(1, $policy()->first()->version);
+    }
 }

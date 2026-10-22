@@ -84,6 +84,7 @@ MD],
 | `XSRF-TOKEN` | Zorunlu | Form güvenliği | Oturum |
 | `magaza_sepet` | Zorunlu | Misafir sepetinin hatırlanması | 30 gün |
 | `magaza_cerez` | Zorunlu | Çerez tercihinizin hatırlanması | 1 yıl |
+| `tema` | Tercih | Seçtiğiniz görünümün (açık/koyu) hatırlanması; yalnızca tema seçtiğinizde yazılır | 1 yıl |
 | `remember_*` | Zorunlu (isteğe bağlı giriş) | "Beni hatırla" seçildiğinde | 1 yıl |
 
 Zorunlu çerezler sitenin çalışması için gereklidir ve kapatılamaz. Şu anda analiz veya reklam çerezi kullanılmamaktadır; ileride kullanılırsa yalnızca onay vermeniz hâlinde etkinleşir.

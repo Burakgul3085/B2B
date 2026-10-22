@@ -87,7 +87,7 @@
                 </div>
                 <div class="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
                     @foreach ($brands as $brand)
-                        <a href="{{ route('store.brand', $brand->slug) }}" class="flex aspect-[3/2] items-center justify-center rounded-xl border border-line bg-white p-3 transition hover:border-primary/40" title="{{ $brand->name }}">
+                        <a href="{{ route('store.brand', $brand->slug) }}" class="flex aspect-[3/2] items-center justify-center rounded-xl border border-line bg-[#fff] p-3 transition hover:border-primary/40" title="{{ $brand->name }}">
                             <img src="{{ route('store.media.brand', $brand) }}?v={{ $brand->updated_at?->timestamp }}" alt="{{ $brand->name }}" class="max-h-full max-w-full object-contain" loading="lazy">
                         </a>
                     @endforeach
