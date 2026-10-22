@@ -20,13 +20,16 @@ use App\Models\DiscountRule;
 use App\Models\EmailLog;
 use App\Models\HomeBanner;
 use App\Models\ImportJob;
+use App\Models\PlatformAdmin;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\ProductImage;
 use App\Models\ProductRequest;
+use App\Models\SavedReport;
 use App\Models\Showcase;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
+use App\Models\SupportAccessGrant;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\VariantGroup;
@@ -98,6 +101,10 @@ trait BuildsWorld
                 'dealer_notification' => AppNotification::create(['recipient_side' => 'dealer', 'dealer_relationship_id' => $rel->id, 'type' => 'x', 'title' => 'T', 'url' => '/bayi'])->id,
                 'cart_item' => $cartItem->id,
                 'dealerUser' => $rel->dealer->user->id,
+                'grant' => SupportAccessGrant::create(['business_id' => $business->id, 'granted_by' => $user->id, 'reason' => 'Destek', 'expires_at' => now()->addHour(),
+                    'platform_admin_id' => PlatformAdmin::create(['name' => 'P', 'email' => Str::lower(Str::random(8)).'@p.local', 'password' => 'x', 'is_active' => true])->id])->id,
+                'business_saved' => SavedReport::create(['owner_type' => 'business', 'owner_id' => $user->id, 'report_key' => 'collections', 'name' => 'K', 'filters' => []])->id,
+                'dealer_saved' => SavedReport::create(['owner_type' => 'dealer', 'owner_id' => $rel->dealer->user->id, 'report_key' => 'my_orders', 'name' => 'K', 'filters' => []])->id,
             ];
         });
 
@@ -134,6 +141,7 @@ trait BuildsWorld
             },
             'notification' => $dealerSide ? $ids['dealer_notification'] : $ids['business_notification'],
             'item' => $dealerSide ? $ids['cart_item'] : $ids['item'],
+            'saved' => $dealerSide ? $ids['dealer_saved'] : $ids['business_saved'],
             default => $ids[$param] ?? null,
         };
     }

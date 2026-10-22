@@ -43,6 +43,15 @@
             @if ($a->info_request_note || $a->decision_note)
                 <x-card title="Değerlendirme notları">
                     @if ($a->info_request_note)<p class="text-sm"><b>İstenen ek bilgi:</b> {{ $a->info_request_note }}</p>@endif
+                    @if ($a->info_replied_at)
+                        <div class="mt-3 rounded-lg bg-success-soft p-3 text-sm text-green-900">
+                            <b>Başvuranın yanıtı</b> ({{ $a->info_replied_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}):
+                            <p class="mt-1 whitespace-pre-line">{{ $a->info_reply }}</p>
+                            <p class="mt-1 text-xs">Yüklenen belgeler "Belgeler" bölümündedir.</p>
+                        </div>
+                    @elseif ($a->status === 'waiting_info' && $a->reply_expires_at)
+                        <p class="mt-2 text-xs text-muted">Başvurana web üzerinden yanıt bağlantısı gönderildi ({{ $a->reply_expires_at->timezone('Europe/Istanbul')->format('d.m.Y') }} tarihine kadar geçerli).</p>
+                    @endif
                     @if ($a->decision_note)<p class="mt-2 text-sm"><b>Karar notu:</b> {{ $a->decision_note }}</p>@endif
                 </x-card>
             @endif

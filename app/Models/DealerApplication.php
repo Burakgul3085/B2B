@@ -39,9 +39,11 @@ class DealerApplication extends Model
         'consent_text_version', 'consent_at', 'ip', 'user_agent', 'reviewed_by', 'reviewed_at', 'dealer_relationship_id',
     ];
 
+    protected $hidden = ['reply_token_hash'];
+
     protected function casts(): array
     {
-        return ['consent_at' => 'datetime', 'reviewed_at' => 'datetime'];
+        return ['consent_at' => 'datetime', 'reviewed_at' => 'datetime', 'reply_expires_at' => 'datetime', 'info_replied_at' => 'datetime'];
     }
 
     public function isOpen(): bool

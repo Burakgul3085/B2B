@@ -33,4 +33,10 @@ return [
         'per_ip' => 30,     // IP başına
         'decay_seconds' => 900,
     ],
+
+    // Yedekleme (Platform → Yedekler, her gece 03:30). mysqldump sunucuda PATH'te; yerelde tam yolu verilir.
+    'backup' => [
+        'mysqldump' => env('BACKUP_MYSQLDUMP', 'mysqldump'),
+        'keep' => (int) env('BACKUP_KEEP', 14),
+    ],
 ];

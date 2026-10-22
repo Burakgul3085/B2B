@@ -11,6 +11,7 @@ use App\Domain\Reporting\ReportRegistry;
 use App\Domain\Reporting\ReportRunner;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Business;
+use App\Models\SavedReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,9 +27,13 @@ class ReportController extends Controller
     {
         $area = $this->area($request);
 
+        $reports = collect(ReportRegistry::for($this->audience($area)));
+
         return view('reports.index', [
             'area' => $area,
-            'groups' => collect(ReportRegistry::for($this->audience($area)))->groupBy(fn (Report $r) => $r->group()),
+            'groups' => $reports->groupBy(fn (Report $r) => $r->group()),
+            'saved' => $this->savedQuery($request)->orderBy('name')->get()->filter(fn ($s) => $reports->contains(fn (Report $r) => $r->key() === $s->report_key)),
+            'titles' => $reports->mapWithKeys(fn (Report $r) => [$r->key() => $r->title()]),
         ]);
     }
 
@@ -50,7 +55,44 @@ class ReportController extends Controller
             'totals' => $missing ? [] : $this->runner->totals($report, $prepared, $context),
             'missing' => $missing,
             'query' => $request->query(),
+            'saved' => $this->savedQuery($request)->where('report_key', $key)->orderBy('name')->get(),
         ]);
+    }
+
+    /** Ekrandaki filtreleri (sıralama ve sütunlarla) adıyla kaydeder; kaydetmeden önce rapor kurallarıyla doğrulanır. */
+    public function saveFilters(Request $request, string $key): RedirectResponse
+    {
+        $area = $this->area($request);
+        [$report, $context] = $this->resolve($area, $key);
+        $name = trim((string) $request->validate(['name' => ['required', 'string', 'max:80']], [], ['name' => 'ad'])['name']);
+        $query = json_decode((string) $request->input('query', '[]'), true);
+        $query = is_array($query) ? $query : [];
+        $this->runner->prepare($report, $query, $context); // geçersiz filtre kaydedilmez
+
+        $allowed = array_merge(array_keys($report->filters($context)), ['sort', 'dir', 'cols']);
+        $filters = array_filter(array_intersect_key($query, array_flip($allowed)), fn ($v) => $v !== null && $v !== '' && $v !== []);
+
+        if ($this->savedQuery($request)->count() >= SavedReport::MAX_PER_USER) {
+            return back()->withErrors(['report' => 'En fazla '.SavedReport::MAX_PER_USER.' kayıtlı rapor tutulabilir; kullanmadıklarınızı silin.']);
+        }
+        SavedReport::create(['owner_type' => $this->audience($area), 'owner_id' => $request->user()->id,
+            'report_key' => $key, 'name' => $name, 'filters' => $filters]);
+
+        return back()->with('status', "\"{$name}\" kaydedildi. Raporlar sayfasından tek tıkla açabilirsiniz.");
+    }
+
+    public function destroySaved(Request $request, int $saved): RedirectResponse
+    {
+        $this->area($request);
+        $this->savedQuery($request)->whereKey($saved)->firstOrFail()->delete();
+
+        return back()->with('status', 'Kayıtlı rapor silindi.');
+    }
+
+    /** Oturumdaki kullanıcının kayıtları (işletme kapsamı model tarafından uygulanır). */
+    private function savedQuery(Request $request)
+    {
+        return SavedReport::where('owner_type', $this->audience($this->area($request)))->where('owner_id', $request->user()->id);
     }
 
     public function export(Request $request, string $key, string $format, ReportExporter $exporter, AuditLogger $audit): Response|RedirectResponse

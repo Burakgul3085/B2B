@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Security;
 
+use App\Jobs\RunBackup;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route as Router;
 use Tests\Concerns\BuildsWorld;
@@ -24,7 +26,9 @@ class InputFuzzTest extends TestCase
         parent::setUp();
         // Yüzlerce istek aynı PHP sürecinde çalışır ve test altyapısı her istekte bellek biriktirir
         // (üretimde her istek ayrı süreçtir). Yalnızca bu tarama için sınır yükseltilir.
-        ini_set('memory_limit', '1024M');
+        ini_set('memory_limit', '2048M');
+        // "Şimdi yedek al" rotası gerçek döküm ve zip üretmesin (yedekleme kendi testinde sahte süreçle denenir).
+        Bus::fake([RunBackup::class]);
     }
 
     /** Uygulama kodunda doğrulanan alan adları (kaynak koddan çıkarılır; yeni alanlar kendiliğinden eklenir). */

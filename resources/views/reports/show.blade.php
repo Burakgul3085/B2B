@@ -20,6 +20,28 @@
 
     @error('report')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
+    {{-- Kayıtlı filtreler: tek tıkla aç; mevcut filtreleri adıyla kaydet --}}
+    <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+        @foreach ($saved as $s)
+            <span class="inline-flex items-center gap-1 rounded-full bg-white py-1 pl-3 pr-1 ring-1 ring-line">
+                <a href="{{ route($prefix.'.reports.show', [$report->key()] + $s->filters) }}" class="font-medium text-primary hover:underline">{{ $s->name }}</a>
+                <form method="POST" action="{{ route($prefix.'.reports.saved.destroy', $s->id) }}" data-confirm="&quot;{{ $s->name }}&quot; silinsin mi?">@csrf @method('DELETE')
+                    <button class="rounded-full p-1 text-muted hover:bg-slate-100 hover:text-danger" aria-label="Sil"><x-icon name="x" class="size-3.5" /></button></form>
+            </span>
+        @endforeach
+        <details class="relative">
+            <summary class="cursor-pointer list-none rounded-full px-3 py-1.5 font-medium text-primary ring-1 ring-line hover:ring-primary">+ Bu filtreleri kaydet</summary>
+            <form method="POST" action="{{ route($prefix.'.reports.save', $report->key()) }}" class="absolute z-10 mt-2 flex w-72 gap-2 rounded-xl border border-line bg-white p-3 shadow-lg">
+                @csrf
+                <input type="hidden" name="query" value="{{ json_encode($exportQuery, JSON_UNESCAPED_UNICODE) }}">
+                <label class="sr-only" for="kayit_adi">Ad</label>
+                <input id="kayit_adi" name="name" required maxlength="80" placeholder="ör. Bu ayın Ankara siparişleri" class="field-input min-w-0 flex-1">
+                <x-button size="sm">Kaydet</x-button>
+            </form>
+        </details>
+        @error('name')<span class="text-danger">{{ $message }}</span>@enderror
+    </div>
+
     <x-card :padding="false">
         <form method="GET" class="border-b border-line p-4" x-data="{ adv: {{ collect($advanced)->keys()->contains(fn ($k) => filled($query[$k] ?? null)) ? 'true' : 'false' }}, cols: false }">
             <input type="hidden" name="sort" value="{{ $prepared['sort'] }}">

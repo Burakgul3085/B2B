@@ -62,9 +62,18 @@ class Notifier
         $this->mailer->queue('application_rejected', $a->email, ['neden' => $a->decision_note], [], [], 'dealer_application', $a->id);
     }
 
-    public function applicationInfoRequested(DealerApplication $a): void
+    public function applicationInfoRequested(DealerApplication $a, string $replyUrl): void
     {
-        $this->mailer->queue('application_info_requested', $a->email, ['neden' => $a->info_request_note], [], [], 'dealer_application', $a->id);
+        $this->mailer->queue('application_info_requested', $a->email, ['neden' => $a->info_request_note],
+            ['url' => $replyUrl, 'label' => 'Bilgileri gönder'], [], 'dealer_application', $a->id);
+    }
+
+    /** Başvuran ek bilgiyi web formundan gönderdi. */
+    public function applicationInfoReplied(DealerApplication $a): void
+    {
+        $url = route('business.applications.show', $a);
+        $this->toBusiness('application', "Başvuruya ek bilgi geldi: {$a->legal_name}", mb_substr((string) $a->info_reply, 0, 120), $url);
+        $this->mailBusiness('application_info_replied', ['bayi' => $a->legal_name], ['url' => $url, 'label' => 'Başvuruyu incele'], [], $a);
     }
 
     /* ---------------- Sipariş ---------------- */

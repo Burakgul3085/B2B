@@ -64,8 +64,15 @@ final class EmailTemplates
             'label' => 'Başvuru için ek bilgi talebi (bayiye)',
             'eyebrow' => 'Ek bilgi gerekiyor',
             'subject' => '{isletme} başvurunuz için ek bilgi',
-            'intro' => "Bayilik başvurunuzu değerlendirebilmemiz için bazı ek bilgilere ihtiyacımız var:\n\n{neden}\n\nBilgileri bu e-postayı yanıtlayarak veya bizi arayarak iletebilirsiniz. Bilgiler elimize ulaştığında değerlendirmeye kaldığımız yerden devam edeceğiz.",
-            'note' => 'Başvurunuz, istenen bilgiler tamamlanana kadar beklemede tutulur.',
+            'intro' => "Bayilik başvurunuzu değerlendirebilmemiz için bazı ek bilgilere ihtiyacımız var:\n\n{neden}\n\nBilgileri ve gerekiyorsa belgeleri aşağıdaki bağlantıdan gönderebilirsiniz. Bilgiler elimize ulaştığında değerlendirmeye kaldığımız yerden devam edeceğiz.",
+            'note' => 'Bağlantı 14 gün geçerlidir. Başvurunuz, istenen bilgiler tamamlanana kadar beklemede tutulur.',
+        ],
+        'application_info_replied' => [
+            'label' => 'Başvurudan ek bilgi geldi (size)',
+            'eyebrow' => 'Ek bilgi geldi',
+            'subject' => '{bayi} başvurusuna ek bilgi geldi',
+            'intro' => "{bayi}, bayilik başvurusu için istediğiniz ek bilgileri gönderdi.\n\nAçıklamayı ve varsa yüklenen belgeleri başvuru ekranında inceleyebilirsiniz.",
+            'note' => 'Başvuru yeniden "İncelemede" durumuna alındı.',
         ],
         'order_submitted' => [
             'label' => 'Yeni sipariş (size)',

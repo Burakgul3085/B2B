@@ -9,6 +9,7 @@ use App\Domain\Mail\EmailSettingService;
 use App\Domain\Mail\MailFailure;
 use App\Domain\Mail\MailTransport;
 use App\Domain\Platform\CreateBusiness;
+use App\Domain\Platform\SupportAccess;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
@@ -93,7 +94,7 @@ class BusinessController extends Controller
             ->with('status', 'İşletme oluşturuldu. Yetkili, belirlediğiniz e-posta ve şifreyle toptancı paneline hemen giriş yapabilir.');
     }
 
-    public function show(Business $business): View
+    public function show(Request $request, Business $business, SupportAccess $support): View
     {
         $business->load(['user', 'licenses', 'modules', 'settings']);
 
@@ -104,7 +105,9 @@ class BusinessController extends Controller
 
         $emailSetting = EmailSetting::withoutBusinessScope()->where('business_id', $business->id)->first();
 
-        return view('platform.businesses.show', compact('business', 'usage', 'emailSetting'));
+        $supportGrant = $support->activeFor($business->id, $request->user('platform')->id);
+
+        return view('platform.businesses.show', compact('business', 'usage', 'emailSetting', 'supportGrant'));
     }
 
     /** İşletmenin ana Gmail ayarı: toptancı panelindeki E-posta Ayarları ile aynı kurallar. */

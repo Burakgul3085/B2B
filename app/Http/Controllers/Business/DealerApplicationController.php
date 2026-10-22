@@ -66,8 +66,8 @@ class DealerApplicationController extends Controller
         $note = $request->validate(['note' => ['required', 'string', 'max:2000']], [], ['note' => 'istenen bilgi'])['note'];
 
         return $this->run(function () use ($application, $note, $request) {
-            $this->onboarding->requestInfo($application, $note, $request->user()->id);
-            $this->notifier->applicationInfoRequested($application->fresh());
+            $token = $this->onboarding->requestInfo($application, $note, $request->user()->id);
+            $this->notifier->applicationInfoRequested($application->fresh(), route('public.application.reply', $token));
         }, 'Ek bilgi talebi kaydedildi ve e-posta ayarınız varsa başvuru sahibine gönderildi.');
     }
 

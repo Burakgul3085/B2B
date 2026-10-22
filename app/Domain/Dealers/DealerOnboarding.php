@@ -70,9 +70,56 @@ class DealerOnboarding
         $this->transition($application, ['new', 'waiting_info'], 'in_review', $reviewerId);
     }
 
-    public function requestInfo(DealerApplication $application, string $note, ?int $reviewerId): void
+    public const REPLY_TTL_DAYS = 14;
+
+    /**
+     * Başvurandan ek bilgi ister. Başvurana e-postayla gönderilen yanıt bağlantısının belirteci döner
+     * (veritabanında yalnızca özeti tutulur; 14 gün geçerli, tek kullanımlık).
+     */
+    public function requestInfo(DealerApplication $application, string $note, ?int $reviewerId): string
     {
-        $this->transition($application, ['new', 'in_review'], 'waiting_info', $reviewerId, ['info_request_note' => $note]);
+        $token = Str::random(48);
+        $this->transition($application, ['new', 'in_review'], 'waiting_info', $reviewerId, [
+            'info_request_note' => $note, 'reply_token_hash' => hash('sha256', $token), 'reply_expires_at' => now()->addDays(self::REPLY_TTL_DAYS),
+            'info_reply' => null, 'info_replied_at' => null,
+        ]);
+
+        return $token;
+    }
+
+    /** Yanıt bağlantısının başvurusu (süresi dolmuş veya kullanılmışsa null). İşletme bağlamı olmadan çalışır. */
+    public static function findByReplyToken(string $token): ?DealerApplication
+    {
+        return DealerApplication::withoutBusinessScope()->where('reply_token_hash', hash('sha256', $token))
+            ->where('status', 'waiting_info')->where('reply_expires_at', '>', now())->first();
+    }
+
+    /**
+     * Başvuranın ek bilgi yanıtı: açıklama + en fazla 3 belge. Başvuru yeniden "incelemede" olur; bağlantı tek kullanımlıktır.
+     * İşletme bağlamında çağrılır (belgeler işletmenin dosya alanına kaydedilir).
+     *
+     * @param  list<UploadedFile>  $files
+     *
+     * @throws DomainException
+     */
+    public function replyInfo(DealerApplication $application, string $message, array $files): void
+    {
+        DB::transaction(function () use ($application, $message, $files) {
+            $locked = DealerApplication::whereKey($application->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'waiting_info' || ! $locked->reply_token_hash) {
+                throw new DomainException('Bu başvuru için ek bilgi beklenmiyor.');
+            }
+            $locked->forceFill([
+                'status' => 'in_review', 'info_reply' => trim($message), 'info_replied_at' => now(),
+                'reply_token_hash' => null, 'reply_expires_at' => null,
+            ])->save();
+            foreach ($files as $file) {
+                $this->documents->store($file, 'businesses/'.$this->tenant->businessId().'/applications/'.$locked->id,
+                    'dealer_application', $locked->id);
+            }
+            $this->audit->log('dealer_application.info_replied', $locked, ['status' => 'waiting_info'], ['status' => 'in_review', 'files' => count($files)]);
+            $application->setRawAttributes($locked->getAttributes(), true);
+        });
     }
 
     public function reject(DealerApplication $application, string $reason, ?int $reviewerId): void
@@ -247,7 +294,8 @@ class DealerOnboarding
             }
 
             $old = $locked->status;
-            $locked->update(['status' => $to, 'reviewed_by' => $reviewerId, 'reviewed_at' => now()] + $extra);
+            // forceFill: yanıt belirteci gibi alanlar formdan toplu atanamaz, yalnızca burada yazılır.
+            $locked->forceFill(['status' => $to, 'reviewed_by' => $reviewerId, 'reviewed_at' => now()] + $extra)->save();
             $this->audit->log('dealer_application.'.$to, $locked, ['status' => $old], ['status' => $to] + $extra);
             $application->setRawAttributes($locked->getAttributes(), true);
         });

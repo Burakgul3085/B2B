@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Auth\Area;
+use App\Domain\Platform\ErrorRecorder;
 use App\Domain\Tenancy\MissingTenantContext;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureStoreOpen;
@@ -75,5 +76,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // İşletme bağlamı eksikliği bir programlama hatasıdır; kullanıcıya ayrıntı gösterilmez.
         $exceptions->report(function (MissingTenantContext $e) {
             Log::critical($e->getMessage(), ['trace' => $e->getTraceAsString()]);
+        });
+
+        // Raporlanan her hata (doğrulama, 404, yetki gibi beklenenler hariç) Platform → Hata Kayıtları'na toplanır.
+        $exceptions->report(function (Throwable $e) {
+            app(ErrorRecorder::class)->record($e);
         });
     })->create();

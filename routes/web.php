@@ -55,6 +55,8 @@ Route::redirect('/', '/bayi/login')->name('home');
 Route::get('basvuru', [PublicSite\DealerApplicationFormController::class, 'index'])->name('public.apply');
 Route::get('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'show'])->name('public.application');
 Route::post('basvuru/{slug}', [PublicSite\DealerApplicationFormController::class, 'store'])->middleware('throttle:5,60,public.application.store')->name('public.application.store');
+Route::get('basvuru-yanit/{token}', [PublicSite\ApplicationReplyController::class, 'show'])->middleware('throttle:30,1,public.application.reply')->name('public.application.reply');
+Route::post('basvuru-yanit/{token}', [PublicSite\ApplicationReplyController::class, 'store'])->middleware('throttle:5,10,public.application.reply.store')->name('public.application.reply.store');
 Route::get('basvuru/{slug}/tesekkurler', [PublicSite\DealerApplicationFormController::class, 'thanks'])->name('public.application.thanks');
 Route::get('logo/{slug}', [PublicSite\DealerApplicationFormController::class, 'logo'])->name('public.logo');
 
@@ -76,6 +78,7 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::post('isletmeler', [Platform\BusinessController::class, 'store'])->name('businesses.store');
             Route::get('isletmeler/{business}', [Platform\BusinessController::class, 'show'])->name('businesses.show');
             Route::get('isletmeler/{business}/duzenle', [Platform\BusinessController::class, 'edit'])->name('businesses.edit');
+            Route::get('isletmeler/{business}/destek/{section?}', Platform\SupportViewController::class)->name('businesses.support');
             Route::put('isletmeler/{business}', [Platform\BusinessController::class, 'update'])->name('businesses.update');
             Route::put('isletmeler/{business}/durum', [Platform\BusinessController::class, 'updateStatus'])->name('businesses.status');
             Route::post('isletmeler/{business}/lisans', [Platform\BusinessController::class, 'storeLicense'])->name('businesses.licenses.store');
@@ -109,6 +112,13 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');
+            Route::get('hata-kayitlari', [Platform\ErrorEventController::class, 'index'])->name('errors');
+            Route::post('hata-kayitlari/{errorEvent}/cozuldu', [Platform\ErrorEventController::class, 'resolve'])->name('errors.resolve');
+            Route::delete('hata-kayitlari/eski', [Platform\ErrorEventController::class, 'purge'])->name('errors.purge');
+            Route::get('yedekler', [Platform\BackupController::class, 'index'])->name('backups.index');
+            Route::post('yedekler', [Platform\BackupController::class, 'store'])->middleware('throttle:3,10,platform.backups.store')->name('backups.store');
+            Route::get('yedekler/{name}', [Platform\BackupController::class, 'download'])->name('backups.download');
+            Route::delete('yedekler/{name}', [Platform\BackupController::class, 'destroy'])->name('backups.destroy');
 
             $accountRoutes();
         });
@@ -124,6 +134,9 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('ayarlar', [Business\SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('ayarlar', [Business\SettingsController::class, 'update'])->name('settings.update');
         Route::post('ayarlar/logo', [Business\SettingsController::class, 'updateLogo'])->name('settings.logo');
+        Route::get('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'index'])->name('support-access.index');
+        Route::post('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'store'])->name('support-access.store');
+        Route::delete('ayarlar/destek-erisimi/{grant}', [Business\SupportAccessController::class, 'destroy'])->whereNumber('grant')->name('support-access.destroy');
 
         // Siparişler
         Route::get('siparisler', [Business\OrderController::class, 'index'])->name('orders.index');
@@ -179,6 +192,8 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
             Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
             Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1,reports.export')->name('reports.export');
+            Route::post('raporlar/{key}/kaydet', [ReportController::class, 'saveFilters'])->name('reports.save');
+            Route::delete('raporlar/kayitli/{saved}', [ReportController::class, 'destroySaved'])->whereNumber('saved')->name('reports.saved.destroy');
         });
 
         // Cari hesaplar
@@ -331,6 +346,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
             Route::get('raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/{key}', [ReportController::class, 'show'])->name('reports.show');
             Route::get('raporlar/{key}/indir/{format}', [ReportController::class, 'export'])->middleware('throttle:20,1,reports.export')->name('reports.export');
+            Route::post('raporlar/{key}/kaydet', [ReportController::class, 'saveFilters'])->name('reports.save');
+            Route::delete('raporlar/kayitli/{saved}', [ReportController::class, 'destroySaved'])->whereNumber('saved')->name('reports.saved.destroy');
         });
         Route::middleware('module:messaging')->group(function () {
             Route::get('mesajlar', [Dealer\MessageController::class, 'index'])->name('messages.index');

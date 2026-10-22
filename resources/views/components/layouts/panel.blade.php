@@ -20,6 +20,9 @@
                 ['label' => 'Mağaza Yöneticileri', 'route' => 'platform.store-admins.index', 'icon' => 'cart', 'active' => 'platform.store-admins.*'],
                 ['label' => 'E-posta Altyapısı', 'route' => 'platform.email-status', 'icon' => 'inbox', 'active' => 'platform.email-status'],
                 ['label' => 'Denetim Kayıtları', 'route' => 'platform.audit-logs', 'icon' => 'file', 'active' => 'platform.audit-logs'],
+                ['label' => 'Hata Kayıtları', 'route' => 'platform.errors', 'icon' => 'alert', 'active' => 'platform.errors*',
+                    'badge' => \App\Models\ErrorEvent::whereNull('resolved_at')->count() ?: null],
+                ['label' => 'Yedekler', 'route' => 'platform.backups.index', 'icon' => 'archive', 'active' => 'platform.backups.*'],
             ]],
         ],
         Area::Business => [
@@ -65,6 +68,7 @@
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
                 ['label' => 'E-posta Ayarları', 'route' => 'business.email.settings', 'icon' => 'refresh', 'active' => 'business.email.*'],
                 ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
+                ['label' => 'Destek Erişimi', 'route' => 'business.support-access.index', 'icon' => 'key', 'active' => 'business.support-access.*'],
                 ['label' => 'Profil ve Güvenlik', 'route' => 'business.account', 'icon' => 'user', 'active' => 'business.account*'],
             ]],
         ],

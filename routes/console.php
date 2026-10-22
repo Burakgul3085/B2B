@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Platform\BackupService;
 use App\Domain\Store\Payments\PaymentService;
 use Database\Seeders\Support\DemoImages;
 use Illuminate\Support\Facades\Artisan;
@@ -14,6 +15,13 @@ use Illuminate\Support\Facades\Schedule;
 
 // Haftalık vade hatırlatması (yalnızca hatırlatmayı açmış işletmeler).
 Schedule::command('ledger:send-reminders')->weeklyOn(1, '09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
+
+// Gece yedeği: veritabanı + yüklenen dosyalar (Platform → Yedekler). Son BACKUP_KEEP yedek saklanır.
+Artisan::command('backup:run', function () {
+    $name = app(BackupService::class)->create();
+    $this->info("Yedek alındı: {$name}");
+})->purpose('Veritabanı ve yüklenen dosyaların yedeğini alır');
+Schedule::command('backup:run')->dailyAt('03:30')->timezone('Europe/Istanbul')->withoutOverlapping();
 
 /*
 | Demo vitrin videoları (yalnızca yerel geliştirme): ürün çizimlerinin saydam hâllerini dışa aktarır,

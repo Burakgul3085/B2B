@@ -125,6 +125,16 @@
                 @endif
             </x-card>
 
+            <x-card title="Destek erişimi">
+                @if ($supportGrant)
+                    <p class="text-sm">İşletme size <span class="font-medium">{{ $supportGrant->expires_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span> saatine kadar salt okunur erişim verdi.</p>
+                    <p class="mt-1 text-xs text-muted">Neden: {{ $supportGrant->reason }}</p>
+                    <x-button :href="route('platform.businesses.support', $business)" variant="secondary" class="mt-3" icon="eye">Destek görünümünü aç</x-button>
+                @else
+                    <p class="text-sm text-muted">Sipariş, bayi ve ürün bilgilerini görmek için işletmenin size Ayarlar → Destek Erişimi ekranından süreli erişim vermesi gerekir.</p>
+                @endif
+            </x-card>
+
             <x-card title="Kullanım">
                 <dl class="space-y-2 text-sm">
                     @foreach ($usage as $label => $count)
