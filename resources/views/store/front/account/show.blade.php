@@ -98,6 +98,17 @@
                     <x-button variant="secondary">Parolayı değiştir</x-button>
                 </form>
             </section>
+
+            <section id="hesabi-kapat" class="scroll-mt-40 rounded-2xl border border-red-200 p-6">
+                <h2 class="text-lg font-semibold">Hesabı kapat</h2>
+                <p class="mt-1 text-sm text-muted">Ad, e-posta, telefon ve kayıtlı adresleriniz silinir; bu işlem geri alınamaz. Siparişleriniz ve faturalarınız vergi mevzuatı gereği saklanır
+                    (<a href="{{ route('store.legal', 'kvkk') }}" class="text-primary underline">KVKK Aydınlatma Metni</a>). Tamamlanmamış sipariş veya iade varken hesap kapatılamaz.</p>
+                <form method="POST" action="{{ route('store.account.close') }}" class="mt-4 flex flex-wrap items-end gap-3" data-confirm="Hesabınız kalıcı olarak kapatılsın mı?">
+                    @csrf @method('DELETE')
+                    <x-field name="close_password" label="Parolanız" type="password" required autocomplete="current-password" class="min-w-64" />
+                    <x-button variant="danger">Hesabımı kapat</x-button>
+                </form>
+            </section>
         </div>
     </div>
 </x-layouts.store>

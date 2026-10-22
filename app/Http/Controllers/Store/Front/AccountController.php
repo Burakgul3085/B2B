@@ -53,6 +53,21 @@ class AccountController extends Controller
         return back()->with('status', "E-posta adresiniz {$email} olarak güncellendi.");
     }
 
+    /** KVKK: hesabı kapatır ve oturumu sonlandırır. */
+    public function close(Request $request): RedirectResponse
+    {
+        try {
+            $this->customers->close($this->customer($request), (string) $request->input('close_password'));
+        } catch (\DomainException $e) {
+            return back()->withErrors(['close_password' => $e->getMessage()]);
+        }
+        Auth::guard('customer')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('store.home')->with('status', 'Hesabınız kapatıldı ve kişisel bilgileriniz silindi. Siparişleriniz yasal süre boyunca saklanır.');
+    }
+
     private function customer(Request $request): StoreCustomer
     {
         return $request->user('customer');

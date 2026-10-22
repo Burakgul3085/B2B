@@ -122,6 +122,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'edit'])->name('payments.edit');
             Route::put('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'update'])->name('payments.update');
             Route::delete('ayarlar/odeme-teslimat/anahtar/{key}', [Admin\PaymentSettingsController::class, 'removeSecret'])->name('payments.secret.destroy');
+            Route::get('ayarlar/yayin-hazirligi', [Admin\SettingsController::class, 'launch'])->name('launch');
             Route::get('ayarlar/kargo-firmalari', [Admin\CarrierController::class, 'index'])->name('carriers.index');
             Route::post('ayarlar/kargo-firmalari', [Admin\CarrierController::class, 'store'])->name('carriers.store');
             Route::put('ayarlar/kargo-firmalari/{storeCarrier}', [Admin\CarrierController::class, 'update'])->name('carriers.update');
@@ -179,11 +180,11 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         // Müşteri girişi ve üyelik (M5)
         Route::middleware('guest:customer')->group(function () {
             Route::get('giris', [Front\AuthController::class, 'showLogin'])->name('login');
-            Route::post('giris', [Front\AuthController::class, 'login'])->middleware('throttle:20,1,login.store')->name('login.store');
+            Route::post('giris', [Front\AuthController::class, 'login'])->middleware(['throttle:20,1,login.store', 'store.bot:0'])->name('login.store');
             Route::get('uye-ol', [Front\AuthController::class, 'showRegister'])->name('register');
-            Route::post('uye-ol', [Front\AuthController::class, 'register'])->middleware('throttle:10,60,register.store')->name('register.store');
+            Route::post('uye-ol', [Front\AuthController::class, 'register'])->middleware(['throttle:10,60,register.store', 'store.bot'])->name('register.store');
             Route::get('parolami-unuttum', [Front\AuthController::class, 'showForgot'])->name('password.request');
-            Route::post('parolami-unuttum', [Front\AuthController::class, 'sendReset'])->name('password.email');
+            Route::post('parolami-unuttum', [Front\AuthController::class, 'sendReset'])->middleware(['throttle:5,10,password.email', 'store.bot'])->name('password.email');
             Route::get('parola-sifirla/{token}', [Front\AuthController::class, 'showReset'])->name('password.reset');
             Route::post('parola-sifirla', [Front\AuthController::class, 'reset'])->name('password.update');
         });
@@ -193,6 +194,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
             Route::get('hesabim', [Front\AccountController::class, 'show'])->name('account');
             Route::put('hesabim', [Front\AccountController::class, 'updateProfile'])->name('account.profile');
             Route::put('hesabim/parola', [Front\AccountController::class, 'updatePassword'])->name('account.password');
+            Route::delete('hesabim', [Front\AccountController::class, 'close'])->middleware('throttle:5,10,account.close')->name('account.close');
             Route::put('hesabim/e-posta', [Front\AccountController::class, 'updateEmail'])->middleware('throttle:5,10,account.email')->name('account.email');
 
             Route::get('hesabim/adres/yeni', [Front\AddressController::class, 'create'])->name('addresses.create');
@@ -206,19 +208,19 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
 
         // Ödeme ve siparişler (M6)
         Route::get('odeme', [Front\CheckoutController::class, 'show'])->name('checkout');
-        Route::post('odeme', [Front\CheckoutController::class, 'store'])->middleware('throttle:20,10,checkout.store')->name('checkout.store');
+        Route::post('odeme', [Front\CheckoutController::class, 'store'])->middleware(['throttle:20,10,checkout.store', 'store.bot'])->name('checkout.store');
         Route::get('odeme/dogrulama', [Front\CheckoutController::class, 'verifyForm'])->name('checkout.verify');
         Route::post('odeme/dogrulama', [Front\CheckoutController::class, 'verify'])->middleware('throttle:20,10,checkout.verify.store')->name('checkout.verify.store');
         Route::post('odeme/dogrulama/yeniden', [Front\CheckoutController::class, 'resend'])->middleware('throttle:5,10,checkout.verify.resend')->name('checkout.verify.resend');
         Route::get('yasal/{key}', [Front\CheckoutController::class, 'legal'])->name('legal');
         Route::get('siparis/{orderNo}/{token}', [Front\OrderController::class, 'showByToken'])->middleware('throttle:60,1,order')->name('order');
         Route::get('siparis/{orderNo}/{token}/fatura', [Front\OrderController::class, 'invoiceByToken'])->middleware('throttle:30,1,order.invoice')->name('order.invoice');
-        Route::post('siparis/{orderNo}/{token}/iade', [Front\ReturnController::class, 'storeByToken'])->middleware('throttle:10,1,order.return')->name('order.return');
+        Route::post('siparis/{orderNo}/{token}/iade', [Front\ReturnController::class, 'storeByToken'])->middleware(['throttle:10,1,order.return', 'store.bot'])->name('order.return');
         Route::middleware(['auth:customer', 'auth.session'])->group(function () {
             Route::get('hesabim/siparisler', [Front\OrderController::class, 'index'])->name('orders');
             Route::get('hesabim/siparisler/{orderNo}', [Front\OrderController::class, 'showOwn'])->name('orders.show');
             Route::get('hesabim/siparisler/{orderNo}/fatura', [Front\OrderController::class, 'invoiceOwn'])->name('orders.invoice');
-            Route::post('hesabim/siparisler/{orderNo}/iade', [Front\ReturnController::class, 'storeOwn'])->middleware('throttle:10,1,orders.return')->name('orders.return');
+            Route::post('hesabim/siparisler/{orderNo}/iade', [Front\ReturnController::class, 'storeOwn'])->middleware(['throttle:10,1,orders.return', 'store.bot'])->name('orders.return');
         });
 
         // Sepet (M5)
@@ -233,5 +235,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/urun/{storeImage}', [Front\MediaController::class, 'product'])->name('media.product');
         Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
         Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
+        Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
     });
 });

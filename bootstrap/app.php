@@ -11,6 +11,7 @@ use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetDealerContext;
+use App\Http\Middleware\StoreBotGuard;
 use App\Http\Middleware\UseAreaSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // iyzico ödeme geri dönüşü başka siteden POST edilir; sonuç sunucudan iyzico'ya sorularak doğrulanır.
         $middleware->validateCsrfTokens(except: ['odeme/iyzico/donus']);
+        // Çerez tercihi tarayıcıda (JS) yazılır; şifrelenmez.
+        $middleware->encryptCookies(except: ['magaza_cerez']);
 
         // İşletme bağlamı, rota model bağlamasından ÖNCE kurulur: başka işletmenin kaydı
         // global scope nedeniyle bulunamaz ve 404 döner.
@@ -47,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'store.2fa' => RequireStoreTwoFactor::class,
             'store.super' => EnsureStoreSuperAdmin::class,
             'store.open' => EnsureStoreOpen::class,
+            'store.bot' => StoreBotGuard::class,
         ]);
 
         // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.

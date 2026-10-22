@@ -358,7 +358,7 @@ class CheckoutService
     {
         $out = [];
         $address = implode(', ', array_filter([$draft['shipping']['neighborhood'], $draft['shipping']['address']])).' — '.$draft['shipping']['district'].' / '.$draft['shipping']['province'];
-        foreach (array_keys(StoreLegalDocument::KEYS) as $key) {
+        foreach (StoreLegalDocument::CHECKOUT_KEYS as $key) {
             $doc = StoreLegalDocument::current($key);
             $out[$key] = ['document' => $doc, 'body' => $this->legal->fill($doc, $this->legalData($draft, $address))];
         }

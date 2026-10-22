@@ -8,6 +8,7 @@ use App\Models\Store\StoreBanner;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
+use App\Models\Store\StoreSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -40,6 +41,12 @@ class MediaController extends Controller
         abort_unless($storeBrand->is_active && $storeBrand->logo_path, 404);
 
         return $this->serve($storeBrand->logo_path, null);
+    }
+
+    /** Alt bilgideki ödeme logo bandı. */
+    public function paymentLogos(): StreamedResponse
+    {
+        return $this->serve(StoreSetting::get('payment_logos_path') ?? abort(404), null);
     }
 
     private function serve(string $source, ?int $width): StreamedResponse

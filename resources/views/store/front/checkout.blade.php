@@ -23,6 +23,7 @@
         <form method="POST" action="{{ route('store.checkout.store') }}" class="mt-6 grid gap-8 lg:grid-cols-3"
             x-data="checkout(@js($alpine))">
             @csrf
+            <x-store.bot-trap />
             <div class="space-y-6 lg:col-span-2">
                 @if ($errors->has('coupon') || $couponError)
                     <p role="alert" class="rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $errors->first('coupon') ?: $couponError }}

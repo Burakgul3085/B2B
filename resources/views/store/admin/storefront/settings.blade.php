@@ -3,7 +3,7 @@
     <x-page-header title="Mağaza Ayarları" subtitle="İletişim bilgileri, duyuru şeridi, ana sayfa SEO'su ve mağazanın yayın durumu." />
 
     <div class="grid gap-6 xl:grid-cols-3">
-        <form method="POST" action="{{ route('store_admin.settings.update') }}" class="space-y-6 xl:col-span-2">
+        <form method="POST" action="{{ route('store_admin.settings.update') }}" enctype="multipart/form-data" class="space-y-6 xl:col-span-2">
             @csrf @method('PUT')
             <x-card title="İletişim" description="Mağazanın alt bilgisinde ve iletişim alanlarında görünür.">
                 <div class="grid gap-5 sm:grid-cols-2">
@@ -22,6 +22,13 @@
                     <x-field name="company_tax_number" label="Vergi numarası" :value="$settings['company_tax_number']" inputmode="numeric" maxlength="11" />
                     <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" />
                 </div>
+            </x-card>
+            <x-card title="Ödeme logo bandı" description="iyzico, sitenin alt bilgisinde &quot;iyzico ile Öde&quot; ve kart logolarının bulunmasını ister. Görseli iyzico üye işyeri panelinden indirip yükleyin.">
+                @if ($settings['payment_logos_path'])
+                    <img src="{{ route('store.media.payment-logos') }}" alt="Ödeme logoları" class="mb-4 h-8 w-auto">
+                    <label class="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_payment_logos" value="1" class="size-4 rounded border-line"> Görseli kaldır</label>
+                @endif
+                <x-field name="payment_logos" label="{{ $settings['payment_logos_path'] ? 'Yeni görsel' : 'Görsel' }}" type="file" accept="image/png,image/jpeg,image/webp" hint="PNG, JPG veya WebP; en fazla 2 MB." />
             </x-card>
             <x-card title="Yönetici bildirimleri" description="Yeni sipariş, iade talebi ve kritik stok için e-posta. Sistem e-posta hesabıyla gönderilir.">
                 <div class="space-y-4">

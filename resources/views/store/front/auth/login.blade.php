@@ -5,6 +5,7 @@
             <p class="mt-1 text-sm text-muted">Siparişlerinizi ve adreslerinizi görmek için giriş yapın.</p>
             <form method="POST" action="{{ route('store.login.store') }}" class="mt-6 space-y-5" novalidate>
                 @csrf
+                <x-store.bot-trap />
                 <x-field name="email" label="E-posta" type="email" required autocomplete="username" autofocus />
                 <div>
                     <x-field name="password" label="Parola" type="password" required autocomplete="current-password" />

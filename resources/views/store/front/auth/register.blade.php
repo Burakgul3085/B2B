@@ -5,6 +5,7 @@
             <p class="mt-1 text-sm text-muted">Zaten üye misiniz? <a href="{{ route('store.login') }}" class="font-medium text-primary hover:underline">Giriş yapın</a></p>
             <form method="POST" action="{{ route('store.register.store') }}" class="mt-6 space-y-5" novalidate>
                 @csrf
+                <x-store.bot-trap />
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-field name="first_name" label="Ad" required autocomplete="given-name" maxlength="60" />
                     <x-field name="last_name" label="Soyad" required autocomplete="family-name" maxlength="60" />
@@ -16,7 +17,7 @@
                 <div class="space-y-3 rounded-xl bg-surface p-4">
                     <label class="flex items-start gap-3 text-sm">
                         <input type="checkbox" name="kvkk" value="1" @checked(old('kvkk')) class="mt-0.5 size-4 rounded border-line text-primary" required>
-                        <span>Kişisel verilerimin işlenmesine ilişkin <span class="font-medium">aydınlatma metnini</span> okudum.<span class="text-danger"> *</span></span>
+                        <span>Kişisel verilerimin işlenmesine ilişkin <a href="{{ route('store.legal', 'kvkk') }}" target="_blank" rel="noopener" class="font-medium text-primary underline">aydınlatma metnini</a> okudum.<span class="text-danger"> *</span></span>
                     </label>
                     @error('kvkk')<p class="text-sm text-danger">{{ $message }}</p>@enderror
                     <label class="flex items-start gap-3 text-sm">

@@ -160,6 +160,21 @@ class StorefrontAdmin
         $this->audit->log('store.settings_updated', null, array_diff_assoc(array_map('strval', $old), array_map('strval', $data)), array_diff_assoc(array_map('strval', $data), array_map('strval', $old)));
     }
 
+    /**
+     * Alt bilgideki ödeme logo bandı (iyzico üye işyeri panelinden indirilen "iyzico ile Öde" ve kart logoları).
+     * null: kaldırır.
+     *
+     * @throws DomainException
+     */
+    public function setPaymentLogos(?UploadedFile $image): void
+    {
+        $old = StoreSetting::get('payment_logos_path');
+        $path = $image ? $this->images->store($image, 'store/site', 1600, 2 * 1024 * 1024, 90) : null;
+        StoreSetting::put(['payment_logos_path' => $path]);
+        $this->forgetFiles([$old]);
+        $this->audit->log($image ? 'store.payment_logos_updated' : 'store.payment_logos_removed');
+    }
+
     /** Mağazayı ziyaretçilere açar veya kapatır. */
     public function setOpen(bool $open): void
     {

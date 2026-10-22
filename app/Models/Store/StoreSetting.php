@@ -25,6 +25,7 @@ class StoreSetting extends Model
         'address' => null,
         'instagram' => null,
         'facebook' => null,
+        'payment_logos_path' => null, // alt bilgideki ödeme logo bandı (iyzico'nun verdiği görsel)
 
         // Satıcı bilgileri (yasal metinler, iletişim sayfası, fatura)
         'company_title' => null,

@@ -21,6 +21,7 @@ class LegalDocuments
         'SATICI_UNVAN', 'SATICI_ADRES', 'SATICI_TELEFON', 'SATICI_EPOSTA', 'SATICI_VERGI', 'SATICI_MERSIS',
         'ALICI_AD', 'ALICI_ADRES', 'ALICI_TELEFON', 'ALICI_EPOSTA',
         'URUNLER', 'TESLIMAT_UCRETI', 'KAPIDA_ODEME_BEDELI', 'TOPLAM', 'ODEME_YONTEMI', 'TESLIMAT_YONTEMI', 'TARIH',
+        'IADE_SURESI', 'IADE_ADRESI',
     ];
 
     public function __construct(private AuditLogger $audit, private CurrentActor $actor) {}
@@ -56,6 +57,8 @@ class LegalDocuments
             'ODEME_YONTEMI' => $order['payment'],
             'TESLIMAT_YONTEMI' => $order['delivery'],
             'TARIH' => now()->timezone('Europe/Istanbul')->format('d.m.Y'),
+            'IADE_SURESI' => (string) max(14, (int) $s['return_days']),
+            'IADE_ADRESI' => ($s['return_address'] ?: $s['address']) ?: '—',
         ];
 
         // Kullanıcı girdisi Markdown biçimlendirmesini bozmasın.

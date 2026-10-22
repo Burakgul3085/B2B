@@ -30,6 +30,7 @@
         'store.return_received' => 'İade ürünü teslim alındı', 'store.return_refunded' => 'İade tamamlandı',
         'store.refund_succeeded' => 'Para iadesi yapıldı', 'store.refund_failed' => 'Para iadesi başarısız',
         'store.invoice_added' => 'Fatura eklendi', 'store.invoice_replaced' => 'Fatura değiştirildi',
+        'store.customer_closed' => 'Müşteri hesabını kapattı', 'store.payment_logos_updated' => 'Ödeme logo bandı güncellendi', 'store.payment_logos_removed' => 'Ödeme logo bandı kaldırıldı',
         'store.discount_created' => 'İndirim oluşturuldu', 'store.discount_updated' => 'İndirim güncellendi', 'store.discount_deleted' => 'İndirim silindi',
         'store.carrier_created' => 'Kargo firması eklendi', 'store.carrier_updated' => 'Kargo firması güncellendi', 'store.carrier_deleted' => 'Kargo firması silindi',
     ];

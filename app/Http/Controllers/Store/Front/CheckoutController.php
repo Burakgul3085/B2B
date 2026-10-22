@@ -73,7 +73,7 @@ class CheckoutController extends Controller
                 'codMax' => Decimal::parse(StoreSetting::get('cod_max'), 2),
                 'cardAvailable' => $this->checkout->cardAvailable(),
             ],
-            'legal' => collect(StoreLegalDocument::KEYS)->map(fn ($title, $key) => StoreLegalDocument::current($key)),
+            'legal' => collect(StoreLegalDocument::CHECKOUT_KEYS)->mapWithKeys(fn ($key) => [$key => StoreLegalDocument::current($key)]),
         ]);
     }
 

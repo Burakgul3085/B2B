@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Store\Admin;
 
+use App\Domain\Store\Storefront\LaunchChecklist;
 use App\Domain\Store\Storefront\StorefrontAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreSetting;
@@ -29,6 +30,16 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $this->storefront->saveSettings($request->only(self::FIELDS));
+        try {
+            if ($request->hasFile('payment_logos')) {
+                $request->validate(['payment_logos' => ['image', 'mimes:png,jpg,jpeg,webp', 'max:2048']], [], ['payment_logos' => 'ödeme logo bandı']);
+                $this->storefront->setPaymentLogos($request->file('payment_logos'));
+            } elseif ($request->boolean('remove_payment_logos')) {
+                $this->storefront->setPaymentLogos(null);
+            }
+        } catch (\DomainException $e) {
+            return back()->withErrors(['payment_logos' => $e->getMessage()]);
+        }
 
         return back()->with('status', 'Mağaza ayarları kaydedildi.');
     }
@@ -39,6 +50,12 @@ class SettingsController extends Controller
         $this->storefront->setOpen($open);
 
         return back()->with('status', $open ? 'Mağaza ziyaretçilere açıldı.' : 'Mağaza ziyaretçilere kapatıldı; "yakında" sayfası gösteriliyor.');
+    }
+
+    /** Yayın hazırlığı ve iyzico başvuru kontrol listesi. */
+    public function launch(LaunchChecklist $checklist): View
+    {
+        return view('store.admin.storefront.launch', ['groups' => $checklist->groups()]);
     }
 
     /** Kapalı mağazayı gezmek için 15 dakika geçerli, imzalı bağlantı. */

@@ -103,6 +103,7 @@
                         <p class="mt-2 text-xs text-muted">Teslimden sonraki {{ \App\Domain\Store\Returns\ReturnService::returnDays() }} gün içinde (son gün {{ $returnDeadline->format('d.m.Y') }}) cayma hakkınızı kullanabilirsiniz. Talebiniz onaylandığında ürünleri nereye göndereceğinizi e-postayla bildireceğiz.</p>
                         <form method="POST" action="{{ $returnUrl }}" class="mt-4 space-y-4">
                             @csrf
+                            <x-store.bot-trap />
                             <fieldset>
                                 <legend class="text-sm font-medium">İade edilecek ürünler</legend>
                                 <ul class="mt-2 space-y-2">

@@ -1,6 +1,6 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (Mağaza M8 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 21.10.2026 (Mağaza M9 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
@@ -18,13 +18,13 @@ M8 tamamlandı (kampanya ve kupon, raporlar, yönetici bildirimleri). Kalanlar:
 - [ ] Toplu kupon kodu üretme.
 - [ ] Kupon kullanım sınırı için eşzamanlılık testi (kilit var; ayrı paralel test yazılmadı).
 
-### M9 — Yasal uyum ve yayın
-- [ ] Çerez onay bandı ve KVKK sayfalarının vitrine bağlanması.
-- [ ] Bot koruması: üyelik, giriş ve ödeme formları.
-- [ ] iyzico başvuru kontrol listesi (sitede bulunması gereken sayfa ve bilgiler).
-- [ ] Sunucu, HTTPS, yedekleme ve geri yükleme provası. Bu, B2B'nin Aşama 10'uyla birlikte yapılacak.
+### M9'dan kalanlar (yayın aşaması)
+M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVKK hesap kapatma, yayın hazırlığı ekranı). Yayınla birlikte yapılacaklar:
+- [ ] Sunucu, HTTPS, yedekleme ve geri yükleme provası (B2B Aşama 10 ile birlikte).
 - [ ] Alan adının bağlanması (`yapbozkirtasiye.com` ve alt alan adları), ardından mağazanın açılması.
 - [ ] İşlem e-postası servisi seçimi (sipariş e-postaları için).
+- [ ] İsteğe bağlı: Cloudflare Turnstile ile ek bot koruması (anahtar ve CSP ayarı gerekir).
+- [ ] Yönetimde **Ayarlar → Yayın Hazırlığı** ekranındaki eksik maddelerin tamamlanması (Hakkımızda ve İletişim sayfaları, ödeme logo bandı, yasal metinlerin gözden geçirilip kaydedilmesi vb.).
 
 ### M10 — Yayın sonrası
 - [ ] iyzico canlı anahtarlarının girilmesi ve gerçek kartla deneme.

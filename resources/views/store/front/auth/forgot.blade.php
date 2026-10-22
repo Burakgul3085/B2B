@@ -5,6 +5,7 @@
             <p class="mt-1 text-sm text-muted">Üyelik e-postanızı yazın; parola sıfırlama bağlantısı gönderelim.</p>
             <form method="POST" action="{{ route('store.password.email') }}" class="mt-6 space-y-5">
                 @csrf
+                <x-store.bot-trap />
                 <x-field name="email" label="E-posta" type="email" required autocomplete="email" autofocus />
                 <x-button class="w-full py-3!">Bağlantı gönder</x-button>
             </form>

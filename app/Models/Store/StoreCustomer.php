@@ -9,7 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 /** Mağaza müşterisi (guard "customer"). B2B bayi hesaplarından ayrıdır; bir bayi mağazada ayrı hesapla alışveriş yapar. */
 class StoreCustomer extends Authenticatable
 {
-    protected $attributes = ['is_active' => true, 'phone' => null, 'kvkk_accepted_at' => null, 'marketing_consent_at' => null, 'last_login_at' => null, 'remember_token' => null];
+    protected $attributes = ['is_active' => true, 'phone' => null, 'kvkk_accepted_at' => null, 'marketing_consent_at' => null, 'last_login_at' => null, 'remember_token' => null, 'closed_at' => null];
 
     protected $fillable = ['first_name', 'last_name', 'email', 'phone', 'password'];
 

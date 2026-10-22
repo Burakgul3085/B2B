@@ -13,4 +13,7 @@ return [
 
     // Mağaza yönetim paneli (ör. yonetim.yapbozkirtasiye.com)
     'admin_domain' => env('STORE_ADMIN_DOMAIN', 'yonetim.localhost'),
+
+    // Mağaza formlarında bot koruması (tuzak alanı + en kısa doldurma süresi). Yalnızca testlerde kapatılır.
+    'bot_protection' => (bool) env('STORE_BOT_PROTECTION', true),
 ];

@@ -193,6 +193,13 @@
                     @endforeach
                     <li><a href="{{ $b2bLogin }}" class="hover:text-primary">Bayi girişi</a></li>
                 </ul>
+                <p class="mt-6 text-sm font-semibold">Yasal</p>
+                <ul class="mt-4 space-y-2 text-sm text-muted">
+                    @foreach (['iptal-iade', 'mesafeli-satis', 'kvkk', 'gizlilik-cerez'] as $legalKey)
+                        <li><a href="{{ route('store.legal', $legalKey) }}" class="hover:text-primary">{{ \App\Models\Store\StoreLegalDocument::KEYS[$legalKey] }}</a></li>
+                    @endforeach
+                    <li><button type="button" data-cookie-settings class="hover:text-primary">Çerez tercihleri</button></li>
+                </ul>
             </div>
             <div>
                 <p class="text-sm font-semibold">İletişim</p>
@@ -205,8 +212,27 @@
             </div>
         </div>
         <div class="border-t border-line">
-            <p class="mx-auto max-w-7xl px-4 py-5 text-xs text-muted sm:px-6 lg:px-8">© {{ now()->year }} {{ $storeName }}. Fiyatlara KDV dahildir.</p>
+            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
+                <p class="text-xs text-muted">© {{ now()->year }} {{ $storeSettings['company_title'] ?: $storeName }}. Fiyatlara KDV dahildir.</p>
+                @if ($storeSettings['payment_logos_path'])
+                    <img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-7 w-auto" loading="lazy">
+                @endif
+            </div>
         </div>
     </footer>
+
+    {{-- Çerez tercihi (Gizlilik ve Çerez Politikası). Yalnızca zorunlu çerezler kullanılır. --}}
+    <div x-data="cookieConsent" x-show="open" x-cloak role="dialog" aria-label="Çerez tercihi"
+        class="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white/95 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:left-4 sm:max-w-md sm:rounded-2xl sm:border">
+        <div class="p-5">
+            <p class="text-sm font-semibold">Çerezler</p>
+            <p class="mt-1 text-sm text-muted">Sitemizin çalışması için zorunlu çerezler (oturum, sepet, güvenlik) kullanıyoruz. Analiz veya reklam çerezi kullanmıyoruz; ileride kullanırsak yalnızca onayınızla etkinleşir.
+                <a href="{{ route('store.legal', 'gizlilik-cerez') }}" class="font-medium text-primary underline">Çerez Politikası</a></p>
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button type="button" @click="choose('all')" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover">Kabul et</button>
+                <button type="button" @click="choose('essential')" class="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-slate-50">Yalnızca zorunlu</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

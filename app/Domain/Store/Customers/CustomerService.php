@@ -5,7 +5,10 @@ namespace App\Domain\Store\Customers;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\Area;
 use App\Domain\Auth\AuthTokenService;
+use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCustomer;
+use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreReturn;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -111,5 +114,37 @@ class CustomerService
         $this->audit->log('auth.email_changed', $customer, ['email' => $old], ['email' => $email], actorArea: Area::Customer, actorId: $customer->id);
 
         return $email;
+    }
+
+    /**
+     * Hesabı kapatır (KVKK m. 7, silme talebi). Ad, e-posta, telefon ve adres defteri silinir veya anonimleştirilir;
+     * siparişler vergi ve ticaret mevzuatı gereği kendi kopyalarıyla saklanır. Açık sipariş veya iade varken kapatılamaz.
+     *
+     * @throws ValidationException|DomainException
+     */
+    public function close(StoreCustomer $customer, string $password): void
+    {
+        if (! Hash::check($password, $customer->password)) {
+            throw ValidationException::withMessages(['close_password' => 'Parola hatalı.']);
+        }
+        $orders = StoreOrder::where('customer_id', $customer->id);
+        if ((clone $orders)->whereIn('status', StoreOrder::OPEN)->exists()
+            || StoreReturn::whereIn('order_id', (clone $orders)->select('id'))->whereIn('status', StoreReturn::OPEN)->exists()) {
+            throw new DomainException('Tamamlanmamış siparişiniz veya iade talebiniz varken hesabınızı kapatamazsınız. Sonuçlandıktan sonra tekrar deneyin.');
+        }
+
+        DB::transaction(function () use ($customer) {
+            $customer->addresses()->delete();
+            StoreCart::where('customer_id', $customer->id)->delete();
+            $this->tokens->revoke(Area::Customer, $customer->id, 'password_reset');
+            $customer->forceFill([
+                'first_name' => 'Kapatılmış', 'last_name' => 'hesap',
+                'email' => "kapali-{$customer->id}@hesap.invalid", 'phone' => null,
+                'password' => Str::random(64), 'remember_token' => Str::random(60),
+                'is_active' => false, 'marketing_consent_at' => null, 'closed_at' => now(),
+            ])->save();
+            // İşlem geçmişine kişisel veri yazılmaz.
+            $this->audit->log('store.customer_closed', $customer, actorArea: Area::Customer, actorId: $customer->id);
+        });
     }
 }
