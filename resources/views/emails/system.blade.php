@@ -28,6 +28,11 @@
                     <p style="margin:0 0 20px;font-size:12px;color:#64748b;word-break:break-all;">Buton çalışmazsa bu adresi tarayıcınıza yapıştırın:<br>{{ $action_url }}</p>
                 @endisset
                 @isset($outro)<p style="margin:0;font-size:13px;color:#64748b;">{{ $outro }}</p>@endisset
+                {{-- Ek belgeler (ör. onaylanan Mesafeli Satış Sözleşmesi): HTML, sunucuda Markdown'dan üretilir; kullanıcı HTML'i içermez. --}}
+                @foreach ($documents ?? [] as $doc)
+                    <h2 style="margin:28px 0 8px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:16px;">{{ $doc['title'] }}</h2>
+                    <div style="font-size:13px;line-height:1.6;color:#334155;">{!! $doc['html'] !!}</div>
+                @endforeach
             </td></tr>
             <tr><td style="padding:16px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">Bu e-posta otomatik gönderilmiştir. Lütfen yanıtlamayın.</td></tr>
         </table>

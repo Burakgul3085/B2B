@@ -17,6 +17,7 @@ use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreRefund;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreSetting;
+use App\Models\Store\StoreStockMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
@@ -104,6 +105,38 @@ class StoreFulfillmentTest extends TestCase
         $this->assertSame(['paid', '280.00'], [$order->status, $order->total]);
 
         return $order;
+    }
+
+    public function test_iyzico_webhook_completes_payment_even_if_customer_never_returns(): void
+    {
+        $carts = app(CartService::class);
+        $cart = $carts->createGuest();
+        $carts->add($cart, $this->pen->id, 1);
+        $this->withCookie(CurrentCart::COOKIE, $cart->token);
+        $this->post(self::HOST.'/odeme', [
+            'email' => 'ayse@ornek.com',
+            'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 6,
+                'district_id' => District::where('province_id', 6)->where('name', 'Çankaya')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
+            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
+        ])->assertRedirect('https://sandbox.iyzico.test/odeme');
+        $order = StoreOrder::latest('id')->firstOrFail();
+        $this->assertSame('pending_payment', $order->status);
+
+        // Müşteri geri dönmeden iyzico sunucudan bildirir (çerez, oturum, CSRF yok). Bilinmeyen belirteçler sessizce yok sayılır.
+        $this->flushSession();
+        $this->postJson(self::HOST.'/odeme/iyzico/bildirim', ['iyziEventType' => 'CHECKOUT_FORM_AUTH', 'token' => 'yok-boyle'])->assertOk();
+        $this->postJson(self::HOST.'/odeme/iyzico/bildirim', ['token' => ['dizi']])->assertOk();
+        $this->assertSame('pending_payment', $order->fresh()->status);
+
+        $this->postJson(self::HOST.'/odeme/iyzico/bildirim', ['iyziEventType' => 'CHECKOUT_FORM_AUTH', 'token' => 'tok-'.$order->id, 'status' => 'SUCCESS'])
+            ->assertOk()->assertJson(['status' => 'ok']);
+        $this->assertSame(['paid', 9], [$order->fresh()->status, $this->pen->fresh()->stock_quantity]);
+
+        // Sonradan gelen geri dönüş veya tekrar eden bildirim ikinci kez işlemez.
+        $this->postJson(self::HOST.'/odeme/iyzico/bildirim', ['token' => 'tok-'.$order->id])->assertOk();
+        $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-'.$order->id]);
+        $this->assertSame(9, $this->pen->fresh()->stock_quantity);
+        $this->assertSame(1, StoreStockMovement::where('reference_id', $order->id)->where('type', 'sale')->count());
     }
 
     private function deliver(StoreOrder $order): void

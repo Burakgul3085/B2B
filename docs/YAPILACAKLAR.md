@@ -8,6 +8,7 @@
 M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura). Kalanlar:
 - [ ] **Uyumsoft e-Arşiv sürücüsü.** Uyumsoft API kullanıcısı ve test ortamı gelince yazılacak; şimdilik fatura numarası ve PDF elle ekleniyor.
 - [ ] **Otomatik iade faturası.** Elle iade faturası eklenebiliyor; e-Arşiv bağlanınca otomatik oluşturulacak, belge türü mali müşavirle netleştirilecek.
+- [ ] **Desiye göre kargo ücreti.** Şimdilik tek sabit kargo ücreti ve ücretsiz kargo sınırı var; ürünlerde desi alanı tutuluyor ama ücrete yansımıyor. Kargo anlaşması yapılınca desi aralığı tablosu eklenecek.
 - [ ] **Kargo firması API'si:** Gönderi oluşturma, barkod, durum sorgulama. Anlaşma yapılan firmaya göre; şimdilik firma seçilip takip numarası elle giriliyor.
 
 ### M9'dan kalanlar (yayın aşaması)

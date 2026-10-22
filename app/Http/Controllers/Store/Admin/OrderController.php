@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Store\Admin;
 
+use App\Domain\Store\Orders\CodPolicy;
 use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Returns\ReturnService;
@@ -57,7 +58,8 @@ class OrderController extends Controller
             'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice', 'creditNotes']),
             'returnable' => $storeOrder->status === 'delivered' ? $returns->returnableQuantities($storeOrder) : [],
             'carriers' => StoreCarrier::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id'),
-            'blocked' => StoreCodBlock::where('phone', $storeOrder->phone)->first(),
+            'blocked' => StoreCodBlock::where('phone', $storeOrder->phone)
+                ->orWhere('address_key', CodPolicy::addressKey($storeOrder->shipping_district_id, $storeOrder->shipping_neighborhood, $storeOrder->shipping_address))->first(),
             'actors' => ActivityController::adminNames(),
         ]);
     }

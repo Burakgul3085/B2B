@@ -155,7 +155,8 @@ class CheckoutService
         } elseif ($paymentMethod === 'cod') {
             $codFee = $this->cod->fee();
             $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
-            if ($refusal = $this->cod->refusal($deliveryMethod, $province->id, $district->id, $total, $shipping['phone'])) {
+            $addressKey = CodPolicy::addressKey($district->id, $shipping['neighborhood'] ?? null, $shipping['address_line']);
+            if ($refusal = $this->cod->refusal($deliveryMethod, $province->id, $district->id, $total, $shipping['phone'], $addressKey)) {
                 throw ValidationException::withMessages(['payment_method' => $refusal]);
             }
         } else {

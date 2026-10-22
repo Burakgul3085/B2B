@@ -217,7 +217,7 @@
                 <p class="mt-1 text-xs text-muted">{{ $order->customer ? 'Üye' : 'Misafir' }}</p>
                 @if ($blocked)
                     <div class="mt-3 rounded-lg bg-danger-soft p-3 text-xs text-red-900">
-                        Bu telefon kapıda ödeme engel listesinde. {{ $blocked->reason }}
+                        {{ $blocked->phone === $order->phone ? 'Bu telefon' : 'Bu teslimat adresi' }} kapıda ödeme engel listesinde. {{ $blocked->reason }}
                         <form method="POST" action="{{ route('store_admin.cod-blocks.destroy', $blocked) }}" class="mt-2" data-confirm="Engel kaldırılsın mı?">@csrf @method('DELETE')<button class="font-medium underline">Engeli kaldır</button></form>
                     </div>
                 @endif

@@ -19,6 +19,7 @@ use App\Models\Store\Province;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreSetting;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -147,7 +148,8 @@ class CheckoutController extends Controller
 
         // Kod beklenirken sepet, fiyat veya kapıda ödeme uygunluğu değiştiyse sipariş oluşturulmaz.
         if (! $cart || $summary->hasIssues() || $lines !== $expected
-            || $cod->refusal($draft['delivery_method'], $draft['shipping']['province_id'], $draft['shipping']['district_id'], $draft['total'], $draft['phone'])) {
+            || $cod->refusal($draft['delivery_method'], $draft['shipping']['province_id'], $draft['shipping']['district_id'], $draft['total'], $draft['phone'],
+                CodPolicy::addressKey($draft['shipping']['district_id'], $draft['shipping']['neighborhood'], $draft['shipping']['address']))) {
             $request->session()->forget(self::DRAFT_KEY);
 
             return redirect()->route('store.cart')->withErrors(['cart' => 'Sepetiniz veya sipariş koşulları değişti. Lütfen kontrol edip yeniden onaylayın.']);
@@ -177,6 +179,21 @@ class CheckoutController extends Controller
         }
 
         return back()->with('status', 'Yeni doğrulama kodu gönderildi.');
+    }
+
+    /**
+     * iyzico anlık bildirimi (webhook; iyzico panelinde bildirim adresi olarak girilir). İçeriğe güvenilmez: yalnızca
+     * ödeme belirteci alınır ve sonuç geri dönüşteki gibi iyzico'dan sorgulanır; aynı ödeme ikinci kez işlenmez.
+     * Bilinmeyen belirteçte de 200 döner (iyzico'nun gereksiz tekrarlarını ve belirteç yoklamasını önler).
+     */
+    public function webhook(Request $request, PaymentService $payments): JsonResponse
+    {
+        $token = $request->input('token');
+        if (is_string($token) && $token !== '' && strlen($token) <= 120) {
+            $payments->complete($token);
+        }
+
+        return response()->json(['status' => 'ok']);
     }
 
     /** iyzico geri dönüşü (başka siteden POST; CSRF dışında). Sonuç iyzico'dan sorgulanır. */

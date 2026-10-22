@@ -20,7 +20,7 @@
     <x-card :padding="false">
         <form method="GET" class="flex gap-3 border-b border-line p-4">
             <input type="hidden" name="durum" value="{{ $filters['durum'] }}">
-            <x-field name="q" label="Ara" :value="$filters['q'] ?? ''" placeholder="Mesaj, sınıf veya dosya" class="flex-1" />
+            <x-field name="q" label="Ara" :value="$filters['q'] ?? ''" placeholder="Referans kodu (H12), mesaj, sınıf veya dosya" class="flex-1" />
             <x-button variant="secondary" class="self-end" aria-label="Ara"><x-icon name="search" class="size-4" /></x-button>
         </form>
         @if ($errors_list->isEmpty())
@@ -30,7 +30,7 @@
                 @foreach ($errors_list as $event)
                     <li class="flex flex-wrap items-start gap-4 px-5 py-4">
                         <div class="min-w-0 flex-1">
-                            <p class="font-mono text-xs text-muted">{{ $event->exception_class }}</p>
+                            <p class="font-mono text-xs text-muted"><span class="font-semibold text-ink">{{ \App\Domain\Platform\ErrorRecorder::reference($event->id) }}</span> · {{ $event->exception_class }}</p>
                             <p class="mt-1 break-words text-sm font-medium text-ink">{{ $event->message }}</p>
                             <p class="mt-1 font-mono text-xs text-muted">{{ $event->location }}@if ($event->url) · {{ $event->url }}@endif</p>
                         </div>

@@ -199,6 +199,8 @@ Menü rozetleri: onay bekleyen sipariş, yeni başvuru, yeni talep, okunmamış 
 
 **Platform (sol menü):** Genel Durum · İşletmeler · Lisanslar ve Modüller · E-posta Altyapısı · Hata Kayıtları · Yedekler · Denetim Kayıtları · Sistem Ayarları · Yöneticiler.
 
+> Uygulamada: "Sistem Ayarları" ekranı yapılmadı; sistem ayarları `.env` ve `config/b2b.php` üzerindendir (docs/25). Platform yöneticisi panelden değil, sunucuda `php artisan platform:create-admin` komutuyla oluşturulur (Aşama 2 kararı).
+
 ## 10. Gereksinimlerde netleştirilen noktalar ve önerilen kararlar
 
 Aşağıdakiler gereksinim metninde açık bırakılmış ya da birbiriyle gerilim içinde olan noktalardır. Her biri için önerilen varsayılan yazılmıştır; onayınızla kesinleşir.

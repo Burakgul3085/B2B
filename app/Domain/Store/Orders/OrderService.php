@@ -155,7 +155,12 @@ class OrderService
                 'Teslim alınmadı: '.$reason, 'store.order_not_delivered');
             $this->restockAll($order, 'not-delivered');
             $this->voidDiscount($order);
-            StoreCodBlock::firstOrCreate(['phone' => $order->phone], ['reason' => "Sipariş {$order->order_no} teslim alınmadı: ".mb_substr($reason, 0, 200), 'order_id' => $order->id]);
+            // Engel telefona ve teslimat adresine birlikte uygulanır (başka numarayla aynı adrese kapıda ödeme olmaz).
+            StoreCodBlock::updateOrCreate(['phone' => $order->phone], [
+                'reason' => "Sipariş {$order->order_no} teslim alınmadı: ".mb_substr($reason, 0, 200), 'order_id' => $order->id,
+                'address_key' => CodPolicy::addressKey($order->shipping_district_id, $order->shipping_neighborhood, $order->shipping_address),
+                'address_label' => mb_substr($order->shippingOneLine(), 0, 300),
+            ]);
         });
     }
 

@@ -14,8 +14,17 @@ use Throwable;
  */
 class ErrorRecorder
 {
+    /** Bu istekte kaydedilen son hatanın referans kodu (ör. "H12"); hata sayfasında kullanıcıya gösterilir. */
+    public static ?string $lastReference = null;
+
+    public static function reference(int $id): string
+    {
+        return 'H'.$id;
+    }
+
     public function record(Throwable $e): void
     {
+        self::$lastReference = null;
         try {
             // Proje köküne göreli yol (sunucudaki tam yol kayda girmez).
             $base = str_replace('\\', '/', base_path()).'/';
@@ -39,6 +48,8 @@ class ErrorRecorder
                     'occurrences' => 1, 'first_seen_at' => $now, 'last_seen_at' => $now,
                 ]);
             }
+            $id = DB::table('error_events')->where('fingerprint', $fingerprint)->value('id');
+            self::$lastReference = $id ? self::reference((int) $id) : null;
         } catch (Throwable) {
             // Kayıt yapılamazsa yalnızca Laravel'in günlüğü kalır.
         }

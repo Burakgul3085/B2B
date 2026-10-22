@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
 
         // iyzico ödeme geri dönüşü başka siteden POST edilir; sonuç sunucudan iyzico'ya sorularak doğrulanır.
-        $middleware->validateCsrfTokens(except: ['odeme/iyzico/donus']);
+        $middleware->validateCsrfTokens(except: ['odeme/iyzico/donus', 'odeme/iyzico/bildirim']);
         // Çerez tercihi tarayıcıda (JS) yazılır; şifrelenmez.
         $middleware->encryptCookies(except: ['magaza_cerez', 'tema']);
 

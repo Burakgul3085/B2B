@@ -171,6 +171,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('onizleme/kapat', [Front\PreviewController::class, 'end'])->name('preview.end');
     // iyzico geri dönüşü: mağaza kapalıyken (önizlemede) de sonuçlanabilmeli
     Route::post('odeme/iyzico/donus', [Front\CheckoutController::class, 'callback'])->middleware('throttle:60,1,payment.callback')->name('payment.callback');
+    // iyzico anlık bildirimi (webhook): müşteri ödeme sonrası sayfayı kapatsa da sipariş hemen sonuçlanır.
+    Route::post('odeme/iyzico/bildirim', [Front\CheckoutController::class, 'webhook'])->middleware('throttle:120,1,payment.webhook')->name('payment.webhook');
 
     // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
     Route::middleware('store.open')->group(function () {

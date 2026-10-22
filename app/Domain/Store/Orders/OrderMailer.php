@@ -5,6 +5,7 @@ namespace App\Domain\Store\Orders;
 use App\Domain\Mail\SystemMailer;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreInvoice;
+use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
 
@@ -22,7 +23,15 @@ class OrderMailer
                 : 'Siparişinizi aldık ve hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.')
             : 'Ödemeniz alındı, siparişinizi hazırlamaya başladık.';
 
-        $this->send($order, "Siparişiniz alındı — {$order->order_no}", 'Siparişiniz için teşekkürler', $intro, true);
+        // Mesafeli Sözleşmeler Yönetmeliği: onaylanan Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi tüketiciye kalıcı
+        // veri saklayıcısıyla (e-posta) iletilir; siparişte saklanan, onaylandığı sürümdeki doldurulmuş metinler gönderilir.
+        $documents = $order->consents()->get()->map(fn ($c) => [
+            'title' => (StoreLegalDocument::KEYS[$c->document_key] ?? $c->document_key)." (sürüm {$c->version})",
+            'html' => (string) LegalDocuments::html($c->body),
+        ])->all();
+
+        $this->send($order, "Siparişiniz alındı — {$order->order_no}", 'Siparişiniz için teşekkürler',
+            $intro.($documents ? ' Onayladığınız sözleşmeler bu e-postanın altındadır; saklamanızı öneririz.' : ''), true, null, $documents);
     }
 
     public function shipped(StoreOrder $order): void
@@ -65,7 +74,7 @@ class OrderMailer
     }
 
     /** @param  array{0: string, 1: string}|null  $action  ek bağlantı (adres, etiket); yoksa sipariş sayfası */
-    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null): void
+    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null, array $documents = []): void
     {
         $rows = [];
         if ($withItems) {
@@ -92,6 +101,7 @@ class OrderMailer
             'action_url' => $action[0] ?? route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]),
             'action_label' => $action[1] ?? 'Siparişi görüntüle',
             'outro' => "Sipariş no: {$order->order_no}",
+            'documents' => $documents,
         ];
         $email = $order->email;
 

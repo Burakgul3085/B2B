@@ -88,11 +88,11 @@ Mevcut çok işletmeli altyapı (`BelongsToBusiness`, `SetBusinessContext`, işl
 | Sepet | `store_carts`, `store_cart_items` (misafir: oturum belirteci; üye: müşteri) |
 | Sipariş | `store_orders`, `store_order_items` (ad, fiyat ve KDV anlık kopya), `store_order_events` (durum geçmişi) |
 | Ödeme | `store_payments` (sürücü, durum, tutar, sağlayıcı kimlikleri, ham yanıt), `store_refunds` |
-| Teslimat | `store_shipments` (sürücü: manuel kargo / kendi teslimat / firma), `store_shipment_events` |
+| Teslimat | `store_carriers` (kargo firmaları, takip adresi şablonu); gönderi bilgisi siparişte tutulur (`carrier_id`, `tracking_number`, `shipped_at`); durum geçmişi `store_order_events`. İadeler: `store_returns`, `store_return_items` |
 | Fatura | `store_invoices` (sürücü: manuel / Uyumsoft, numara, PDF, durum) |
 | Kapıda ödeme | `store_cod_blocklist` (telefon ve adres), ilçe izinleri ve sınırlar `store_settings` içinde |
 | SMS | `store_sms_messages` (gönderim kaydı), `store_otp_codes` (karma (hash) olarak) |
-| Pazarlama | `store_coupons`, `store_campaigns` |
+| Pazarlama | `store_discounts` (kampanya ve kupon tek tabloda), `store_discount_codes` (toplu tek kullanımlık kodlar), `store_discount_redemptions` |
 | İçerik | `store_banners`, `store_pages`, `store_legal_documents` (sürümlü), `store_order_consents` (hangi sürüm, ne zaman, hangi IP) |
 | Coğrafya | `tr_provinces`, `tr_districts` (sabit liste; adreste il ve ilçe serbest metin değildir) |
 
@@ -107,7 +107,7 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 ### 8.2 Stok
 - Satılabilir stok = stok hareketleri toplamı − etkin ayırmalar.
 - Hareketler yalnızca eklenir; düzeltme ters kayıtla yapılır (B2B ile aynı ilke).
-- **Ayırma (rezervasyon) yalnızca mağazada vardır.** Kartla ödemede, ödeme adımına geçilince stok 15 dakika ayrılır. Ödeme başarılı olursa ayırma satış hareketine dönüşür. Süre dolarsa veya ödeme başarısız olursa ayırma düşer.
+- **Ayırma (rezervasyon) yalnızca mağazada vardır.** Kartla ödemede, ödeme adımına geçilince stok 20 dakika ayrılır (`CheckoutService::HOLD_MINUTES`). Ödeme başarılı olursa ayırma satış hareketine dönüşür. Süre dolarsa veya ödeme başarısız olursa ayırma düşer.
 - Ayırma ve satış, ilgili varyant satırı kilitlenerek yapılır (`SELECT … FOR UPDATE`). Aynı son ürünü iki müşteri alamaz. Eşzamanlılık test paketine mağaza senaryoları eklenir.
 
 ### 8.3 Sipariş durumları
@@ -134,7 +134,7 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
   - "İlk siparişte yönetici teyidi" (açık/kapalı)
 - **Güvenlik:**
   1. **SMS doğrulama zorunlu.** 6 haneli kod 3 dakika geçerlidir; en fazla 5 deneme hakkı vardır; yeniden gönderim 60 saniye sonra mümkündür; bir telefona günde en fazla 5 kod gider. Ayrıca IP başına sınır vardır. Kodlar karma (hash) olarak saklanır.
-  2. Teslim almayan müşterinin telefonu ve adresi **engel listesine** girer; bu kişiler için kapıda ödeme kapanır, kart ödemesi açık kalır. Engel yönetici tarafından kaldırılabilir.
+  2. Teslim almayan müşterinin telefonu ve adresi **engel listesine** girer; bu kişiler için kapıda ödeme kapanır, kart ödemesi açık kalır. Engel yönetici tarafından kaldırılabilir. Adres karşılaştırması ilçe + mahalle + açık adresin sadeleştirilmiş özetiyle yapılır ("Mah./Cad./No/D." gibi yazım farkları ve büyük-küçük harf yok sayılır).
   3. Ödeme ve kod gönderme uçlarında görünmez robot doğrulaması ve hız sınırı vardır.
   4. SMS sağlayıcısı yapılandırılmadan canlı ortamda kapıda ödeme açılamaz.
 - Teslimatta tahsil eden yönetici "tahsil edildi" der ve tahsilat türünü seçer: nakit veya kapıda kart.
@@ -149,7 +149,7 @@ Her entegrasyon bir arayüz ve sürücülerden oluşur. Yapılandırma mağaza p
 
 | Arayüz | Sürücüler | Not |
 |---|---|---|
-| Ödeme | `iyzico`, `kapida` (Eskişehir), `havale` (isteğe bağlı, varsayılan kapalı) | iyzico: Ödeme Formu → token → geri dönüş → sonucun **sunucudan sorgulanması** (`retrieve`) → tutar ve sepet kimliği eşleşmesi. Webhook yedek olarak çalışır. Aynı ödeme iki kez işlenmez. Taksit ve iade desteklenir. Sandbox ve canlı ortam panelden seçilir. |
+| Ödeme | `iyzico`, `kapida` (Eskişehir), `havale` (isteğe bağlı, varsayılan kapalı) | iyzico: Ödeme Formu → token → geri dönüş → sonucun **sunucudan sorgulanması** (`retrieve`) → tutar ve sepet kimliği eşleşmesi. Webhook (`/odeme/iyzico/bildirim`) yedek olarak çalışır: müşteri geri dönmese de ödeme aynı sunucu sorgusuyla sonuçlanır. Aynı ödeme iki kez işlenmez. Taksit ve iade desteklenir. Sandbox ve canlı ortam panelden seçilir. |
 | SMS | `netgsm`, `log` (geliştirme: kod günlüğe ve panele yazılır) | Netgsm kullanıcı kodu, şifre ve mesaj başlığı panelden girilir. Doğrulama ve bilgilendirme mesajları ticari ileti değildir; kampanya SMS'i kapsam dışıdır (İYS gerektirir). |
 | Fatura | `manuel` (PDF yükleme), `uyumsoft` (e-Arşiv) | Uyumsoft'tan e-Arşiv web servisi kullanıcısı ve test ortamı bilgileri gerekir. |
 | Teslimat | `manuel_kargo`, `kendi_teslimat`, (ileride) firma veya aracı servis sürücüleri | Kargo anlaşması yapılınca sürücü eklenir. |

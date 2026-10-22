@@ -111,3 +111,25 @@ php artisan test --group=performance
 ```
 
 300 bayi, 20.000 ürün ve 50.000 sipariş (~250.000 kalem) üretir, ana sayfaların ve raporların sürelerini ve sorgu sayılarını ölçer. Sonuçlar `storage/app/performans/sonuclar.md` dosyasına yazılır. Normal test koşusuna dahil değildir (yaklaşık 2–3 dakika). Boyutlar `PERF_DEALERS`, `PERF_PRODUCTS`, `PERF_ORDERS` ortam değişkenleriyle değiştirilebilir.
+
+Aynı grupta mağaza ölçümü de vardır (`tests/Performance/StorePerformanceTest.php`): 10.000 ürün, 5.000 müşteri, 30.000 sipariş; vitrin, müşteri hesabı ve mağaza yönetimi sayfaları. Sonuçlar `storage/app/performans/magaza.md`. Boyutlar `PERF_STORE_PRODUCTS`, `PERF_STORE_CUSTOMERS`, `PERF_STORE_ORDERS`.
+
+### Diğer denetimler
+
+```bash
+npm run denetim:alpine
+```
+
+Şablonlardaki Alpine ifadelerini CSP sürümünün ayrıştırıcısına karşı denetler (CSP'de `'unsafe-eval'` yoktur; mantık `resources/js/components.js` içinde).
+
+## Yedekleme
+
+```bash
+php artisan backup:run
+```
+
+Veritabanı (mysqldump) ve `storage/app/private` dosyalarını tek zip olarak `storage/app/private/backups` altına yazar; zamanlayıcı her gece 03:30'da çalıştırır, son `BACKUP_KEEP` yedek saklanır. Windows'ta `.env` içinde `BACKUP_MYSQLDUMP="C:/tools/mysql84/bin/mysqldump.exe"` verilmelidir. Yedekler Platform → Yedekler ekranından da alınıp indirilebilir.
+
+## Günlük (log) dosyaları
+
+`.env.example` `LOG_STACK=daily` kullanır: her gün ayrı dosya (`storage/logs/laravel-YYYY-MM-DD.log`), son `LOG_DAILY_DAYS` gün saklanır. Yerel `.env` içinde `single` kalabilir.

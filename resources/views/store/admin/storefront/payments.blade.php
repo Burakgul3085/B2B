@@ -59,6 +59,11 @@
                             @if ($secrets[$key])<button form="sil-{{ $key }}" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
                         </div>
                     @endforeach
+                    <div class="rounded-lg bg-surface p-3 text-sm">
+                        <p class="font-medium">Bildirim adresi (webhook)</p>
+                        <p class="mt-1 text-muted">iyzico üye işyeri panelinde <span class="font-medium">Ayarlar → Bildirim Ayarları</span> bölümüne girin. Müşteri ödeme sonrası sayfayı kapatsa da sipariş hemen sonuçlanır.</p>
+                        <p class="mt-2 break-all font-mono text-xs">{{ route('store.payment.webhook') }}</p>
+                    </div>
                 </div>
             </x-card>
 
@@ -83,14 +88,14 @@
     @endforeach
 
     <div class="mt-8 grid gap-6 xl:grid-cols-2">
-        <x-card title="Kapıda ödeme engel listesi" description="Teslim almayan müşterilerin telefonları. Bu numaralarla yalnızca kartla ödeme yapılabilir." :padding="false">
+        <x-card title="Kapıda ödeme engel listesi" description="Teslim almayan müşterilerin telefonları ve teslimat adresleri. Bu numaralarla veya bu adreslere yalnızca kartla ödeme yapılabilir." :padding="false">
             @if ($blocklist->isEmpty())
                 <p class="p-5 text-sm text-muted">Liste boş.</p>
             @else
                 <ul class="divide-y divide-line text-sm">
                     @foreach ($blocklist as $block)
                         <li class="flex items-center justify-between gap-3 px-5 py-3">
-                            <span><span class="font-medium">{{ \App\Domain\Store\Customers\PhoneNumber::format($block->phone) }}</span><span class="block text-xs text-muted">{{ $block->reason }}</span></span>
+                            <span><span class="font-medium">{{ \App\Domain\Store\Customers\PhoneNumber::format($block->phone) }}</span><span class="block text-xs text-muted">{{ $block->reason }}</span>@if ($block->address_label)<span class="block text-xs text-muted">Adres: {{ $block->address_label }}</span>@endif</span>
                             <form method="POST" action="{{ route('store_admin.cod-blocks.destroy', $block) }}" data-confirm="Engel kaldırılsın mı?">@csrf @method('DELETE')<button class="text-sm text-primary hover:underline">Kaldır</button></form>
                         </li>
                     @endforeach

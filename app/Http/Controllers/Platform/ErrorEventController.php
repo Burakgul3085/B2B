@@ -20,8 +20,11 @@ class ErrorEventController extends Controller
         return view('platform.errors', [
             'errors_list' => ErrorEvent::query()
                 ->when($resolved, fn ($q) => $q->whereNotNull('resolved_at'), fn ($q) => $q->whereNull('resolved_at'))
-                ->when($filters['q'] ?? null, fn ($q, $t) => $q->where(fn ($q) => $q->where('message', 'like', "%{$t}%")
-                    ->orWhere('exception_class', 'like', "%{$t}%")->orWhere('location', 'like', "%{$t}%")))
+                // Kullanıcının hata sayfasında gördüğü referans kodu (H12) doğrudan aranabilir.
+                ->when($filters['q'] ?? null, fn ($q, $t) => preg_match('/^H(\d+)$/i', trim($t), $m)
+                    ? $q->whereKey((int) $m[1])
+                    : $q->where(fn ($q) => $q->where('message', 'like', "%{$t}%")
+                        ->orWhere('exception_class', 'like', "%{$t}%")->orWhere('location', 'like', "%{$t}%")))
                 ->orderByDesc('last_seen_at')->paginate(30)->withQueryString(),
             'filters' => $filters + ['durum' => $resolved ? 'cozuldu' : 'acik'],
             'counts' => ['acik' => ErrorEvent::whereNull('resolved_at')->count(), 'cozuldu' => ErrorEvent::whereNotNull('resolved_at')->count()],

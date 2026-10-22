@@ -15,6 +15,7 @@ use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /** Mağaza yönetiminde siparişler (M6): durum geçişleri, stok etkisi, engel listesi; ödeme ayarları ve yasal metinler. */
@@ -91,6 +92,40 @@ class StoreOrderAdminTest extends TestCase
         $this->assertSame(0, StoreCodBlock::count());
         $this->get(route('store_admin.activity'))->assertOk()
             ->assertSee('Sipariş teslim alınmadı')->assertSee('Sipariş '.$order->order_no)->assertSee('Telefon kapıda ödeme engelinden çıkarıldı');
+    }
+
+    public function test_not_delivered_blocks_the_address_for_other_phones_too(): void
+    {
+        $order = $this->codOrder();
+        $this->post(route('store_admin.orders.approve', $order));
+        $this->post(route('store_admin.orders.ship', $order));
+        $this->post(route('store_admin.orders.not-delivered', $order), ['reason' => 'Kapıda teslim almadı'])->assertSessionHasNoErrors();
+        $this->assertNotNull(StoreCodBlock::sole()->address_key);
+
+        $tepebasi = District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id');
+        $attempt = function (string $phone, string $address) use ($tepebasi) {
+            $carts = app(CartService::class);
+            $cart = $carts->createGuest();
+            $carts->add($cart, $this->pen->id, 1);
+
+            return app(CheckoutService::class)->validate([
+                'email' => 'baska@ornek.com',
+                'address' => ['first_name' => 'Ali', 'last_name' => 'Kaya', 'phone' => $phone, 'province_id' => 26, 'district_id' => $tepebasi, 'address_line' => $address],
+                'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
+            ], null, $carts->summary($cart));
+        };
+
+        // Aynı adres farklı yazılsa da (kısaltma, noktalama, büyük harf) başka numarayla kapıda ödeme yapılamaz.
+        try {
+            $attempt('05330001122', 'ATATÜRK BLV. No: 5 Daire: 2');
+            $this->fail('adres engeli');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('adresine kapıda ödeme kullanılamıyor', $e->errors()['payment_method'][0]);
+        }
+        $this->assertSame('cod', $attempt('05330001122', 'İnönü Caddesi No 12 D 4')['payment_method'], 'başka adres serbest');
+
+        $this->get(route('store_admin.orders.show', $order))->assertSee('engel listesinde');
+        $this->get(route('store_admin.payments.edit'))->assertSee('Adres: ');
     }
 
     public function test_cancel_restocks_and_card_paid_orders_are_protected(): void
