@@ -22,14 +22,19 @@ class BackupService
 {
     public const DIR = 'backups';
 
-    private const NAME = '/^yedek-\d{8}-\d{6}\.zip$/';
+    private const NAME = '/^yedek-\d{8}-\d{6}(-\d{1,3})?\.zip$/';
 
     /** @return string oluşan yedeğin adı @throws DomainException */
     public function create(): string
     {
         $disk = Storage::disk('local');
         $disk->makeDirectory(self::DIR);
-        $name = 'yedek-'.now('Europe/Istanbul')->format('Ymd-His').'.zip';
+        // Aynı saniyede ikinci yedek (ör. gece görevi + elle) eskisinin üzerine yazmasın; başarısızlıkta yalnızca bu dosya silinir.
+        $stamp = 'yedek-'.now('Europe/Istanbul')->format('Ymd-His');
+        $name = $stamp.'.zip';
+        for ($i = 2; $disk->exists(self::DIR.'/'.$name); $i++) {
+            $name = "{$stamp}-{$i}.zip";
+        }
         $tmp = storage_path('app/yedek-'.bin2hex(random_bytes(4)));
         File::ensureDirectoryExists($tmp);
 
@@ -74,7 +79,9 @@ class BackupService
         return collect($disk->files(self::DIR))
             ->map(fn ($p) => basename($p))->filter(fn ($n) => preg_match(self::NAME, $n))
             ->map(fn ($n) => ['name' => $n, 'size' => $disk->size(self::DIR.'/'.$n), 'created_at' => Carbon::createFromTimestamp($disk->lastModified(self::DIR.'/'.$n))])
-            ->sortByDesc('name')->values()->all();
+            // Ad sırası = zaman sırası; aynı saniyedeki ek (-2, -3) sayısal sıralanır.
+            ->sortByDesc(fn ($b) => preg_replace_callback('/^(yedek-\d{8}-\d{6})(?:-(\d+))?\.zip$/', fn ($m) => $m[1].sprintf('%03d', $m[2] ?? 1), $b['name']))
+            ->values()->all();
     }
 
     /** Yedek dosyasının yolu (yalnızca geçerli adlar; dizin dışına çıkılamaz). */

@@ -149,14 +149,12 @@ class StoreComplianceTest extends TestCase
     public function test_theme_cookie_row_is_added_to_unedited_cookie_policy_as_a_new_version(): void
     {
         $migration = require database_path('migrations/2026_11_08_000100_add_theme_cookie_to_store_cookie_policy.php');
-        $row = '| `tema` | Tercih | Seçtiğiniz görünümün (açık/koyu) hatırlanması; yalnızca tema seçtiğinizde yazılır | 1 yıl |
-';
+        // Satır sonları kodla yazılır (dosyaya gömülmez): Windows checkout'ta (CRLF) da aynı davranır.
+        $row = '| `tema` | Tercih | Seçtiğiniz görünümün (açık/koyu) hatırlanması; yalnızca tema seçtiğinizde yazılır | 1 yıl |'.chr(10);
         $policy = fn () => StoreLegalDocument::where('key', 'gizlilik-cerez')->orderByDesc('version');
 
         // Eski kurulum: ilk sürüm tema satırı olmadan; yönetimde değiştirilmemiş
-        $policy()->first()->update(['body' => str_replace($row, '', str_replace('
-', '
-', $policy()->first()->body))]);
+        $policy()->first()->update(['body' => str_replace($row, '', str_replace(chr(13).chr(10), chr(10), $policy()->first()->body))]);
         $migration->up();
         $this->assertSame(2, $policy()->first()->version);
         $this->assertStringContainsString('`tema`', $policy()->first()->body);

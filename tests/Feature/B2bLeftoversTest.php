@@ -105,6 +105,32 @@ class B2bLeftoversTest extends TestCase
         }
     }
 
+    public function test_backups_in_the_same_second_do_not_overwrite_each_other(): void
+    {
+        Storage::fake('local');
+        Process::fake(function (PendingProcess $process) {
+            $resultFile = collect($process->command)->first(fn ($a) => str_starts_with($a, '--result-file='));
+            file_put_contents(substr($resultFile, 14), 'SELECT 1;');
+
+            return Process::result('');
+        });
+        $this->travelTo(now()->startOfSecond());
+        $service = app(BackupService::class);
+
+        $first = $service->create();
+        $second = $service->create();
+        $this->assertNotSame($first, $second);
+        $this->assertSame([$second, $first], array_column($service->list(), 'name'), 'en yeni önce');
+
+        // Aynı saniyede başarısız olan yedek, var olan yedeği silmez.
+        Process::fake(fn () => Process::result('', 'Access denied', 2));
+        try {
+            $service->create();
+        } catch (\DomainException) {
+        }
+        $this->assertSame([$second, $first], array_column($service->list(), 'name'));
+    }
+
     public function test_support_access_grant_view_and_revoke(): void
     {
         $business = $this->makeBusiness();
