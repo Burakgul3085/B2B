@@ -13,10 +13,12 @@ final class AppliedDiscount
         public readonly string $amount,
         public readonly bool $freeShipping,
         public readonly array $shares,
+        public readonly string $base = '0.00', // kapsamdaki ürünlerin toplamı
+        public readonly ?string $code = null,  // kullanılan kod (toplu kodlarda kodun kendisi)
     ) {}
 
     public function label(): string
     {
-        return $this->discount->isCoupon() ? 'Kupon ('.$this->discount->code.')' : $this->discount->name;
+        return $this->discount->isCoupon() ? 'Kupon ('.$this->code.')' : $this->discount->name;
     }
 }

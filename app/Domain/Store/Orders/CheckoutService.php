@@ -203,7 +203,7 @@ class CheckoutService
             'subtotal' => $subtotal,
             'discount_total' => $discountTotal,
             'discount' => $discount ? [
-                'id' => $discount->discount->id, 'code' => $discount->discount->code, 'name' => $discount->label(),
+                'id' => $discount->discount->id, 'code' => $discount->code, 'name' => $discount->label(), 'base' => $discount->base,
                 'amount' => $discountTotal, 'shipping_waived' => $shippingWaived,
             ] : null,
             'shipping_fee' => $shippingFee,
@@ -225,6 +225,10 @@ class CheckoutService
     {
         $sold = collect();
         $order = DB::transaction(function () use ($draft, $customer, $cart, $ip, $userAgent, &$sold) {
+            // İndirim satırı sipariş eklenmeden ÖNCE kilitlenir: sipariş satırı indirime yabancı anahtarla bağlı olduğundan
+            // önce sipariş eklenirse iki eşzamanlı sipariş aynı satırda paylaşımlı kilit alıp birbirini bekler (deadlock).
+            $discount = $this->lockDiscount($draft);
+
             $shippingAddressText = implode(', ', array_filter([$draft['shipping']['neighborhood'], $draft['shipping']['address']]))
                 .' — '.$draft['shipping']['district'].' / '.$draft['shipping']['province'];
             $billingName = $draft['billing']['type'] === 'corporate' ? $draft['billing']['name'] : $draft['billing']['name_fallback'];
@@ -272,7 +276,7 @@ class CheckoutService
             ]);
             $order->forceFill(['order_no' => 'YB'.(100000 + $order->id)])->save();
             $order->items()->createMany($draft['lines']);
-            $this->redeem($order, $draft);
+            $this->redeem($discount, $order, $draft);
 
             $quantities = [];
             foreach ($draft['lines'] as $line) {
@@ -315,22 +319,31 @@ class CheckoutService
     }
 
     /**
-     * Kupon/kampanya kullanımını kaydeder. Kullanım sınırları indirim satırı kilitlenerek yeniden denetlenir;
-     * bu arada sınır dolduysa sipariş oluşmaz.
+     * Kupon/kampanya: indirim satırını kilitleyip kullanım sınırlarını yeniden denetler; bu arada sınır dolduysa
+     * sipariş oluşmaz. Kullanım kaydı sipariş oluştuktan sonra (aynı işlemde) yazılır.
      *
      * @throws DomainException
      */
-    private function redeem(StoreOrder $order, array $draft): void
+    private function lockDiscount(array $draft): ?StoreDiscount
     {
         if (empty($draft['discount'])) {
-            return;
+            return null;
         }
         $discount = StoreDiscount::whereKey($draft['discount']['id'])->lockForUpdate()->first();
-        if (! $discount || $reason = $this->discounts->refusal($discount, $draft['subtotal'], $draft['email'], $draft['phone'], $order->id)) {
+        if (! $discount || $reason = $this->discounts->refusal($discount, $draft['discount']['base'] ?? $draft['subtotal'], $draft['email'], $draft['phone'], null, $draft['discount']['code'])) {
             throw new DomainException(($reason ?? 'Kupon artık geçerli değil.').' Sepetinizi kontrol edip yeniden deneyin.');
         }
+
+        return $discount;
+    }
+
+    private function redeem(?StoreDiscount $discount, StoreOrder $order, array $draft): void
+    {
+        if (! $discount) {
+            return;
+        }
         $discount->redemptions()->create([
-            'order_id' => $order->id, 'email' => $draft['email'], 'phone' => $draft['phone'],
+            'order_id' => $order->id, 'code' => $draft['discount']['code'], 'email' => $draft['email'], 'phone' => $draft['phone'],
             'amount' => bcadd($draft['discount']['amount'], $draft['discount']['shipping_waived'], 2),
         ]);
     }

@@ -6,7 +6,9 @@ use App\Domain\Store\Cart\CartLine;
 use App\Domain\Store\Cart\CartSummary;
 use App\Domain\Support\Decimal;
 use App\Domain\Support\Money;
+use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreDiscount;
+use App\Models\Store\StoreDiscountCode;
 use App\Models\Store\StoreDiscountRedemption;
 use App\Models\Store\StoreOrder;
 
@@ -17,6 +19,9 @@ use App\Models\Store\StoreOrder;
  *    en az 0,01 ₺ kalır (iyzico sepetinde sıfır tutarlı kalem olamaz).
  *  - Kişiye bağlı koşullar (kişi başı kullanım, yalnızca ilk sipariş) e-posta ve telefon bilindiğinde, yani ödeme
  *    adımında denetlenir; sepette yalnızca genel koşullar gösterilir. Kullanım sınırı sipariş oluşurken kilitle yeniden denetlenir.
+ *  - Kapsam: indirim belirli kategorilere (alt kategorileriyle) ve/veya ürünlere sınırlanabilir; o zaman en düşük tutar,
+ *    yüzde ve paylaştırma yalnızca kapsamdaki satırlar üzerinden hesaplanır.
+ *  - Toplu kodlar (store_discount_codes) bağlı oldukları indirimin kurallarını taşır ve her biri bir kez kullanılır.
  */
 class DiscountService
 {
@@ -34,17 +39,16 @@ class DiscountService
      */
     public function evaluate(CartSummary $summary, ?string $couponCode, ?string $email = null, ?string $phone = null): array
     {
-        $base = $summary->subtotal();
         $code = self::normalizeCode($couponCode);
         if ($summary->orderable() === []) {
             return ['applied' => null, 'couponError' => null];
         }
 
         if ($code) {
-            $coupon = StoreDiscount::where('code', $code)->first();
-            $error = $coupon ? $this->refusal($coupon, $base, $email, $phone) : 'Bu kupon kodu geçerli değil.';
+            $coupon = $this->findByCode($code);
+            $error = $coupon ? $this->refusal($coupon, $this->eligibleBase($coupon, $summary), $email, $phone, null, $code) : 'Bu kupon kodu geçerli değil.';
             if (! $error) {
-                return ['applied' => $this->apply($coupon, $summary), 'couponError' => null];
+                return ['applied' => $this->apply($coupon, $summary, $code), 'couponError' => null];
             }
 
             return ['applied' => $this->bestCampaign($summary, $email, $phone), 'couponError' => $error];
@@ -53,11 +57,30 @@ class DiscountService
         return ['applied' => $this->bestCampaign($summary, $email, $phone), 'couponError' => null];
     }
 
-    /** İndirimin bu sepete ve (biliniyorsa) bu müşteriye uygulanamama nedeni; uygulanabiliyorsa null. */
-    public function refusal(StoreDiscount $discount, string $base, ?string $email, ?string $phone, ?int $exceptOrderId = null): ?string
+    /** Kupon kodu: indirimin kendi kodu veya toplu üretilmiş kodlarından biri. */
+    public function findByCode(string $code): ?StoreDiscount
+    {
+        return StoreDiscount::where('code', $code)->where('codes_only', false)->first()
+            ?? StoreDiscountCode::with('discount')->where('code', $code)->first()?->discount;
+    }
+
+    /**
+     * İndirimin bu sepete ve (biliniyorsa) bu müşteriye uygulanamama nedeni; uygulanabiliyorsa null.
+     *
+     * @param  string  $base  kapsamdaki ürünlerin KDV dahil toplamı
+     * @param  string|null  $code  kullanılan kod (toplu kodlar tek kullanımlıktır)
+     */
+    public function refusal(StoreDiscount $discount, string $base, ?string $email, ?string $phone, ?int $exceptOrderId = null, ?string $code = null): ?string
     {
         if (! $discount->isLive()) {
             return $discount->isCoupon() ? 'Bu kuponun süresi dolmuş veya kupon kullanımda değil.' : 'Kampanya sona erdi.';
+        }
+        if (bccomp($base, '0', 2) <= 0) {
+            return 'Sepetinizde bu '.($discount->isCoupon() ? 'kupona' : 'kampanyaya').' uygun ürün yok.';
+        }
+        if ($code !== null && $code !== $discount->code
+            && StoreDiscountRedemption::where('code', $code)->where('status', 'active')->exists()) {
+            return 'Bu kupon kodu daha önce kullanılmış.';
         }
         if ($discount->min_subtotal !== null && bccomp($base, (string) $discount->min_subtotal, 2) < 0) {
             return 'Bu '.($discount->isCoupon() ? 'kupon' : 'kampanya').' '.Money::format($discount->min_subtotal).' ve üzeri alışverişlerde geçerli.';
@@ -83,10 +106,9 @@ class DiscountService
 
     private function bestCampaign(CartSummary $summary, ?string $email, ?string $phone): ?AppliedDiscount
     {
-        $base = $summary->subtotal();
         $best = null;
         foreach (StoreDiscount::whereNull('code')->where('is_active', true)->orderBy('id')->get() as $campaign) {
-            if ($this->refusal($campaign, $base, $email, $phone)) {
+            if ($this->refusal($campaign, $this->eligibleBase($campaign, $summary), $email, $phone)) {
                 continue;
             }
             $applied = $this->apply($campaign, $summary);
@@ -100,10 +122,43 @@ class DiscountService
         return $best;
     }
 
-    private function apply(StoreDiscount $discount, CartSummary $summary): AppliedDiscount
+    /** Kapsamdaki satırlar (sipariş verilebilir satırların sırasıyla, anahtarlar korunur). @return array<int, CartLine> */
+    public function eligibleLines(StoreDiscount $discount, CartSummary $summary): array
     {
         $lines = $summary->orderable();
-        $base = $summary->subtotal();
+        $categories = array_map('intval', $discount->category_ids ?? []);
+        $products = array_map('intval', $discount->product_ids ?? []);
+        if (! $categories && ! $products) {
+            return $lines;
+        }
+        $categories = $categories ? self::withDescendants($categories) : [];
+
+        return array_filter($lines, fn (CartLine $l) => in_array($l->product->id, $products, true)
+            || ($l->product->category_id && in_array((int) $l->product->category_id, $categories, true)));
+    }
+
+    public function eligibleBase(StoreDiscount $discount, CartSummary $summary): string
+    {
+        return array_reduce($this->eligibleLines($discount, $summary), fn (string $sum, CartLine $l) => bcadd($sum, $l->total(), 2), '0.00');
+    }
+
+    /** @param  list<int>  $ids @return list<int> */
+    private static function withDescendants(array $ids): array
+    {
+        $all = $ids;
+        for ($level = $ids; $level;) {
+            $level = StoreCategory::whereIn('parent_id', $level)->pluck('id')->all();
+            $all = array_merge($all, $level);
+        }
+
+        return array_values(array_unique($all));
+    }
+
+    private function apply(StoreDiscount $discount, CartSummary $summary, ?string $code = null): AppliedDiscount
+    {
+        $eligible = $this->eligibleLines($discount, $summary);
+        $lines = array_values($eligible);
+        $base = $this->eligibleBase($discount, $summary);
 
         $amount = match ($discount->type) {
             'percent' => Decimal::round(bcdiv(bcmul($base, (string) $discount->value, 6), '100', 6), 2),
@@ -119,7 +174,13 @@ class DiscountService
             $amount = bccomp($ceiling, '0', 2) > 0 ? $ceiling : '0.00';
         }
 
-        return new AppliedDiscount($discount, $amount, $discount->type === 'free_shipping', $this->allocate($lines, $base, $amount));
+        // Paylar tüm sipariş verilebilir satırlar için (kapsam dışı satırlara 0).
+        $shares = array_fill(0, count($summary->orderable()), '0.00');
+        foreach (array_combine(array_keys($eligible), $this->allocate($lines, $base, $amount)) as $index => $share) {
+            $shares[$index] = $share;
+        }
+
+        return new AppliedDiscount($discount, $amount, $discount->type === 'free_shipping', $shares, $base, $code ?? $discount->code);
     }
 
     /**

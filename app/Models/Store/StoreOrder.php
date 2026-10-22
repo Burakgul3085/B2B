@@ -96,6 +96,11 @@ class StoreOrder extends Model
         return $this->hasMany(StoreRefund::class, 'order_id')->orderBy('id');
     }
 
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(StoreCreditNote::class, 'order_id')->orderBy('id');
+    }
+
     public function invoice(): HasOne
     {
         return $this->hasOne(StoreInvoice::class, 'order_id');

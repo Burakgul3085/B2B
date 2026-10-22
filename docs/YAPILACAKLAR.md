@@ -1,22 +1,14 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (Mağaza M9 sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 21.10.2026 (mağaza küçük eksikleri sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
 ### M7'den kalanlar
 M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura). Kalanlar:
 - [ ] **Uyumsoft e-Arşiv sürücüsü.** Uyumsoft API kullanıcısı ve test ortamı gelince yazılacak; şimdilik fatura numarası ve PDF elle ekleniyor.
-- [ ] **İade faturası / iptal faturası.** e-Arşiv bağlanınca iade ve iptallerde düzenlenecek belge mali müşavirle netleştirilecek.
+- [ ] **Otomatik iade faturası.** Elle iade faturası eklenebiliyor; e-Arşiv bağlanınca otomatik oluşturulacak, belge türü mali müşavirle netleştirilecek.
 - [ ] **Kargo firması API'si:** Gönderi oluşturma, barkod, durum sorgulama. Anlaşma yapılan firmaya göre; şimdilik firma seçilip takip numarası elle giriliyor.
-- [ ] **Telefonla gelen iade talebi.** Yöneticinin müşteri adına iade talebi açması yok; talep yalnızca müşterinin sipariş sayfasından açılıyor.
-- [ ] **İadeden bağımsız para iadesi.** Ürün iadesi olmadan kısmi para iadesi (ör. eksik gönderim, gönül alma) yok; yalnızca iade talebi ve sipariş iptaliyle yapılıyor.
-
-### M8'den kalanlar
-M8 tamamlandı (kampanya ve kupon, raporlar, yönetici bildirimleri). Kalanlar:
-- [ ] Kategori veya ürüne özel kupon (şimdilik kuponlar tüm sepete uygulanıyor).
-- [ ] Toplu kupon kodu üretme.
-- [ ] Kupon kullanım sınırı için eşzamanlılık testi (kilit var; ayrı paralel test yazılmadı).
 
 ### M9'dan kalanlar (yayın aşaması)
 M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVKK hesap kapatma, yayın hazırlığı ekranı). Yayınla birlikte yapılacaklar:

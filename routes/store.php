@@ -102,6 +102,10 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('siparisler/{storeOrder}/teslim-alinmadi', [Admin\OrderController::class, 'notDelivered'])->name('orders.not-delivered');
             Route::post('siparisler/{storeOrder}/iptal', [Admin\OrderController::class, 'cancel'])->name('orders.cancel');
             Route::post('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'storeInvoice'])->name('orders.invoice.store');
+            Route::post('siparisler/{storeOrder}/iade', [Admin\OrderController::class, 'storeReturn'])->name('orders.return');
+            Route::post('siparisler/{storeOrder}/para-iadesi', [Admin\OrderController::class, 'refund'])->name('orders.refund');
+            Route::post('siparisler/{storeOrder}/iade-faturasi', [Admin\OrderController::class, 'storeCreditNote'])->name('orders.credit-note.store');
+            Route::get('siparisler/{storeOrder}/iade-faturasi/{note}', [Admin\OrderController::class, 'creditNote'])->whereNumber('note')->name('orders.credit-note');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
             Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
             Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
@@ -112,6 +116,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'edit'])->name('discounts.edit');
             Route::put('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'update'])->name('discounts.update');
             Route::delete('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'destroy'])->name('discounts.destroy');
+            Route::post('kampanyalar/{storeDiscount}/kodlar', [Admin\DiscountController::class, 'generateCodes'])->middleware('throttle:10,1,store_admin.discounts.codes')->name('discounts.codes');
+            Route::get('kampanyalar/{storeDiscount}/kodlar.csv', [Admin\DiscountController::class, 'exportCodes'])->name('discounts.codes.export');
             Route::get('iadeler', [Admin\ReturnController::class, 'index'])->name('returns.index');
             Route::get('iadeler/{storeReturn}', [Admin\ReturnController::class, 'show'])->name('returns.show');
             Route::post('iadeler/{storeReturn}/onayla', [Admin\ReturnController::class, 'approve'])->name('returns.approve');
@@ -214,12 +220,14 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::post('odeme/dogrulama/yeniden', [Front\CheckoutController::class, 'resend'])->middleware('throttle:5,10,checkout.verify.resend')->name('checkout.verify.resend');
         Route::get('yasal/{key}', [Front\CheckoutController::class, 'legal'])->name('legal');
         Route::get('siparis/{orderNo}/{token}', [Front\OrderController::class, 'showByToken'])->middleware('throttle:60,1,order')->name('order');
+        Route::get('siparis/{orderNo}/{token}/iade-faturasi/{note}', [Front\OrderController::class, 'creditNoteByToken'])->whereNumber('note')->middleware('throttle:30,1,order.credit-note')->name('order.credit-note');
         Route::get('siparis/{orderNo}/{token}/fatura', [Front\OrderController::class, 'invoiceByToken'])->middleware('throttle:30,1,order.invoice')->name('order.invoice');
         Route::post('siparis/{orderNo}/{token}/iade', [Front\ReturnController::class, 'storeByToken'])->middleware(['throttle:10,1,order.return', 'store.bot'])->name('order.return');
         Route::middleware(['auth:customer', 'auth.session'])->group(function () {
             Route::get('hesabim/siparisler', [Front\OrderController::class, 'index'])->name('orders');
             Route::get('hesabim/siparisler/{orderNo}', [Front\OrderController::class, 'showOwn'])->name('orders.show');
             Route::get('hesabim/siparisler/{orderNo}/fatura', [Front\OrderController::class, 'invoiceOwn'])->name('orders.invoice');
+            Route::get('hesabim/siparisler/{orderNo}/iade-faturasi/{note}', [Front\OrderController::class, 'creditNoteOwn'])->whereNumber('note')->name('orders.credit-note');
             Route::post('hesabim/siparisler/{orderNo}/iade', [Front\ReturnController::class, 'storeOwn'])->middleware(['throttle:10,1,orders.return', 'store.bot'])->name('orders.return');
         });
 

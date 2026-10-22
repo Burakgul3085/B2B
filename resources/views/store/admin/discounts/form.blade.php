@@ -43,6 +43,26 @@
                 </div>
             </x-card>
 
+            <x-card title="Kapsam" description="Boş bırakılırsa sepetteki tüm ürünlere uygulanır. Seçilirse en düşük tutar ve indirim yalnızca bu ürünler üzerinden hesaplanır.">
+                @php $selectedCats = array_map('intval', old('category_ids', $d->category_ids ?? [])); @endphp
+                <div class="space-y-5">
+                    <fieldset>
+                        <legend class="text-sm font-medium">Kategoriler <span class="font-normal text-muted">(alt kategorileriyle)</span></legend>
+                        @if ($categories->isEmpty())
+                            <p class="mt-2 text-sm text-muted">Henüz kategori yok.</p>
+                        @else
+                            <div class="mt-2 grid max-h-56 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                                @foreach ($categories as $cat)
+                                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="category_ids[]" value="{{ $cat->id }}" @checked(in_array($cat->id, $selectedCats, true)) class="size-4 rounded text-primary"> {{ $cat->name }}</label>
+                                @endforeach
+                            </div>
+                        @endif
+                    </fieldset>
+                    <x-field name="product_skus" label="Ürünler (SKU)" textarea :value="$skus" hint="Virgül veya satır başıyla ayırın. Bir seçeneğin SKU'su girilse de ürünün tüm seçenekleri kapsama girer." />
+                    @error('product_skus')<p class="text-sm text-danger">{{ $message }}</p>@enderror
+                </div>
+            </x-card>
+
             <x-card title="Koşullar">
                 <div class="space-y-5">
                     <div class="grid gap-5 sm:grid-cols-3">
@@ -53,6 +73,9 @@
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-field name="starts_at" label="Başlangıç" type="datetime-local" :value="$local($d->starts_at)" hint="Boş: hemen" />
                         <x-field name="ends_at" label="Bitiş" type="datetime-local" :value="$local($d->ends_at)" hint="Boş: süresiz" />
+                    </div>
+                    <div x-show="kind === 'coupon'">
+                        <x-toggle name="codes_only" label="Yalnızca toplu kodlarla kullanılsın" :checked="$d->codes_only" hint="Ana kod kabul edilmez; müşteriler aşağıda üretilen tek kullanımlık kodları kullanır." />
                     </div>
                     <x-toggle name="first_order_only" label="Yalnızca ilk siparişte geçerli" :checked="$d->first_order_only" hint="Daha önce siparişi olan e-posta veya telefonla kullanılamaz." />
                     <x-toggle name="is_active" label="Etkin" :checked="$d->exists ? $d->is_active : true" />
@@ -79,6 +102,21 @@
                         </ul>
                     @endif
                 </x-card>
+                @if ($d->isCoupon())
+                    <x-card title="Toplu kodlar" :description="'Her kod bir kez kullanılır ve bu kuponun kurallarını taşır. Üretilen: '.$codeCount.' · kullanılan: '.$usedCodeCount">
+                        <form method="POST" action="{{ route('store_admin.discounts.codes', $d) }}" class="space-y-3">
+                            @csrf
+                            <div class="grid grid-cols-2 gap-3">
+                                <x-field name="count" label="Adet" type="number" min="1" max="1000" value="50" required />
+                                <x-field name="prefix" label="Önek" maxlength="12" :placeholder="$d->code" />
+                            </div>
+                            <x-button variant="secondary" class="w-full">Kod üret</x-button>
+                        </form>
+                        @if ($codeCount)
+                            <a href="{{ route('store_admin.discounts.codes.export', $d) }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"><x-icon name="download" class="size-4" /> Kodları indir (CSV)</a>
+                        @endif
+                    </x-card>
+                @endif
                 @unless ($used)
                     <form method="POST" action="{{ route('store_admin.discounts.destroy', $d) }}" data-confirm="{{ $d->name }} silinsin mi?">
                         @csrf @method('DELETE')

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\OrderService;
+use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCodBlock;
@@ -50,10 +51,11 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show(StoreOrder $storeOrder): View
+    public function show(StoreOrder $storeOrder, ReturnService $returns): View
     {
         return view('store.admin.orders.show', [
-            'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice']),
+            'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice', 'creditNotes']),
+            'returnable' => $storeOrder->status === 'delivered' ? $returns->returnableQuantities($storeOrder) : [],
             'carriers' => StoreCarrier::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id'),
             'blocked' => StoreCodBlock::where('phone', $storeOrder->phone)->first(),
             'actors' => ActivityController::adminNames(),
@@ -103,6 +105,42 @@ class OrderController extends Controller
     public function storeInvoice(Request $request, StoreOrder $storeOrder, InvoiceService $invoices): RedirectResponse
     {
         return $this->attempt(fn () => $invoices->attach($storeOrder, $request->only(['invoice_no', 'issued_on']), $request->file('file')), 'Fatura kaydedildi.');
+    }
+
+    /** Telefonla ulaşan müşteri adına iade talebi (süre sınırı yönetici için uygulanmaz). */
+    public function storeReturn(Request $request, StoreOrder $storeOrder, ReturnService $returns): RedirectResponse
+    {
+        try {
+            $return = $returns->request($storeOrder, $request->only(['items', 'reason', 'note', 'iban', 'account_name']), true);
+        } catch (DomainException $e) {
+            return back()->withErrors(['order' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('store_admin.returns.show', $return)->with('status', "İade talebi {$return->return_no} müşteri adına açıldı; müşteriye e-posta gönderildi.");
+    }
+
+    /** Ürün iadesi olmadan kısmi para iadesi. */
+    public function refund(Request $request, StoreOrder $storeOrder): RedirectResponse
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'string', 'max:20'],
+            'method' => ['nullable', 'in:iyzico,manual'],
+            'refund_reason' => ['required', 'string', 'max:300'],
+        ], [], ['amount' => 'tutar', 'refund_reason' => 'neden']);
+
+        return $this->attempt(fn () => $this->orders->refundWithoutReturn($storeOrder, $data['amount'], $data['method'] ?? 'iyzico', $data['refund_reason'], $request->ip()),
+            'Para iadesi yapıldı; müşteriye e-posta gönderildi.');
+    }
+
+    public function storeCreditNote(Request $request, StoreOrder $storeOrder, InvoiceService $invoices): RedirectResponse
+    {
+        return $this->attempt(fn () => $invoices->attachCreditNote($storeOrder, $request->only(['number', 'issued_on', 'amount', 'return_id']), $request->file('file')),
+            'İade faturası kaydedildi.');
+    }
+
+    public function creditNote(StoreOrder $storeOrder, int $note, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->downloadCreditNote($storeOrder, $note);
     }
 
     public function invoice(StoreOrder $storeOrder, InvoiceService $invoices): StreamedResponse

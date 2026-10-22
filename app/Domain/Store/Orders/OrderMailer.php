@@ -44,6 +44,15 @@ class OrderMailer
             "{$order->order_no} numaralı siparişiniz iptal edildi.{$refund} Sorularınız için bize ulaşabilirsiniz.", false);
     }
 
+    public function refunded(StoreOrder $order, string $amount, string $reason): void
+    {
+        $where = $order->payment_method === 'card'
+            ? 'ödemede kullandığınız karta gönderildi; hesabınıza yansıması bankanıza göre birkaç gün sürebilir'
+            : 'banka hesabınıza gönderildi';
+        $this->send($order, "Para iadesi — {$order->order_no}", 'Para iadeniz yapıldı',
+            "{$order->order_no} numaralı siparişiniz için ".Money::format($amount)." tutarındaki iadeniz {$where}. Açıklama: {$reason}", false);
+    }
+
     public function returnUpdate(StoreOrder $order, StoreReturn $return, string $title, string $intro): void
     {
         $this->send($order, "{$title} — {$return->return_no}", $title, $intro, false);

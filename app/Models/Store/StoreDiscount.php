@@ -13,19 +13,29 @@ class StoreDiscount extends Model
 
     protected $guarded = ['id'];
 
-    protected $attributes = ['is_active' => true, 'first_order_only' => false];
+    protected $attributes = ['is_active' => true, 'first_order_only' => false, 'codes_only' => false];
 
     protected function casts(): array
     {
         return [
-            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean', 'first_order_only' => 'boolean',
-            'usage_limit' => 'integer', 'per_customer_limit' => 'integer',
+            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean', 'first_order_only' => 'boolean', 'codes_only' => 'boolean',
+            'usage_limit' => 'integer', 'per_customer_limit' => 'integer', 'category_ids' => 'array', 'product_ids' => 'array',
         ];
     }
 
     public function redemptions(): HasMany
     {
         return $this->hasMany(StoreDiscountRedemption::class, 'discount_id');
+    }
+
+    public function codes(): HasMany
+    {
+        return $this->hasMany(StoreDiscountCode::class, 'discount_id')->orderBy('id');
+    }
+
+    public function isScoped(): bool
+    {
+        return ! empty($this->category_ids) || ! empty($this->product_ids);
     }
 
     public function isCoupon(): bool
@@ -42,7 +52,7 @@ class StoreDiscount extends Model
             default => 'Ücretsiz teslimat',
         };
 
-        return $base.($this->min_subtotal ? ' · '.Money::format($this->min_subtotal).' ve üzeri' : '');
+        return $base.($this->isScoped() ? ' · seçili ürünlerde' : '').($this->min_subtotal ? ' · '.Money::format($this->min_subtotal).' ve üzeri' : '');
     }
 
     /** Bugün geçerli mi (etkin ve tarih aralığında)? */

@@ -84,6 +84,69 @@
                 </div>
             </x-card>
 
+            @php
+                $canReturn = $order->status === 'delivered' && array_sum($returnable) > 0;
+                $canRefund = $order->isSettled() && bccomp($order->refundableAmount(), '0', 2) > 0;
+            @endphp
+            @if ($canReturn || $canRefund)
+                <x-card title="Diğer işlemler">
+                    <div class="space-y-4 text-sm">
+                        @if ($canReturn)
+                            <details @if ($errors->hasAny(['items', 'reason', 'iban', 'account_name'])) open @endif>
+                                <summary class="cursor-pointer font-medium text-primary">Müşteri adına iade talebi aç</summary>
+                                <p class="mt-2 text-muted">Telefonla veya e-postayla gelen iade istekleri için. Talep "Talep alındı" olarak açılır ve müşteriye e-posta gider; iade süresi sınırı uygulanmaz.</p>
+                                <form method="POST" action="{{ route('store_admin.orders.return', $order) }}" class="mt-3 space-y-3 rounded-xl bg-surface p-4">
+                                    @csrf
+                                    @foreach ($order->items as $item)
+                                        @if (($returnable[$item->id] ?? 0) > 0)
+                                            <div class="flex items-center justify-between gap-3">
+                                                <label for="ai_{{ $item->id }}">{{ $item->product_name }}@if ($item->option_label) <span class="text-muted">({{ $item->option_label }})</span>@endif</label>
+                                                <select id="ai_{{ $item->id }}" name="items[{{ $item->id }}]" class="field-input w-24">
+                                                    @for ($q = 0; $q <= $returnable[$item->id]; $q++)<option value="{{ $q }}">{{ $q }}</option>@endfor
+                                                </select>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                    @error('items')<p class="text-danger">{{ $message }}</p>@enderror
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <x-field name="reason" label="İade nedeni" :options="['' => 'Seçin'] + \App\Models\Store\StoreReturn::REASONS" required />
+                                        <x-field name="note" label="Not (isteğe bağlı)" maxlength="500" />
+                                    </div>
+                                    @if ($isCod)
+                                        <div class="grid gap-3 sm:grid-cols-2">
+                                            <x-field name="iban" label="Müşterinin IBAN'ı" required maxlength="40" />
+                                            <x-field name="account_name" label="Hesap sahibi" required maxlength="120" />
+                                        </div>
+                                    @endif
+                                    <x-button variant="secondary">İade talebini aç</x-button>
+                                </form>
+                            </details>
+                        @endif
+                        @if ($canRefund)
+                            <details @if ($errors->hasAny(['amount', 'method', 'refund_reason'])) open @endif>
+                                <summary class="cursor-pointer font-medium text-primary">Para iadesi (ürün iadesi olmadan)</summary>
+                                <p class="mt-2 text-muted">Eksik gönderim, hasarlı ürün için indirim veya gönül alma. Ürün stoğa dönmez. En fazla {{ Money::format($order->refundableAmount()) }}.</p>
+                                <form method="POST" action="{{ route('store_admin.orders.refund', $order) }}" class="mt-3 space-y-3 rounded-xl bg-surface p-4"
+                                    data-confirm="Para iadesi yapılsın mı? Bu işlem geri alınamaz.">
+                                    @csrf
+                                    <div class="grid gap-3 sm:grid-cols-3">
+                                        <x-field name="amount" label="Tutar (₺)" required inputmode="decimal" />
+                                        @if ($isCod)
+                                            <input type="hidden" name="method" value="manual">
+                                            <p class="self-end text-xs text-muted sm:col-span-2">Kapıda ödeme: tutarı müşteriye havale edip burada kaydedin.</p>
+                                        @else
+                                            <x-field name="method" label="Yöntem" :options="['iyzico' => 'Karta iade (iyzico)', 'manual' => 'iyzico panelinden yaptım (elle)']" class="sm:col-span-2" />
+                                        @endif
+                                    </div>
+                                    <x-field name="refund_reason" label="Neden" required maxlength="300" placeholder="ör. 2 adet kalem eksik gönderildi" hint="Müşteriye e-postada gösterilir." />
+                                    <x-button variant="secondary">Para iadesi yap</x-button>
+                                </form>
+                            </details>
+                        @endif
+                    </div>
+                </x-card>
+            @endif
+
             <x-card title="Ürünler" :padding="false">
                 <table class="table-base">
                     <thead><tr><th>Ürün</th><th class="text-right">Adet</th><th class="text-right">Birim</th><th class="text-right">Tutar</th></tr></thead>
@@ -174,6 +237,26 @@
                     @if ($order->invoice)
                         <p class="text-sm">Fatura no: <span class="font-medium">{{ $order->invoice->invoice_no }}</span> · {{ $order->invoice->issued_on->format('d.m.Y') }}</p>
                         @if ($order->invoice->file_path)<a href="{{ route('store_admin.orders.invoice', $order) }}" class="mt-1 inline-block text-sm text-primary hover:underline">PDF dosyasını indir</a>@endif
+                    @endif
+                    @foreach ($order->creditNotes as $note)
+                        <p class="mt-2 text-sm">İade faturası: <a href="{{ route('store_admin.orders.credit-note', [$order, $note->id]) }}" class="font-medium text-primary hover:underline">{{ $note->number }}</a>
+                            · {{ $note->issued_on->format('d.m.Y') }}@if ($note->amount) · {{ Money::format($note->amount) }}@endif</p>
+                    @endforeach
+                    @if ($order->invoice && (bccomp((string) $order->refunded_total, '0', 2) > 0 || in_array($order->status, ['cancelled', 'not_delivered'], true)))
+                        <details class="mt-3" @if ($errors->hasAny(['number'])) open @endif>
+                            <summary class="cursor-pointer text-sm font-medium text-primary">İade faturası ekle</summary>
+                            <form method="POST" action="{{ route('store_admin.orders.credit-note.store', $order) }}" enctype="multipart/form-data" class="mt-3 space-y-3">
+                                @csrf
+                                <x-field name="number" label="İade faturası no" required maxlength="30" />
+                                <x-field name="issued_on" label="Tarih" type="date" required :value="now('Europe/Istanbul')->toDateString()" />
+                                <x-field name="amount" label="Tutar (₺, isteğe bağlı)" inputmode="decimal" />
+                                @if ($order->returns->isNotEmpty())
+                                    <x-field name="return_id" label="İlgili iade" :options="['' => '—'] + $order->returns->pluck('return_no', 'id')->all()" />
+                                @endif
+                                <x-field name="file" label="PDF" type="file" accept="application/pdf" required hint="e-Arşiv bağlanana kadar elle eklenir." />
+                                <x-button>Kaydet</x-button>
+                            </form>
+                        </details>
                     @endif
                     @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true))
                         <details @class(['mt-3' => $order->invoice]) @if (! $order->invoice || $errors->hasAny(['invoice_no', 'issued_on', 'file'])) open @endif>

@@ -159,6 +159,28 @@ class OrderService
         });
     }
 
+    /**
+     * Ürün iadesi olmadan kısmi para iadesi (eksik gönderim, hasarlı ürün için indirim, gönül alma).
+     * Kartla ödemede iyzico'ya (veya iyzico panelinden yapıldıysa "elle"), kapıda ödemede havaleyle (elle) işlenir.
+     *
+     * @throws DomainException
+     */
+    public function refundWithoutReturn(StoreOrder $order, string $amount, string $method, string $reason, ?string $ip): void
+    {
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new DomainException('Para iadesinin nedenini yazın (müşteriye e-postada gösterilir).');
+        }
+        if (! $order->isSettled()) {
+            throw new DomainException('Ödemesi alınmamış siparişte para iadesi yapılamaz.');
+        }
+        if ($order->payment_method === 'cod') {
+            $method = 'manual';
+        }
+        $refund = $this->refunds->refund($order, $amount, $method, [], false, null, mb_substr($reason, 0, 300), $ip);
+        $this->mailer->refunded($order->fresh(), $refund->amount, $reason);
+    }
+
     /** Telefonu kapıda ödeme engel listesinden çıkarır. */
     public function unblockPhone(StoreCodBlock $block): void
     {

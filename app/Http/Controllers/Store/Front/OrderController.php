@@ -25,14 +25,16 @@ class OrderController extends Controller
 
     public function showOwn(Request $request, string $orderNo, ReturnService $returns): View
     {
-        return $this->render($this->own($request, $orderNo), $returns, route('store.orders.return', $orderNo), route('store.orders.invoice', $orderNo));
+        return $this->render($this->own($request, $orderNo), $returns, route('store.orders.return', $orderNo), route('store.orders.invoice', $orderNo),
+            fn (int $note) => route('store.orders.credit-note', ['orderNo' => $orderNo, 'note' => $note]));
     }
 
     public function showByToken(string $orderNo, string $token, ReturnService $returns): View
     {
         $params = ['orderNo' => $orderNo, 'token' => $token];
 
-        return $this->render($this->byToken($orderNo, $token), $returns, route('store.order.return', $params), route('store.order.invoice', $params));
+        return $this->render($this->byToken($orderNo, $token), $returns, route('store.order.return', $params), route('store.order.invoice', $params),
+            fn (int $note) => route('store.order.credit-note', $params + ['note' => $note]));
     }
 
     public function invoiceOwn(Request $request, string $orderNo, InvoiceService $invoices): StreamedResponse
@@ -43,6 +45,16 @@ class OrderController extends Controller
     public function invoiceByToken(string $orderNo, string $token, InvoiceService $invoices): StreamedResponse
     {
         return $invoices->download($this->byToken($orderNo, $token));
+    }
+
+    public function creditNoteOwn(Request $request, string $orderNo, int $note, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->downloadCreditNote($this->own($request, $orderNo), $note);
+    }
+
+    public function creditNoteByToken(string $orderNo, string $token, int $note, InvoiceService $invoices): StreamedResponse
+    {
+        return $invoices->downloadCreditNote($this->byToken($orderNo, $token), $note);
     }
 
     private function own(Request $request, string $orderNo): StoreOrder
@@ -58,15 +70,16 @@ class OrderController extends Controller
         return $order;
     }
 
-    private function render(StoreOrder $order, ReturnService $returns, string $returnUrl, string $invoiceUrl): View
+    private function render(StoreOrder $order, ReturnService $returns, string $returnUrl, string $invoiceUrl, \Closure $creditNoteUrl): View
     {
-        $order->load(['items', 'events', 'consents', 'returns.items', 'invoice']);
+        $order->load(['items', 'events', 'consents', 'returns.items', 'invoice', 'creditNotes']);
         $refusal = $returns->refusal($order);
 
         return view('store.front.order', [
             'order' => $order,
             'returnUrl' => $returnUrl,
             'invoiceUrl' => $invoiceUrl,
+            'creditNoteUrl' => $creditNoteUrl,
             'canReturn' => $refusal === null,
             'returnable' => $refusal === null ? $returns->returnableQuantities($order) : [],
             'returnDeadline' => ReturnService::deadline($order),

@@ -152,6 +152,9 @@
                     @if ($order->invoice?->file_path)
                         <a href="{{ $invoiceUrl }}" class="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline"><x-icon name="download" class="size-4" /> Faturayı indir ({{ $order->invoice->invoice_no }})</a>
                     @endif
+                    @foreach ($order->creditNotes as $note)
+                        <a href="{{ $creditNoteUrl($note->id) }}" class="mt-1 flex items-center gap-1.5 font-medium text-primary hover:underline"><x-icon name="download" class="size-4" /> İade faturası ({{ $note->number }})</a>
+                    @endforeach
                 </section>
                 @if ($order->consents->isNotEmpty())
                     <section class="rounded-2xl border border-line p-5 text-sm">

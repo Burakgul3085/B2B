@@ -67,9 +67,10 @@ class ReturnService
     }
 
     /** Müşterinin talep açıp açamayacağı; açamıyorsa nedeni. */
-    public function refusal(StoreOrder $order): ?string
+    /** @param  bool  $byAdmin  yönetici müşteri adına açıyorsa süre sınırı uygulanmaz (teslim edilmiş olmalı) */
+    public function refusal(StoreOrder $order, bool $byAdmin = false): ?string
     {
-        if (! self::deadline($order)) {
+        if ($byAdmin ? $order->status !== 'delivered' : ! self::deadline($order)) {
             return 'İade talebi yalnızca teslim edilen siparişlerde, teslimden sonraki '.self::returnDays().' gün içinde açılabilir.';
         }
         if ($order->returns()->whereIn('status', StoreReturn::OPEN)->exists()) {
@@ -82,8 +83,12 @@ class ReturnService
         return null;
     }
 
-    /** @throws ValidationException|DomainException */
-    public function request(StoreOrder $order, array $input): StoreReturn
+    /**
+     * Müşterinin (veya telefonla ulaşan müşteri adına yöneticinin) iade talebi.
+     *
+     * @throws ValidationException|DomainException
+     */
+    public function request(StoreOrder $order, array $input, bool $byAdmin = false): StoreReturn
     {
         $data = Validator::make($input, [
             'items' => ['required', 'array'],
@@ -103,9 +108,9 @@ class ReturnService
         }
 
         $actor = $this->actor->get();
-        $return = DB::transaction(function () use ($order, $data, $iban, $actor) {
+        $return = DB::transaction(function () use ($order, $data, $iban, $actor, $byAdmin) {
             StoreOrder::whereKey($order->id)->lockForUpdate()->first(); // aynı siparişe eşzamanlı iki talep açılmasın
-            if ($reason = $this->refusal($order)) {
+            if ($reason = $this->refusal($order, $byAdmin)) {
                 throw new DomainException($reason);
             }
 
@@ -138,7 +143,9 @@ class ReturnService
 
         $this->mailer->returnUpdate($order, $return, 'İade talebiniz alındı',
             "{$return->return_no} numaralı iade talebinizi aldık. İnceledikten sonra size e-postayla bilgi vereceğiz.");
-        $this->notifier->returnRequested($return, $order);
+        if (! $byAdmin) {
+            $this->notifier->returnRequested($return, $order);
+        }
 
         return $return;
     }

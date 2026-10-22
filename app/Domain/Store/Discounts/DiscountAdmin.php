@@ -4,9 +4,13 @@ namespace App\Domain\Store\Discounts;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Support\Decimal;
+use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreDiscount;
+use App\Models\Store\StoreDiscountCode;
+use App\Models\Store\StoreProductVariant;
 use DomainException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +41,9 @@ class DiscountAdmin
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
             'usage_limit' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'per_customer_limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer'],
+            'product_skus' => ['nullable', 'string', 'max:5000'],
         ], ['code.regex' => 'Kupon kodu yalnızca harf, rakam, - ve _ içerebilir (Türkçe karakter olmadan).'], [
             'name' => 'ad', 'code' => 'kupon kodu', 'type' => 'indirim türü', 'value' => 'indirim', 'min_subtotal' => 'en düşük sepet tutarı',
             'max_discount' => 'en fazla indirim', 'starts_at' => 'başlangıç', 'ends_at' => 'bitiş', 'usage_limit' => 'toplam kullanım', 'per_customer_limit' => 'kişi başı kullanım',
@@ -55,6 +62,16 @@ class DiscountAdmin
                 $errors[$key] = 'Geçerli bir tutar girin (ör. 250,00).';
             }
         }
+        // Kapsam: kategoriler (alt kategorileriyle) ve SKU ile ürünler.
+        $categoryIds = StoreCategory::whereIn('id', array_map('intval', $data['category_ids'] ?? []))->pluck('id')->all();
+        $skus = array_values(array_unique(array_filter(array_map(fn ($v) => strtoupper(trim($v)), preg_split('/[\s,;]+/', (string) ($data['product_skus'] ?? ''))))));
+        $productIds = $skus ? StoreProductVariant::whereIn('sku', $skus)->pluck('product_id')->unique()->values()->all() : [];
+        $unknown = $skus ? array_diff($skus, StoreProductVariant::whereIn('sku', $skus)->pluck('sku')->map(fn ($v) => strtoupper($v))->all()) : [];
+        if ($unknown) {
+            $errors['product_skus'] = 'Bulunamayan SKU: '.implode(', ', array_slice($unknown, 0, 10)).'.';
+        }
+        $codesOnly = $isCoupon && filter_var($input['codes_only'] ?? false, FILTER_VALIDATE_BOOL);
+
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
@@ -76,6 +93,9 @@ class DiscountAdmin
             'usage_limit' => $data['usage_limit'] ?? null,
             'per_customer_limit' => $data['per_customer_limit'] ?? null,
             'first_order_only' => filter_var($input['first_order_only'] ?? false, FILTER_VALIDATE_BOOL),
+            'category_ids' => $categoryIds ?: null,
+            'product_ids' => $productIds ?: null,
+            'codes_only' => $codesOnly,
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
         ];
 
@@ -91,6 +111,45 @@ class DiscountAdmin
         $this->audit->log('store.discount_created', $discount, [], ['name' => $discount->name, 'code' => $discount->code]);
 
         return $discount;
+    }
+
+    /**
+     * Toplu, tek kullanımlık kodlar üretir: ÖNEK-XXXXXXXX (karışabilecek 0/O, 1/I harfleri kullanılmaz).
+     *
+     * @return int üretilen kod sayısı
+     *
+     * @throws ValidationException|DomainException
+     */
+    public function generateCodes(StoreDiscount $discount, array $input): int
+    {
+        if (! $discount->isCoupon()) {
+            throw new DomainException('Toplu kod yalnızca kuponlar için üretilir.');
+        }
+        $data = Validator::make($input, [
+            'count' => ['required', 'integer', 'min:1', 'max:1000'],
+            'prefix' => ['nullable', 'string', 'max:12', 'regex:/^[A-Za-z0-9]+$/'],
+        ], ['prefix.regex' => 'Önek yalnızca harf ve rakam içerebilir.'], ['count' => 'kod sayısı', 'prefix' => 'önek'])->validate();
+        if ($discount->codes()->count() + (int) $data['count'] > 10000) {
+            throw new DomainException('Bir kupona en fazla 10.000 kod üretilebilir.');
+        }
+
+        $prefix = strtoupper((string) ($data['prefix'] ?? '')) ?: $discount->code;
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $codes = [];
+        while (count($codes) < (int) $data['count']) {
+            $random = '';
+            for ($i = 0; $i < 8; $i++) {
+                $random .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            $code = mb_substr($prefix, 0, 31).'-'.$random;
+            if (! isset($codes[$code]) && ! StoreDiscountCode::where('code', $code)->exists() && ! StoreDiscount::where('code', $code)->exists()) {
+                $codes[$code] = ['discount_id' => $discount->id, 'code' => $code, 'created_at' => now()];
+            }
+        }
+        DB::transaction(fn () => collect($codes)->chunk(500)->each(fn ($chunk) => StoreDiscountCode::insert($chunk->values()->all())));
+        $this->audit->log('store.discount_codes_generated', $discount, [], ['name' => $discount->name, 'count' => count($codes)]);
+
+        return count($codes);
     }
 
     /** @throws DomainException */
