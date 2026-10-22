@@ -1,6 +1,6 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 21.10.2026 (mağaza küçük eksikleri sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 21.10.2026 (B2B eksikleri sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
@@ -50,7 +50,8 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 ## 4. B2B: bekleyenler
 
 ### Aşama 10 — Sunucu ve yayın (kullanıcı isteğiyle beklemede)
-- [ ] HTTPS, yedekleme, geri yükleme provası.
+- [ ] HTTPS ve sunucuda geri yükleme provası. (Yedekleme kodu hazır: Platform → Yedekler, her gece 03:30; yerelde geri yükleme doğrulandı.)
+- [ ] Yedeklerin sunucu dışına (uzak depolama) kopyalanması.
 - [ ] Gerçek Gmail hesabı ve uygulama şifresiyle e-posta gönderiminin uçtan uca denenmesi.
 - [ ] Performansın sunucuda yeniden ölçülmesi (geliştirme bilgisayarında ölçüldü).
 - [ ] Sunucuda PHP yükleme sınırlarının 64M yapılması (50 MB banner videoları için).
@@ -58,13 +59,9 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 - [ ] Kullanım ve kurulum dokümanları.
 
 ### Eksik ekranlar ve özellikler
-- [ ] Destek erişimi (support access) ekranı. Tablosu hazır, arayüzü yok.
-- [ ] Platform yönetiminde hata kayıtları ve yedekler ekranları.
-- [ ] Bayi başvurusunda ek bilgi istenen kişinin web üzerinden yanıt verebileceği form. Şimdilik e-postayla yanıt veriliyor.
-- [ ] Kayıtlı rapor filtreleri ("favori rapor").
-- [ ] Koyu tema (uygulama yalnızca açık tema).
+B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).
+- [ ] İsteğe bağlı: mağaza vitrini (müşteri tarafı) için koyu tema.
 
 ### Teknik borç
-- [ ] CSP'de `'unsafe-eval'` duruyor. Kaldırmak için Alpine'in CSP sürümüne geçmek ve bütün `x-data` ifadelerini bileşenlere taşımak gerekir. Satır içi script olmadığı için risk düşük.
-- [ ] Cari yaşlandırma hesabı tüm hareketleri belleğe alıyor. Yüzlerce bayi için yeterli; binlerce bayide yeniden ele alınmalı.
-- [ ] Bu bilgisayarda ffmpeg yok; demo banner'ları yalnızca görsel.
+- [ ] **CSP'de `'unsafe-eval'` (bilinçli olarak bırakıldı).** Alpine'in CSP sürümü denendi; birden fazla deyim, ok fonksiyonu, `?.`, `??`, genel nesneler (JSON, Math…) gibi yapıları desteklemediği için 45 şablondaki 300'ü aşkın ifadenin JS bileşenlerine taşınması ve tüm arayüzün yeniden sınanması gerekir. Satır içi script yok ve Blade çıktıyı kaçırdığı için risk düşük; ayrı bir çalışma olarak planlanmalı.
+- Cari yaşlandırma (tek SQL sorgusu) ve demo videoları (Python ile üretiliyor) notları eskimişti; kapatıldı.

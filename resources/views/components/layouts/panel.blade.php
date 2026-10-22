@@ -145,7 +145,8 @@
     };
 @endphp
 <!DOCTYPE html>
-<html lang="tr">
+@php $themeMode = in_array(request()->cookie('tema'), ['dark', 'auto'], true) ? request()->cookie('tema') : 'light'; @endphp
+<html lang="tr" @class(['dark' => $themeMode === 'dark'])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -213,6 +214,7 @@
                         <a href="{{ route('dealer.profile') }}" class="block px-4 py-2 hover:bg-slate-50">İşletme Profili</a>
                     @endif
                     <a href="{{ route('dealer.account') }}" class="block px-4 py-2 hover:bg-slate-50">Profil ve Güvenlik</a>
+                    <x-theme-switch />
                     @if ($dealerRelationships->count() > 1)
                         <a href="{{ route('dealer.select-business') }}" class="block px-4 py-2 hover:bg-slate-50">Toptancı Değiştir</a>
                     @endif
@@ -306,6 +308,7 @@
                     </button>
                     <div x-cloak x-show="open" x-transition class="absolute right-4 top-14 z-30 w-56 rounded-xl border border-line bg-white py-1 text-sm shadow-lg">
                         <a href="{{ route($area->value.'.account') }}" class="block px-4 py-2 hover:bg-slate-50">Profil ve Güvenlik</a>
+                        <x-theme-switch />
                         <form method="POST" action="{{ route($area->value.'.logout') }}" class="border-t border-line">
                             @csrf
                             <button class="block w-full px-4 py-2 text-left text-danger hover:bg-slate-50">Çıkış Yap</button>

@@ -17,9 +17,13 @@ Chart.register(ArcElement, BarController, BarElement, CategoryScale, DoughnutCon
 
 const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'];
 const COMPARE = '#94a3b8';
-const INK = '#0f172a';
-const MUTED = '#64748b';
-const GRID = '#eef2f7';
+// Koyu temada (html.dark) yazı, ızgara ve ipucu kutusu koyu zemine göre seçilir; tema değişince sayfa yenilenince uygulanır.
+const DARK = document.documentElement.classList.contains('dark');
+const INK = DARK ? '#e2e8f0' : '#0f172a';
+const MUTED = DARK ? '#94a3b8' : '#64748b';
+const GRID = DARK ? '#243044' : '#eef2f7';
+const PANEL = DARK ? '#121a2b' : '#ffffff';
+const EDGE = DARK ? '#2a3446' : '#e2e8f0';
 
 Chart.defaults.font.family = "'Inter Variable', ui-sans-serif, system-ui, sans-serif";
 Chart.defaults.font.size = 12;
@@ -31,10 +35,10 @@ const fmt = (v, unit) => (unit === 'money' ? moneyFull.format(v) : new Intl.Numb
 const axisFmt = (v, unit) => (unit === 'money' ? money.format(v) : new Intl.NumberFormat('tr-TR').format(v));
 
 const tooltip = (unit) => ({
-    backgroundColor: '#ffffff',
+    backgroundColor: PANEL,
     titleColor: INK,
     bodyColor: INK,
-    borderColor: '#e2e8f0',
+    borderColor: EDGE,
     borderWidth: 1,
     padding: 10,
     boxPadding: 4,
@@ -101,7 +105,7 @@ const builders = {
     doughnut(cfg) {
         return {
             type: 'doughnut',
-            data: { labels: cfg.labels.map((l, i) => `${l} (${cfg.values[i]})`), datasets: [{ data: cfg.values, backgroundColor: SERIES, borderColor: '#ffffff', borderWidth: 2, hoverOffset: 4 }] },
+            data: { labels: cfg.labels.map((l, i) => `${l} (${cfg.values[i]})`), datasets: [{ data: cfg.values, backgroundColor: SERIES, borderColor: PANEL, borderWidth: 2, hoverOffset: 4 }] },
             options: {
                 maintainAspectRatio: false,
                 cutout: '62%',

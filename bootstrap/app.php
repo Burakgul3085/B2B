@@ -35,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // iyzico ödeme geri dönüşü başka siteden POST edilir; sonuç sunucudan iyzico'ya sorularak doğrulanır.
         $middleware->validateCsrfTokens(except: ['odeme/iyzico/donus']);
         // Çerez tercihi tarayıcıda (JS) yazılır; şifrelenmez.
-        $middleware->encryptCookies(except: ['magaza_cerez']);
+        $middleware->encryptCookies(except: ['magaza_cerez', 'tema']);
 
         // İşletme bağlamı, rota model bağlamasından ÖNCE kurulur: başka işletmenin kaydı
         // global scope nedeniyle bulunamaz ve 404 döner.

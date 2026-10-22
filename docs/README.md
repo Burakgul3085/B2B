@@ -25,5 +25,6 @@
 | [21-magaza-m8-raporu.md](21-magaza-m8-raporu.md) | Mağaza M8: kampanya ve kupon, raporlar ve Excel aktarma, yönetici bildirimleri, gösterge paneli |
 | [22-magaza-m9-raporu.md](22-magaza-m9-raporu.md) | Mağaza M9: İptal-İade / KVKK / Gizlilik-Çerez metinleri, çerez onay bandı, form bot koruması, KVKK hesap kapatma, yayın hazırlığı ve iyzico kontrol listesi, ödeme logo bandı |
 | [23-magaza-eksikler-raporu.md](23-magaza-eksikler-raporu.md) | Mağaza küçük eksikleri: müşteri adına iade, iadesiz para iadesi, iade faturası, kategori/ürün kuponu, toplu tek kullanımlık kodlar, kupon eşzamanlılık testi (deadlock düzeltmesi) |
+| [24-b2b-eksikler-raporu.md](24-b2b-eksikler-raporu.md) | B2B eksikleri: hata kayıtları, yedekler (gece yedeği, geri yükleme doğrulandı), destek erişimi, başvuruya web üzerinden ek bilgi, kayıtlı rapor filtreleri, koyu tema; teknik borç kararları (CSP) |
 | [YAPILACAKLAR.md](YAPILACAKLAR.md) | Yapılmayanlar ve bekleyenler: kalan mağaza aşamaları (M7–M10), dışarıdan beklenen hesap ve bilgiler, B2B Aşama 10 ve eksik ekranlar |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

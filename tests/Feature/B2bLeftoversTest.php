@@ -229,4 +229,15 @@ class B2bLeftoversTest extends TestCase
         $this->delete(route('business.reports.saved.destroy', $saved->id))->assertSessionHasNoErrors();
         $this->assertSame(0, SavedReport::withoutBusinessScope()->count());
     }
+
+    public function test_dark_theme_is_rendered_server_side_from_cookie(): void
+    {
+        $business = $this->makeBusiness();
+        $this->actingAs($business->user, 'business');
+
+        $this->get(route('business.dashboard'))->assertOk()->assertSee('<html lang="tr" class="">', false)->assertSee('x-data="themeSwitch"', false);
+        $this->withUnencryptedCookie('tema', 'dark')->get(route('business.dashboard'))->assertSee('<html lang="tr" class="dark">', false);
+        $this->withUnencryptedCookie('tema', 'auto')->get(route('business.dashboard'))->assertDontSee('class="dark"', false); // sistem: tarayıcıda uygulanır
+        $this->withUnencryptedCookie('tema', '"><script>')->get(route('business.dashboard'))->assertSee('<html lang="tr" class="">', false);
+    }
 }

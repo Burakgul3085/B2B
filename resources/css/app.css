@@ -174,3 +174,78 @@
         @apply hover:bg-slate-50/70;
     }
 }
+
+/*
+| Koyu tema (yönetim panelleri). <html class="dark"> iken tasarım token'ları koyu değerlerle değişir; şablonlarda
+| doğrudan kullanılan sık renk sınıfları da aşağıda karşılanır. Bu kurallar katmansızdır (@layer dışında), bu yüzden
+| Tailwind yardımcı sınıflarının önüne geçer. Tercih kullanıcı menüsünden seçilir ("tema" çerezi).
+*/
+.dark {
+    color-scheme: dark;
+    --color-primary: #5274e0;
+    --color-primary-hover: #6384ea;
+    --color-primary-dark: #0c1533;
+    --color-primary-soft: #1a2448;
+    --color-ink: #e2e8f0;
+    --color-muted: #94a3b8;
+    --color-line: #2a3446;
+    --color-surface: #0b1120;
+    --color-graphite: #cbd5e1;
+    --color-success: #4ade80;
+    --color-success-soft: #0f2b1c;
+    --color-warning: #fbbf24;
+    --color-warning-soft: #33250a;
+    --color-danger: #f87171;
+    --color-danger-soft: #3a1414;
+    --color-info: #38bdf8;
+    --color-info-soft: #0c2838;
+}
+
+.dark .bg-white,
+.dark .hover\:bg-white:hover { background-color: #121a2b; }
+.dark .bg-white\/95 { background-color: rgb(18 26 43 / 0.95); }
+.dark .bg-slate-50,
+.dark .hover\:bg-slate-50:hover,
+.dark .disabled\:bg-slate-50:disabled { background-color: #172033; }
+.dark .bg-slate-50\/60,
+.dark .hover\:bg-slate-50\/70:hover { background-color: rgb(23 32 51 / 0.7); }
+.dark .bg-slate-100,
+.dark .hover\:bg-slate-100:hover,
+.dark .file\:bg-slate-100::file-selector-button { background-color: #1e293b; }
+.dark .bg-slate-200 { background-color: #273449; }
+.dark .text-slate-900 { color: #f1f5f9; }
+.dark .text-slate-700,
+.dark .text-slate-600 { color: #cbd5e1; }
+.dark .text-slate-400,
+.dark .placeholder\:text-slate-400::placeholder { color: #64748b; }
+.dark .border-slate-300 { border-color: #3b4659; }
+
+.dark .text-red-900,
+.dark .text-red-700 { color: #fecaca; }
+.dark .border-red-200 { border-color: #7f1d1d; }
+.dark .text-amber-900,
+.dark .text-amber-700 { color: #fde68a; }
+.dark .border-amber-200,
+.dark .ring-amber-200 { border-color: #78350f; --tw-ring-color: #78350f; }
+.dark .bg-amber-50,
+.dark .bg-amber-100 { background-color: #33250a; }
+.dark .text-green-900,
+.dark .text-green-800,
+.dark .text-green-700 { color: #bbf7d0; }
+.dark .border-green-200 { border-color: #14532d; }
+.dark .text-emerald-700 { color: #6ee7b7; }
+.dark .bg-emerald-50,
+.dark .bg-emerald-100 { background-color: #062a1f; }
+.dark .ring-emerald-200 { --tw-ring-color: #065f46; }
+.dark .text-sky-900 { color: #bae6fd; }
+.dark .border-blue-200 { border-color: #1e3a8a; }
+.dark .text-violet-800,
+.dark .text-violet-700 { color: #c4b5fd; }
+.dark .bg-violet-50 { background-color: #1f1a3a; }
+
+/* Görseller koyu zeminde çok parlamasın; ürün görselleri beyaz zeminli kutuda kalır. */
+.dark .shadow-xs,
+.dark .shadow-sm { --tw-shadow-color: rgb(0 0 0 / 0.4); }
+.dark .mix-blend-multiply { mix-blend-mode: normal; }
+.dark .field-input { background-color: #0d1424; }
+.dark .field-input:disabled { background-color: #172033; }

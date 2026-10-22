@@ -2,11 +2,14 @@ import Alpine from 'alpinejs';
 import { enableUploadProgress, heroSlider } from './storefront.js';
 import { checkout } from './store-checkout.js';
 import { cookieConsent } from './store-consent.js';
+import { initTheme, themeSwitch } from './theme.js';
 
 window.Alpine = Alpine;
 Alpine.data('heroSlider', heroSlider);
 Alpine.data('checkout', checkout);
 Alpine.data('cookieConsent', cookieConsent);
+Alpine.data('themeSwitch', themeSwitch);
+initTheme();
 Alpine.start();
 enableUploadProgress();
 
