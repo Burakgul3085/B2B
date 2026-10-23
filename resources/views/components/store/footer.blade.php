@@ -101,7 +101,18 @@
         @if ($footer['directions'] || $footer['hours'])
             <div class="space-y-4 sm:col-span-2 lg:col-span-3">
                 <p class="{{ $heading }}">{{ $footer['store_title'] }}</p>
-                @if ($footer['directions'])
+                @if ($footer['map_embed'])
+                    {{-- Gömülü Google haritası: herkese açık --}}
+                    <div class="overflow-hidden rounded-2xl ring-1 ring-white/10">
+                        <iframe src="{{ $footer['map_embed'] }}" class="block h-44 w-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                            title="{{ $storeName }} konumu"></iframe>
+                        <a href="{{ $footer['directions'] }}" target="_blank" rel="noopener"
+                            class="group flex items-center justify-between gap-3 bg-white/5 px-4 py-3 text-sm font-semibold transition hover:bg-white/10">
+                            <span class="flex min-w-0 items-center gap-2"><x-icon name="map-pin" class="size-4 shrink-0 text-amber-400" /><span class="truncate">{{ $place ?: 'Yol tarifi al' }}</span></span>
+                            <span class="flex shrink-0 items-center gap-1 text-amber-400">Yol tarifi <x-icon name="arrow-right" class="size-4 -rotate-45 transition group-hover:translate-x-0.5" /></span>
+                        </a>
+                    </div>
+                @elseif ($footer['directions'])
                     <a href="{{ $footer['directions'] }}" target="_blank" rel="noopener"
                         class="group relative block overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/[0.02] p-5 ring-1 ring-white/10 transition hover:ring-amber-400/60">
                         <span class="flex flex-col items-center gap-2 py-3 text-center">
@@ -118,9 +129,9 @@
                         <p class="flex items-center gap-2 text-sm font-bold tracking-wide uppercase"><x-icon name="clock" class="size-4 text-amber-400" /> Çalışma saatleri</p>
                         <dl class="mt-4 space-y-2.5 text-sm">
                             @foreach ($footer['hours'] as $row)
-                                <div class="flex justify-between gap-3">
+                                <div class="flex items-baseline justify-between gap-3">
                                     <dt class="text-white/70">{{ $row['days'] }}</dt>
-                                    <dd @class(['font-semibold tabular-nums', 'text-rose-300' => $row['closed']])>{{ $row['hours'] }}</dd>
+                                    <dd @class(['shrink-0 font-semibold whitespace-nowrap tabular-nums', 'text-rose-300' => $row['closed']])>{{ $row['hours'] }}</dd>
                                 </div>
                             @endforeach
                         </dl>

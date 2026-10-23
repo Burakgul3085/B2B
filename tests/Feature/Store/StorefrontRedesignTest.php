@@ -143,4 +143,17 @@ class StorefrontRedesignTest extends TestCase
         $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '0'])->assertSessionHasNoErrors();
         $this->get(self::HOST.'/')->assertDontSee('aria-label="Kayan duyurular"', false);
     }
+
+    public function test_footer_shows_store_map_to_everyone_without_address(): void
+    {
+        \App\Models\Store\StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => [
+            'map_embed' => 'https://www.google.com/maps?q=39.77,30.52&z=17&hl=tr&output=embed',
+            'map_directions' => 'https://www.google.com/maps/dir/?api=1&destination=39.77,30.52',
+        ]]);
+
+        $this->get(self::HOST.'/urunler')->assertOk()
+            ->assertSee('<iframe src="https://www.google.com/maps?q=39.77,30.52&amp;z=17&amp;hl=tr&amp;output=embed"', false)
+            ->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=39.77,30.52', false)
+            ->assertSee('Yol tarifi');
+    }
 }

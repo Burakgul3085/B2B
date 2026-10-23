@@ -125,7 +125,10 @@ class StoreFooter
         return $config + [
             // Saatler yalnızca İletişim sayfası kaydedilmişse gösterilir (varsayılan saatler gerçek olmayabilir).
             'hours' => $config['show_hours'] && $content ? OpeningHours::grouped($content['hours']) : [],
-            'directions' => $config['show_map'] && StoreSetting::get('address') ? SitePages::directionsUrl($content ?? []) : null,
+            // Harita herkese gösterilir (kişisel veri yok; Çerez Politikası'nda not var). Konum İletişim sayfasındaki
+            // Google Haritalar bağlantısından, yoksa mağaza adresinden.
+            'directions' => $config['show_map'] ? SitePages::directionsUrl($content ?? []) : null,
+            'map_embed' => $config['show_map'] ? ($content['map_embed'] ?? null) : null,
             'contact_url' => $contact?->is_published ? route('store.contact') : null,
             'topbar' => $config['topbar_enabled'] ? self::topbar($config) : [],
             'marquee' => $config['marquee_enabled'] ? self::marquee($config) : [],
