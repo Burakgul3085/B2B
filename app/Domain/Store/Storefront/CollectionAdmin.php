@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Domain\Store\Storefront;
+
+use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Catalog\Slugs;
+use App\Models\Store\StoreCollection;
+use App\Models\Store\StoreProductVariant;
+use DomainException;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * Seçkiler (Vitrin → Seçkiler): başlık, alt başlık, yapboz rengi, görsel ve stok koduyla (SKU) seçilen ürünler.
+ * Ürün sırası yazılan SKU sırasıdır. Ana sayfada en fazla 4 seçki kutu olarak görünür.
+ */
+class CollectionAdmin
+{
+    public function __construct(private AuditLogger $audit, private ImageUploader $images, private ImageVariants $variants) {}
+
+    /** @throws ValidationException|DomainException */
+    public function save(?StoreCollection $collection, array $input, ?UploadedFile $image, bool $removeImage): StoreCollection
+    {
+        $data = Validator::make($input, [
+            'title' => ['required', 'string', 'max:80'],
+            'subtitle' => ['nullable', 'string', 'max:160'],
+            'color' => ['nullable', Rule::in(array_keys(Palette::COLORS))],
+            'product_skus' => ['nullable', 'string', 'max:5000'],
+        ], [], ['title' => 'başlık', 'subtitle' => 'alt başlık', 'color' => 'renk', 'product_skus' => 'ürün kodları'])->validate();
+
+        // SKU sırası korunur; aynı ürünün birden çok seçeneği tek ürün sayılır.
+        $skus = array_values(array_unique(array_filter(array_map(fn ($v) => strtoupper(trim($v)), preg_split('/[\s,;]+/', (string) ($data['product_skus'] ?? ''))))));
+        $bySku = $skus ? StoreProductVariant::whereIn('sku', $skus)->get(['sku', 'product_id'])->keyBy(fn ($v) => strtoupper($v->sku)) : collect();
+        if ($unknown = array_diff($skus, $bySku->keys()->all())) {
+            throw ValidationException::withMessages(['product_skus' => 'Bulunamayan ürün kodu: '.implode(', ', array_slice($unknown, 0, 10)).'.']);
+        }
+        $productIds = array_values(array_unique(array_map(fn ($sku) => $bySku[$sku]->product_id, $skus)));
+        if (count($productIds) > StoreCollection::MAX_PRODUCTS) {
+            throw ValidationException::withMessages(['product_skus' => 'Bir seçkide en fazla '.StoreCollection::MAX_PRODUCTS.' ürün olabilir.']);
+        }
+
+        $collection = DB::transaction(function () use ($collection, $data, $input, $productIds) {
+            $values = [
+                'title' => trim($data['title']),
+                'subtitle' => trim((string) ($data['subtitle'] ?? '')) ?: null,
+                'color' => $data['color'] ?? null,
+                'is_active' => filter_var($input['is_active'] ?? true, FILTER_VALIDATE_BOOL),
+            ];
+            if ($collection) {
+                $collection->update($values);
+            } else {
+                $collection = StoreCollection::create($values + ['slug' => Slugs::unique(StoreCollection::class, $values['title']), 'sort' => (int) StoreCollection::max('sort') + 1]);
+            }
+            $collection->products()->sync(collect($productIds)->mapWithKeys(fn ($id, $i) => [$id => ['sort' => $i]])->all());
+            $this->audit->log('store.collection_saved', $collection, [], ['title' => $collection->title, 'products' => count($productIds)]);
+
+            return $collection;
+        });
+
+        if ($image || $removeImage) {
+            $old = $collection->image_path;
+            $collection->forceFill(['image_path' => $image ? $this->images->store($image, 'store/collections', 1400, 6 * 1024 * 1024, 86) : null])->save();
+            if ($old) {
+                $this->images->delete($old);
+                $this->variants->forget($old);
+            }
+        }
+
+        return $collection;
+    }
+
+    public function delete(StoreCollection $collection): void
+    {
+        DB::transaction(function () use ($collection) {
+            $collection->products()->detach();
+            $collection->delete();
+            $this->audit->log('store.collection_deleted', $collection, ['title' => $collection->title]);
+        });
+        if ($collection->image_path) {
+            $this->images->delete($collection->image_path);
+            $this->variants->forget($collection->image_path);
+        }
+    }
+
+    /** Formda gösterilecek SKU listesi (seçki sırasıyla, ürün başına ilk seçenek). */
+    public static function skus(StoreCollection $collection): string
+    {
+        $ids = $collection->products()->pluck('store_products.id')->all();
+        $first = StoreProductVariant::whereIn('product_id', $ids)->orderBy('sort')->orderBy('id')->get(['product_id', 'sku'])->unique('product_id')->keyBy('product_id');
+
+        return implode("\n", array_filter(array_map(fn ($id) => $first[$id]->sku ?? null, $ids)));
+    }
+}

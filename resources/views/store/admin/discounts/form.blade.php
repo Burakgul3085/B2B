@@ -79,6 +79,7 @@
                     </div>
                     <x-toggle name="first_order_only" label="Yalnızca ilk siparişte geçerli" :checked="$d->first_order_only" hint="Daha önce siparişi olan e-posta veya telefonla kullanılamaz." />
                     <x-toggle name="is_active" label="Etkin" :checked="$d->exists ? $d->is_active : true" />
+                    <x-toggle name="show_on_home" label="Ana sayfada kart olarak göster" :checked="$d->show_on_home" hint="Kodlu kuponlarda; ziyaretçi kodu kartın üzerinden kopyalar (en fazla 3 kart)." />
                 </div>
             </x-card>
 

@@ -97,6 +97,8 @@ class DiscountAdmin
             'product_ids' => $productIds ?: null,
             'codes_only' => $codesOnly,
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
+            // Ana sayfa kartı yalnızca herkesin kullanabileceği kodlu kuponlarda anlamlıdır.
+            'show_on_home' => $isCoupon && ! $codesOnly && filter_var($input['show_on_home'] ?? false, FILTER_VALIDATE_BOOL),
         ];
 
         if ($discount) {

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBanner;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
+use App\Models\Store\StoreCollection;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
 use App\Models\Store\StoreSetting;
@@ -57,6 +58,14 @@ class MediaController extends Controller
         abort_unless($storeCategory->is_active && $storeCategory->image_path, 404);
 
         return $this->serve($storeCategory->image_path, $request->integer('w') ?: null);
+    }
+
+    /** Seçki görseli (ana sayfa kutusu, seçki sayfası). */
+    public function collection(Request $request, StoreCollection $storeCollection): StreamedResponse
+    {
+        abort_unless($storeCollection->is_active && $storeCollection->image_path, 404);
+
+        return $this->serve($storeCollection->image_path, $request->integer('w') ?: null);
     }
 
     /** Hakkımızda sayfasının kapak ve galeri fotoğrafları (yalnızca yayındaki sayfanın). */

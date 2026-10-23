@@ -46,6 +46,7 @@
     --color-puzzle-blue-soft: #e4f3fb;
     --color-puzzle-yellow: #ca8a04;
     --color-puzzle-yellow-soft: #fef6d8;
+    --color-puzzle-sun: #facc15;  /* lacivert üzerinde parlak sarı vurgu */
 }
 
 @layer base {

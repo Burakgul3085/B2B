@@ -18,7 +18,7 @@ class StoreDiscount extends Model
     protected function casts(): array
     {
         return [
-            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean', 'first_order_only' => 'boolean', 'codes_only' => 'boolean',
+            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean', 'first_order_only' => 'boolean', 'codes_only' => 'boolean', 'show_on_home' => 'boolean',
             'usage_limit' => 'integer', 'per_customer_limit' => 'integer', 'category_ids' => 'array', 'product_ids' => 'array',
         ];
     }

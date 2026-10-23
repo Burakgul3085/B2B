@@ -19,7 +19,7 @@
         <div class="mx-auto flex min-h-10 max-w-7xl items-center gap-6 px-4 py-2 text-[13px] sm:px-6 lg:px-8">
             <ul class="hidden items-center gap-6 text-white/75 lg:flex">
                 @foreach ($footer['topbar'] as [$icon, $text])
-                    <li class="flex items-center gap-2 whitespace-nowrap"><x-icon :name="$icon" class="size-4 text-puzzle-yellow" /> {{ $text }}</li>
+                    <li class="flex items-center gap-2 whitespace-nowrap"><x-icon :name="$icon" class="size-4 text-puzzle-sun" /> {{ $text }}</li>
                 @endforeach
             </ul>
             @if ($settings['announcement'])
@@ -106,7 +106,7 @@
                 </a>
             @endforeach
             <span class="ml-auto"></span>
-            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
+            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-sun" /> Yeni gelenler</a>
             <a href="{{ route('store.brands') }}" class="{{ $navLink }}">Markalar</a>
         </div>
 

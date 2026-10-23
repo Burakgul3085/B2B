@@ -5,11 +5,14 @@ namespace Database\Seeders;
 use App\Domain\Store\Catalog\CategoryService;
 use App\Domain\Store\Catalog\ProductService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Storefront\CollectionAdmin;
 use App\Domain\Store\Storefront\StorefrontAdmin;
 use App\Models\Store\StoreBrand;
+use App\Models\Store\StoreCollection;
 use App\Models\Store\StoreDiscount;
 use App\Models\Store\StorePage;
 use App\Models\Store\StoreProduct;
+use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreSetting;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -40,7 +43,7 @@ class StoreShowcaseSampleSeeder extends Seeder
     {
         abort_unless(app()->environment('local') && DB::getDatabaseName() === 'b2b_vitrin', 403, 'Örnek vitrin verisi yalnızca yereldeki b2b_vitrin veritabanına yüklenir.');
         if (StoreProduct::exists()) {
-            $this->command?->warn('Ürünler zaten var; örnek veri yüklenmedi.');
+            $this->homeExtras(); // ürünler önceden yüklendiyse yalnızca ana sayfa ekleri (seçki, yan banner, kupon kartı)
 
             return;
         }
@@ -92,6 +95,30 @@ class StoreShowcaseSampleSeeder extends Seeder
 
         StorePage::create(['key' => 'about', 'is_published' => true, 'content' => ['headline' => 'Hakkımızda', 'stats' => [['value' => '1998', 'label' => 'Kuruluş'], ['value' => '5.000+', 'label' => 'Ürün çeşidi'], ['value' => '12', 'label' => 'İlçeye teslimat']]]]);
         StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => ['form_enabled' => true]]);
+        $this->homeExtras();
+    }
+
+    /** Aşama 2 ana sayfa blokları için: seçkiler, yan banner'lar, ana sayfada gösterilen kuponlar. */
+    private function homeExtras(): void
+    {
+        if (StoreCollection::exists()) {
+            return;
+        }
+        $admin = app(StorefrontAdmin::class);
+        $admin->createBanner(['title' => 'Ofisiniz için', 'subtitle' => 'Dosya ve masa düzeni', 'link_url' => '/urunler', 'placement' => 'side', 'is_active' => true],
+            $this->image('Ofis', 'green', 900, 600, 'banner'), null);
+        $admin->createBanner(['title' => 'Sanat köşesi', 'subtitle' => 'Boya ve fırçalar', 'link_url' => '/urunler', 'placement' => 'side', 'is_active' => true],
+            $this->image('Sanat', 'orange', 900, 600, 'banner'), null);
+        StoreDiscount::query()->update(['show_on_home' => true]);
+        StoreDiscount::create(['name' => 'Kargo bizden', 'code' => 'KARGOBEDAVA', 'type' => 'free_shipping', 'min_subtotal' => '400', 'is_active' => true, 'show_on_home' => true]);
+
+        $collections = app(CollectionAdmin::class);
+        $skus = StoreProductVariant::orderBy('id')->pluck('sku')->all();
+        foreach ([['Okula dönüş', 'Çanta, defter ve kalemde yeni sezon', 'blue', 0], ['Ofis masası', 'Düzenli bir çalışma alanı için', 'green', 12],
+            ['Sanat atölyesi', 'Boya, fırça ve resim defterleri', 'orange', 24], ['Hediyelik', 'Sevdiklerinize kırtasiye seçkisi', 'yellow', 36]] as [$title, $subtitle, $color, $from]) {
+            $collections->save(null, ['title' => $title, 'subtitle' => $subtitle, 'color' => $color, 'product_skus' => implode(',', array_slice($skus, $from, 8)), 'is_active' => true],
+                $this->image($title, $color, 1200, 900, 'banner'), false);
+        }
     }
 
     /** Kodla üretilmiş yer tutucu görsel (gerçek fotoğraf yerine; yalnızca önizleme içindir). */

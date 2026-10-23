@@ -10,7 +10,9 @@ class StoreBanner extends Model
 {
     protected $attributes = ['is_active' => true, 'sort' => 0, 'mobile_image_path' => null, 'starts_at' => null, 'ends_at' => null];
 
-    protected $fillable = ['title', 'subtitle', 'button_text', 'link_url', 'sort', 'is_active', 'starts_at', 'ends_at'];
+    public const PLACEMENTS = ['hero' => 'Büyük alan (kayan)', 'side' => 'Yan küçük alan'];
+
+    protected $fillable = ['title', 'subtitle', 'button_text', 'link_url', 'placement', 'sort', 'is_active', 'starts_at', 'ends_at'];
 
     protected function casts(): array
     {

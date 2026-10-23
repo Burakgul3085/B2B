@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** Ana sayfa banner'ları: ekleme, düzenleme, sıralama, silme. */
 class BannerController extends Controller
 {
-    private const FIELDS = ['title', 'subtitle', 'button_text', 'link_url', 'starts_at', 'ends_at', 'is_active'];
+    private const FIELDS = ['title', 'subtitle', 'button_text', 'link_url', 'placement', 'starts_at', 'ends_at', 'is_active'];
 
     public function __construct(private StorefrontAdmin $storefront) {}
 

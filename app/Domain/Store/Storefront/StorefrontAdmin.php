@@ -151,6 +151,7 @@ class StorefrontAdmin
             'subtitle' => ['nullable', 'string', 'max:240'],
             'button_text' => ['nullable', 'string', 'max:40'],
             'link_url' => ['nullable', 'string', 'max:500'],
+            'placement' => ['nullable', 'in:'.implode(',', array_keys(StoreBanner::PLACEMENTS))],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
         ], [], ['title' => 'başlık', 'subtitle' => 'alt başlık', 'button_text' => 'düğme yazısı', 'link_url' => 'bağlantı', 'starts_at' => 'başlangıç', 'ends_at' => 'bitiş'])->validate();
@@ -166,6 +167,7 @@ class StorefrontAdmin
             'subtitle' => $data['subtitle'] ?? null,
             'button_text' => $data['button_text'] ?? null,
             'link_url' => $link ?: null,
+            'placement' => $data['placement'] ?? 'hero',
             'starts_at' => $data['starts_at'] ?? null,
             'ends_at' => $data['ends_at'] ?? null,
             'is_active' => filter_var($input['is_active'] ?? true, FILTER_VALIDATE_BOOL),

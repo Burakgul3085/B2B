@@ -413,3 +413,31 @@ export function toast() {
         },
     };
 }
+
+/** Sekmeler (ana sayfa ürün vitrini): x-data="tabs('featured')", düğmede @click="select('new')", içerikte x-show="is('new')". */
+export function tabs(initial) {
+    return {
+        active: initial,
+        select(key) {
+            this.active = key;
+        },
+        is(key) {
+            return this.active === key;
+        },
+    };
+}
+
+/** Kupon kodunu panoya kopyalar (ana sayfa kampanya kartı). */
+export function copyCode(code) {
+    return {
+        copied: false,
+        copy() {
+            navigator.clipboard.writeText(code).then(() => {
+                this.copied = true;
+                setTimeout(() => {
+                    this.copied = false;
+                }, 2000);
+            });
+        },
+    };
+}

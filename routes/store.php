@@ -89,6 +89,15 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('sayfa-onizleme/{key}', [Admin\SitePageController::class, 'preview'])->whereIn('key', ['about', 'contact'])->name('site-pages.preview');
                 Route::get('sayfa-gorseli/{file}', [Admin\SitePageController::class, 'image'])->name('site-pages.image');
                 Route::get('alt-bilgi', [Admin\FooterController::class, 'edit'])->name('footer.edit');
+                Route::get('ana-sayfa', [Admin\CollectionController::class, 'home'])->name('home-layout.edit');
+                Route::put('ana-sayfa', [Admin\CollectionController::class, 'updateHome'])->name('home-layout.update');
+                Route::get('seckiler', [Admin\CollectionController::class, 'index'])->name('collections.index');
+                Route::get('seckiler/yeni', [Admin\CollectionController::class, 'create'])->name('collections.create');
+                Route::post('seckiler', [Admin\CollectionController::class, 'store'])->name('collections.store');
+                Route::get('seckiler/{storeCollection}', [Admin\CollectionController::class, 'edit'])->name('collections.edit');
+                Route::put('seckiler/{storeCollection}', [Admin\CollectionController::class, 'update'])->name('collections.update');
+                Route::delete('seckiler/{storeCollection}', [Admin\CollectionController::class, 'destroy'])->name('collections.destroy');
+                Route::get('seckiler/{storeCollection}/gorsel', [Admin\CollectionController::class, 'image'])->name('collections.image');
                 Route::put('alt-bilgi', [Admin\FooterController::class, 'update'])->name('footer.update');
 
                 Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
@@ -194,6 +203,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1,search')->name('search');
         Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
+        Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
         Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');
         Route::post('iletisim', [Front\SitePageController::class, 'send'])->middleware(['throttle:5,10,contact.send', 'store.bot'])->name('contact.send');
@@ -262,5 +272,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
         Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
         Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
+        Route::get('gorsel/secki/{storeCollection}', [Front\MediaController::class, 'collection'])->name('media.collection');
     });
 });

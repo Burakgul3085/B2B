@@ -14,6 +14,8 @@
     <x-field name="title" label="Başlık" :value="$banner?->title" maxlength="120" />
     <x-field name="subtitle" label="Alt başlık" :value="$banner?->subtitle" maxlength="240" />
     <x-field name="link_url" label="Bağlantı" :value="$banner?->link_url" maxlength="500" placeholder="/kategori/kalemler" hint="Mağaza içi adres (/ ile başlar) veya https:// adresi." />
+    <x-field name="placement" label="Yerleşim" :options="\App\Models\Store\StoreBanner::PLACEMENTS" :value="$banner?->placement ?? 'hero'"
+        hint="Büyük alan: ana sayfanın üstünde kayan banner (2400×900). Yan küçük alan: büyük alanın sağındaki iki kutudan biri (900×600)." />
     <x-field name="button_text" label="Düğme yazısı" :value="$banner?->button_text" maxlength="40" placeholder="Hemen incele" />
     <x-field name="starts_at" label="Başlangıç (isteğe bağlı)" type="datetime-local" :value="$banner?->starts_at?->format('Y-m-d\TH:i')" />
     <x-field name="ends_at" label="Bitiş (isteğe bağlı)" type="datetime-local" :value="$banner?->ends_at?->format('Y-m-d\TH:i')" />

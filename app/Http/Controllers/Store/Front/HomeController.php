@@ -2,24 +2,32 @@
 
 namespace App\Http\Controllers\Store\Front;
 
-use App\Domain\Store\Storefront\Catalog;
+use App\Domain\Store\Storefront\HomeFeed;
+use App\Domain\Store\Storefront\HomeLayout;
 use App\Http\Controllers\Controller;
-use App\Models\Store\StoreBanner;
-use App\Models\Store\StoreBrand;
+use App\Models\Store\StoreSetting;
 use Illuminate\View\View;
 
-/** Mağaza ana sayfası: banner'lar, kategoriler, öne çıkanlar, yeni ürünler, markalar. */
+/** Mağaza ana sayfası: bloklar Vitrin → Ana Sayfa'daki sırayla; veriler HomeFeed'den (yalnızca açık blokların verisi alınır). */
 class HomeController extends Controller
 {
-    public function __invoke(Catalog $catalog): View
+    public function __invoke(HomeFeed $feed): View
     {
+        $blocks = HomeLayout::blocks();
+        $on = array_column(array_filter($blocks, fn ($b) => $b['enabled']), 'key');
+        $want = fn (string $key) => in_array($key, $on, true);
+
         return view('store.front.home', [
-            'banners' => StoreBanner::visible()->get(),
-            'categories' => $catalog->menu(),
-            'featured' => $catalog->forCards($catalog->products()->where('is_featured', true))->latest('published_at')->limit(8)->get(),
-            'newest' => $catalog->forCards($catalog->products())->latest('published_at')->orderByDesc('id')->limit(8)->get(),
-            'brands' => StoreBrand::where('is_active', true)->whereNotNull('logo_path')
-                ->whereHas('products', fn ($q) => $q->where('is_published', true))->orderBy('name')->limit(16)->get(['id', 'name', 'slug', 'logo_path', 'updated_at']),
+            'blocks' => $blocks,
+            'settings' => StoreSetting::values(),
+            'banners' => $want('hero') ? $feed->banners() : ['main' => collect(), 'side' => collect()],
+            'perks' => $want('perks') ? $feed->perks() : [],
+            'categories' => $want('categories') ? $feed->categories() : collect(),
+            'coupons' => $want('coupons') ? $feed->coupons() : collect(),
+            'showcase' => $want('showcase') ? $feed->showcase() : [],
+            'collections' => $want('collections') ? $feed->collections() : collect(),
+            'brands' => $want('brands') ? $feed->brands() : collect(),
+            'about' => $want('about') ? $feed->about() : null,
         ]);
     }
 }

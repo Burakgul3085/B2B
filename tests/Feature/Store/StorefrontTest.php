@@ -167,7 +167,7 @@ class StorefrontTest extends TestCase
         $expired->image_path = 'store/banners/b.webp';
         $expired->save();
 
-        $this->get(self::HOST.'/')->assertOk()->assertSee('Öne çıkan ürünler')->assertSee('Öne Çıkan Kalem')->assertSee('Okula Dönüş')
+        $this->get(self::HOST.'/')->assertOk()->assertSee('Öne çıkanlar')->assertSee('Öne Çıkan Kalem')->assertSee('Okula Dönüş')
             ->assertDontSee('Bitmiş Kampanya')->assertSee('/hakkimizda"', false)->assertDontSee('/iletisim"', false)->assertSee('"@type":"WebSite"', false);
 
         $this->get(self::HOST.'/hakkimizda')->assertOk()->assertSee('<h2>Biz kimiz</h2>', false)->assertSee('<strong>Yapboz</strong>', false)
