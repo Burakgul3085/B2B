@@ -135,11 +135,9 @@
             <p class="text-center text-white/60 lg:text-left">© {{ now()->year }} <span class="font-semibold text-white">{{ $settings['company_title'] ?: $storeName }}</span> — Tüm hakları saklıdır.
                 @if ($footer['bottom_note'])<span class="block text-white/50 sm:inline sm:pl-2">{{ $footer['bottom_note'] }}</span>@endif</p>
             <div class="flex flex-wrap items-center justify-center gap-4">
-                <x-theme-switch inline />
                 @if ($settings['payment_logos_path'])
                     <span class="rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
                 @endif
-                <a href="#" aria-label="Sayfanın başına dön" class="flex size-10 items-center justify-center rounded-full text-amber-400 ring-2 ring-amber-400/70 transition hover:bg-amber-400 hover:text-[#0b1631]"><x-icon name="chevron-down" class="size-5 rotate-180" /></a>
             </div>
         </div>
     </div>

@@ -213,3 +213,29 @@ export function markdownToolbar() {
         link() { this.wrap('[', '](https://)', 'bağlantı metni'); },
     };
 }
+
+/**
+ * Vitrin: sol altta "başa dön" düğmesi. 400 px aşağı inince görünür; çevresindeki halka sayfanın ne kadarının
+ * okunduğunu gösterir (stroke-dashoffset, çevre 2πr = 113.1 için r = 18).
+ */
+export function scrollTop() {
+    return {
+        visible: false,
+        progress: 0,
+        init() {
+            const update = () => {
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                this.visible = window.scrollY > 400;
+                this.progress = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+            };
+            update();
+            window.addEventListener('scroll', update, { passive: true });
+        },
+        get dash() {
+            return ((1 - this.progress) * 113.1).toFixed(1);
+        },
+        up() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+    };
+}

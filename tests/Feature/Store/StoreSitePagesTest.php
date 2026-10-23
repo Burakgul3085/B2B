@@ -228,7 +228,7 @@ class StoreSitePagesTest extends TestCase
             ->assertSee('Aynı gün teslimat')->assertSee('Kırtasiye &amp; Ofis', false)->assertSee("1998'den bu yana")
             ->assertSee('Kurumsal')->assertSee('Dükkânımız')->assertSee('Pazartesi – Cuma')->assertSee('Tepebaşı / Eskişehir')
             ->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=', false)->assertSee('https://wa.me/905321234567', false)
-            ->assertSee('EST. 1998 · Eskişehir')->assertDontSee('Bayi girişi')->assertSee('/iletisim"', false);
+            ->assertSee('EST. 1998 · Eskişehir')->assertDontSee('Bayi girişi')->assertSee('Koyu temaya geç')->assertSee('Sayfanın başına dön')->assertSee('/iletisim"', false);
     }
 
     public function test_launch_checklist_follows_published_pages(): void

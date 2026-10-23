@@ -78,6 +78,11 @@
                     <span class="hidden sm:inline">Sepet</span>
                     @if ($cartCount)<span class="absolute top-0 right-0 min-w-5 rounded-full bg-primary px-1 text-center text-[11px] leading-5 font-bold text-white tabular-nums sm:static">{{ $cartCount }}</span>@endif
                 </a>
+                {{-- Tema: açık ↔ koyu (tercih "tema" çerezinde) --}}
+                <button type="button" x-data="themeSwitch" @click="toggle" class="rounded-lg p-2 hover:bg-slate-100" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
+                    <span x-show="! isDark"><x-icon name="moon" class="size-5" /></span>
+                    <span x-show="isDark" x-cloak><x-icon name="sun" class="size-5" /></span>
+                </button>
             </div>
         </div>
         {{-- Mobil arama --}}
@@ -163,6 +168,16 @@
     <main class="flex-1">{{ $slot }}</main>
 
     {{-- Alt bilgi --}}
+    {{-- Başa dön: aşağı inince sol altta; halka okunan oranı gösterir --}}
+    <button type="button" x-data="scrollTop" x-show="visible" x-transition.opacity x-cloak @click="up" aria-label="Sayfanın başına dön"
+        class="fixed bottom-5 left-5 z-40 flex size-12 items-center justify-center rounded-full bg-[#0b1631] text-white shadow-lg shadow-black/25 transition hover:scale-105 print:hidden">
+        <svg class="absolute inset-0 size-12 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+            <circle cx="20" cy="20" r="18" fill="none" stroke="rgb(255 255 255 / 0.15)" stroke-width="3" />
+            <circle cx="20" cy="20" r="18" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-dasharray="113.1" :stroke-dashoffset="dash" />
+        </svg>
+        <x-icon name="chevron-down" class="relative size-5 rotate-180" />
+    </button>
+
     <x-store.footer :storeName="$storeName" :settings="$storeSettings" :menu="$storeMenu" :pages="$footerPages" :footer="$storeFooter" :b2bLogin="$b2bLogin" />
 
     {{-- Çerez tercihi (Gizlilik ve Çerez Politikası). Yalnızca zorunlu çerezler kullanılır. --}}

@@ -77,7 +77,7 @@ Mağaza alt bilgisi referans tasarıma göre yeniden yapıldı: koyu lacivert ze
 - Alışveriş sütunu: kategoriler
 - Bilgi sütunu: sayfalar, yasal metinler, çerez tercihleri, bayi girişi
 - Mağazamız sütunu: "Haritada gör" kartı ve çalışma saatleri
-- telif satırı, tema seçici, ödeme logoları ve başa dön düğmesi
+- telif satırı ve ödeme logoları; tema düğmesi (ay/güneş) üst bilgide, sepetin yanında; "başa dön" düğmesi sol altta sabit, aşağı inince görünür ve halkası okunan oranı gösterir
 - sağ altta WhatsApp düğmesi
 
 Ayarlar yönetimde **Vitrin → Alt Bilgi** ekranındadır (`App\Domain\Store\Content\StoreFooter`, `store_settings.footer`). Tanıtım metni Mağaza Ayarları'ndan bu ekrana taşındı. WhatsApp bağlantıları artık ülke kodunu ekliyor (0532… → 90532…).

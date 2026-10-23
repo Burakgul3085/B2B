@@ -66,7 +66,7 @@ Sunucu 23.10.2026'da kuruldu (docs/kilavuz/kurulum.md §0): HTTPS, güvenlik duv
 
 ### Eksik ekranlar ve özellikler
 B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).
-- [x] Mağaza vitrini (müşteri tarafı) için koyu tema: alt bilgide **Tema: Açık / Koyu / Sistem**; Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi.
+- [x] Mağaza vitrini (müşteri tarafı) için koyu tema: üst bilgide ay/güneş düğmesi (açık ↔ koyu); Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi.
 
 ### Teknik borç
 - [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.

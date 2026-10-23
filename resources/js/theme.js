@@ -30,5 +30,13 @@ export function themeSwitch() {
             document.cookie = `${COOKIE}=${mode}; Max-Age=${60 * 60 * 24 * 365}; Path=/; SameSite=Lax${secure}`;
             applyTheme(mode);
         },
+        /** Şu an koyu görünüyor mu ("auto"da tarayıcı ayarına göre). */
+        get isDark() {
+            return this.mode === 'dark' || (this.mode === 'auto' && media.matches);
+        },
+        /** Vitrin üst bilgisindeki ay/güneş düğmesi: açık ↔ koyu. */
+        toggle() {
+            this.set(this.isDark ? 'light' : 'dark');
+        },
     };
 }
