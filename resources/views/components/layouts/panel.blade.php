@@ -97,6 +97,7 @@
             ['label' => 'Vitrin', 'items' => [
                 ['label' => 'Ana Sayfa', 'route' => 'store_admin.home-layout.edit', 'icon' => 'home', 'active' => 'store_admin.home-layout.*'],
                 ['label' => 'Seçkiler', 'route' => 'store_admin.collections.index', 'icon' => 'star', 'active' => 'store_admin.collections.*'],
+                ['label' => 'Blog', 'route' => 'store_admin.blog.index', 'icon' => 'book-open', 'active' => 'store_admin.blog.*'],
                 ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
                 ['label' => 'Hakkımızda', 'route' => 'store_admin.site-pages.about', 'icon' => 'building', 'active' => 'store_admin.site-pages.about*'],
                 ['label' => 'İletişim', 'route' => 'store_admin.site-pages.contact', 'icon' => 'map-pin', 'active' => 'store_admin.site-pages.contact*'],

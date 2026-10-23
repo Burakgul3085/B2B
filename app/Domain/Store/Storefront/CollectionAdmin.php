@@ -6,7 +6,6 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
 use App\Domain\Store\Catalog\Slugs;
 use App\Models\Store\StoreCollection;
-use App\Models\Store\StoreProductVariant;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -32,16 +31,7 @@ class CollectionAdmin
             'product_skus' => ['nullable', 'string', 'max:5000'],
         ], [], ['title' => 'başlık', 'subtitle' => 'alt başlık', 'color' => 'renk', 'product_skus' => 'ürün kodları'])->validate();
 
-        // SKU sırası korunur; aynı ürünün birden çok seçeneği tek ürün sayılır.
-        $skus = array_values(array_unique(array_filter(array_map(fn ($v) => strtoupper(trim($v)), preg_split('/[\s,;]+/', (string) ($data['product_skus'] ?? ''))))));
-        $bySku = $skus ? StoreProductVariant::whereIn('sku', $skus)->get(['sku', 'product_id'])->keyBy(fn ($v) => strtoupper($v->sku)) : collect();
-        if ($unknown = array_diff($skus, $bySku->keys()->all())) {
-            throw ValidationException::withMessages(['product_skus' => 'Bulunamayan ürün kodu: '.implode(', ', array_slice($unknown, 0, 10)).'.']);
-        }
-        $productIds = array_values(array_unique(array_map(fn ($sku) => $bySku[$sku]->product_id, $skus)));
-        if (count($productIds) > StoreCollection::MAX_PRODUCTS) {
-            throw ValidationException::withMessages(['product_skus' => 'Bir seçkide en fazla '.StoreCollection::MAX_PRODUCTS.' ürün olabilir.']);
-        }
+        $productIds = ProductSkus::resolve($data['product_skus'] ?? null, StoreCollection::MAX_PRODUCTS);
 
         $collection = DB::transaction(function () use ($collection, $data, $input, $productIds) {
             $values = [
@@ -89,9 +79,6 @@ class CollectionAdmin
     /** Formda gösterilecek SKU listesi (seçki sırasıyla, ürün başına ilk seçenek). */
     public static function skus(StoreCollection $collection): string
     {
-        $ids = $collection->products()->pluck('store_products.id')->all();
-        $first = StoreProductVariant::whereIn('product_id', $ids)->orderBy('sort')->orderBy('id')->get(['product_id', 'sku'])->unique('product_id')->keyBy('product_id');
-
-        return implode("\n", array_filter(array_map(fn ($id) => $first[$id]->sku ?? null, $ids)));
+        return ProductSkus::of($collection->products()->pluck('store_products.id')->all());
     }
 }

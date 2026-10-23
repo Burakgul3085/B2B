@@ -6,6 +6,7 @@ use App\Domain\Store\Storefront\HomeFeed;
 use App\Domain\Store\Storefront\HomeLayout;
 use App\Domain\Store\Storefront\RecentlyViewed;
 use App\Http\Controllers\Controller;
+use App\Models\Store\StoreBlogPost;
 use App\Models\Store\StoreSetting;
 use Illuminate\View\View;
 
@@ -30,6 +31,7 @@ class HomeController extends Controller
             'collections' => $want('collections') ? $feed->collections() : collect(),
             'brands' => $want('brands') ? $feed->brands() : collect(),
             'about' => $want('about') ? $feed->about() : null,
+            'posts' => $want('blog') ? StoreBlogPost::live()->with('category:id,name,slug')->latest('published_at')->limit(3)->get() : collect(),
         ]);
     }
 }

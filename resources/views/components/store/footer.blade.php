@@ -88,6 +88,7 @@
                 @foreach ($pages as $page)
                     <li><a href="{{ $page['url'] }}" class="{{ $link }}">{{ $page['title'] }}</a></li>
                 @endforeach
+                @if (\App\Models\Store\StoreBlogPost::anyLive())<li><a href="{{ route('store.blog') }}" class="{{ $link }}">Blog</a></li>@endif
                 @foreach ($legal as $key)
                     <li><a href="{{ route('store.legal', $key) }}" class="{{ $link }}">{{ \App\Models\Store\StoreLegalDocument::KEYS[$key] }}</a></li>
                 @endforeach

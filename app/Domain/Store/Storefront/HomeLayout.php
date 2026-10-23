@@ -23,6 +23,7 @@ class HomeLayout
         'recent' => ['label' => 'Son bakılan ürünler (ziyaretçiye özel)', 'title' => 'Kaldığınız yerden devam edin', 'subtitle' => 'Son baktığınız ürünler.'],
         'collections' => ['label' => 'Seçkiler', 'title' => 'Bugün neye ihtiyacınız var?', 'subtitle' => 'Temaya göre hazırladığımız ürün seçkileri.'],
         'brands' => ['label' => 'Markalar', 'title' => 'Güvendiğiniz markalar', 'subtitle' => 'Orijinal ürünler, yetkili tedarikçilerden.'],
+        'blog' => ['label' => 'Blogdan son yazılar', 'title' => 'Blogdan', 'subtitle' => 'Okul, ofis ve sanat üzerine öneriler.'],
         'about' => ['label' => 'Hakkımızda özeti', 'title' => null, 'subtitle' => null],
     ];
 

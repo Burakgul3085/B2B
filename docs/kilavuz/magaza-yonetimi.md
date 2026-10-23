@@ -102,6 +102,13 @@ Müşteri teslimden sonra iade süresi içinde sipariş sayfasından iade talebi
 
 Tükenen ürünün sayfasında ziyaretçi e-posta bırakabilir. Ürünü stoğa girdiğinizde (stok girişi veya sayım) en geç 10 dakika içinde kişiye bir kez e-posta gider ve adres silinir. Sistem e-postası ayarlı olmalıdır.
 
+### Blog (Vitrin → Blog)
+
+- Sağdaki kutudan **kategorileri** yazın (ör. Okul, Ofis, Sanat). Adını silip kaydettiğiniz kategori kaldırılır; yazıları kategorisiz kalır.
+- **Yeni yazı:** başlık, kısa özet, yazı metni (ara başlık için `## `, madde için `- `), kapak fotoğrafı ve isterseniz yazının altında gösterilecek ürünlerin stok kodları.
+- **Yayında** açıkken yazı kaydettiğiniz an yayımlanır; **Yayın tarihi**ne ileri bir tarih yazarsanız o an yayına girer (listede "Zamanlandı").
+- Yayında yazı olduğunda üst menüde ve alt bilgide "Blog" bağlantısı, ana sayfada "Blogdan" bölümü kendiliğinden görünür.
+
 ## 8. Müşteri hesapları ve KVKK
 
 Müşteri üye olarak veya misafir olarak sipariş verebilir. Üye, hesabından siparişlerini, adreslerini ve iadelerini yönetir. Hesabını kapatabilir; bu durumda kişisel bilgileri anonimleştirilir, yasal saklama gereği sipariş kayıtları korunur. Çerez tercihleri sitedeki çerez bandından yönetilir.

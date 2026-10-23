@@ -98,6 +98,14 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('seckiler/{storeCollection}', [Admin\CollectionController::class, 'update'])->name('collections.update');
                 Route::delete('seckiler/{storeCollection}', [Admin\CollectionController::class, 'destroy'])->name('collections.destroy');
                 Route::get('seckiler/{storeCollection}/gorsel', [Admin\CollectionController::class, 'image'])->name('collections.image');
+                Route::get('blog', [Admin\BlogController::class, 'index'])->name('blog.index');
+                Route::put('blog/kategoriler', [Admin\BlogController::class, 'categories'])->name('blog.categories');
+                Route::get('blog/yeni', [Admin\BlogController::class, 'create'])->name('blog.create');
+                Route::post('blog', [Admin\BlogController::class, 'store'])->name('blog.store');
+                Route::get('blog/{storeBlogPost}', [Admin\BlogController::class, 'edit'])->name('blog.edit');
+                Route::put('blog/{storeBlogPost}', [Admin\BlogController::class, 'update'])->name('blog.update');
+                Route::delete('blog/{storeBlogPost}', [Admin\BlogController::class, 'destroy'])->name('blog.destroy');
+                Route::get('blog/{storeBlogPost}/kapak', [Admin\BlogController::class, 'cover'])->name('blog.cover');
                 Route::put('alt-bilgi', [Admin\FooterController::class, 'update'])->name('footer.update');
 
                 Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
@@ -210,6 +218,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::post('stok-bildirimi', [Front\StockAlertController::class, 'store'])->middleware(['throttle:10,10,stock-alert.store', 'store.bot'])->name('stock-alert.store');
         Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
+        Route::get('blog', [Front\BlogController::class, 'index'])->name('blog');
+        Route::get('blog/kategori/{slug}', [Front\BlogController::class, 'category'])->name('blog.category');
+        Route::get('blog/{slug}', [Front\BlogController::class, 'show'])->name('blog.post');
         Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');
         Route::post('iletisim', [Front\SitePageController::class, 'send'])->middleware(['throttle:5,10,contact.send', 'store.bot'])->name('contact.send');
 
@@ -281,5 +292,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
         Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
         Route::get('gorsel/secki/{storeCollection}', [Front\MediaController::class, 'collection'])->name('media.collection');
+        Route::get('gorsel/blog/{storeBlogPost}', [Front\MediaController::class, 'blog'])->name('media.blog');
     });
 });

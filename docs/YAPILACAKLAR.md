@@ -73,7 +73,7 @@ B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hat
   - [x] Aşama 3: ürün kartı (ikinci görsel, indirim/yeni/son N ürün rozetleri), kategori başlığı ve renkli alt kategoriler, "İndirimler" filtresi ve menü bağlantısı, ürün sayfasında teslimat özeti, aynı gün kargo saati (Ödeme ve Teslimat → Kargo), WhatsApp ile sor, paylaş, açıklama/teslimat sekmeleri.
   - [x] Aşama 4: favoriler (üyeler), ürün yorumları (yalnızca ürünü teslim alan üyeler, Katalog → Yorumlar'da onay ve mağaza yanıtı; puan yalnızca onaylı yorumlardan, JSON-LD dahil), stoğa gelince haber ver (`store:stock-alerts`, 10 dakikada bir; e-posta gönderimden sonra silinir, en geç 180 gün), son bakılanlar (oturumda; ürün sayfası ve ana sayfa bloğu). Hesap kapatılınca favori, yorum ve bildirim kayıtları silinir.
   - [ ] KVKK Aydınlatma Metni'ne "stok bildirimi için bırakılan e-posta" ve "ürün yorumları (ad + soyadının baş harfi)" maddelerinin eklenmesi (Ayarlar → Yasal Metinler; mağaza sahibi).
-  - [ ] Aşama 5: yönetimden blog.
+  - [x] Aşama 5: blog (Vitrin → Blog): kategoriler, Markdown yazı, kapak, yazıda geçen ürünler (SKU), ileri tarihli yayın, SEO alanları; /blog, kategori sayfaları, BlogPosting JSON-LD, site haritası, ana sayfa "Blogdan" bloğu; menü ve alt bilgide bağlantı yalnızca yayında yazı varsa.
 
 ### Teknik borç
 - [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.

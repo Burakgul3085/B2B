@@ -111,6 +111,7 @@
             <a href="{{ route('store.products', ['indirim' => 1]) }}" class="{{ $navLink }}"><x-icon name="percent" class="size-4 text-puzzle-orange" /> İndirimler</a>
             <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
             <a href="{{ route('store.brands') }}" class="{{ $navLink }}">Markalar</a>
+            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLink }} hidden xl:inline-flex">Blog</a>@endif
         </div>
 
         @if ($menu->isNotEmpty())
@@ -204,6 +205,7 @@
         <div class="mt-4 space-y-1 border-t border-line px-4 py-4 text-sm font-medium">
             <a href="{{ route('store.products', ['indirim' => 1]) }}" class="block py-2">İndirimler</a>
             <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="block py-2">Yeni gelenler</a>
+            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="block py-2">Blog</a>@endif
             <a href="{{ route('store.brands') }}" class="block py-2">Markalar</a>
             @foreach ($pages as $page)<a href="{{ $page['url'] }}" class="block py-2">{{ $page['title'] }}</a>@endforeach
         </div>

@@ -6,6 +6,7 @@ use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Storefront\ImageVariants;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBanner;
+use App\Models\Store\StoreBlogPost;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreCollection;
@@ -66,6 +67,13 @@ class MediaController extends Controller
         abort_unless($storeCollection->is_active && $storeCollection->image_path, 404);
 
         return $this->serve($storeCollection->image_path, $request->integer('w') ?: null);
+    }
+
+    public function blog(Request $request, StoreBlogPost $storeBlogPost): StreamedResponse
+    {
+        abort_unless($storeBlogPost->isLive() && $storeBlogPost->cover_path, 404);
+
+        return $this->serve($storeBlogPost->cover_path, $request->integer('w') ?: null);
     }
 
     /** Hakkımızda sayfasının kapak ve galeri fotoğrafları (yalnızca yayındaki sayfanın). */
