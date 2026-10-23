@@ -3,12 +3,12 @@
 namespace App\Domain\Store\Storefront;
 
 use App\Domain\Mail\SystemMailer;
+use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Sms\SmsGateway;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreLegalDocument;
-use App\Models\Store\StorePage;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
 
@@ -29,8 +29,8 @@ class LaunchChecklist
             'adres' => blank($s['address']), 'telefon' => blank($s['phone']), 'e-posta' => blank($s['email']),
         ]));
         $unreviewed = collect(StoreLegalDocument::KEYS)->filter(fn ($title, $key) => ! StoreLegalDocument::where('key', $key)->where('created_by_type', 'store_admin')->exists());
-        $pages = StorePage::where('is_active', true)->pluck('slug')->all();
-        $missingPages = array_keys(array_filter(['Hakkımızda (hakkimizda)' => ! in_array('hakkimizda', $pages, true), 'İletişim (iletisim)' => ! in_array('iletisim', $pages, true)]));
+        $livePages = array_column(SitePages::published(), 'key');
+        $missingPages = array_values(array_map(fn ($p) => $p['title'], array_diff_key(SitePages::PAGES, array_flip($livePages))));
         $published = StoreProduct::where('is_published', true)->count();
         $withoutImage = StoreProduct::where('is_published', true)->whereDoesntHave('images')->count();
         $without2fa = StoreAdmin::where('is_active', true)->get()->reject(fn (StoreAdmin $a) => $a->hasTwoFactorEnabled())->count();
@@ -44,7 +44,8 @@ class LaunchChecklist
                 $this->item('Yasal metinler gözden geçirildi', $unreviewed->isEmpty() ? 'ok' : 'todo',
                     $unreviewed->isEmpty() ? 'Tüm metinlerin mağaza yönetiminden kaydedilmiş bir sürümü var.' : 'Hukukçu kontrolünden sonra kaydedin: '.$unreviewed->implode(', ').'.', 'store_admin.legal.index'),
                 $this->item('Hakkımızda ve İletişim sayfaları', $missingPages ? 'todo' : 'ok',
-                    $missingPages ? 'Yayında olmayan sayfa: '.implode(', ', $missingPages).'. Sayfaları bu adreslerle oluşturup alt bilgide gösterin.' : 'Sayfalar yayında.', 'store_admin.pages.index'),
+                    $missingPages ? 'Yayında olmayan sayfa: '.implode(', ', $missingPages).'. Vitrin menüsünden düzenleyip "Yayında" işaretleyin.' : 'Sayfalar yayında.',
+                    in_array('Hakkımızda', $missingPages, true) ? 'store_admin.site-pages.about' : 'store_admin.site-pages.contact'),
                 $this->item('Ödeme logo bandı', blank($s['payment_logos_path']) ? 'todo' : 'ok', 'iyzico "iyzico ile Öde" ve kart logolarının alt bilgide bulunmasını ister.', 'store_admin.settings.edit'),
                 $this->item('Çerez ve KVKK bilgilendirmesi', 'ok', 'Çerez bandı, KVKK Aydınlatma Metni ve Gizlilik ve Çerez Politikası alt bilgide; üyelikte aydınlatma onayı alınıyor.', null),
                 $this->item('Ürünler', $published === 0 ? 'todo' : ($withoutImage ? 'warn' : 'ok'),

@@ -182,3 +182,34 @@ export function bannerRotator(count) {
         },
     };
 }
+
+/**
+ * Markdown metin alanı için biçim düğmeleri (Hakkımızda hikâyesi). Seçili metni sarar veya satır başına işaret ekler.
+ * Şablon: x-data="markdownToolbar()" ve x-ref="text" olan textarea; düğmeler bold / heading / bullet / link çağırır.
+ */
+export function markdownToolbar() {
+    return {
+        wrap(before, after, placeholder) {
+            const el = this.$refs.text;
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
+            const selected = el.value.slice(start, end) || placeholder;
+            el.value = el.value.slice(0, start) + before + selected + after + el.value.slice(end);
+            el.focus();
+            el.setSelectionRange(start + before.length, start + before.length + selected.length);
+        },
+        prefixLines(prefix) {
+            const el = this.$refs.text;
+            const lineStart = el.value.lastIndexOf('\n', el.selectionStart - 1) + 1;
+            const end = el.selectionEnd;
+            const block = el.value.slice(lineStart, end) || 'Madde';
+            const prefixed = block.split('\n').map((line) => prefix + line).join('\n');
+            el.value = el.value.slice(0, lineStart) + prefixed + el.value.slice(end);
+            el.focus();
+        },
+        bold() { this.wrap('**', '**', 'kalın yazı'); },
+        heading() { this.prefixLines('## '); },
+        bullet() { this.prefixLines('- '); },
+        link() { this.wrap('[', '](https://)', 'bağlantı metni'); },
+    };
+}

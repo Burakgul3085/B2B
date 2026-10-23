@@ -60,7 +60,7 @@
             </div>
         </x-card>
 
-        <x-card title="Yeni ürünler" description="Bayi panelindeki &quot;Yeni Ürünler&quot; sayfası ve ürünlerdeki &quot;Yeni&quot; rozeti.">
+        <x-card title="Yeni ürünler" description="Bayi panelindeki “Yeni Ürünler” sayfası ve ürünlerdeki “Yeni” rozeti.">
             <div class="grid gap-5 sm:grid-cols-2">
                 <x-field name="new_product_days" label="Yeni ürün süresi" :value="$settings->new_product_days ?? 30"
                     :options="collect(\App\Domain\Catalog\NewProducts::DAY_OPTIONS)->mapWithKeys(fn ($d) => [$d => 'Son '.$d.' günde eklenenler'])->all()"

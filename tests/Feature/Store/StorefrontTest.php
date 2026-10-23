@@ -157,8 +157,8 @@ class StorefrontTest extends TestCase
     public function test_home_brands_pages_and_banners(): void
     {
         $this->product('Öne Çıkan Kalem', '19.90', attrs: ['is_featured' => true]);
-        StorePage::create(['title' => 'Hakkımızda', 'slug' => 'hakkimizda', 'body' => "## Biz kimiz\n\n**Yapboz** Eskişehir'de.\n\n<script>alert(1)</script>"]);
-        StorePage::create(['title' => 'Gizli', 'slug' => 'gizli', 'is_active' => false]);
+        StorePage::create(['key' => 'about', 'is_published' => true, 'content' => ['story' => "## Biz kimiz\n\n**Yapboz** Eskişehir'de.\n\n<script>alert(1)</script>"]]);
+        StorePage::create(['key' => 'contact', 'is_published' => false]);
         Storage::disk('local')->put('store/banners/b.webp', 'x');
         $banner = new StoreBanner(['title' => 'Okula Dönüş', 'link_url' => '/kategori/kalemler']);
         $banner->image_path = 'store/banners/b.webp';
@@ -168,11 +168,11 @@ class StorefrontTest extends TestCase
         $expired->save();
 
         $this->get(self::HOST.'/')->assertOk()->assertSee('Öne çıkan ürünler')->assertSee('Öne Çıkan Kalem')->assertSee('Okula Dönüş')
-            ->assertDontSee('Bitmiş Kampanya')->assertSee('Hakkımızda')->assertDontSee('/sayfa/gizli')->assertSee('"@type":"WebSite"', false);
+            ->assertDontSee('Bitmiş Kampanya')->assertSee('/hakkimizda"', false)->assertDontSee('/iletisim"', false)->assertSee('"@type":"WebSite"', false);
 
-        $this->get(self::HOST.'/sayfa/hakkimizda')->assertOk()->assertSee('<h2>Biz kimiz</h2>', false)->assertSee('<strong>Yapboz</strong>', false)
+        $this->get(self::HOST.'/hakkimizda')->assertOk()->assertSee('<h2>Biz kimiz</h2>', false)->assertSee('<strong>Yapboz</strong>', false)
             ->assertDontSee('<script>alert(1)</script>', false);
-        $this->get(self::HOST.'/sayfa/gizli')->assertNotFound();
+        $this->get(self::HOST.'/iletisim')->assertNotFound(); // yayında değil
         $this->get(self::HOST.'/markalar')->assertOk()->assertSee('Pensan');
         $this->get(self::HOST.'/marka/pensan')->assertOk()->assertSee('Öne Çıkan Kalem');
     }

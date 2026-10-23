@@ -4,15 +4,12 @@ namespace App\Domain\Store\Storefront;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
-use App\Domain\Store\Catalog\Slugs;
 use App\Models\Store\StoreBanner;
-use App\Models\Store\StorePage;
 use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /** Vitrin yönetimi: banner'lar, sabit sayfalar ve mağaza ayarları. Her değişiklik işlem geçmişine yazılır. */
@@ -78,45 +75,6 @@ class StorefrontAdmin
         DB::transaction(fn () => collect($ordered)->each(fn ($b, $i) => $b->forceFill(['sort' => $i + 1])->save()));
     }
 
-    /* ---------------- Sayfalar ---------------- */
-
-    /** @throws ValidationException */
-    public function savePage(?StorePage $page, array $input): StorePage
-    {
-        $input['slug'] = Slugs::normalize($input['slug'] ?? null);
-        $data = Validator::make($input, [
-            'title' => ['required', 'string', 'max:160'],
-            'slug' => ['nullable', 'string', 'max:180', Rule::unique('store_pages', 'slug')->ignore($page?->id)],
-            'body' => ['nullable', 'string', 'max:100000'],
-            'seo_title' => ['nullable', 'string', 'max:160'],
-            'seo_description' => ['nullable', 'string', 'max:320'],
-        ], [], ['title' => 'başlık', 'slug' => 'adres (kısa ad)', 'body' => 'içerik', 'seo_title' => 'SEO başlığı', 'seo_description' => 'SEO açıklaması'])->validate();
-
-        $data['title'] = trim($data['title']);
-        $data['slug'] ??= $page?->slug ?? Slugs::unique(StorePage::class, $data['title']);
-        $data['is_active'] = filter_var($input['is_active'] ?? true, FILTER_VALIDATE_BOOL);
-        $data['show_in_footer'] = filter_var($input['show_in_footer'] ?? true, FILTER_VALIDATE_BOOL);
-
-        if ($page) {
-            $old = $page->only(['title', 'slug', 'is_active', 'show_in_footer']);
-            $page->update($data);
-            $this->audit->log('store.page_updated', $page, $old, $page->only(['title', 'slug', 'is_active', 'show_in_footer']));
-
-            return $page;
-        }
-
-        $page = StorePage::create($data + ['sort' => (int) StorePage::max('sort') + 1]);
-        $this->audit->log('store.page_created', $page, [], ['title' => $page->title, 'slug' => $page->slug]);
-
-        return $page;
-    }
-
-    public function deletePage(StorePage $page): void
-    {
-        $page->delete();
-        $this->audit->log('store.page_deleted', $page, ['title' => $page->title, 'slug' => $page->slug]);
-    }
-
     /* ---------------- Ayarlar ---------------- */
 
     /** @throws ValidationException */
@@ -151,7 +109,7 @@ class StorefrontAdmin
             throw ValidationException::withMessages(['notify_emails' => 'Geçerli e-posta adreslerini virgülle ayırarak yazın (en fazla 10).']);
         }
         $data['notify_emails'] = $emails ? implode(', ', $emails) : null;
-        foreach (['notify_orders', 'notify_returns', 'notify_low_stock'] as $flag) {
+        foreach (['notify_orders', 'notify_returns', 'notify_low_stock', 'notify_messages'] as $flag) {
             $data[$flag] = filter_var($input[$flag] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0';
         }
 

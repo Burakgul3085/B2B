@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Storefront\Catalog;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\RobotsController;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
-use App\Models\Store\StorePage;
 use App\Models\Store\StoreSetting;
 use Illuminate\Http\Response;
 
@@ -38,7 +38,7 @@ class SeoController extends Controller
             ->merge(StoreBrand::where('is_active', true)->whereHas('products', fn ($q) => $q->where('is_published', true))->get(['slug', 'updated_at'])
                 ->map(fn ($b) => ['loc' => route('store.brand', $b->slug), 'lastmod' => $b->updated_at]))
             ->merge($catalog->products()->get(['slug', 'updated_at'])->map(fn ($p) => ['loc' => route('store.product', $p->slug), 'lastmod' => $p->updated_at]))
-            ->merge(StorePage::where('is_active', true)->get(['slug', 'updated_at'])->map(fn ($p) => ['loc' => route('store.page', $p->slug), 'lastmod' => $p->updated_at]));
+            ->merge(collect(SitePages::published())->map(fn ($p) => ['loc' => $p['url'], 'lastmod' => $p['updated_at']]));
 
         return response()->view('store.front.sitemap', ['urls' => $urls], 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
     }

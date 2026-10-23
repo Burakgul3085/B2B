@@ -29,6 +29,7 @@ class SecurityHeaders
                 "img-src 'self' data: blob:",
                 "media-src 'self' blob:", // vitrin slayt formunda seçilen videonun önizlemesi (blob:)
                 "font-src 'self'",
+                'frame-src https://www.google.com', // iletişim sayfasındaki Google Haritalar
                 "connect-src 'self'",
                 "object-src 'none'",
                 "base-uri 'self'",

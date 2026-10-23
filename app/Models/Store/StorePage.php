@@ -3,24 +3,19 @@
 namespace App\Models\Store;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 
-/** Mağazanın sabit sayfası (Hakkımızda, İletişim, Teslimat koşulları…). İçerik sade Markdown'dır; HTML çalıştırılmaz. */
+/**
+ * Mağazanın sabit sayfası (Hakkımızda, İletişim). Sayfalar kodda tanımlıdır (App\Domain\Store\Content\SitePages);
+ * içerik o sayfanın alanlarına göre JSON olarak saklanır, yönetimde sayfaya özel formla düzenlenir.
+ */
 class StorePage extends Model
 {
-    protected $attributes = ['is_active' => true, 'show_in_footer' => true, 'sort' => 0];
+    protected $attributes = ['is_published' => false];
 
-    protected $fillable = ['title', 'slug', 'body', 'seo_title', 'seo_description', 'is_active', 'show_in_footer', 'sort'];
+    protected $fillable = ['key', 'is_published', 'content', 'seo_title', 'seo_description'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'show_in_footer' => 'boolean'];
-    }
-
-    /** Güvenli HTML: ham HTML ve tehlikeli bağlantılar atılır. */
-    public function html(): HtmlString
-    {
-        return new HtmlString(Str::markdown((string) $this->body, ['html_input' => 'strip', 'allow_unsafe_links' => false]));
+        return ['is_published' => 'boolean', 'content' => 'array'];
     }
 }

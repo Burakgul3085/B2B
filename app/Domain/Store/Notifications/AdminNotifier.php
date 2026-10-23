@@ -3,18 +3,21 @@
 namespace App\Domain\Store\Notifications;
 
 use App\Domain\Mail\SystemMailer;
+use App\Domain\Store\Customers\PhoneNumber;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreAdmin;
+use App\Models\Store\StoreContactMessage;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreSetting;
 use App\Models\Store\StoreStockMovement;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Mağaza yöneticilerine e-posta bildirimleri (docs/21-magaza-m8-raporu.md §3): yeni sipariş, yeni iade talebi,
- * kritik stok. Alıcılar Mağaza Ayarları'ndaki listedir; liste boşsa etkin tüm mağaza yöneticileri.
+ * kritik stok, iletişim formu mesajı. Alıcılar Mağaza Ayarları'ndaki listedir; liste boşsa etkin tüm mağaza yöneticileri.
  * Gönderim yanıt döndükten sonra yapılır; e-posta hatası işlemi etkilemez.
  */
 class AdminNotifier
@@ -81,6 +84,23 @@ class AdminNotifier
             $this->send('Kritik stok uyarısı', 'Kritik stok', 'Aşağıdaki ürünlerin stoğu belirlediğiniz kritik seviyeye indi.', $rows,
                 route('store_admin.stock.index'), 'Stok durumunu aç');
         }
+    }
+
+    /** İletişim formundan yeni mesaj. Mesaj metni e-postada kısaltılır; tamamı Mesajlar ekranındadır. */
+    public function contactMessage(StoreContactMessage $message): void
+    {
+        if (! StoreSetting::flag('notify_messages')) {
+            return;
+        }
+        $rows = array_values(array_filter([
+            ['Gönderen', $message->name],
+            $message->phone ? ['Telefon', PhoneNumber::format($message->phone)] : null,
+            $message->email ? ['E-posta', $message->email] : null,
+            ['Konu', StoreContactMessage::SUBJECTS[$message->subject] ?? $message->subject],
+            ['Mesaj', Str::limit($message->message, 300)],
+        ]));
+        $this->send("Yeni iletişim mesajı — {$message->name}", 'Yeni iletişim mesajı', 'Mağazanın iletişim sayfasından yeni bir mesaj geldi.', $rows,
+            route('store_admin.messages.show', $message), 'Mesajı aç');
     }
 
     /** @param  list<array{0: string, 1: string}>  $rows */

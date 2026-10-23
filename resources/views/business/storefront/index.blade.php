@@ -175,7 +175,7 @@
                         @endif
                     </article>
                 @empty
-                    <x-card><x-empty-state icon="layers" title="Henüz vitrin yok" text="Örn. &quot;Önerdiğimiz ürünler&quot;, &quot;Yeni gelenler&quot; veya bir kategoriyi vitrin yapın." /></x-card>
+                    <x-card><x-empty-state icon="layers" title="Henüz vitrin yok" text="Örn. “Önerdiğimiz ürünler”, “Yeni gelenler” veya bir kategoriyi vitrin yapın." /></x-card>
                 @endforelse
             </div>
 

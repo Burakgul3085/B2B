@@ -28,6 +28,7 @@
 | [24-b2b-eksikler-raporu.md](24-b2b-eksikler-raporu.md) | B2B eksikleri: hata kayıtları, yedekler (gece yedeği, geri yükleme doğrulandı), destek erişimi, başvuruya web üzerinden ek bilgi, kayıtlı rapor filtreleri, koyu tema; teknik borç kararları (CSP) |
 | [25-yayin-oncesi-eksikler-raporu.md](25-yayin-oncesi-eksikler-raporu.md) | Yayın öncesi eksikler: Türkçe hata sayfaları ve referans kodu, eksiksiz Türkçe doğrulama mesajları, sözleşmelerin sipariş e-postasıyla gönderimi, iyzico bildirim adresi (webhook), adrese göre kapıda ödeme engeli, .env.example ve günlük dosyaları, mağaza performans ölçümü |
 | [26-havale-ve-kilavuzlar-raporu.md](26-havale-ve-kilavuzlar-raporu.md) | Havale / EFT ile ödeme (hesaplar, süre, onay, süre dolunca iptal, iade kuralı); desiye göre kargo ücreti olmayacağı ve Turnstile'ın yapılmayacağı kararları |
+| [27-hakkimizda-iletisim-raporu.md](27-hakkimizda-iletisim-raporu.md) | Mağaza: serbest sayfalar yerine sabit Hakkımızda ve İletişim sayfaları (yönetimde düzenlenir), Google Haritalar, çalışma saatleri, iletişim formu ve Mesajlar kutusu |
 | [kilavuz/](kilavuz/) | Kullanım kılavuzları: [toptancı](kilavuz/toptanci.md), [bayi](kilavuz/bayi.md), [mağaza yönetimi](kilavuz/magaza-yonetimi.md), [platform](kilavuz/platform.md); [sunucu kurulumu](kilavuz/kurulum.md) |
 | [YAPILACAKLAR.md](YAPILACAKLAR.md) | Yapılmayanlar ve bekleyenler: kalan mağaza aşamaları (M7–M10), dışarıdan beklenen hesap ve bilgiler, B2B Aşama 10 ve eksik ekranlar |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

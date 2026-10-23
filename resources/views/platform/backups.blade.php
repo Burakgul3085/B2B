@@ -10,7 +10,7 @@
 
     <x-card :padding="false">
         @if ($backups === [])
-            <x-empty-state icon="archive" title="Henüz yedek yok" text="İlk yedeği almak için &quot;Şimdi yedek al&quot; düğmesini kullanın." />
+            <x-empty-state icon="archive" title="Henüz yedek yok" text="İlk yedeği almak için “Şimdi yedek al” düğmesini kullanın." />
         @else
             <table class="table-base">
                 <thead><tr><th>Yedek</th><th>Tarih</th><th class="text-right">Boyut</th><th></th></tr></thead>

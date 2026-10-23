@@ -4,7 +4,6 @@ namespace Tests\Feature\Store;
 
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreBanner;
-use App\Models\Store\StorePage;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -58,23 +57,6 @@ class StorefrontAdminTest extends TestCase
         Storage::disk('local')->assertMissing($first->image_path);
         $this->assertDatabaseHas('audit_logs', ['action' => 'store.banner_created', 'actor_type' => 'store_admin']);
         $this->get(route('store_admin.banners.index'))->assertOk()->assertSee('Kış');
-    }
-
-    public function test_pages_are_managed(): void
-    {
-        $this->post(route('store_admin.pages.store'), ['title' => 'Teslimat Koşulları', 'body' => "## Teslimat\n\nEskişehir içi aynı gün."])
-            ->assertSessionHasNoErrors();
-        $page = StorePage::firstOrFail();
-        $this->assertSame(['teslimat-kosullari', true, true], [$page->slug, $page->is_active, $page->show_in_footer]);
-
-        $this->post(route('store_admin.pages.store'), ['title' => 'Başka', 'slug' => 'teslimat-kosullari'])->assertSessionHasErrors('slug');
-        $this->put(route('store_admin.pages.update', $page), ['title' => 'Teslimat', 'body' => 'x', 'is_active' => '0', 'show_in_footer' => '0'])->assertSessionHasNoErrors();
-        $this->assertSame(['Teslimat', 'teslimat-kosullari', false], [$page->fresh()->title, $page->fresh()->slug, $page->fresh()->is_active]);
-
-        $this->get(route('store_admin.pages.index'))->assertOk()->assertSee('Teslimat');
-        $this->get(route('store_admin.pages.edit', $page))->assertOk();
-        $this->delete(route('store_admin.pages.destroy', $page))->assertRedirect(route('store_admin.pages.index'));
-        $this->assertSame(0, StorePage::count());
     }
 
     public function test_settings_and_opening_the_store(): void

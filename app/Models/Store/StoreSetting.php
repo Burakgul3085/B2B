@@ -53,6 +53,7 @@ class StoreSetting extends Model
         'notify_orders' => '1',
         'notify_returns' => '1',
         'notify_low_stock' => '1',
+        'notify_messages' => '1',          // iletişim formu mesajları
 
         // İade (cayma hakkı). Süre yasal en az 14 gündür.
         'return_days' => '14',

@@ -89,6 +89,8 @@ MD],
 
 Zorunlu çerezler sitenin çalışması için gereklidir ve kapatılamaz. Şu anda analiz veya reklam çerezi kullanılmamaktadır; ileride kullanılırsa yalnızca onay vermeniz hâlinde etkinleşir.
 
+**Google Haritalar:** İletişim sayfasındaki harita Google Haritalar'dan yüklenir. Bu sayfayı açtığınızda Google, kendi gizlilik politikası kapsamında tarayıcınıza çerez yazabilir ve IP adresiniz gibi bilgileri alabilir. Bu çerezler sitemiz tarafından yönetilmez; ayrıntılar için Google'ın gizlilik politikasına (policies.google.com) bakabilirsiniz.
+
 ## Tercihlerinizi değiştirme
 
 Sayfanın altındaki **Çerez tercihleri** bağlantısıyla seçiminizi istediğiniz zaman değiştirebilirsiniz. Tarayıcınızın ayarlarından da çerezleri silebilir veya engelleyebilirsiniz; bu durumda sepet ve giriş gibi özellikler çalışmayabilir.

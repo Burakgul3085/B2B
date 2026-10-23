@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Storefront\ImageVariants;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBanner;
@@ -47,6 +48,14 @@ class MediaController extends Controller
     public function paymentLogos(): StreamedResponse
     {
         return $this->serve(StoreSetting::get('payment_logos_path') ?? abort(404), null);
+    }
+
+    /** Hakkımızda sayfasının kapak ve galeri fotoğrafları (yalnızca yayındaki sayfanın). */
+    public function page(Request $request, string $file): StreamedResponse
+    {
+        abort_unless(SitePages::ownsImage($file), 404);
+
+        return $this->serve('store/pages/'.$file, $request->integer('w') ?: null);
     }
 
     private function serve(string $source, ?int $width): StreamedResponse

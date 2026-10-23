@@ -22,7 +22,7 @@ Mağaza varsayılan olarak **kapalıdır**; ziyaretçiler "Çok yakında" sayfas
    - Ödeme logo bandı.
 2. **Ayarlar → Yasal Metinler:** Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal-İade, KVKK, Gizlilik ve Çerez Politikası. Metinler başlangıç şablonudur, **hukukçuya kontrol ettirin**. Her kayıt yeni bir sürüm oluşturur; müşterinin hangi sürümü onayladığı siparişte saklanır.
 3. **Ayarlar → Ödeme ve Teslimat** (bkz. §4) ve **Ayarlar → Kargo Firmaları:** Takip bağlantısı şablonu, ör. `https://.../sorgula?no={takip}`.
-4. **Vitrin → Banner'lar** ve **Vitrin → Sayfalar** (Hakkımızda, İletişim…).
+4. **Vitrin → Banner'lar**, **Vitrin → Hakkımızda** ve **Vitrin → İletişim** (bkz. §9).
 5. Katalog ve stok (§3).
 6. **Ayarlar → Yayın Hazırlığı:** Eksik maddeleri tek ekranda gösterir. Hepsi tamamsa **Mağaza Ayarları → Yayın durumu → Mağazayı aç**.
 
@@ -95,3 +95,29 @@ Müşteri teslimden sonra iade süresi içinde sipariş sayfasından iade talebi
 ## 8. Müşteri hesapları ve KVKK
 
 Müşteri üye olarak veya misafir olarak sipariş verebilir. Üye, hesabından siparişlerini, adreslerini ve iadelerini yönetir. Hesabını kapatabilir; bu durumda kişisel bilgileri anonimleştirilir, yasal saklama gereği sipariş kayıtları korunur. Çerez tercihleri sitedeki çerez bandından yönetilir.
+
+## 9. Hakkımızda, İletişim ve Mesajlar
+
+Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı vardır; yeni bir sayfa gerekirse yazılım tarafında eklenir. Sayfalar örnek metinle ve **yayında kapalı** başlar; **Önizle** ile yayına almadan görülebilir.
+
+- **Vitrin → Hakkımızda:**
+    - başlık, slogan, kapak fotoğrafı
+    - hikâye metni (kalın, ara başlık, madde, bağlantı düğmeleri)
+    - en fazla 4 rakam (ör. 1998 · Kuruluş)
+    - en fazla 4 "Neden biz" kartı (simge, başlık, kısa metin)
+    - en fazla 6 fotoğraflık galeri
+    - sayfa sonu "Ürünlere göz atın" düğmesi
+    - arama motoru başlığı ve açıklaması
+
+    Boş bırakılan bölüm sayfada görünmez.
+- **Vitrin → İletişim:** Telefon, WhatsApp, e-posta, adres, sosyal medya ve satıcı bilgileri **Mağaza Ayarları**'ndan gelir; burada tekrar girilmez. Bu ekranda şunlar ayarlanır:
+    - giriş metni
+    - günlük çalışma saatleri (sayfada "Şu an açık / kapalı" rozeti)
+    - harita
+    - iletişim formunun açık olup olmadığı
+- **Harita:** Google Haritalar'da dükkânı açın, **Paylaş → Bağlantıyı kopyala** deyip bağlantıyı yapıştırın. Sistem konumu bulur, haritayı ve "Yol tarifi al" düğmesini oluşturur. Konum bulunamazsa **Paylaş → Harita yerleştir → HTML'yi kopyala** kodunu yapıştırın. Harita, Gizlilik ve Çerez Politikası'nda belirtildiği gibi Google'dan yüklenir.
+- **Satış → Mesajlar:** İletişim formundan gelen mesajlar burada toplanır; menüdeki rakam yeni mesaj sayısıdır.
+    - Mesaj açılınca "Okundu" olur.
+    - Yanıtı e-posta, telefon veya WhatsApp ile verdikten sonra **Yanıtlandı olarak işaretle** deyin.
+    - Kişi verilerinin silinmesini isterse mesajı silebilirsiniz.
+    - Yeni mesaj bildirimi, Mağaza Ayarları → Yönetici bildirimleri bölümünden açılıp kapatılır; bildirimin gitmesi için sistem e-postası tanımlı olmalıdır.

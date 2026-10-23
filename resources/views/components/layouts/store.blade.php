@@ -190,7 +190,7 @@
                 <p class="text-sm font-semibold">Kurumsal</p>
                 <ul class="mt-4 space-y-2 text-sm text-muted">
                     @foreach ($footerPages as $page)
-                        <li><a href="{{ route('store.page', $page->slug) }}" class="hover:text-primary">{{ $page->title }}</a></li>
+                        <li><a href="{{ $page['url'] }}" class="hover:text-primary">{{ $page['title'] }}</a></li>
                     @endforeach
                     <li><a href="{{ $b2bLogin }}" class="hover:text-primary">Bayi girişi</a></li>
                 </ul>

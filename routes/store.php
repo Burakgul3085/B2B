@@ -80,12 +80,13 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::delete('bannerlar/{storeBanner}', [Admin\BannerController::class, 'destroy'])->name('banners.destroy');
                 Route::get('bannerlar/{storeBanner}/gorsel', [Admin\BannerController::class, 'image'])->name('banners.image');
 
-                Route::get('sayfalar', [Admin\PageController::class, 'index'])->name('pages.index');
-                Route::get('sayfalar/yeni', [Admin\PageController::class, 'create'])->name('pages.create');
-                Route::post('sayfalar', [Admin\PageController::class, 'store'])->name('pages.store');
-                Route::get('sayfalar/{storePage}', [Admin\PageController::class, 'edit'])->name('pages.edit');
-                Route::put('sayfalar/{storePage}', [Admin\PageController::class, 'update'])->name('pages.update');
-                Route::delete('sayfalar/{storePage}', [Admin\PageController::class, 'destroy'])->name('pages.destroy');
+                // Sabit sayfalar: her sayfanın kendi formu var; serbest sayfa oluşturma yok (App\Domain\Store\Content\SitePages).
+                Route::get('hakkimizda', [Admin\SitePageController::class, 'about'])->name('site-pages.about');
+                Route::put('hakkimizda', [Admin\SitePageController::class, 'updateAbout'])->name('site-pages.about.update');
+                Route::get('iletisim', [Admin\SitePageController::class, 'contact'])->name('site-pages.contact');
+                Route::put('iletisim', [Admin\SitePageController::class, 'updateContact'])->name('site-pages.contact.update');
+                Route::get('sayfa-onizleme/{key}', [Admin\SitePageController::class, 'preview'])->whereIn('key', ['about', 'contact'])->name('site-pages.preview');
+                Route::get('sayfa-gorseli/{file}', [Admin\SitePageController::class, 'image'])->name('site-pages.image');
 
                 Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
                 Route::put('ayarlar', [Admin\SettingsController::class, 'update'])->name('settings.update');
@@ -109,6 +110,11 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('siparisler/{storeOrder}/iade-faturasi/{note}', [Admin\OrderController::class, 'creditNote'])->whereNumber('note')->name('orders.credit-note');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
             Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
+            // İletişim formu mesajları
+            Route::get('mesajlar', [Admin\ContactMessageController::class, 'index'])->name('messages.index');
+            Route::get('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'show'])->name('messages.show');
+            Route::post('mesajlar/{storeContactMessage}/yanitlandi', [Admin\ContactMessageController::class, 'replied'])->name('messages.replied');
+            Route::delete('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
             Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
             Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
@@ -184,7 +190,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('markalar', [Front\PageController::class, 'brands'])->name('brands');
         Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1,search')->name('search');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
-        Route::get('sayfa/{slug}', [Front\PageController::class, 'show'])->name('page');
+        Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
+        Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');
+        Route::post('iletisim', [Front\SitePageController::class, 'send'])->middleware(['throttle:5,10,contact.send', 'store.bot'])->name('contact.send');
 
         // Müşteri girişi ve üyelik (M5)
         Route::middleware('guest:customer')->group(function () {
@@ -247,5 +255,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
         Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
         Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
+        Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
     });
 });

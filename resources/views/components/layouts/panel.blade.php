@@ -82,6 +82,8 @@
                     'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
                 ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
                     'badge' => \App\Models\Store\StoreReturn::where('status', 'requested')->count()],
+                ['label' => 'Mesajlar', 'route' => 'store_admin.messages.index', 'icon' => 'message-circle', 'active' => 'store_admin.messages.*',
+                    'badge' => \App\Models\Store\StoreContactMessage::where('status', 'new')->count()],
                 ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],
                 ['label' => 'Raporlar', 'route' => 'store_admin.reports.index', 'icon' => 'grid', 'active' => 'store_admin.reports.*'],
             ]],
@@ -92,7 +94,8 @@
             ]],
             ['label' => 'Vitrin', 'items' => [
                 ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
-                ['label' => 'Sayfalar', 'route' => 'store_admin.pages.index', 'icon' => 'file', 'active' => 'store_admin.pages.*'],
+                ['label' => 'Hakkımızda', 'route' => 'store_admin.site-pages.about', 'icon' => 'building', 'active' => 'store_admin.site-pages.about*'],
+                ['label' => 'İletişim', 'route' => 'store_admin.site-pages.contact', 'icon' => 'map-pin', 'active' => 'store_admin.site-pages.contact*'],
             ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],

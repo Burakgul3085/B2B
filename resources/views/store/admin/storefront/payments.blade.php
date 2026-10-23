@@ -67,7 +67,7 @@
                 </div>
             </x-card>
 
-            <x-card title="Havale / EFT" description="İsteğe bağlı. Müşteri siparişten sonra hesap bilgilerini görür ve sipariş numarasını açıklamaya yazarak ödeme yapar. Ödeme hesaba geçince siparişte &quot;Havale alındı&quot; ile onaylarsınız.">
+            <x-card title="Havale / EFT" description="İsteğe bağlı. Müşteri siparişten sonra hesap bilgilerini görür ve sipariş numarasını açıklamaya yazarak ödeme yapar. Ödeme hesaba geçince siparişte “Havale alındı” ile onaylarsınız.">
                 <div class="space-y-5">
                     <x-toggle name="transfer_enabled" label="Havale / EFT ile ödeme açık" :checked="$s['transfer_enabled'] === '1'" />
                     <x-field name="transfer_accounts" label="Banka hesapları" textarea maxlength="1500" :value="$s['transfer_accounts']"

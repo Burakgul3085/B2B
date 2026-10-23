@@ -23,7 +23,7 @@
                     <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" />
                 </div>
             </x-card>
-            <x-card title="Ödeme logo bandı" description="iyzico, sitenin alt bilgisinde &quot;iyzico ile Öde&quot; ve kart logolarının bulunmasını ister. Görseli iyzico üye işyeri panelinden indirip yükleyin.">
+            <x-card title="Ödeme logo bandı" description="iyzico, sitenin alt bilgisinde “iyzico ile Öde” ve kart logolarının bulunmasını ister. Görseli iyzico üye işyeri panelinden indirip yükleyin.">
                 @if ($settings['payment_logos_path'])
                     <img src="{{ route('store.media.payment-logos') }}" alt="Ödeme logoları" class="mb-4 h-8 w-auto">
                     <label class="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_payment_logos" value="1" class="size-4 rounded border-line"> Görseli kaldır</label>
@@ -37,6 +37,7 @@
                     <x-toggle name="notify_orders" label="Yeni sipariş" :checked="$settings['notify_orders'] === '1'" hint="Kartla ödemesi alınan veya kapıda ödemeli oluşturulan her sipariş." />
                     <x-toggle name="notify_returns" label="Yeni iade talebi" :checked="$settings['notify_returns'] === '1'" />
                     <x-toggle name="notify_low_stock" label="Kritik stok" :checked="$settings['notify_low_stock'] === '1'" hint="Satışla stok, ürünün kritik stok seviyesine indiğinde." />
+                    <x-toggle name="notify_messages" label="İletişim formu mesajı" :checked="$settings['notify_messages'] === '1'" hint="İletişim sayfasındaki formdan yeni mesaj geldiğinde." />
                 </div>
             </x-card>
             <x-card title="Görünüm ve arama motorları">
