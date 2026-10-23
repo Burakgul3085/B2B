@@ -191,7 +191,6 @@
     --color-muted: #94a3b8;
     --color-line: #2a3446;
     --color-surface: #0b1120;
-    --color-graphite: #cbd5e1;
     --color-success: #4ade80;
     --color-success-soft: #0f2b1c;
     --color-warning: #fbbf24;
@@ -256,5 +255,10 @@
 .dark .shadow-xs,
 .dark .shadow-sm { --tw-shadow-color: rgb(0 0 0 / 0.4); }
 .dark .mix-blend-multiply { mix-blend-mode: normal; }
+/* Tablo başlığı ve satır vurgusu @apply ile tanımlı olduğundan sınıf eşlemesine takılmaz; ayrıca karşılanır. */
+.dark .table-base th { background-color: #172033; }
+.dark .table-base tbody tr:hover { background-color: rgb(23 32 51 / 0.7); }
+/* Platform menüsü ve giriş zemini (graphite) koyu temada da koyu kalır; sağ kenarla içerikten ayrılır. */
+.dark aside.bg-graphite { border-right: 1px solid var(--color-line); }
 .dark .field-input { background-color: #0d1424; }
 .dark .field-input:disabled { background-color: #172033; }
