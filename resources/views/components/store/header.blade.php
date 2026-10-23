@@ -10,6 +10,8 @@
     $q = request()->routeIs('store.search') ? (string) request('q') : '';
     $roots = $menu->take(6);
     $navLink = 'inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold text-ink/80 transition hover:text-ink';
+    // Dar masaüstünde (lg) gizlenen bağlantılar: "hidden" ile "inline-flex" aynı sınıfta çakışmasın diye ayrı dize.
+    $navLinkXl = str_replace('inline-flex', 'hidden xl:inline-flex', $navLink);
 @endphp
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
@@ -96,7 +98,7 @@
 
     {{-- Geniş kategori menüsü (masaüstü) --}}
     <nav class="relative hidden border-t border-line lg:block" aria-label="Kategoriler" x-data="megaMenu" @click.outside="close" @keydown.escape.window="close">
-        <div class="mx-auto flex max-w-7xl items-center gap-1 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-7xl items-center gap-1 overflow-hidden px-4 sm:px-6 lg:px-8">
             @if ($menu->isNotEmpty())
                 <button type="button" @click="toggle" :aria-expanded="open" aria-expanded="false"
                     class="mr-2 inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-navy px-4 text-sm font-semibold text-white transition hover:bg-navy-2">
@@ -105,16 +107,16 @@
             @endif
             @foreach ($roots as $root)
                 @php $c = Palette::classes($root->palette); @endphp
-                <a href="{{ route('store.category', $root->slug) }}" @class([$navLink, 'group relative', 'hidden xl:inline-flex' => $loop->index >= 4])>
+                <a href="{{ route('store.category', $root->slug) }}" @class([$loop->index >= 4 ? $navLinkXl : $navLink, 'group relative'])>
                     <span class="size-2 rounded-full {{ $c['solid'] }}"></span>{{ $root->name }}
                     <span class="absolute inset-x-3 bottom-0 h-0.5 origin-left scale-x-0 rounded-full transition group-hover:scale-x-100 {{ $c['solid'] }}"></span>
                 </a>
             @endforeach
             <span class="ml-auto"></span>
             <a href="{{ route('store.products', ['indirim' => 1]) }}" class="{{ $navLink }}"><x-icon name="percent" class="size-4 text-puzzle-orange" /> İndirimler</a>
-            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
-            <a href="{{ route('store.brands') }}" class="{{ $navLink }}">Markalar</a>
-            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLink }} hidden xl:inline-flex">Blog</a>@endif
+            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLinkXl }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
+            <a href="{{ route('store.brands') }}" class="{{ $navLinkXl }}">Markalar</a>
+            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLinkXl }}">Blog</a>@endif
         </div>
 
         @if ($menu->isNotEmpty())

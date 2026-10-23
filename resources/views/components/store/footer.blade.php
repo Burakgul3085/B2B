@@ -131,23 +131,30 @@
         @endif
     </div>
 
-    {{-- Güvenli ödeme bandı: iyzico ve kabul edilen kartlar --}}
+    {{-- Güvenli ödeme: solda güvence, sağda eşit kutularla kartlar ve taksit seçenekleri --}}
     <div class="border-t border-white/10">
-        <div class="mx-auto flex max-w-7xl flex-col items-center gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:justify-between lg:px-8">
-            <div class="flex items-center gap-3 text-center lg:text-left">
-                <span class="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-puzzle-green/15 text-puzzle-green sm:flex"><x-icon name="lock" class="size-5" /></span>
-                <div>
-                    <p class="text-sm font-semibold text-white">Güvenli ödeme</p>
-                    <p class="text-xs text-white/55">Kart bilgileriniz iyzico güvencesiyle, 256-bit SSL ve 3D Secure ile korunur; mağazamızda saklanmaz.</p>
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-8 rounded-3xl bg-white/[0.03] p-6 ring-1 ring-white/10 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+                <div class="max-w-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-puzzle-green/15 text-puzzle-green ring-1 ring-puzzle-green/25"><x-icon name="lock" class="size-6" /></span>
+                        <div>
+                            <p class="font-display text-lg font-extrabold text-white">Güvenli ödeme</p>
+                            <p class="text-xs text-white/55">iyzico altyapısıyla</p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-sm leading-relaxed text-white/60">Kart bilgileriniz iyzico güvencesiyle işlenir; mağazamızda saklanmaz. Uygun kartlarla taksitli ödeme yapabilirsiniz.</p>
+                    <ul class="mt-4 flex flex-wrap gap-2 text-[11px] font-bold tracking-wider text-white/80 uppercase">
+                        <li class="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 ring-1 ring-white/10"><x-icon name="shield" class="size-3.5 text-puzzle-green" /> 256-bit SSL</li>
+                        <li class="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 ring-1 ring-white/10"><x-icon name="check-circle" class="size-3.5 text-puzzle-green" /> 3D Secure</li>
+                    </ul>
+                    @if ($settings['payment_logos_path'])
+                        <span class="mt-4 inline-block rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
+                    @endif
                 </div>
+                <x-store.payment-marks :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
             </div>
-            <x-store.payment-marks :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
         </div>
-        @if ($settings['payment_logos_path'])
-            <div class="mx-auto -mt-2 flex max-w-7xl justify-center px-4 pb-6 sm:px-6 lg:justify-end lg:px-8">
-                <span class="rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
-            </div>
-        @endif
     </div>
 
     {{-- Telif ve künye --}}
