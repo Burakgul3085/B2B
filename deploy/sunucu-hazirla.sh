@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Yapboz Kırtasiye — sunucu hazırlığı (Ubuntu 24.04, root olarak). Her yayında yayinla.sh tarafından çalıştırılır;
+# Yapboz Kırtasiye — sunucu hazırlığı (Ubuntu 24.04 + PHP 8.5 ppa:ondrej/php, root olarak). Her yayında yayinla.sh tarafından çalıştırılır;
 # yalnızca eksik olanı kurar, var olan ayarlara (ör. certbot'un değiştirdiği Nginx dosyasına, .env'e) dokunmaz.
 # Kullanım: bash sunucu-hazirla.sh <alan-adı>     (IDN alan adı punycode yazılır: xn--...)
 set -euo pipefail
@@ -43,7 +43,7 @@ chown root:www-data "$ENV"
 
 # PHP
 for sapi in fpm cli; do
-    install -m 644 "$HERE/php.ini" "/etc/php/8.3/$sapi/conf.d/99-yapboz.ini"
+    install -m 644 "$HERE/php.ini" "/etc/php/8.5/$sapi/conf.d/99-yapboz.ini"
 done
 
 # Nginx: yalnızca ilk kurulumda yazılır (sonra certbot HTTPS satırlarını ekler).

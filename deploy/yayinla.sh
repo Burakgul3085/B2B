@@ -5,7 +5,7 @@
 #  3. Sunucuda yeni sürüm klasörüne açar, bağımlılıkları kurar, veritabanını günceller, önbellekleri hazırlar,
 #     "current" bağlantısını yeni sürüme çevirir (kesintisiz), PHP'yi ve kuyruk işçisini yeniler. Son 5 sürüm saklanır.
 # Kullanım: bash deploy/yayinla.sh            (ayarlar aşağıda; YAPBOZ_HOST ve YAPBOZ_KEY ile değiştirilebilir)
-# Geri alma: sunucuda  ln -sfn /var/www/yapboz/releases/<önceki> /var/www/yapboz/current && systemctl reload php8.3-fpm
+# Geri alma: sunucuda  ln -sfn /var/www/yapboz/releases/<önceki> /var/www/yapboz/current && systemctl reload php8.5-fpm
 set -euo pipefail
 
 HOST="${YAPBOZ_HOST:-root@187.126.9.129}"
@@ -64,7 +64,7 @@ as_www event:cache >/dev/null
 # Kesintisiz geçiş: bağlantı tek adımda değişir.
 ln -sfn "$REL" "$BASE/current.new" && mv -T "$BASE/current.new" "$BASE/current"
 
-systemctl reload php8.3-fpm
+systemctl reload php8.5-fpm
 nginx -t -q && systemctl reload nginx
 supervisorctl reread >/dev/null && supervisorctl update >/dev/null
 as_www queue:restart >/dev/null
