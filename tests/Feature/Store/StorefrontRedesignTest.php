@@ -111,4 +111,19 @@ class StorefrontRedesignTest extends TestCase
         // JavaScript olmadan normal form gibi döner.
         $this->post(self::HOST.'/sepet', ['variant_id' => $variant->id])->assertRedirect()->assertSessionHas('cart_added');
     }
+
+    public function test_footer_shows_payment_marks_and_credits(): void
+    {
+        $this->get(self::HOST.'/')->assertOk()
+            ->assertSee('aria-label="Ödeme yöntemleri"', false)
+            ->assertSee('iyzico ile öde')->assertSee('aria-label="Visa"', false)->assertSee('aria-label="Mastercard"', false)
+            ->assertSee('aria-label="American Express"', false)->assertSee('aria-label="Troy"', false)
+            ->assertDontSee('Havale / EFT</li>', false)
+            ->assertDontSee('Fiyatlara KDV dahildir')
+            ->assertSee('Sayfa yöneticisi')->assertSee('Onur Birbilen')
+            ->assertSee('Burak Gül')->assertSee('mailto:burakgul3085@gmail.com', false)->assertSee('https://www.linkedin.com/in/burakgul1006/', false);
+
+        StoreSetting::put(['transfer_enabled' => '1']);
+        $this->get(self::HOST.'/')->assertSee('Havale / EFT</li>', false);
+    }
 }

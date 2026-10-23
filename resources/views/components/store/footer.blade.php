@@ -131,14 +131,41 @@
         @endif
     </div>
 
+    {{-- Güvenli ödeme bandı: iyzico ve kabul edilen kartlar --}}
     <div class="border-t border-white/10">
-        <div class="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-6 text-sm sm:px-6 lg:flex-row lg:justify-between lg:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:justify-between lg:px-8">
+            <div class="flex items-center gap-3 text-center lg:text-left">
+                <span class="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-puzzle-green/15 text-puzzle-green sm:flex"><x-icon name="lock" class="size-5" /></span>
+                <div>
+                    <p class="text-sm font-semibold text-white">Güvenli ödeme</p>
+                    <p class="text-xs text-white/55">Kart bilgileriniz iyzico güvencesiyle, 256-bit SSL ve 3D Secure ile korunur; mağazamızda saklanmaz.</p>
+                </div>
+            </div>
+            <x-store.payment-marks :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
+        </div>
+        @if ($settings['payment_logos_path'])
+            <div class="mx-auto -mt-2 flex max-w-7xl justify-center px-4 pb-6 sm:px-6 lg:justify-end lg:px-8">
+                <span class="rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
+            </div>
+        @endif
+    </div>
+
+    {{-- Telif ve künye --}}
+    <div class="border-t border-white/10 bg-black/20">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-5 text-[13px] sm:px-6 lg:flex-row lg:justify-between lg:px-8">
             <p class="text-center text-white/60 lg:text-left">© {{ now()->year }} <span class="font-semibold text-white">{{ $settings['company_title'] ?: $storeName }}</span> — Tüm hakları saklıdır.
                 @if ($footer['bottom_note'])<span class="block text-white/50 sm:inline sm:pl-2">{{ $footer['bottom_note'] }}</span>@endif</p>
-            <div class="flex flex-wrap items-center justify-center gap-4">
-                @if ($settings['payment_logos_path'])
-                    <span class="rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
+            @php $dev = config('store.developer'); @endphp
+            <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-white/55">
+                @if ($footer['manager_name'])
+                    <span>Sayfa yöneticisi: <span class="font-semibold text-white/85">{{ $footer['manager_name'] }}</span></span>
+                    <span class="hidden h-4 w-px bg-white/15 sm:block" aria-hidden="true"></span>
                 @endif
+                <span class="flex items-center gap-2.5">
+                    <span>Yazılım geliştirme: <span class="font-semibold text-white/85">{{ $dev['name'] }}</span></span>
+                    <a href="mailto:{{ $dev['email'] }}" class="flex size-7 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white" aria-label="{{ $dev['name'] }} e-posta: {{ $dev['email'] }}" title="{{ $dev['email'] }}"><x-icon name="mail" class="size-3.5" /></a>
+                    <a href="{{ $dev['linkedin'] }}" target="_blank" rel="noopener" class="flex size-7 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition hover:bg-[#0a66c2] hover:text-white" aria-label="{{ $dev['name'] }} LinkedIn" title="LinkedIn"><x-icon name="linkedin" class="size-3.5" /></a>
+                </span>
             </div>
         </div>
     </div>

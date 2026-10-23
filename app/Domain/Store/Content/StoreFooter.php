@@ -40,7 +40,8 @@ class StoreFooter
             'show_hours' => true,
             'show_b2b' => true,
             'whatsapp_button' => true,
-            'bottom_note' => 'Fiyatlara KDV dahildir.',
+            'bottom_note' => null,
+            'manager_name' => 'Onur Birbilen',   // alt bilgide "Sayfa yöneticisi"
             // Üst şerit (her sayfanın en üstü). Boş maddeler ayarlardan kendiliğinden üretilir.
             'topbar_enabled' => true,
             'topbar_items' => [],
@@ -108,11 +109,12 @@ class StoreFooter
             'info_title' => ['required', 'string', 'max:30'],
             'store_title' => ['required', 'string', 'max:30'],
             'bottom_note' => ['nullable', 'string', 'max:120'],
+            'manager_name' => ['nullable', 'string', 'max:60'],
             'topbar_items' => ['nullable', 'array', 'max:3'],
             'topbar_items.*' => ['nullable', 'string', 'max:50'],
         ], [], [
             'footer_about' => 'tanıtım metni', 'tagline' => 'logo altı yazı', 'shop_title' => 'alışveriş başlığı', 'category_count' => 'kategori sayısı',
-            'info_title' => 'bilgi başlığı', 'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not',
+            'info_title' => 'bilgi başlığı', 'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not', 'manager_name' => 'sayfa yöneticisi',
         ])->validate();
 
         $strip = [];
@@ -141,6 +143,7 @@ class StoreFooter
             'show_b2b' => $flag('show_b2b'),
             'whatsapp_button' => $flag('whatsapp_button'),
             'bottom_note' => trim((string) ($data['bottom_note'] ?? '')) ?: null,
+            'manager_name' => trim((string) ($data['manager_name'] ?? '')) ?: null,
             'topbar_enabled' => $flag('topbar_enabled'),
             'topbar_items' => array_values(array_filter(array_map(fn ($t) => trim((string) $t), $data['topbar_items'] ?? []))),
         ];

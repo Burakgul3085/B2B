@@ -57,7 +57,8 @@
                         <x-toggle name="show_hours" label="Çalışma saatleri" :checked="$footer['show_hours']" hint="İletişim sayfasındaki saatler." />
                         <x-toggle name="show_b2b" label="“Bayi girişi” bağlantısı" :checked="$footer['show_b2b']" />
                         <x-toggle name="whatsapp_button" label="Sağ altta WhatsApp düğmesi" :checked="$footer['whatsapp_button']" hint="Mağaza Ayarları'nda WhatsApp numarası varsa." />
-                        <x-field name="bottom_note" label="En alttaki not" :value="$footer['bottom_note']" maxlength="120" placeholder="ör. Fiyatlara KDV dahildir." />
+                        <x-field name="bottom_note" label="En alttaki not" :value="$footer['bottom_note']" maxlength="120" placeholder="İsteğe bağlı, ör. EST. 1998 · Eskişehir" />
+                        <x-field name="manager_name" label="Sayfa yöneticisi" :value="$footer['manager_name']" maxlength="60" hint="En altta “Sayfa yöneticisi” olarak yazılır. Boşsa gösterilmez." />
                         <x-button class="w-full justify-center">Kaydet</x-button>
                     </div>
                 </x-card>

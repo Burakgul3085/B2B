@@ -16,4 +16,11 @@ return [
 
     // Mağaza formlarında bot koruması (tuzak alanı + en kısa doldurma süresi). Yalnızca testlerde kapatılır.
     'bot_protection' => (bool) env('STORE_BOT_PROTECTION', true),
+
+    // Alt bilgideki yazılım geliştirici künyesi (sabit)
+    'developer' => [
+        'name' => 'Burak Gül',
+        'email' => 'burakgul3085@gmail.com',
+        'linkedin' => 'https://www.linkedin.com/in/burakgul1006/',
+    ],
 ];
