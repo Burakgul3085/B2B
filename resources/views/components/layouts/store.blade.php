@@ -13,7 +13,6 @@
     $fullTitle = $title ? "{$title} · {$storeName}" : ($storeSettings['meta_title'] ?: $storeName);
     $metaDescription = \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) ($description ?: $storeSettings['meta_description'])))), 300, '…');
     $preview = $storePreview ?? false;
-    $whatsapp = $storeSettings['whatsapp'] ? preg_replace('/\D/', '', $storeSettings['whatsapp']) : null;
     $b2bLogin = rtrim(config('app.url'), '/').'/bayi/login';
 @endphp
 @php $themeMode = in_array(request()->cookie('tema'), ['dark', 'auto'], true) ? request()->cookie('tema') : 'light'; @endphp
@@ -164,64 +163,7 @@
     <main class="flex-1">{{ $slot }}</main>
 
     {{-- Alt bilgi --}}
-    <footer class="mt-16 border-t border-line bg-surface">
-        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
-            <div>
-                <a href="{{ route('store.home') }}" class="flex items-center gap-2.5">
-                    <x-puzzle-logo :animated="false" class="size-10" />
-                    <span class="text-lg font-bold">{{ $storeName }}</span>
-                </a>
-                @if ($storeSettings['footer_about'])<p class="mt-4 text-sm leading-relaxed text-muted">{{ $storeSettings['footer_about'] }}</p>@endif
-                <div class="mt-4 flex gap-3">
-                    @if ($storeSettings['instagram'])<a href="{{ $storeSettings['instagram'] }}" target="_blank" rel="noopener" class="text-sm font-medium text-primary hover:underline">Instagram</a>@endif
-                    @if ($storeSettings['facebook'])<a href="{{ $storeSettings['facebook'] }}" target="_blank" rel="noopener" class="text-sm font-medium text-primary hover:underline">Facebook</a>@endif
-                </div>
-            </div>
-            <div>
-                <p class="text-sm font-semibold">Kategoriler</p>
-                <ul class="mt-4 space-y-2 text-sm text-muted">
-                    @foreach ($storeMenu->take(8) as $root)
-                        <li><a href="{{ route('store.category', $root->slug) }}" class="hover:text-primary">{{ $root->name }}</a></li>
-                    @endforeach
-                    <li><a href="{{ route('store.brands') }}" class="hover:text-primary">Markalar</a></li>
-                </ul>
-            </div>
-            <div>
-                <p class="text-sm font-semibold">Kurumsal</p>
-                <ul class="mt-4 space-y-2 text-sm text-muted">
-                    @foreach ($footerPages as $page)
-                        <li><a href="{{ $page['url'] }}" class="hover:text-primary">{{ $page['title'] }}</a></li>
-                    @endforeach
-                    <li><a href="{{ $b2bLogin }}" class="hover:text-primary">Bayi girişi</a></li>
-                </ul>
-                <p class="mt-6 text-sm font-semibold">Yasal</p>
-                <ul class="mt-4 space-y-2 text-sm text-muted">
-                    @foreach (['iptal-iade', 'mesafeli-satis', 'kvkk', 'gizlilik-cerez'] as $legalKey)
-                        <li><a href="{{ route('store.legal', $legalKey) }}" class="hover:text-primary">{{ \App\Models\Store\StoreLegalDocument::KEYS[$legalKey] }}</a></li>
-                    @endforeach
-                    <li><button type="button" data-cookie-settings class="hover:text-primary">Çerez tercihleri</button></li>
-                </ul>
-            </div>
-            <div>
-                <p class="text-sm font-semibold">İletişim</p>
-                <ul class="mt-4 space-y-3 text-sm text-muted">
-                    @if ($storeSettings['phone'])<li class="flex gap-2"><x-icon name="phone" class="mt-0.5 size-4 shrink-0" /><a href="tel:{{ preg_replace('/[^\d+]/', '', $storeSettings['phone']) }}" class="hover:text-primary">{{ $storeSettings['phone'] }}</a></li>@endif
-                    @if ($whatsapp)<li class="flex gap-2"><x-icon name="inbox" class="mt-0.5 size-4 shrink-0" /><a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="hover:text-primary">WhatsApp</a></li>@endif
-                    @if ($storeSettings['email'])<li class="flex gap-2"><x-icon name="mail" class="mt-0.5 size-4 shrink-0" /><a href="mailto:{{ $storeSettings['email'] }}" class="break-all hover:text-primary">{{ $storeSettings['email'] }}</a></li>@endif
-                    @if ($storeSettings['address'])<li class="flex gap-2"><x-icon name="map-pin" class="mt-0.5 size-4 shrink-0" /><span>{{ $storeSettings['address'] }}</span></li>@endif
-                </ul>
-            </div>
-        </div>
-        <div class="border-t border-line">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
-                <p class="text-xs text-muted">© {{ now()->year }} {{ $storeSettings['company_title'] ?: $storeName }}. Fiyatlara KDV dahildir.</p>
-                <x-theme-switch inline />
-                @if ($storeSettings['payment_logos_path'])
-                    <img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-7 w-auto" loading="lazy">
-                @endif
-            </div>
-        </div>
-    </footer>
+    <x-store.footer :storeName="$storeName" :settings="$storeSettings" :menu="$storeMenu" :pages="$footerPages" :footer="$storeFooter" :b2bLogin="$b2bLogin" />
 
     {{-- Çerez tercihi (Gizlilik ve Çerez Politikası). Yalnızca zorunlu çerezler kullanılır. --}}
     <div x-data="cookieConsent" x-show="open" x-cloak role="dialog" aria-label="Çerez tercihi"

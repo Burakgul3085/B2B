@@ -43,7 +43,7 @@
             <x-card title="Görünüm ve arama motorları">
                 <div class="space-y-5">
                     <x-field name="announcement" label="Duyuru şeridi" :value="$settings['announcement']" maxlength="200" hint="Tüm sayfaların en üstünde görünür (ör. kampanya duyurusu). Boşsa gösterilmez." />
-                    <x-field name="footer_about" label="Kısa tanıtım" :value="$settings['footer_about']" textarea hint="Alt bilgide mağaza adının altında görünür." />
+                    <p class="text-sm text-muted">Alt bilgideki tanıtım metni ve düzeni: <a href="{{ route('store_admin.footer.edit') }}" class="font-medium text-primary hover:underline">Vitrin → Alt Bilgi</a>.</p>
                     <x-field name="meta_title" label="Ana sayfa SEO başlığı" :value="$settings['meta_title']" maxlength="160" :hint="'Boşsa: '.config('store.name')" />
                     <x-field name="meta_description" label="Ana sayfa SEO açıklaması" :value="$settings['meta_description']" maxlength="320" hint="Google sonuçlarında görünen açıklama (150–160 karakter ideal)." />
                 </div>

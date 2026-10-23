@@ -121,3 +121,16 @@ Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı va
     - Yanıtı e-posta, telefon veya WhatsApp ile verdikten sonra **Yanıtlandı olarak işaretle** deyin.
     - Kişi verilerinin silinmesini isterse mesajı silebilirsiniz.
     - Yeni mesaj bildirimi, Mağaza Ayarları → Yönetici bildirimleri bölümünden açılıp kapatılır; bildirimin gitmesi için sistem e-postası tanımlı olmalıdır.
+
+## 10. Alt bilgi
+
+**Vitrin → Alt Bilgi** her sayfanın altındaki bölümü düzenler:
+
+- güven şeridi (en fazla 4 madde: simge, başlık, alt yazı)
+- logonun altındaki yazı ve tanıtım metni
+- sütun başlıkları
+- kaç ana kategori listeleneceği
+- "Haritada gör" kartı, çalışma saatleri, "Bayi girişi" bağlantısı ve sağ alttaki WhatsApp düğmesinin gösterilip gösterilmeyeceği
+- en alttaki not
+
+Telefon, e-posta, adres ve sosyal medya Mağaza Ayarları'ndan, çalışma saatleri İletişim sayfasından, sayfa bağlantıları yayındaki sayfalardan gelir. Ödeme logo bandı Mağaza Ayarları'nda yüklenir.

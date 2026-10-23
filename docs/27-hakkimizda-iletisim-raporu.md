@@ -67,3 +67,17 @@ Mevcut vitrin testleri yeni adreslere göre güncellendi.
 ## Ek düzeltme
 
 Kart açıklamalarında ve boş durum metinlerinde tırnaklar `&quot;` olarak görünüyordu (B2B ayarları, vitrin, yedekler, ödeme logo bandı, havale). Düz tırnakla değiştirildi.
+
+## Alt bilgi (ek)
+
+Mağaza alt bilgisi referans tasarıma göre yeniden yapıldı: koyu lacivert zemin ve logodaki turuncu-sarı vurgu. Bölümler:
+
+- güven şeridi
+- marka sütunu: logo, logo altı yazı, tanıtım, iletişim, sosyal medya
+- Alışveriş sütunu: kategoriler
+- Bilgi sütunu: sayfalar, yasal metinler, çerez tercihleri, bayi girişi
+- Mağazamız sütunu: "Haritada gör" kartı ve çalışma saatleri
+- telif satırı, tema seçici, ödeme logoları ve başa dön düğmesi
+- sağ altta WhatsApp düğmesi
+
+Ayarlar yönetimde **Vitrin → Alt Bilgi** ekranındadır (`App\Domain\Store\Content\StoreFooter`, `store_settings.footer`). Tanıtım metni Mağaza Ayarları'ndan bu ekrana taşındı. WhatsApp bağlantıları artık ülke kodunu ekliyor (0532… → 90532…).

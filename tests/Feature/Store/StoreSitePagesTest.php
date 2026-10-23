@@ -208,6 +208,29 @@ class StoreSitePagesTest extends TestCase
         $this->post(self::HOST.'/iletisim', ['name' => 'X', 'email' => 'x@ornek.com', 'subject' => 'Diğer', 'message' => 'Merhaba dünya'])->assertNotFound();
     }
 
+    public function test_footer_is_configurable_and_uses_store_data(): void
+    {
+        StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => ['hours' => OpeningHours::defaults()]]);
+        $this->get(route('store_admin.footer.edit'))->assertOk()->assertSee('Güven şeridi')->assertSee('Hızlı teslimat');
+
+        $this->put(route('store_admin.footer.update'), ['shop_title' => 'Alışveriş', 'category_count' => 3, 'info_title' => 'Bilgi', 'store_title' => 'Mağazamız',
+            'strip' => [['icon' => 'truck', 'title' => '', 'text' => 'Başlıksız']]])->assertSessionHasErrors('strip.0');
+        $this->put(route('store_admin.footer.update'), [
+            'footer_about' => "1998'den bu yana Eskişehir'in kırtasiyesi.", 'tagline' => 'Kırtasiye & Ofis',
+            'strip_enabled' => '1', 'strip' => [['icon' => 'truck', 'title' => 'Aynı gün teslimat', 'text' => 'Eskişehir içi'], ['icon' => 'star', 'title' => '', 'text' => '']],
+            'shop_title' => 'Alışveriş', 'category_count' => 3, 'info_title' => 'Kurumsal', 'store_title' => 'Dükkânımız',
+            'show_map' => '1', 'show_hours' => '1', 'show_b2b' => '0', 'whatsapp_button' => '1', 'bottom_note' => 'EST. 1998 · Eskişehir',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame("1998'den bu yana Eskişehir'in kırtasiyesi.", StoreSetting::get('footer_about'));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'store.footer_updated']);
+
+        $this->get(self::HOST.'/')->assertOk()
+            ->assertSee('Aynı gün teslimat')->assertSee('Kırtasiye &amp; Ofis', false)->assertSee("1998'den bu yana")
+            ->assertSee('Kurumsal')->assertSee('Dükkânımız')->assertSee('Pazartesi – Cuma')->assertSee('Tepebaşı / Eskişehir')
+            ->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=', false)->assertSee('https://wa.me/905321234567', false)
+            ->assertSee('EST. 1998 · Eskişehir')->assertDontSee('Bayi girişi')->assertSee('/iletisim"', false);
+    }
+
     public function test_launch_checklist_follows_published_pages(): void
     {
         $this->get(route('store_admin.launch'))->assertOk()->assertSee('Yayında olmayan sayfa: Hakkımızda, İletişim');

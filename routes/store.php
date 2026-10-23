@@ -87,6 +87,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('iletisim', [Admin\SitePageController::class, 'updateContact'])->name('site-pages.contact.update');
                 Route::get('sayfa-onizleme/{key}', [Admin\SitePageController::class, 'preview'])->whereIn('key', ['about', 'contact'])->name('site-pages.preview');
                 Route::get('sayfa-gorseli/{file}', [Admin\SitePageController::class, 'image'])->name('site-pages.image');
+                Route::get('alt-bilgi', [Admin\FooterController::class, 'edit'])->name('footer.edit');
+                Route::put('alt-bilgi', [Admin\FooterController::class, 'update'])->name('footer.update');
 
                 Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
                 Route::put('ayarlar', [Admin\SettingsController::class, 'update'])->name('settings.update');

@@ -19,6 +19,7 @@ class StoreSetting extends Model
         'meta_title' => null,        // ana sayfa SEO başlığı
         'meta_description' => null,  // ana sayfa SEO açıklaması
         'footer_about' => null,
+        'footer' => null,              // alt bilgi ayarları (JSON, App\Domain\Store\Content\StoreFooter)
         'phone' => null,
         'whatsapp' => null,
         'email' => null,
