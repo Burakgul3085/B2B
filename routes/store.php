@@ -57,6 +57,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('gorseller/{storeImage}', [Admin\ProductImageController::class, 'show'])->name('images.show');
 
                 Route::get('kategoriler', [Admin\CategoryController::class, 'index'])->name('categories.index');
+                Route::get('kategoriler/{storeCategory}/gorsel', [Admin\CategoryController::class, 'image'])->name('categories.image');
                 Route::post('kategoriler', [Admin\CategoryController::class, 'store'])->name('categories.store');
                 Route::put('kategoriler/{storeCategory}', [Admin\CategoryController::class, 'update'])->name('categories.update');
                 Route::put('kategoriler/{storeCategory}/sira', [Admin\CategoryController::class, 'move'])->name('categories.move');
@@ -191,6 +192,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('marka/{slug}', [Front\ListingController::class, 'brand'])->name('brand');
         Route::get('markalar', [Front\PageController::class, 'brands'])->name('brands');
         Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1,search')->name('search');
+        Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
         Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');
@@ -246,6 +248,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
 
         // Sepet (M5)
         Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');
+        Route::get('sepet/cekmece', [Front\CartController::class, 'drawer'])->name('cart.drawer');
         Route::post('sepet', [Front\CartController::class, 'add'])->middleware('throttle:60,1,cart.add')->name('cart.add');
         // Kod denemesi (kaba kuvvet) sınırlı.
         Route::post('sepet/kupon', [Front\CartController::class, 'applyCoupon'])->middleware('throttle:10,1,cart.coupon')->name('cart.coupon');
@@ -258,5 +261,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
         Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
         Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
+        Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
     });
 });

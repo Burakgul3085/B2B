@@ -3,8 +3,12 @@
 namespace App\Domain\Store\Catalog;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Storefront\ImageVariants;
+use App\Domain\Store\Storefront\Palette;
 use App\Models\Store\StoreCategory;
 use DomainException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -47,6 +51,22 @@ class CategoryService
         $old = $category->only(array_keys($data));
         $category->update($data);
         $this->audit->log('store.category_updated', $category, $old, $category->only(array_keys($data)));
+    }
+
+    /**
+     * Geniş menüde ve ana sayfa kutularında görünen kategori görseli. null: kaldırır.
+     *
+     * @throws DomainException
+     */
+    public function setImage(StoreCategory $category, ?UploadedFile $image): void
+    {
+        $old = $category->image_path;
+        $category->forceFill(['image_path' => $image ? app(ImageUploader::class)->store($image, 'store/categories', 1200, 6 * 1024 * 1024, 86) : null])->save();
+        if ($old) {
+            app(ImageUploader::class)->delete($old);
+            app(ImageVariants::class)->forget($old);
+        }
+        $this->audit->log($image ? 'store.category_image_updated' : 'store.category_image_removed', $category, [], ['name' => $category->name]);
     }
 
     /** @throws DomainException */
@@ -128,12 +148,14 @@ class CategoryService
             'parent_id' => ['nullable', 'integer', 'exists:store_categories,id'],
             'slug' => ['nullable', 'string', 'max:160', 'unique:store_categories,slug'.($category ? ','.$category->id : '')],
             'description' => ['nullable', 'string', 'max:5000'],
+            'color' => ['nullable', 'in:'.implode(',', array_keys(Palette::COLORS))],
+            'tagline' => ['nullable', 'string', 'max:120'],
             'seo_title' => ['nullable', 'string', 'max:160'],
             'seo_description' => ['nullable', 'string', 'max:320'],
             'is_active' => ['boolean'],
         ], [], [
             'name' => 'kategori adı', 'parent_id' => 'üst kategori', 'slug' => 'adres (kısa ad)',
-            'description' => 'açıklama', 'seo_title' => 'SEO başlığı', 'seo_description' => 'SEO açıklaması',
+            'description' => 'açıklama', 'color' => 'renk', 'tagline' => 'kısa tanıtım', 'seo_title' => 'SEO başlığı', 'seo_description' => 'SEO açıklaması',
         ])->validate();
 
         $data['name'] = trim($data['name']);

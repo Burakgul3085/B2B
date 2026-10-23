@@ -13,7 +13,7 @@ class StoreCategory extends Model
 
     protected $attributes = ['is_active' => true, 'sort' => 0];
 
-    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'seo_title', 'seo_description', 'sort', 'is_active'];
+    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'color', 'tagline', 'seo_title', 'seo_description', 'sort', 'is_active'];
 
     protected function casts(): array
     {

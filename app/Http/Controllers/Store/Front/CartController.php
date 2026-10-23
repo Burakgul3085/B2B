@@ -7,6 +7,7 @@ use App\Domain\Store\Discounts\DiscountService;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,7 +54,8 @@ class CartController extends Controller
         return back()->with('status', 'Kupon kaldırıldı.');
     }
 
-    public function add(Request $request): RedirectResponse
+    /** Sepete ekleme. Sayfa içinden (fetch, JSON) çağrılırsa mini sepet açılır; JavaScript yoksa normal form gibi döner. */
+    public function add(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'variant_id' => ['required', 'integer'],
@@ -69,11 +71,23 @@ class CartController extends Controller
                 return $cart;
             });
         } catch (DomainException $e) {
-            return back()->withErrors(['cart' => $e->getMessage()]);
+            return $request->expectsJson()
+                ? response()->json(['message' => $e->getMessage()], 422)
+                : back()->withErrors(['cart' => $e->getMessage()]);
         }
         $this->current->remember($cart);
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Ürün sepetinize eklendi.', 'count' => $this->carts->count($cart)]);
+        }
+
         return back()->with('cart_added', true)->with('status', 'Ürün sepetinize eklendi.');
+    }
+
+    /** Üst bilgideki mini sepet çekmecesinin içeriği (HTML parçası). */
+    public function drawer(Request $request): View
+    {
+        return view('store.front._mini-cart', ['summary' => $this->carts->summary($this->current->find($request))]);
     }
 
     public function update(Request $request, int $item): RedirectResponse

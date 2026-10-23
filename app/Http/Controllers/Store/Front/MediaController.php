@@ -7,6 +7,7 @@ use App\Domain\Store\Storefront\ImageVariants;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBanner;
 use App\Models\Store\StoreBrand;
+use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
 use App\Models\Store\StoreSetting;
@@ -48,6 +49,14 @@ class MediaController extends Controller
     public function paymentLogos(): StreamedResponse
     {
         return $this->serve(StoreSetting::get('payment_logos_path') ?? abort(404), null);
+    }
+
+    /** Kategori görseli (geniş menü, ana sayfa kutuları). */
+    public function category(Request $request, StoreCategory $storeCategory): StreamedResponse
+    {
+        abort_unless($storeCategory->is_active && $storeCategory->image_path, 404);
+
+        return $this->serve($storeCategory->image_path, $request->integer('w') ?: null);
     }
 
     /** Hakkımızda sayfasının kapak ve galeri fotoğrafları (yalnızca yayındaki sayfanın). */

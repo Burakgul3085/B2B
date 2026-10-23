@@ -239,3 +239,177 @@ export function scrollTop() {
         },
     };
 }
+
+/**
+ * Vitrin üst bilgisi: arama kutusunda yazarken öneriler (ürün, kategori, marka). Sunucu: GET ara/oneri?q=…
+ * Kısa bekleme (debounce) ile istek atılır; eski yanıt yenisini ezmez.
+ */
+export function liveSearch(url, initial) {
+    return {
+        q: initial || '',
+        open: false,
+        loading: false,
+        results: { products: [], categories: [], brands: [], all: '' },
+        timer: null,
+        seq: 0,
+        get hasResults() {
+            return this.results.products.length + this.results.categories.length + this.results.brands.length > 0;
+        },
+        get showEmpty() {
+            return this.open && ! this.loading && ! this.hasResults && this.q.trim().length >= 2;
+        },
+        input() {
+            clearTimeout(this.timer);
+            if (this.q.trim().length < 2) {
+                this.open = false;
+                return;
+            }
+            this.timer = setTimeout(() => this.fetch(), 180);
+        },
+        async fetch() {
+            const seq = ++this.seq;
+            this.loading = true;
+            this.open = true;
+            try {
+                const res = await window.fetch(url + '?q=' + encodeURIComponent(this.q.trim()), { headers: { Accept: 'application/json' } });
+                const data = res.ok ? await res.json() : null;
+                if (seq === this.seq && data) {
+                    this.results = data;
+                }
+            } finally {
+                if (seq === this.seq) {
+                    this.loading = false;
+                }
+            }
+        },
+        reopen() {
+            if (this.q.trim().length >= 2) {
+                this.open = true;
+            }
+        },
+        close() {
+            this.open = false;
+        },
+    };
+}
+
+/** Geniş kategori menüsü: "Tüm kategoriler" düğmesiyle açılır; soldaki ana kategorinin üzerine gelince sağ taraf değişir. */
+export function megaMenu() {
+    return {
+        open: false,
+        active: 0,
+        toggle() {
+            this.open = ! this.open;
+        },
+        show(index) {
+            this.active = index;
+        },
+        isActive(index) {
+            return this.active === index;
+        },
+        close() {
+            this.open = false;
+        },
+    };
+}
+
+/**
+ * Sepete ekleme formu: sayfa yenilenmeden eklenir, mini sepet açılır. JavaScript yoksa form normal gönderilir.
+ * Olaylar: cart-updated (sayı), cart-error (mesaj).
+ */
+export function addToCart() {
+    return {
+        busy: false,
+        async submit() {
+            if (this.busy) {
+                return;
+            }
+            this.busy = true;
+            try {
+                const res = await window.fetch(this.$el.action, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new FormData(this.$el),
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.count, message: data.message, open: true } }));
+                } else {
+                    const first = data.errors ? Object.values(data.errors)[0][0] : null;
+                    window.dispatchEvent(new CustomEvent('cart-error', { detail: { message: first || data.message || 'Ürün sepete eklenemedi.' } }));
+                }
+            } catch (e) {
+                this.$el.submit();
+            } finally {
+                this.busy = false;
+            }
+        },
+    };
+}
+
+/** Sağdan açılan mini sepet. İçerik sunucudan HTML parçası olarak gelir (GET sepet/cekmece), x-ref="body" içine konur. */
+export function miniCart(url) {
+    return {
+        open: false,
+        init() {
+            window.addEventListener('cart-updated', (e) => this.load(e.detail && e.detail.open));
+            window.addEventListener('open-cart', () => this.load(true));
+        },
+        async load(show) {
+            const res = await window.fetch(url, { headers: { Accept: 'text/html' }, credentials: 'same-origin' });
+            if (res.ok) {
+                // x-html CSP sürümünde yasak; içerik (sunucunun kendi HTML'i) doğrudan yerleştirilir.
+                this.$refs.body.innerHTML = await res.text();
+            }
+            if (show) {
+                this.open = true;
+            }
+        },
+        close() {
+            this.open = false;
+        },
+    };
+}
+
+/** Üst bilgideki ve mobil alt menüdeki sepet sayısı. */
+export function cartBadge(count) {
+    return {
+        count: count,
+        init() {
+            window.addEventListener('cart-updated', (e) => {
+                if (e.detail && typeof e.detail.count === 'number') {
+                    this.count = e.detail.count;
+                }
+            });
+        },
+        openCart() {
+            window.dispatchEvent(new CustomEvent('open-cart'));
+        },
+    };
+}
+
+/** Kısa bildirim balonu (sepete eklendi / hata). */
+export function toast() {
+    return {
+        message: '',
+        error: false,
+        visible: false,
+        timer: null,
+        init() {
+            window.addEventListener('cart-error', (e) => this.show(e.detail.message, true));
+        },
+        show(message, error) {
+            this.message = message;
+            this.error = error;
+            this.visible = true;
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => {
+                this.visible = false;
+            }, 4000);
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+}

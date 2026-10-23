@@ -35,7 +35,7 @@
                 @if ($inStock)
                     {{-- Tek seçenekli ürün doğrudan sepete eklenir; seçenekli ürünlerde seçim ürün sayfasında yapılır. --}}
                     @if ($product->activeVariants->count() === 1)
-                        <form method="POST" action="{{ route('store.cart.add') }}">
+                        <form method="POST" action="{{ route('store.cart.add') }}" x-data="addToCart" @submit.prevent="submit">
                             @csrf
                             <input type="hidden" name="variant_id" value="{{ $variant->id }}">
                             <button class="flex size-9 items-center justify-center rounded-full bg-primary text-white shadow-sm transition hover:bg-primary-hover" aria-label="{{ $product->name }} sepete ekle"><x-icon name="cart" class="size-4" /></button>

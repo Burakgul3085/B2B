@@ -16,11 +16,25 @@
         <div class="space-y-6 lg:col-span-2">
             @if ($editing)
                 <x-card :title="'Düzenle: '.$editing->name">
-                    <form method="POST" action="{{ route('store_admin.categories.update', $editing) }}" class="space-y-4">
+                    <form method="POST" action="{{ route('store_admin.categories.update', $editing) }}" enctype="multipart/form-data" class="space-y-4">
                         @csrf @method('PUT')
                         <x-field name="name" label="Kategori adı" :value="$editing->name" required maxlength="120" />
                         <x-field name="parent_id" label="Üst kategori" :options="['' => 'Ana kategori (en üst)'] + $editParents" :value="$editing->parent_id" />
                         <x-field name="description" label="Açıklama" :value="$editing->description" textarea hint="Kategori sayfasının üstünde görünür." />
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="color" label="Renk" :options="['' => 'Otomatik (sırayla)'] + \App\Domain\Store\Storefront\Palette::COLORS" :value="$editing->color"
+                                hint="Logodaki yapboz renkleri; menüde ve ana sayfa kutusunda kullanılır." />
+                            <x-field name="tagline" label="Kısa tanıtım" :value="$editing->tagline" maxlength="120" placeholder="ör. Defter, ajanda ve bloknotlar" />
+                        </div>
+                        <div>
+                            <p class="mb-1.5 text-sm font-medium text-ink">Kategori görseli</p>
+                            @if ($editing->image_path)
+                                <img src="{{ route('store_admin.categories.image', $editing) }}" alt="" class="mb-2 h-24 w-auto rounded-lg object-cover">
+                                <x-toggle name="remove_image" label="Görseli kaldır" class="mb-2" />
+                            @endif
+                            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="field-input">
+                            @error('image')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@else<p class="mt-1.5 text-xs text-muted">Ana kategoriler için; arka planı sade ürün fotoğrafı (kare veya yatay).</p>@enderror
+                        </div>
                         <x-field name="slug" label="Adres (kısa ad)" :value="$editing->slug" maxlength="160" hint="/kategori/kisa-ad" />
                         <x-field name="seo_title" label="SEO başlığı" :value="$editing->seo_title" maxlength="160" />
                         <x-field name="seo_description" label="SEO açıklaması" :value="$editing->seo_description" maxlength="320" />

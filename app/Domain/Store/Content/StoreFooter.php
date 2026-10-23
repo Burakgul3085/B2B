@@ -3,13 +3,15 @@
 namespace App\Domain\Store\Content;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Support\Decimal;
+use App\Domain\Support\Money;
 use App\Models\Store\StorePage;
 use App\Models\Store\StoreSetting;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Mağaza alt bilgisi (Vitrin → Alt Bilgi). Ayarlar store_settings.footer içinde JSON olarak tutulur; iletişim bilgileri
+ * Mağaza üst şeridi ve alt bilgisi (Vitrin → Üst ve Alt Bilgi). Ayarlar store_settings.footer içinde JSON olarak tutulur; iletişim bilgileri
  * Mağaza Ayarları'ndan, kategoriler katalogdan, sayfalar SitePages'ten, çalışma saatleri İletişim sayfasından gelir.
  */
 class StoreFooter
@@ -39,7 +41,33 @@ class StoreFooter
             'show_b2b' => true,
             'whatsapp_button' => true,
             'bottom_note' => 'Fiyatlara KDV dahildir.',
+            // Üst şerit (her sayfanın en üstü). Boş maddeler ayarlardan kendiliğinden üretilir.
+            'topbar_enabled' => true,
+            'topbar_items' => [],
         ];
+    }
+
+    /**
+     * Üst şeritteki kısa maddeler: yönetimde yazılanlar; yoksa ayarlardan (ücretsiz kargo sınırı, Eskişehir teslimatı).
+     *
+     * @return list<array{0: string, 1: string}> [simge, metin]
+     */
+    public static function topbar(array $config): array
+    {
+        $icons = ['truck', 'map-pin', 'lock'];
+        if ($config['topbar_items']) {
+            return array_map(fn ($text, $i) => [$icons[$i % 3], $text], $config['topbar_items'], array_keys($config['topbar_items']));
+        }
+        $items = [];
+        if ($threshold = Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2)) {
+            $items[] = ['truck', Money::format($threshold).' üzeri ücretsiz kargo'];
+        }
+        if (StoreSetting::flag('local_delivery_enabled')) {
+            $items[] = ['map-pin', 'Eskişehir içi mağaza teslimatı'];
+        }
+        $items[] = ['lock', 'Güvenli alışveriş'];
+
+        return $items;
     }
 
     public static function config(): array
@@ -61,6 +89,7 @@ class StoreFooter
             'hours' => $config['show_hours'] && $content ? OpeningHours::grouped($content['hours']) : [],
             'directions' => $config['show_map'] && StoreSetting::get('address') ? SitePages::directionsUrl($content ?? []) : null,
             'contact_url' => $contact?->is_published ? route('store.contact') : null,
+            'topbar' => $config['topbar_enabled'] ? self::topbar($config) : [],
         ];
     }
 
@@ -79,6 +108,8 @@ class StoreFooter
             'info_title' => ['required', 'string', 'max:30'],
             'store_title' => ['required', 'string', 'max:30'],
             'bottom_note' => ['nullable', 'string', 'max:120'],
+            'topbar_items' => ['nullable', 'array', 'max:3'],
+            'topbar_items.*' => ['nullable', 'string', 'max:50'],
         ], [], [
             'footer_about' => 'tanıtım metni', 'tagline' => 'logo altı yazı', 'shop_title' => 'alışveriş başlığı', 'category_count' => 'kategori sayısı',
             'info_title' => 'bilgi başlığı', 'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not',
@@ -110,6 +141,8 @@ class StoreFooter
             'show_b2b' => $flag('show_b2b'),
             'whatsapp_button' => $flag('whatsapp_button'),
             'bottom_note' => trim((string) ($data['bottom_note'] ?? '')) ?: null,
+            'topbar_enabled' => $flag('topbar_enabled'),
+            'topbar_items' => array_values(array_filter(array_map(fn ($t) => trim((string) $t), $data['topbar_items'] ?? []))),
         ];
 
         StoreSetting::put(['footer' => json_encode($config, JSON_UNESCAPED_UNICODE), 'footer_about' => trim((string) ($data['footer_about'] ?? '')) ?: null]);

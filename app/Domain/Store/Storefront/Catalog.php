@@ -80,13 +80,21 @@ class Catalog
     /** @return Collection<int, StoreCategory> menü ağacı: görünür kök kategoriler, görünür alt kategorileri yüklü */
     public function menu(): Collection
     {
-        $all = StoreCategory::where('is_active', true)->orderBy('sort')->orderBy('name')->get(['id', 'parent_id', 'name', 'slug']);
+        $all = StoreCategory::where('is_active', true)->orderBy('sort')->orderBy('name')->get(['id', 'parent_id', 'name', 'slug', 'color', 'tagline', 'image_path']);
         $byParent = $all->groupBy(fn ($c) => $c->parent_id ?? 0);
         foreach ($all as $category) {
             $category->setRelation('children', $byParent->get($category->id, collect())->values());
         }
+        // Ana kategorinin yapboz rengi (seçilmemişse sırayla); alt kategoriler bunu taşır. Kaydedilmez, yalnızca görünüm içindir.
+        $roots = $byParent->get(0, collect())->values();
+        foreach ($roots as $i => $root) {
+            $root->setAttribute('palette', Palette::forIndex($root->color, $i));
+            foreach ($root->children as $child) {
+                $child->setAttribute('palette', $root->palette);
+            }
+        }
 
-        return $byParent->get(0, collect())->values();
+        return $roots;
     }
 
     /** Kategori ve tüm görünür alt kategorilerindeki ürünler. */

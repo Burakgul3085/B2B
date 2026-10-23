@@ -1,5 +1,5 @@
-<x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Alt Bilgi">
-    <x-page-header title="Alt Bilgi" subtitle="Mağazanın her sayfasının altındaki bölüm. İletişim bilgileri Mağaza Ayarları'ndan, çalışma saatleri İletişim sayfasından, kategoriler katalogdan gelir.">
+<x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Üst ve Alt Bilgi">
+    <x-page-header title="Üst ve Alt Bilgi" subtitle="Her sayfanın en üstündeki şerit ve en altındaki bölüm. İletişim bilgileri Mağaza Ayarları'ndan, çalışma saatleri İletişim sayfasından, kategoriler katalogdan gelir.">
         <x-button :href="route('store.home').'#alt-bilgi'" variant="secondary" icon="eye" target="_blank">Mağazada gör</x-button>
     </x-page-header>
 
@@ -7,6 +7,17 @@
         @csrf @method('PUT')
         <div class="grid gap-6 xl:grid-cols-3">
             <div class="space-y-6 xl:col-span-2">
+                <x-card title="Üst şerit" description="Sayfanın en üstündeki lacivert şerit (masaüstü). Boş bırakırsanız maddeler ayarlardan üretilir: ücretsiz kargo sınırı, Eskişehir teslimatı, güvenli alışveriş. Sağda telefon ve WhatsApp görünür.">
+                    <x-toggle name="topbar_enabled" label="Üst şeridi göster" :checked="$footer['topbar_enabled']" class="mb-4" />
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        @for ($i = 0; $i < 3; $i++)
+                            <x-field :name="'topbar_items['.$i.']'" :label="($i + 1).'. madde'" :value="$footer['topbar_items'][$i] ?? null" maxlength="50"
+                                :placeholder="\App\Domain\Store\Content\StoreFooter::topbar(['topbar_items' => []])[$i][1] ?? ''" />
+                        @endfor
+                    </div>
+                    <p class="mt-3 text-xs text-muted">Kampanya duyurusu (ör. “Okula dönüş fırsatları başladı!”) Mağaza Ayarları → Duyuru şeridi'nden yazılır ve şeridin ortasında görünür.</p>
+                </x-card>
+
                 <x-card title="Güven şeridi" description="Alt bilginin en üstündeki kısa maddeler (en fazla 4). Boş bırakılan madde görünmez.">
                     <x-toggle name="strip_enabled" label="Güven şeridini göster" :checked="$footer['strip_enabled']" class="mb-4" />
                     <div class="space-y-3">

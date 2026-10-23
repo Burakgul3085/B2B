@@ -114,7 +114,7 @@
                 </div>
 
                 {{-- Sepete ekleme: adet ve stok sunucuda yeniden denetlenir --}}
-                <form method="POST" action="{{ route('store.cart.add') }}" class="mt-6 flex flex-wrap items-stretch gap-3">
+                <form method="POST" action="{{ route('store.cart.add') }}" x-data="addToCart" @submit.prevent="submit" class="mt-6 flex flex-wrap items-stretch gap-3">
                     @csrf
                     <input type="hidden" name="variant_id" :value="v.id" value="{{ $variantData[$initial]['id'] }}">
                     <div class="flex items-center rounded-xl border border-line">

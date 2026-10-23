@@ -145,7 +145,7 @@
 
 @if ($whatsapp && $footer['whatsapp_button'])
     <a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" aria-label="WhatsApp ile yazın"
-        class="fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg shadow-black/20 transition hover:scale-105 print:hidden">
+        class="fixed right-4 bottom-20 z-40 flex size-14 lg:right-5 lg:bottom-5 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg shadow-black/20 transition hover:scale-105 print:hidden">
         <x-icon name="message-circle" class="size-7" />
     </a>
 @endif

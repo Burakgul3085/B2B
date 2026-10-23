@@ -96,7 +96,7 @@
                 ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
                 ['label' => 'Hakkımızda', 'route' => 'store_admin.site-pages.about', 'icon' => 'building', 'active' => 'store_admin.site-pages.about*'],
                 ['label' => 'İletişim', 'route' => 'store_admin.site-pages.contact', 'icon' => 'map-pin', 'active' => 'store_admin.site-pages.contact*'],
-                ['label' => 'Alt Bilgi', 'route' => 'store_admin.footer.edit', 'icon' => 'layers', 'active' => 'store_admin.footer.*'],
+                ['label' => 'Üst ve Alt Bilgi', 'route' => 'store_admin.footer.edit', 'icon' => 'layers', 'active' => 'store_admin.footer.*'],
             ]],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],

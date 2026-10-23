@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Storefront\Catalog;
+use App\Domain\Support\Money;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -52,6 +54,31 @@ class ListingController extends Controller
             'brand' => $brand,
             'hideBrandFilter' => true,
             'breadcrumbs' => [['Markalar', route('store.brands')], [$brand->name, null]],
+        ]);
+    }
+
+    /** Arama kutusunda yazarken gösterilen öneriler: ürünler, kategoriler, markalar. */
+    public function suggest(Request $request): JsonResponse
+    {
+        $term = trim((string) $request->validate(['q' => ['nullable', 'string', 'max:100']])['q']);
+        if (mb_strlen($term) < 2) {
+            return response()->json(['products' => [], 'categories' => [], 'brands' => []]);
+        }
+        $like = '%'.addcslashes($term, '%_\\').'%';
+
+        return response()->json([
+            'products' => $this->catalog->forCards($this->catalog->search($term))->limit(6)->get()->map(fn ($p) => [
+                'name' => $p->name,
+                'brand' => $p->brand?->name,
+                'url' => route('store.product', $p->slug),
+                'image' => $p->primaryImage ? route('store.media.product', ['storeImage' => $p->primaryImage, 'w' => 160]) : null,
+                'price' => ($v = $p->cheapestVariant()) ? Money::format($v->price) : null,
+            ])->values(),
+            'categories' => StoreCategory::where('is_active', true)->where('name', 'like', $like)->orderBy('sort')->limit(4)->get(['name', 'slug'])
+                ->map(fn ($c) => ['name' => $c->name, 'url' => route('store.category', $c->slug)])->values(),
+            'brands' => StoreBrand::where('is_active', true)->where('name', 'like', $like)->orderBy('name')->limit(3)->get(['name', 'slug'])
+                ->map(fn ($b) => ['name' => $b->name, 'url' => route('store.brand', $b->slug)])->values(),
+            'all' => route('store.search', ['q' => $term]),
         ]);
     }
 

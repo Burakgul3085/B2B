@@ -169,6 +169,10 @@ for (const path of files(join(root, 'resources/views'))) {
             const [, name, rawValue] = attr;
             const value = rawValue === undefined ? null : decodeEntities(rawValue.replace(/^["']|["']$/g, ''));
             const offset = tag.index + tag[1].length + 1 + attr.index;
+            if (name === 'x-html') {
+                errors.push(`${file}:${lineOf(offset, masked)}  x-html\n    CSP sürümünde x-html yasak; içeriği bileşen kodunda x-ref ile yerleştirin`);
+                continue;
+            }
             for (const expression of expressionsOf(tag[1], name, value)) {
                 checked++;
                 const where = `${file}:${lineOf(offset, masked)}  ${name}="${(value ?? '').replace(/\s+/g, ' ').slice(0, 90)}"`;
