@@ -18,7 +18,14 @@ class StoreFooter
 {
     public const MAX_STRIP = 4;
 
-    public const ICONS = SitePages::ICONS + ['lock' => 'Kilit', 'refresh' => 'İade / değişim'];
+    public const ICONS = SitePages::ICONS + ['lock' => 'Kilit', 'refresh' => 'İade / değişim', 'cart' => 'Sepet', 'building' => 'Mağaza', 'message-circle' => 'Mesaj'];
+
+    /** Kayan şerit: en fazla madde, renkler ve hızlar (madde başına saniye). */
+    public const MAX_MARQUEE = 8;
+
+    public const MARQUEE_COLORS = ['orange' => 'Turuncu', 'navy' => 'Lacivert', 'green' => 'Yeşil', 'blue' => 'Mavi', 'yellow' => 'Sarı'];
+
+    public const MARQUEE_SPEEDS = ['slow' => ['Yavaş', 9], 'normal' => ['Normal', 6], 'fast' => ['Hızlı', 4]];
 
     public function __construct(private AuditLogger $audit) {}
 
@@ -45,6 +52,11 @@ class StoreFooter
             // Üst şerit (her sayfanın en üstü). Boş maddeler ayarlardan kendiliğinden üretilir.
             'topbar_enabled' => true,
             'topbar_items' => [],
+            // Kayan şerit (en üstte, sağdan sola kayar). Boşsa maddeler ayarlardan üretilir.
+            'marquee_enabled' => true,
+            'marquee_color' => 'orange',
+            'marquee_speed' => 'normal',
+            'marquee_items' => [],
         ];
     }
 
@@ -71,6 +83,31 @@ class StoreFooter
         return $items;
     }
 
+    /**
+     * Kayan şeridin maddeleri: yönetimde yazılanlar; yoksa ayarlardan (ücretsiz kargo, taksit, mağaza teslimatı, güvenli ödeme).
+     *
+     * @return list<array{icon: string, text: string, badge: ?string}>
+     */
+    public static function marquee(array $config): array
+    {
+        if ($config['marquee_items']) {
+            return $config['marquee_items'];
+        }
+        $items = [];
+        if ($threshold = Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2)) {
+            $items[] = ['icon' => 'truck', 'text' => Money::format($threshold).' üzeri alışverişlerde', 'badge' => 'Kargo bedava'];
+        }
+        if (StoreSetting::flag('card_enabled')) {
+            $items[] = ['icon' => 'percent', 'text' => 'Kredi kartına', 'badge' => '9 aya varan taksit'];
+        }
+        if (StoreSetting::flag('local_delivery_enabled')) {
+            $items[] = ['icon' => 'map-pin', 'text' => 'Eskişehir içi', 'badge' => 'Mağaza teslimatı'];
+        }
+        $items[] = ['icon' => 'lock', 'text' => 'Güvenli alışveriş', 'badge' => '256 bit SSL'];
+
+        return $items;
+    }
+
     public static function config(): array
     {
         $saved = json_decode((string) StoreSetting::get('footer'), true);
@@ -91,6 +128,7 @@ class StoreFooter
             'directions' => $config['show_map'] && StoreSetting::get('address') ? SitePages::directionsUrl($content ?? []) : null,
             'contact_url' => $contact?->is_published ? route('store.contact') : null,
             'topbar' => $config['topbar_enabled'] ? self::topbar($config) : [],
+            'marquee' => $config['marquee_enabled'] ? self::marquee($config) : [],
         ];
     }
 
@@ -112,6 +150,12 @@ class StoreFooter
             'manager_name' => ['nullable', 'string', 'max:60'],
             'topbar_items' => ['nullable', 'array', 'max:3'],
             'topbar_items.*' => ['nullable', 'string', 'max:50'],
+            'marquee_color' => ['nullable', 'in:'.implode(',', array_keys(self::MARQUEE_COLORS))],
+            'marquee_speed' => ['nullable', 'in:'.implode(',', array_keys(self::MARQUEE_SPEEDS))],
+            'marquee_items' => ['nullable', 'array', 'max:'.self::MAX_MARQUEE],
+            'marquee_items.*.icon' => ['nullable', 'in:'.implode(',', array_keys(self::ICONS))],
+            'marquee_items.*.text' => ['nullable', 'string', 'max:60'],
+            'marquee_items.*.badge' => ['nullable', 'string', 'max:30'],
         ], [], [
             'footer_about' => 'tanıtım metni', 'tagline' => 'logo altı yazı', 'shop_title' => 'alışveriş başlığı', 'category_count' => 'kategori sayısı',
             'info_title' => 'bilgi başlığı', 'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not', 'manager_name' => 'sayfa yöneticisi',
@@ -127,6 +171,15 @@ class StoreFooter
                 throw ValidationException::withMessages(["strip.{$i}" => 'Şeritteki maddenin başlığını yazın.']);
             }
             $strip[] = ['icon' => $row['icon'] ?? 'check-circle', 'title' => $title, 'text' => $text];
+        }
+
+        $marquee = [];
+        foreach (array_values($data['marquee_items'] ?? []) as $i => $row) {
+            [$text, $badge] = [trim((string) ($row['text'] ?? '')), trim((string) ($row['badge'] ?? ''))];
+            if ($text === '' && $badge === '') {
+                continue;
+            }
+            $marquee[] = ['icon' => $row['icon'] ?? 'check-circle', 'text' => $text, 'badge' => $badge ?: null];
         }
 
         $flag = fn (string $key) => filter_var($input[$key] ?? false, FILTER_VALIDATE_BOOL);
@@ -146,6 +199,10 @@ class StoreFooter
             'manager_name' => trim((string) ($data['manager_name'] ?? '')) ?: null,
             'topbar_enabled' => $flag('topbar_enabled'),
             'topbar_items' => array_values(array_filter(array_map(fn ($t) => trim((string) $t), $data['topbar_items'] ?? []))),
+            'marquee_enabled' => $flag('marquee_enabled'),
+            'marquee_color' => $data['marquee_color'] ?? 'orange',
+            'marquee_speed' => $data['marquee_speed'] ?? 'normal',
+            'marquee_items' => $marquee,
         ];
 
         StoreSetting::put(['footer' => json_encode($config, JSON_UNESCAPED_UNICODE), 'footer_about' => trim((string) ($data['footer_about'] ?? '')) ?: null]);

@@ -154,6 +154,23 @@
         animation: slider-progress 5s linear forwards;
     }
 
+    /* Kayan şerit (üst bilgi): içerik iki kez yazılır, yarısı kadar kayınca başa döner. */
+    @keyframes marquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+    }
+    .marquee-track {
+        width: max-content;
+        animation: marquee var(--marquee-duration, 40s) linear infinite;
+    }
+    .marquee:hover .marquee-track,
+    .marquee:focus-within .marquee-track {
+        animation-play-state: paused;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .marquee-track { animation: none; }
+    }
+
     @keyframes slider-progress {
         from { width: 0; }
         to { width: 100%; }

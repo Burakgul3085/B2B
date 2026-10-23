@@ -12,11 +12,14 @@
     $navLink = 'inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold text-ink/80 transition hover:text-ink';
 @endphp
 
+@include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
+
 {{-- Üst şerit --}}
 @if ($footer['topbar'] || $settings['announcement'])
     <div class="bg-navy text-white">
         <div class="mx-auto flex min-h-10 max-w-7xl items-center gap-6 px-4 py-2 text-[13px] sm:px-6 lg:px-8">
-            <ul class="hidden items-center gap-6 text-white/75 lg:flex">
+            {{-- Kayan şerit açıkken aynı maddeler burada tekrar edilmez --}}
+            <ul @class(['hidden items-center gap-6 text-white/75', 'lg:flex' => ! $footer['marquee']])>
                 @foreach ($footer['topbar'] as [$icon, $text])
                     <li class="flex items-center gap-2 whitespace-nowrap"><x-icon :name="$icon" class="size-4 text-puzzle-sun" /> {{ $text }}</li>
                 @endforeach

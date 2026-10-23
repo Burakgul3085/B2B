@@ -126,4 +126,21 @@ class StorefrontRedesignTest extends TestCase
         StoreSetting::put(['transfer_enabled' => '1']);
         $this->get(self::HOST.'/')->assertSee('Havale / EFT</li>', false);
     }
+
+    public function test_marquee_is_managed_and_lists_installment_cards(): void
+    {
+        // Varsayılan maddeler ayarlardan: ücretsiz kargo sınırı (setUp: ₺750)
+        $this->get(self::HOST.'/')->assertSee('aria-label="Kayan duyurular"', false)->assertSee('₺750,00 üzeri alışverişlerde')->assertSee('Kargo bedava')
+            ->assertSee('aria-label="Taksit yapılabilen kartlar"', false)->assertSee('aria-label="Bonus"', false)->assertSee('aria-label="CardFinans"', false);
+
+        $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
+        $base = ['shop_title' => 'Alışveriş', 'category_count' => 6, 'info_title' => 'Bilgi', 'store_title' => 'Mağazamız'];
+        $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '1', 'marquee_color' => 'mor'])->assertSessionHasErrors('marquee_color');
+        $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '1', 'marquee_color' => 'navy', 'marquee_speed' => 'fast',
+            'marquee_items' => [['icon' => 'building', 'text' => "1989'dan beri", 'badge' => '37 yıl güveni'], ['icon' => 'star', 'text' => '', 'badge' => '']]])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/')->assertSee('1989&#039;dan beri', false)->assertSee('37 yıl güveni')->assertDontSee('üzeri alışverişlerde')->assertSee('bg-navy text-white', false);
+
+        $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '0'])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/')->assertDontSee('aria-label="Kayan duyurular"', false);
+    }
 }

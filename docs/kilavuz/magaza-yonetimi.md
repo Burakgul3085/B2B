@@ -141,6 +141,10 @@ Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı va
 
 ## 10. Alt bilgi
 
+**Kayan şerit** (Vitrin → Üst ve Alt Bilgi): sayfanın en üstünde sağdan sola kayan renkli bant. En fazla 8 madde; her madde simge + metin + isteğe bağlı vurgulu kutu (ör. "₺750 üzeri alışverişlerde" + "KARGO BEDAVA"). Renk ve hız seçilir; hepsi boşsa maddeler ayarlardan üretilir.
+
+**Ödeme logoları:** iyzico'nun desteklediği kart kuruluşları (Visa, Mastercard, American Express, Troy), iyzico ile Öde ve taksit yapılabilen kart aileleri (Bonus, World, Maximum, Axess, Paraf, CardFinans, Advantage) alt bilgide kendiliğinden görünür; Havale / EFT ve kapıda ödeme açıksa onlar da eklenir.
+
 **Vitrin → Alt Bilgi** her sayfanın altındaki bölümü düzenler:
 
 - güven şeridi (en fazla 4 madde: simge, başlık, alt yazı)

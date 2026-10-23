@@ -7,6 +7,25 @@
         @csrf @method('PUT')
         <div class="grid gap-6 xl:grid-cols-3">
             <div class="space-y-6 xl:col-span-2">
+                <x-card title="Kayan şerit" description="Sayfanın en üstünde sağdan sola sürekli kayan renkli bant. Her madde: simge, metin ve isteğe bağlı vurgulu kutu (ör. “₺750 üzeri alışverişlerde” + “KARGO BEDAVA”). Hepsini boş bırakırsanız maddeler ayarlardan üretilir.">
+                    <div class="mb-4 flex flex-wrap items-end gap-4">
+                        <x-toggle name="marquee_enabled" label="Kayan şeridi göster" :checked="$footer['marquee_enabled']" />
+                        <x-field name="marquee_color" label="Renk" :options="\App\Domain\Store\Content\StoreFooter::MARQUEE_COLORS" :value="$footer['marquee_color']" class="w-40" />
+                        <x-field name="marquee_speed" label="Hız" :options="array_map(fn ($s) => $s[0], \App\Domain\Store\Content\StoreFooter::MARQUEE_SPEEDS)" :value="$footer['marquee_speed']" class="w-40" />
+                    </div>
+                    <div class="space-y-2">
+                        @for ($i = 0; $i < \App\Domain\Store\Content\StoreFooter::MAX_MARQUEE; $i++)
+                            @php $row = $footer['marquee_items'][$i] ?? null; @endphp
+                            <div class="grid gap-3 rounded-lg bg-surface p-3 sm:grid-cols-[10rem_1fr_12rem]">
+                                <x-field :name="'marquee_items['.$i.'][icon]'" label="Simge" :options="$icons" :value="$row['icon'] ?? 'check-circle'" />
+                                <x-field :name="'marquee_items['.$i.'][text]'" :label="($i + 1).'. metin'" :value="$row['text'] ?? null" maxlength="60" placeholder="ör. 1989'dan beri" />
+                                <x-field :name="'marquee_items['.$i.'][badge]'" label="Vurgulu kutu" :value="$row['badge'] ?? null" maxlength="30" placeholder="ör. 37 yıl güveni" />
+                            </div>
+                        @endfor
+                    </div>
+                    <p class="mt-3 text-xs text-muted">Vurgulu kutu büyük harfle yazılır. Fare şeridin üzerine gelince kayma durur; hareket azaltmayı seçen ziyaretçilerde şerit sabit durur.</p>
+                </x-card>
+
                 <x-card title="Üst şerit" description="Sayfanın en üstündeki lacivert şerit (masaüstü). Boş bırakırsanız maddeler ayarlardan üretilir: ücretsiz kargo sınırı, Eskişehir teslimatı, güvenli alışveriş. Sağda telefon ve WhatsApp görünür.">
                     <x-toggle name="topbar_enabled" label="Üst şeridi göster" :checked="$footer['topbar_enabled']" class="mb-4" />
                     <div class="grid gap-3 sm:grid-cols-3">
