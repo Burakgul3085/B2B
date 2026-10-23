@@ -26,6 +26,7 @@ class PaymentSettings
         $data = Validator::make($input, [
             'shipping_cargo_fee' => ['nullable', 'string', 'max:20'],
             'shipping_free_threshold' => ['nullable', 'string', 'max:20'],
+            'cargo_cutoff' => ['nullable', 'date_format:H:i'],
             'local_delivery_fee' => ['nullable', 'string', 'max:20'],
             'local_districts' => ['nullable', 'array'],
             'local_districts.*' => ['integer'],
@@ -45,7 +46,7 @@ class PaymentSettings
             'netgsm_password' => ['nullable', 'string', 'max:100'],
             'netgsm_header' => ['nullable', 'string', 'max:20'],
         ], [], [
-            'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
+            'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'cargo_cutoff' => 'kargo saati', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
             'return_days' => 'iade süresi', 'return_address' => 'iade adresi',
             'transfer_accounts' => 'banka hesapları', 'transfer_days' => 'ödeme süresi',
@@ -93,6 +94,7 @@ class PaymentSettings
         StoreSetting::put($money + $flags + [
             // Tüm ilçeler seçiliyse boş bırakılır (yeni ilçe eklenirse kendiliğinden kapsar).
             'local_districts' => count($districts) === count($eskisehir) ? null : implode(',', $districts),
+            'cargo_cutoff' => $data['cargo_cutoff'] ?? null,
             'cod_max_open' => (string) $data['cod_max_open'],
             'return_days' => (string) $data['return_days'],
             'return_address' => trim((string) ($data['return_address'] ?? '')) ?: null,

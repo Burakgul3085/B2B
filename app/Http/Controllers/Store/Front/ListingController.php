@@ -39,6 +39,8 @@ class ListingController extends Controller
             'seoDescription' => $category->seo_description,
             'canonical' => route('store.category', $category->slug),
             'category' => $category,
+            // Ana kategorinin yapboz rengi ve görseli (başlık alanı)
+            'rootCategory' => $this->catalog->menu()->firstWhere('id', $chain[0]->id),
             'subcategories' => $category->children()->where('is_active', true)->get(['id', 'name', 'slug']),
             'breadcrumbs' => array_map(fn ($c) => [$c->name, $c->id === $category->id ? null : route('store.category', $c->slug)], $chain),
         ]);
@@ -102,6 +104,7 @@ class ListingController extends Controller
             'min' => ['nullable', 'string', 'max:20'],
             'max' => ['nullable', 'string', 'max:20'],
             'stokta' => ['nullable', 'boolean'],
+            'indirim' => ['nullable', 'boolean'],
             'sirala' => ['nullable', Rule::in(array_keys(Catalog::SORTS))],
         ]);
         $filtered = array_filter($filters, fn ($v) => $v !== null && $v !== [] && $v !== '');

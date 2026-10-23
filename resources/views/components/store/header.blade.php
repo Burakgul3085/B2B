@@ -6,8 +6,7 @@
 @php
     use App\Domain\Store\Storefront\Palette;
 
-    $digits = $settings['whatsapp'] ? preg_replace('/\D/', '', $settings['whatsapp']) : null;
-    $whatsapp = $digits ? (str_starts_with($digits, '90') ? $digits : (str_starts_with($digits, '0') ? '9'.$digits : '90'.$digits)) : null;
+    $whatsapp = \App\Domain\Store\Storefront\ProductPage::whatsapp($settings['whatsapp']);
     $q = request()->routeIs('store.search') ? (string) request('q') : '';
     $roots = $menu->take(6);
     $navLink = 'inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold text-ink/80 transition hover:text-ink';
@@ -106,7 +105,8 @@
                 </a>
             @endforeach
             <span class="ml-auto"></span>
-            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-sun" /> Yeni gelenler</a>
+            <a href="{{ route('store.products', ['indirim' => 1]) }}" class="{{ $navLink }}"><x-icon name="percent" class="size-4 text-puzzle-orange" /> İndirimler</a>
+            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLink }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
             <a href="{{ route('store.brands') }}" class="{{ $navLink }}">Markalar</a>
         </div>
 
@@ -199,6 +199,7 @@
             @endforeach
         </ul>
         <div class="mt-4 space-y-1 border-t border-line px-4 py-4 text-sm font-medium">
+            <a href="{{ route('store.products', ['indirim' => 1]) }}" class="block py-2">İndirimler</a>
             <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="block py-2">Yeni gelenler</a>
             <a href="{{ route('store.brands') }}" class="block py-2">Markalar</a>
             @foreach ($pages as $page)<a href="{{ $page['url'] }}" class="block py-2">{{ $page['title'] }}</a>@endforeach

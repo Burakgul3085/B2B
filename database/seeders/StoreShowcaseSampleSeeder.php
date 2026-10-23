@@ -52,7 +52,7 @@ class StoreShowcaseSampleSeeder extends Seeder
             'is_open' => '1', 'phone' => '0222 123 45 67', 'whatsapp' => '0532 123 45 67', 'email' => 'merhaba@yapbozkirtasiye.com',
             'address' => 'Hoşnudiye Mah. İsmet İnönü 1 Cad. No: 12, Tepebaşı / Eskişehir', 'instagram' => 'https://instagram.com/yapbozkirtasiye',
             'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'footer_about' => "1998'den bu yana Eskişehir'in güvenilir kırtasiyesi. Orijinal ürünler, uygun fiyatlar.",
-            'shipping_cargo_fee' => '59.90', 'shipping_free_threshold' => '750.00', 'local_delivery_enabled' => '1', 'local_delivery_fee' => '0.00',
+            'shipping_cargo_fee' => '59.90', 'shipping_free_threshold' => '750.00', 'cargo_cutoff' => '15:00', 'local_delivery_enabled' => '1', 'local_delivery_fee' => '0.00',
             'announcement' => 'Okula dönüş fırsatları başladı!',
         ]);
 

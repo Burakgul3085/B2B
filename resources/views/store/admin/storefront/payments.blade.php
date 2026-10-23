@@ -9,6 +9,7 @@
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-field name="shipping_cargo_fee" label="Kargo ücreti (₺)" :value="$money($s['shipping_cargo_fee'])" inputmode="decimal" />
                     <x-field name="shipping_free_threshold" label="Ücretsiz kargo sınırı (₺)" :value="$money($s['shipping_free_threshold'])" inputmode="decimal" hint="Bu tutar ve üzeri siparişlerde kargo ücretsiz. Boşsa uygulanmaz." />
+                    <x-field name="cargo_cutoff" type="time" label="Aynı gün kargo saati" :value="$s['cargo_cutoff']" hint="Hafta içi bu saatten önce verilen siparişler aynı gün kargoya verilir; ürün sayfasında yazılır. Boşsa gösterilmez." />
                 </div>
             </x-card>
 

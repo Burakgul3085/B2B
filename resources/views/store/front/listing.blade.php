@@ -1,8 +1,9 @@
 @php
     use App\Domain\Store\Storefront\Catalog;
+    use App\Domain\Store\Storefront\Palette;
 
     $selectedBrands = array_map('intval', $filters['marka'] ?? []);
-    $hasFilters = $selectedBrands || ($filters['min'] ?? null) || ($filters['max'] ?? null) || ($filters['stokta'] ?? false);
+    $hasFilters = $selectedBrands || ($filters['min'] ?? null) || ($filters['max'] ?? null) || ($filters['stokta'] ?? false) || ($filters['indirim'] ?? false);
     $crumbJson = ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => collect([['Ana sayfa', route('store.home')], ...$breadcrumbs])
         ->values()->map(fn ($c, $i) => array_filter(['@type' => 'ListItem', 'position' => $i + 1, 'name' => $c[0], 'item' => $c[1] ?? url()->current()]))->all()];
 @endphp
@@ -10,23 +11,46 @@
     <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8" x-data="{ filters: false }">
         @include('store.front._breadcrumbs', ['items' => $breadcrumbs])
 
-        <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ $title }}</h1>
-                <p class="mt-1 text-sm text-muted">{{ number_format($products->total(), 0, ',', '.') }} ürün</p>
+        @if (! empty($category))
+            {{-- Kategori başlığı: ana kategorinin yapboz rengi; görsel kategorinin kendisinden, yoksa ana kategoriden. --}}
+            @php
+                $tone = Palette::classes($rootCategory?->palette);
+                $heroImage = $category->image_path ? $category->id : ($rootCategory?->image_path ? $rootCategory->id : null);
+                $tagline = $category->tagline ?: $rootCategory?->tagline;
+            @endphp
+            <header class="relative mt-4 overflow-hidden rounded-3xl px-6 py-8 sm:px-10 sm:py-10 {{ $tone['soft'] }}">
+                <span class="absolute top-0 left-0 h-1.5 w-full {{ $tone['solid'] }}" aria-hidden="true"></span>
+                <div class="relative z-10 max-w-2xl">
+                    <p class="text-xs font-bold tracking-[0.14em] uppercase {{ $tone['text'] }}">{{ number_format($products->total(), 0, ',', '.') }} ürün</p>
+                    <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $title }}</h1>
+                    @if ($tagline)<p class="mt-2 text-base text-ink/75">{{ $tagline }}</p>@endif
+                    @if (! empty($description))<p class="mt-3 text-sm leading-relaxed text-ink/70">{{ $description }}</p>@endif
+                </div>
+                @if ($heroImage)
+                    <img src="{{ route('store.media.category', ['storeCategory' => $heroImage, 'w' => 480]) }}" alt="" class="absolute -right-6 -bottom-8 hidden size-48 rotate-6 rounded-3xl object-cover shadow-xl md:block lg:right-10 lg:size-56">
+                @else
+                    <span class="absolute -right-6 -bottom-8 hidden size-44 rotate-12 items-center justify-center rounded-[2rem] font-display text-7xl font-extrabold text-white/90 md:flex lg:right-12 {{ $tone['solid'] }}" aria-hidden="true">{{ mb_substr($category->name, 0, 1) }}</span>
+                @endif
+            </header>
+        @else
+            <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <h1 class="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{{ $title }}</h1>
+                    <p class="mt-1 text-sm text-muted">{{ number_format($products->total(), 0, ',', '.') }} ürün</p>
+                </div>
+                @if (! empty($brand?->logo_path))
+                    <img src="{{ route('store.media.brand', $brand) }}?v={{ $brand->updated_at?->timestamp }}" alt="{{ $brand->name }} logosu" class="h-14 w-auto max-w-40 object-contain">
+                @endif
             </div>
-            @if (! empty($brand?->logo_path))
-                <img src="{{ route('store.media.brand', $brand) }}?v={{ $brand->updated_at?->timestamp }}" alt="{{ $brand->name }} logosu" class="h-14 w-auto max-w-40 object-contain">
-            @endif
-        </div>
-        @if (! empty($description))<p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">{{ $description }}</p>@endif
+            @if (! empty($description))<p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">{{ $description }}</p>@endif
+        @endif
 
         @if (! empty($subcategories) && $subcategories->isNotEmpty())
-            <div class="mt-5 flex flex-wrap gap-2">
+            <nav class="mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Alt kategoriler">
                 @foreach ($subcategories as $sub)
-                    <a href="{{ route('store.category', $sub->slug) }}" class="rounded-full border border-line px-4 py-1.5 text-sm hover:border-primary hover:text-primary">{{ $sub->name }}</a>
+                    <a href="{{ route('store.category', $sub->slug) }}" class="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium transition hover:border-transparent hover:text-white {{ $tone['hover'] ?? 'hover:bg-navy' }}">{{ $sub->name }}</a>
                 @endforeach
-            </div>
+            </nav>
         @endif
 
         <div class="mt-6 grid gap-8 lg:grid-cols-[15rem_1fr]">
@@ -62,6 +86,11 @@
                     <input type="hidden" name="stokta" value="0">
                     <input type="checkbox" name="stokta" value="1" @checked($filters['stokta'] ?? false) class="size-4 rounded border-line text-primary" data-autosubmit>
                     Yalnızca stoktakiler
+                </label>
+                <label class="flex items-center gap-2.5 text-sm">
+                    <input type="hidden" name="indirim" value="0">
+                    <input type="checkbox" name="indirim" value="1" @checked($filters['indirim'] ?? false) class="size-4 rounded border-line text-primary" data-autosubmit>
+                    Yalnızca indirimdekiler
                 </label>
                 <div class="flex gap-2">
                     <x-button size="sm" class="flex-1">Uygula</x-button>

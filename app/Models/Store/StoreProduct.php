@@ -64,6 +64,12 @@ class StoreProduct extends Model
         return $this->hasMany(StoreProductImage::class, 'product_id')->orderBy('sort')->orderBy('id');
     }
 
+    /** Kart için ilk iki görsel (üzerine gelince ikincisi görünür); Catalog::forCards ürün başına 2 ile sınırlar. */
+    public function cardImages(): HasMany
+    {
+        return $this->images();
+    }
+
     /** İlk sıradaki görsel ana görseldir. */
     public function primaryImage(): HasOne
     {

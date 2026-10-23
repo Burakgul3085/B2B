@@ -1,7 +1,7 @@
 {{-- Sekmeli ürün vitrini: öne çıkanlar, çok satanlar (son 90 gün), yeni gelenler, indirimdekiler. Boş sekme gösterilmez. --}}
 @if ($showcase)
     @php
-        $links = ['featured' => route('store.products'), 'best' => route('store.products'), 'new' => route('store.products', ['sirala' => 'yeni']), 'sale' => route('store.products')];
+        $links = ['featured' => route('store.products'), 'best' => route('store.products'), 'new' => route('store.products', ['sirala' => 'yeni']), 'sale' => route('store.products', ['indirim' => 1])];
     @endphp
     <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-labelledby="vitrin" x-data="tabs(@alpine(array_key_first($showcase)))">
         @include('store.front.home._heading', ['block' => $block, 'eyebrow' => 'Vitrin', 'color' => 'green'])

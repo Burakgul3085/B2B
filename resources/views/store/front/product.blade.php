@@ -15,6 +15,8 @@
     $initial = $initial === false ? 0 : $initial;
     $imageUrl = fn ($image, $w = null) => route('store.media.product', array_filter(['storeImage' => $image, 'w' => $w]));
     $productUrl = route('store.product', $product->slug);
+    $ask = $info['whatsapp'] ? 'https://wa.me/'.$info['whatsapp'].'?text='.rawurlencode("Merhaba, bu ürün hakkında bilgi almak istiyorum: {$product->name} {$productUrl}") : null;
+    $share = 'https://wa.me/?text='.rawurlencode("{$product->name} {$productUrl}");
 
     // Yapılandırılmış veri: Google ürün sonuçları
     $offers = $variants->map(fn ($v) => [
@@ -82,17 +84,19 @@
             {{-- Bilgi ve seçim --}}
             <div>
                 @if ($product->brand)
-                    <a href="{{ route('store.brand', $product->brand->slug) }}" class="text-sm font-semibold tracking-wider text-muted uppercase hover:text-primary">{{ $product->brand->name }}</a>
+                    <a href="{{ route('store.brand', $product->brand->slug) }}" class="text-xs font-bold tracking-[0.14em] text-muted uppercase hover:text-navy-ink">{{ $product->brand->name }}</a>
                 @endif
-                <h1 class="mt-1 text-2xl leading-tight font-bold tracking-tight sm:text-3xl">{{ $product->name }}</h1>
+                <h1 class="mt-1 font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl">{{ $product->name }}</h1>
                 <p class="mt-2 text-sm text-muted">Ürün kodu: <span x-text="v.sku">{{ $variantData[$initial]['sku'] }}</span></p>
 
-                <div class="mt-6 flex flex-wrap items-baseline gap-3">
-                    <span class="text-3xl font-bold tabular-nums" x-text="v.price">{{ $variantData[$initial]['price'] }}</span>
-                    <template x-if="v.compare"><span class="text-lg text-muted line-through tabular-nums" x-text="v.compare"></span></template>
-                    <template x-if="v.discount"><span class="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white" x-text="'%' + v.discount + ' indirim'"></span></template>
+                <div class="mt-6 rounded-2xl bg-surface px-5 py-4">
+                    <div class="flex flex-wrap items-baseline gap-3">
+                        <span class="font-display text-3xl font-extrabold tabular-nums sm:text-4xl" :class="v.compare ? 'text-puzzle-orange' : ''" x-text="v.price">{{ $variantData[$initial]['price'] }}</span>
+                        <template x-if="v.compare"><span class="text-lg text-muted line-through tabular-nums" x-text="v.compare"></span></template>
+                        <template x-if="v.discount"><span class="rounded-lg bg-puzzle-orange px-2.5 py-1 text-xs font-extrabold text-white" x-text="'%' + v.discount + ' indirim'"></span></template>
+                    </div>
+                    <p class="mt-1 text-xs text-muted">KDV dahil</p>
                 </div>
-                <p class="mt-1 text-xs text-muted">KDV dahil</p>
 
                 @if ($product->hasOptions())
                     <div class="mt-8">
@@ -122,23 +126,77 @@
                         <input type="number" name="quantity" x-model.number="qty" min="1" :max="v.available" value="1" class="w-12 border-0 text-center font-semibold focus:ring-0" aria-label="Adet">
                         <button type="button" class="px-3.5 py-3 text-lg text-muted hover:text-ink" @click="increase()" aria-label="Artır">+</button>
                     </div>
-                    <button :disabled="v.available === 0" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
+                    <button :disabled="v.available === 0" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-navy px-6 py-3 font-semibold text-white shadow-lg shadow-navy/15 transition hover:bg-puzzle-orange disabled:cursor-not-allowed disabled:opacity-50">
                         <x-icon name="cart" class="size-5" /> <span x-text="v.available === 0 ? 'Tükendi' : 'Sepete ekle'">Sepete ekle</span>
                     </button>
                 </form>
 
-                @if ($product->description)
-                    <div class="mt-10 border-t border-line pt-6">
-                        <h2 class="text-base font-semibold">Ürün açıklaması</h2>
-                        <p class="mt-3 text-sm leading-relaxed whitespace-pre-line text-slate-700">{{ $product->description }}</p>
+                <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                    @if ($ask)
+                        <a href="{{ $ask }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 font-semibold text-puzzle-green hover:underline"><x-icon name="message-circle" class="size-4" /> WhatsApp ile sor</a>
+                    @endif
+                    <span class="flex items-center gap-3 text-muted">
+                        Paylaş:
+                        <a href="{{ $share }}" target="_blank" rel="noopener" class="hover:text-ink" aria-label="WhatsApp'ta paylaş"><x-icon name="message-circle" class="size-4" /></a>
+                        <button type="button" x-data="copyCode(@alpine($productUrl))" @click="copy()" class="inline-flex items-center gap-1 hover:text-ink" aria-label="Bağlantıyı kopyala">
+                            <x-icon name="link" class="size-4" /> <span x-show="copied" x-cloak class="text-xs text-success">Kopyalandı</span>
+                        </button>
+                    </span>
+                </div>
+
+                {{-- Teslimat özeti: yalnızca ayarlanmış bilgiler --}}
+                <ul class="mt-6 divide-y divide-line rounded-2xl border border-line text-sm">
+                    @if ($info['cutoff'])
+                        <li class="flex gap-3 px-4 py-3"><x-icon name="clock" class="size-5 shrink-0 text-puzzle-blue" /><span>Hafta içi saat <strong>{{ $info['cutoff'] }}</strong> öncesi verilen siparişler aynı gün kargoya verilir.</span></li>
+                    @endif
+                    <li class="flex gap-3 px-4 py-3"><x-icon name="truck" class="size-5 shrink-0 text-puzzle-orange" /><span>
+                        @if ($info['free_threshold'])<strong>{{ Money::format($info['free_threshold']) }}</strong> ve üzeri siparişlerde kargo ücretsiz.@if ($info['cargo_fee']) Altında kargo ücreti {{ Money::format($info['cargo_fee']) }}.@endif
+                        @elseif ($info['cargo_fee'])Kargo ücreti {{ Money::format($info['cargo_fee']) }}.
+                        @else Türkiye geneline kargo ile gönderim.@endif
+                    </span></li>
+                    @if ($info['local'])
+                        <li class="flex gap-3 px-4 py-3"><x-icon name="map-pin" class="size-5 shrink-0 text-puzzle-green" /><span>Eskişehir içinde kendi aracımızla teslimat.</span></li>
+                    @endif
+                    <li class="flex gap-3 px-4 py-3"><x-icon name="refresh" class="size-5 shrink-0 text-puzzle-yellow" /><span>Teslimattan sonra {{ $info['return_days'] }} gün içinde iade hakkı.</span></li>
+                </ul>
+
+                @if ($info['perks'])
+                    <div class="mt-4 grid grid-cols-3 gap-2">
+                        @foreach (array_slice($info['perks'], 0, 3) as $perk)
+                            <div class="flex flex-col items-center gap-1.5 rounded-xl bg-surface px-2 py-3 text-center">
+                                <x-icon :name="$perk['icon']" class="size-5 text-navy-ink" />
+                                <span class="text-xs leading-tight font-semibold">{{ $perk['title'] }}</span>
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>
         </div>
 
+        {{-- Ayrıntılar: açıklama ve teslimat/iade sekmeleri --}}
+        <section class="mt-14" x-data="tabs(@alpine($product->description ? 'aciklama' : 'teslimat'))">
+            <div class="flex gap-6 border-b border-line" role="tablist">
+                @if ($product->description)
+                    <button type="button" role="tab" @click="select('aciklama')" :aria-selected="is('aciklama')" :class="is('aciklama') ? 'border-navy text-ink' : 'border-transparent text-muted hover:text-ink'" class="-mb-px border-b-2 pb-3 text-sm font-semibold sm:text-base">Ürün açıklaması</button>
+                @endif
+                <button type="button" role="tab" @click="select('teslimat')" :aria-selected="is('teslimat')" :class="is('teslimat') ? 'border-navy text-ink' : 'border-transparent text-muted hover:text-ink'" class="-mb-px border-b-2 pb-3 text-sm font-semibold sm:text-base">Teslimat ve iade</button>
+            </div>
+            @if ($product->description)
+                <div x-show="is('aciklama')" role="tabpanel" class="max-w-3xl py-6">
+                    <p class="text-sm leading-relaxed whitespace-pre-line text-slate-700 sm:text-base">{{ $product->description }}</p>
+                </div>
+            @endif
+            <div x-show="is('teslimat')" @if ($product->description) x-cloak @endif role="tabpanel" class="max-w-3xl space-y-3 py-6 text-sm leading-relaxed text-slate-700 sm:text-base">
+                <p>Siparişiniz ödeme onayından sonra hazırlanır ve kargoya verilir; kargo takip numarası e-posta ile gönderilir.@if ($info['local']) Eskişehir'deki adreslere kendi aracımızla da teslim ediyoruz.@endif</p>
+                <p>Teslim aldığınız ürünü {{ $info['return_days'] }} gün içinde, kullanılmamış ve yeniden satılabilir durumda iade edebilirsiniz. İade talebini hesabınızdaki sipariş sayfasından açabilirsiniz.</p>
+                <p><a href="{{ route('store.legal', 'iptal-iade') }}" class="font-semibold text-navy-ink underline-offset-4 hover:underline">İptal ve İade Koşulları</a></p>
+            </div>
+        </section>
+
         @if ($related->isNotEmpty())
-            <section class="mt-16" aria-labelledby="benzer">
-                <h2 id="benzer" class="text-xl font-bold tracking-tight">Benzer ürünler</h2>
+            <section class="mt-12" aria-labelledby="benzer">
+                <p class="text-xs font-bold tracking-[0.14em] text-puzzle-green uppercase">Aynı kategoriden</p>
+                <h2 id="benzer" class="mt-1 font-display text-2xl font-extrabold tracking-tight">Benzer ürünler</h2>
                 <div class="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                     @foreach ($related as $item)
                         @include('store.front._card', ['product' => $item])

@@ -19,8 +19,8 @@ class StoreSetting extends Model
         'meta_title' => null,        // ana sayfa SEO başlığı
         'meta_description' => null,  // ana sayfa SEO açıklaması
         'footer_about' => null,
-        'footer' => null,
-        'home' => null,                // ana sayfa blokları (JSON, App\Domain\Store\Storefront\HomeLayout)              // alt bilgi ayarları (JSON, App\Domain\Store\Content\StoreFooter)
+        'footer' => null,            // alt bilgi ayarları (JSON, App\Domain\Store\Content\StoreFooter)
+        'home' => null,              // ana sayfa blokları (JSON, App\Domain\Store\Storefront\HomeLayout)
         'phone' => null,
         'whatsapp' => null,
         'email' => null,
@@ -38,6 +38,7 @@ class StoreSetting extends Model
         // Teslimat (KDV dahil ücretler)
         'shipping_cargo_fee' => '0.00',
         'shipping_free_threshold' => null,   // bu tutar ve üzeri kargo ücretsiz
+        'cargo_cutoff' => null,              // SS:DD; hafta içi bu saatten önceki siparişler aynı gün kargoda (boşsa gösterilmez)
         'local_delivery_enabled' => '1',     // Eskişehir'de kendi aracımızla teslimat
         'local_delivery_fee' => '0.00',
         'local_districts' => null,           // virgülle ilçe kimlikleri; boşsa Eskişehir'in tüm ilçeleri

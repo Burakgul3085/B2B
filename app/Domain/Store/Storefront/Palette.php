@@ -14,14 +14,14 @@ class Palette
     public const CYCLE = ['orange', 'green', 'blue', 'yellow'];
 
     private const CLASSES = [
-        'orange' => ['solid' => 'bg-puzzle-orange', 'soft' => 'bg-puzzle-orange-soft', 'text' => 'text-puzzle-orange', 'ring' => 'ring-puzzle-orange/30', 'border' => 'border-puzzle-orange'],
-        'green' => ['solid' => 'bg-puzzle-green', 'soft' => 'bg-puzzle-green-soft', 'text' => 'text-puzzle-green', 'ring' => 'ring-puzzle-green/30', 'border' => 'border-puzzle-green'],
-        'blue' => ['solid' => 'bg-puzzle-blue', 'soft' => 'bg-puzzle-blue-soft', 'text' => 'text-puzzle-blue', 'ring' => 'ring-puzzle-blue/30', 'border' => 'border-puzzle-blue'],
-        'yellow' => ['solid' => 'bg-puzzle-yellow', 'soft' => 'bg-puzzle-yellow-soft', 'text' => 'text-puzzle-yellow', 'ring' => 'ring-puzzle-yellow/30', 'border' => 'border-puzzle-yellow'],
-        'navy' => ['solid' => 'bg-navy', 'soft' => 'bg-navy-soft', 'text' => 'text-navy-ink', 'ring' => 'ring-navy/30', 'border' => 'border-navy'],
+        'orange' => ['solid' => 'bg-puzzle-orange', 'soft' => 'bg-puzzle-orange-soft', 'text' => 'text-puzzle-orange', 'ring' => 'ring-puzzle-orange/30', 'border' => 'border-puzzle-orange', 'hover' => 'hover:bg-puzzle-orange'],
+        'green' => ['solid' => 'bg-puzzle-green', 'soft' => 'bg-puzzle-green-soft', 'text' => 'text-puzzle-green', 'ring' => 'ring-puzzle-green/30', 'border' => 'border-puzzle-green', 'hover' => 'hover:bg-puzzle-green'],
+        'blue' => ['solid' => 'bg-puzzle-blue', 'soft' => 'bg-puzzle-blue-soft', 'text' => 'text-puzzle-blue', 'ring' => 'ring-puzzle-blue/30', 'border' => 'border-puzzle-blue', 'hover' => 'hover:bg-puzzle-blue'],
+        'yellow' => ['solid' => 'bg-puzzle-yellow', 'soft' => 'bg-puzzle-yellow-soft', 'text' => 'text-puzzle-yellow', 'ring' => 'ring-puzzle-yellow/30', 'border' => 'border-puzzle-yellow', 'hover' => 'hover:bg-puzzle-yellow'],
+        'navy' => ['solid' => 'bg-navy', 'soft' => 'bg-navy-soft', 'text' => 'text-navy-ink', 'ring' => 'ring-navy/30', 'border' => 'border-navy', 'hover' => 'hover:bg-navy'],
     ];
 
-    /** @return array{solid: string, soft: string, text: string, ring: string, border: string} */
+    /** @return array{solid: string, soft: string, text: string, ring: string, border: string, hover: string} */
     public static function classes(?string $color): array
     {
         return self::CLASSES[$color] ?? self::CLASSES['navy'];

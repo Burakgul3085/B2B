@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Storefront\Catalog;
+use App\Domain\Store\Storefront\ProductPage;
 use App\Http\Controllers\Controller;
 use Illuminate\View\View;
 
@@ -34,6 +35,7 @@ class ProductController extends Controller
                 [$product->name, null],
             ],
             'related' => $related,
+            'info' => ProductPage::info(),
         ]);
     }
 }

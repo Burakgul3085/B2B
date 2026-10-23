@@ -36,7 +36,7 @@ class Catalog
     /** Kart için gerekli ilişkiler. */
     public function forCards(Builder $query): Builder
     {
-        return $query->with(['brand:id,name,slug', 'primaryImage', 'activeVariants']);
+        return $query->with(['brand:id,name,slug', 'primaryImage', 'cardImages' => fn ($q) => $q->limit(2), 'activeVariants']);
     }
 
     /**
@@ -53,7 +53,8 @@ class Catalog
         $query->when($filters['marka'] ?? [], fn ($q, $brands) => $q->whereIn('brand_id', array_map('intval', (array) $brands)))
             ->when($min !== null, fn ($q) => $q->where($cheapest, '>=', $min))
             ->when($max !== null, fn ($q) => $q->where($cheapest, '<=', $max))
-            ->when($filters['stokta'] ?? false, fn ($q) => $q->whereHas('activeVariants', fn ($v) => $v->where('stock_quantity', '>', 0)));
+            ->when($filters['stokta'] ?? false, fn ($q) => $q->whereHas('activeVariants', fn ($v) => $v->where('stock_quantity', '>', 0)))
+            ->when($filters['indirim'] ?? false, fn ($q) => $q->whereHas('activeVariants', fn ($v) => $v->whereColumn('compare_at_price', '>', 'price')));
 
         return match ($filters['sirala'] ?? 'onerilen') {
             'yeni' => $query->orderByDesc('published_at')->orderByDesc('id'),

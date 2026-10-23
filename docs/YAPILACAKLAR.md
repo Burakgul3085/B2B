@@ -67,6 +67,12 @@ Sunucu 23.10.2026'da kuruldu (docs/kilavuz/kurulum.md §0): HTTPS, güvenlik duv
 ### Eksik ekranlar ve özellikler
 B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).
 - [x] Mağaza vitrini (müşteri tarafı) için koyu tema: üst bilgide ay/güneş düğmesi (açık ↔ koyu); Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi.
+- Vitrin yenilemesi (logodaki dört yapboz rengi + lacivert; sahte aciliyet/puan yok, yalnızca gerçek veri):
+  - [x] Aşama 1: kimlik, üst şerit, geniş menü, canlı arama, mini sepet, mobil alt menü.
+  - [x] Aşama 2: yönetimden düzenlenen ana sayfa blokları, seçkiler, yan banner'lar, ana sayfa kuponları.
+  - [x] Aşama 3: ürün kartı (ikinci görsel, indirim/yeni/son N ürün rozetleri), kategori başlığı ve renkli alt kategoriler, "İndirimler" filtresi ve menü bağlantısı, ürün sayfasında teslimat özeti, aynı gün kargo saati (Ödeme ve Teslimat → Kargo), WhatsApp ile sor, paylaş, açıklama/teslimat sekmeleri.
+  - [ ] Aşama 4: favoriler, ürün yorumları (yalnızca satın alanlar, yönetici onaylı), stoğa gelince haber ver, son bakılanlar.
+  - [ ] Aşama 5: yönetimden blog.
 
 ### Teknik borç
 - [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.

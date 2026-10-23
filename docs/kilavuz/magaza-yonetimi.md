@@ -45,7 +45,7 @@ Mağaza kapalıyken **Mağaza Ayarları → Önizleme** bağlantısıyla siteyi 
 
 | Bölüm | Ayar |
 |---|---|
-| Kargo | Sabit kargo ücreti ve **ücretsiz kargo sınırı**. Sınırın üzerindeki siparişlerde kargo ücretsizdir. |
+| Kargo | Sabit kargo ücreti ve **ücretsiz kargo sınırı**. Sınırın üzerindeki siparişlerde kargo ücretsizdir. **Aynı gün kargo saati** doluysa ürün sayfasında "Hafta içi saat … öncesi verilen siparişler aynı gün kargoya verilir" yazar; boşsa bu söz verilmez. |
 | Mağaza teslimatı (Eskişehir) | Kendi aracınızla teslimat: ücret ve teslimat yapılan ilçeler. |
 | Kapıda ödeme | Yalnızca Eskişehir mağaza teslimatında. En düşük/en yüksek tutar, hizmet bedeli, aynı telefonda en fazla açık sipariş, ilk siparişte telefonla teyit. Müşteri siparişi SMS koduyla doğrular. |
 | Kartla ödeme (iyzico) | API anahtarları, test/canlı ortam. Bildirim adresini (webhook) iyzico panelinde Ayarlar → Bildirim Ayarları'na girin. |
