@@ -13,6 +13,16 @@ Platform paneli, sistemin teknik yönetimi içindir. Adres: `https://<alan adı>
 - İlk girişte **iki adımlı doğrulama** kurulur.
 - İsteğe bağlı olarak panele yalnızca belirli IP'lerden girilebilir. Bunun için `.env` dosyasında `PLATFORM_ALLOWED_IPS` ayarlanır.
 
+### Doğrulama uygulamasını kaybettiyseniz
+
+Kurtarma kodu yoktur. İki adımlı doğrulama sunucudan (SSH) sıfırlanır, sonraki girişte yeni karekod okutulur:
+
+```bash
+cd /var/www/yapboz/current && sudo -u www-data php artisan platform:reset-two-factor <e-posta>
+```
+
+Mağaza yöneticisi (süper admin dahil) için komutun sonuna `--store-admin` eklenir. Sıfırlama işlem kaydına yazılır.
+
 ## Menüler
 
 | Menü | Ne için |
