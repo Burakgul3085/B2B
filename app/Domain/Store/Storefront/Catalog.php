@@ -36,7 +36,9 @@ class Catalog
     /** Kart için gerekli ilişkiler. */
     public function forCards(Builder $query): Builder
     {
-        return $query->with(['brand:id,name,slug', 'primaryImage', 'cardImages' => fn ($q) => $q->limit(2), 'activeVariants']);
+        // Puan yalnızca onaylı gerçek yorumlardan (rating_avg, rating_count).
+        return $query->with(['brand:id,name,slug', 'primaryImage', 'cardImages' => fn ($q) => $q->limit(2), 'activeVariants'])
+            ->withAvg('approvedReviews as rating_avg', 'rating')->withCount('approvedReviews as rating_count');
     }
 
     /**

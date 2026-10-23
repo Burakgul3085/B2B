@@ -11,6 +11,7 @@
 
         <nav class="mt-6 flex gap-2 overflow-x-auto border-b border-line text-sm font-medium" aria-label="Hesap bölümleri">
             <a href="#siparisler" class="border-b-2 border-transparent px-3 py-2.5 whitespace-nowrap hover:border-primary hover:text-primary">Siparişlerim</a>
+            <a href="{{ route('store.favorites') }}" class="border-b-2 border-transparent px-3 py-2.5 whitespace-nowrap hover:border-primary hover:text-primary">Favorilerim</a>
             <a href="#adresler" class="border-b-2 border-transparent px-3 py-2.5 whitespace-nowrap hover:border-primary hover:text-primary">Adreslerim</a>
             <a href="#bilgiler" class="border-b-2 border-transparent px-3 py-2.5 whitespace-nowrap hover:border-primary hover:text-primary">Bilgilerim</a>
             <a href="#guvenlik" class="border-b-2 border-transparent px-3 py-2.5 whitespace-nowrap hover:border-primary hover:text-primary">E-posta ve parola</a>

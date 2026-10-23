@@ -91,6 +91,8 @@
                 ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],
                 ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
                 ['label' => 'Markalar', 'route' => 'store_admin.brands.index', 'icon' => 'layers', 'active' => 'store_admin.brands.*'],
+                ['label' => 'Yorumlar', 'route' => 'store_admin.reviews.index', 'icon' => 'star', 'active' => 'store_admin.reviews.*',
+                    'badge' => \App\Models\Store\StoreReview::where('status', 'pending')->count()],
             ]],
             ['label' => 'Vitrin', 'items' => [
                 ['label' => 'Ana Sayfa', 'route' => 'store_admin.home-layout.edit', 'icon' => 'home', 'active' => 'store_admin.home-layout.*'],

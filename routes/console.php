@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Platform\BackupService;
+use App\Domain\Store\Inventory\StockAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Payments\PaymentService;
 use Database\Seeders\Support\DemoImages;
@@ -81,3 +82,10 @@ Artisan::command('store:expire-transfers', function (OrderService $orders) {
 Artisan::command('store:expire-pending-payments', function (PaymentService $payments) {
     $this->info($payments->expireStale().' bekleyen ödeme işlendi.');
 })->purpose('Mağaza: 30 dakikayı geçen ödeme bekleyen siparişleri sonuçlandırır');
+
+// Mağaza: "stoğa gelince haber ver" isteklerinden stoğa girenlere e-posta gönderir.
+Schedule::command('store:stock-alerts')->everyTenMinutes()->withoutOverlapping();
+
+Artisan::command('store:stock-alerts', function (StockAlerts $alerts) {
+    $this->info($alerts->sendDue().' stok bildirimi gönderildi.');
+})->purpose('Mağaza: stoğa giren ürünler için bekleyen bildirimleri gönderir');

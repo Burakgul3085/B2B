@@ -7,8 +7,11 @@ use App\Domain\Auth\Area;
 use App\Domain\Auth\AuthTokenService;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCustomer;
+use App\Models\Store\StoreFavorite;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
+use App\Models\Store\StoreReview;
+use App\Models\Store\StoreStockAlert;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -136,6 +139,10 @@ class CustomerService
         DB::transaction(function () use ($customer) {
             $customer->addresses()->delete();
             StoreCart::where('customer_id', $customer->id)->delete();
+            // Favoriler, yorumlar (adı içerir) ve stok bildirimleri de silinir.
+            StoreFavorite::where('customer_id', $customer->id)->delete();
+            StoreReview::where('customer_id', $customer->id)->delete();
+            StoreStockAlert::where('customer_id', $customer->id)->orWhere('email', mb_strtolower($customer->email))->delete();
             $this->tokens->revoke(Area::Customer, $customer->id, 'password_reset');
             $customer->forceFill([
                 'first_name' => 'Kapatılmış', 'last_name' => 'hesap',

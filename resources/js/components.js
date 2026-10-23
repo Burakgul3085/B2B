@@ -398,6 +398,7 @@ export function toast() {
         timer: null,
         init() {
             window.addEventListener('cart-error', (e) => this.show(e.detail.message, true));
+            window.addEventListener('store-toast', (e) => this.show(e.detail.message, false));
         },
         show(message, error) {
             this.message = message;
@@ -438,6 +439,59 @@ export function copyCode(code) {
                     this.copied = false;
                 }, 2000);
             });
+        },
+    };
+}
+
+/**
+ * Favori kalbi: x-data="favorite(url, durum, girişAdresi)", düğmede @click.prevent="toggle()".
+ * Üye değilse giriş sayfasına gider; sonuç toast ile bildirilir.
+ */
+export function favorite(url, initial, loginUrl) {
+    return {
+        on: initial,
+        busy: false,
+        async toggle() {
+            if (this.busy) {
+                return;
+            }
+            this.busy = true;
+            try {
+                const res = await window.fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    credentials: 'same-origin',
+                });
+                if (res.status === 401) {
+                    window.location.href = loginUrl;
+                    return;
+                }
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    this.on = data.favorite;
+                    window.dispatchEvent(new CustomEvent('store-toast', { detail: { message: data.message } }));
+                }
+            } finally {
+                this.busy = false;
+            }
+        },
+    };
+}
+
+/** Yıldız seçimi (yorum formu): x-data="starRating(0)", gizli alan :value="value". */
+export function starRating(initial) {
+    return {
+        value: initial,
+        hover: 0,
+        set(n) {
+            this.value = n;
+        },
+        lit(n) {
+            return (this.hover || this.value) >= n;
         },
     };
 }

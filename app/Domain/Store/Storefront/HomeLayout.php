@@ -20,6 +20,7 @@ class HomeLayout
         'categories' => ['label' => 'Kategori kutuları', 'title' => 'Kırtasiyede aradığınız her şey', 'subtitle' => 'İhtiyacınıza en yakın rafı keşfedin.'],
         'coupons' => ['label' => 'Kampanya ve kuponlar', 'title' => 'Sepetiniz için hazır avantajlar', 'subtitle' => 'Kodu kopyalayın, sepette kullanın.'],
         'showcase' => ['label' => 'Ürün vitrini (sekmeli)', 'title' => 'Sizin için seçtiklerimiz', 'subtitle' => 'Mağazamızdan sizin için seçtiğimiz ürünler.'],
+        'recent' => ['label' => 'Son bakılan ürünler (ziyaretçiye özel)', 'title' => 'Kaldığınız yerden devam edin', 'subtitle' => 'Son baktığınız ürünler.'],
         'collections' => ['label' => 'Seçkiler', 'title' => 'Bugün neye ihtiyacınız var?', 'subtitle' => 'Temaya göre hazırladığımız ürün seçkileri.'],
         'brands' => ['label' => 'Markalar', 'title' => 'Güvendiğiniz markalar', 'subtitle' => 'Orijinal ürünler, yetkili tedarikçilerden.'],
         'about' => ['label' => 'Hakkımızda özeti', 'title' => null, 'subtitle' => null],

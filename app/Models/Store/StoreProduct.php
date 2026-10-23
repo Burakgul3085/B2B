@@ -76,6 +76,12 @@ class StoreProduct extends Model
         return $this->hasOne(StoreProductImage::class, 'product_id')->ofMany(['sort' => 'min', 'id' => 'min']);
     }
 
+    /** Yayındaki (onaylı) yorumlar. */
+    public function approvedReviews(): HasMany
+    {
+        return $this->hasMany(StoreReview::class, 'product_id')->where('status', 'approved');
+    }
+
     public function hasOptions(): bool
     {
         return $this->variant_name !== null;

@@ -92,6 +92,16 @@ Müşteri teslimden sonra iade süresi içinde sipariş sayfasından iade talebi
 - **Satış → Raporlar:** Tarih aralığına göre ciro, indirim, iade, günlük satış, ödeme ve teslimat yöntemine göre dağılım. Siparişler Excel olarak alınabilir.
 - **Genel Bakış:** Bugünün ve ayın özeti; onay bekleyen, havale bekleyen, hazırlanacak ve yoldaki siparişler; iade talepleri.
 
+### Yorumlar (Katalog → Yorumlar)
+
+- Yalnızca ürünü **teslim almış üyeler** yorum yazabilir; her ürüne bir yorum. Yorum siz **Yayımla** diyene kadar mağazada görünmez.
+- İsterseniz **Mağaza yanıtı** yazın; yorumun altında görünür. Uygunsuz yorumu **Yayımlama** ile gizleyin veya silin.
+- Ürün kartlarındaki ve ürün sayfasındaki yıldızlar yalnızca yayındaki yorumlardan hesaplanır.
+
+### Stoğa gelince haber ver
+
+Tükenen ürünün sayfasında ziyaretçi e-posta bırakabilir. Ürünü stoğa girdiğinizde (stok girişi veya sayım) en geç 10 dakika içinde kişiye bir kez e-posta gider ve adres silinir. Sistem e-postası ayarlı olmalıdır.
+
 ## 8. Müşteri hesapları ve KVKK
 
 Müşteri üye olarak veya misafir olarak sipariş verebilir. Üye, hesabından siparişlerini, adreslerini ve iadelerini yönetir. Hesabını kapatabilir; bu durumda kişisel bilgileri anonimleştirilir, yasal saklama gereği sipariş kayıtları korunur. Çerez tercihleri sitedeki çerez bandından yönetilir.

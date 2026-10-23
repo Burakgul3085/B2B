@@ -63,6 +63,9 @@
                     <span class="block text-sm font-semibold">{{ $customer ? 'Hesabım' : 'Giriş yap' }}</span>
                 </span>
             </a>
+            <a href="{{ $customer ? route('store.favorites') : route('store.login') }}" class="hidden rounded-xl p-2 hover:bg-slate-100 sm:block" aria-label="Favorilerim">
+                <x-icon name="heart" class="size-6" />
+            </a>
             <a href="{{ route('store.cart') }}" x-data="cartBadge({{ $cartCount }})" @click.prevent="openCart"
                 class="relative flex items-center gap-2.5 rounded-xl p-2 hover:bg-slate-100 sm:px-3" aria-label="Sepet ({{ $cartCount }} ürün)">
                 <span class="relative">

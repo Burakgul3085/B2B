@@ -127,6 +127,9 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'show'])->name('messages.show');
             Route::post('mesajlar/{storeContactMessage}/yanitlandi', [Admin\ContactMessageController::class, 'replied'])->name('messages.replied');
             Route::delete('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
+            Route::get('yorumlar', [Admin\ReviewController::class, 'index'])->name('reviews.index');
+            Route::put('yorumlar/{storeReview}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
+            Route::delete('yorumlar/{storeReview}', [Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
             Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
             Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
@@ -203,6 +206,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1,search')->name('search');
         Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
+        Route::post('urun/{slug}/yorum', [Front\ReviewController::class, 'store'])->middleware(['auth:customer', 'auth.session', 'throttle:10,10,review.store'])->name('review.store');
+        Route::post('stok-bildirimi', [Front\StockAlertController::class, 'store'])->middleware(['throttle:10,10,stock-alert.store', 'store.bot'])->name('stock-alert.store');
         Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
         Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');
@@ -234,6 +239,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
             Route::put('hesabim/adres/{address}', [Front\AddressController::class, 'update'])->whereNumber('address')->name('addresses.update');
             Route::put('hesabim/adres/{address}/varsayilan', [Front\AddressController::class, 'makeDefault'])->whereNumber('address')->name('addresses.default');
             Route::delete('hesabim/adres/{address}', [Front\AddressController::class, 'destroy'])->whereNumber('address')->name('addresses.destroy');
+
+            Route::get('hesabim/favoriler', [Front\FavoriteController::class, 'index'])->name('favorites');
+            Route::post('favoriler/{product}', [Front\FavoriteController::class, 'toggle'])->whereNumber('product')->middleware('throttle:60,1,favorites.toggle')->name('favorites.toggle');
         });
         Route::get('ilceler/{province}', [Front\AddressController::class, 'districts'])->whereNumber('province')->name('districts');
 
