@@ -50,13 +50,18 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 
 ## 4. B2B: bekleyenler
 
-### Aşama 10 — Sunucu ve yayın (kullanıcı isteğiyle beklemede)
-- [ ] HTTPS ve sunucuda geri yükleme provası. (Yedekleme kodu hazır: Platform → Yedekler, her gece 03:30; yerelde geri yükleme doğrulandı.)
+### Aşama 10 — Sunucu ve yayın
+Sunucu 23.10.2026'da kuruldu (docs/kilavuz/kurulum.md §0): HTTPS, güvenlik duvarı, zamanlanmış görevler, kuyruk işçisi, gece yedeği (sunucuda denendi), `deploy/yayinla.sh` ile yayınlama. Mağaza kapalı ("Çok yakında").
+- [x] HTTPS (Let's Encrypt, dört adres).
+- [ ] Sunucuda geri yükleme provası.
 - [ ] Yedeklerin sunucu dışına (uzak depolama) kopyalanması.
 - [ ] Gerçek Gmail hesabı ve uygulama şifresiyle e-posta gönderiminin uçtan uca denenmesi.
 - [ ] Performansın sunucuda yeniden ölçülmesi (geliştirme bilgisayarında ölçüldü).
-- [ ] Sunucuda PHP yükleme sınırlarının 64M yapılması (50 MB banner videoları için).
-- [ ] Zamanlanmış görevlerin (`schedule:run`) ve kuyruk işçisinin sunucuda sürekli çalışması.
+- [x] Sunucuda PHP yükleme sınırlarının 64M yapılması (50 MB banner videoları için).
+- [x] Zamanlanmış görevlerin (`schedule:run`, cron) ve kuyruk işçisinin (supervisor) sunucuda sürekli çalışması.
+- [ ] Platform yöneticisinin oluşturulması (`platform:create-admin`), ardından toptancı hesabı ve mağaza süper admini.
+- [ ] Sistem e-postası (`SYSTEM_MAIL_*`): mağaza e-postaları ve platform parola sıfırlaması için.
+- [ ] SSH'de şifreyle girişin kapatılması (yalnızca anahtar), isteğe bağlı.
 - [x] Kullanım ve kurulum dokümanları: [kilavuz/](kilavuz/) (toptancı, bayi, mağaza yönetimi, platform, sunucu kurulumu).
 
 ### Eksik ekranlar ve özellikler

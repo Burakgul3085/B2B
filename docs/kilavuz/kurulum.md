@@ -1,6 +1,44 @@
 # Sunucu kurulum kılavuzu
 
-Hedef: tek sunucu (ör. Hostinger KVM 2, Ubuntu 24.04), Nginx, PHP-FPM, MySQL 8.4. Bu kılavuz yayın öncesi hazırlık içindir. Yerel geliştirme kurulumu [../GELISTIRME.md](../GELISTIRME.md) dosyasındadır.
+Tek sunucu: Hostinger KVM 2, Ubuntu 24.04, Nginx, PHP 8.5-FPM, MySQL 8.0. Yerel geliştirme kurulumu [../GELISTIRME.md](../GELISTIRME.md) dosyasındadır.
+
+## 0. Canlı sunucu (23.10.2026'da kuruldu)
+
+| | |
+|---|---|
+| Sunucu | `187.126.9.129` (srv2087766). Bağlantı `root`, bu bilgisayardaki `~/.ssh/yapboz_deploy` anahtarıyla. |
+| Alan adı | **yapbozkırtasiye.com**. ı harfi içerdiği için teknik adı `xn--yapbozkrtasiye-cgc.com`. Tarayıcıya her iki yazım da girilebilir. |
+| Mağaza | https://yapbozkırtasiye.com (www, çıplak alan adına yönlenir) |
+| Mağaza yönetimi | https://yonetim.yapbozkırtasiye.com |
+| B2B | https://b2b.yapbozkırtasiye.com/bayi · /toptanci · /platform |
+| Uygulama | `/var/www/yapboz/current`, bir sürüm klasörüne bağlantıdır (`releases/<tarih>-<commit>`). Ortak dosyalar `shared/.env` ve `shared/storage` içindedir. |
+| Veritabanı | MySQL `yapboz`, kullanıcı `yapboz`. Şifresi sunucuda `/root/.yapboz-db-pass` dosyasında ve `.env` içinde. |
+| HTTPS | Let's Encrypt (certbot). Sertifika kendiliğinden yenilenir (`certbot.timer`). |
+| Güvenlik duvarı | ufw: yalnızca 22, 80 ve 443 açık. |
+
+**Güncelleme (yayınlama):** Kod commit'lendikten sonra geliştirme bilgisayarında şu komut çalıştırılır:
+
+```bash
+bash deploy/yayinla.sh
+```
+
+Betik şunları yapar:
+
+1. Ön yüzü derler.
+2. Son commit'i paketleyip sunucuya gönderir.
+3. Yeni sürüm klasörüne kurar. Veritabanını günceller (`migrate`) ve önbellekleri hazırlar.
+4. `current` bağlantısını tek adımda yeni sürüme çevirir, böylece kesinti olmaz.
+5. Kuyruk işçisini yeniler.
+
+Son 5 sürüm saklanır. Bir önceki sürüme dönmek için sunucuda şu komut çalıştırılır:
+
+```bash
+ln -sfn /var/www/yapboz/releases/<önceki> /var/www/yapboz/current && systemctl reload php8.5-fpm
+```
+
+Veritabanı değişiklikleri bu şekilde geri alınmaz.
+
+Sunucu ayarlarının kaynağı `deploy/` klasörüdür: `nginx.conf`, `php.ini`, `supervisor.conf`, `sunucu-hazirla.sh`. Aşağıdaki bölümler aynı kurulumu elle yapmak için başvuru niteliğindedir.
 
 ## 1. Alan adları
 
@@ -16,7 +54,7 @@ B2B adresleri mağaza alan adlarında açılmaz; mağaza da B2B adresinde açıl
 
 ## 2. Gerekenler
 
-- PHP 8.3 veya üstü, şu eklentilerle: `bcmath`, `gd` (JPEG/PNG/WebP), `intl`, `mbstring`, `pdo_mysql`, `zip`, `fileinfo`, `openssl`.
+- PHP **8.4 veya üstü**. Laravel 13 bağımlılıkları bunu istiyor; Ubuntu 24.04'ün kendi PHP'si 8.3 olduğu için `ppa:ondrej/php` deposundan 8.5 kurulur. Gereken eklentiler: `bcmath`, `gd` (JPEG/PNG/WebP), `intl`, `mbstring`, `mysql`, `zip`, `xml`, `curl`.
 - MySQL 8.4. Ayrıca `mysqldump` kurulu olmalı; yedekleme bunu kullanır.
 - Composer ve Node.js. Node yalnızca ön yüzü derlemek için gerekir.
 - `php.ini`: `upload_max_filesize = 64M`, `post_max_size = 64M` (vitrin videoları için).
