@@ -69,6 +69,11 @@ class OrderController extends Controller
         return $this->attempt(fn () => $this->orders->approve($storeOrder), 'Sipariş onaylandı.');
     }
 
+    public function transferReceived(StoreOrder $storeOrder): RedirectResponse
+    {
+        return $this->attempt(fn () => $this->orders->markTransferReceived($storeOrder), 'Havale alındı olarak işaretlendi; sipariş hazırlanıyor, müşteriye e-posta gönderildi.');
+    }
+
     public function prepare(StoreOrder $storeOrder): RedirectResponse
     {
         return $this->attempt(fn () => $this->orders->prepare($storeOrder), 'Sipariş hazırlanıyor olarak işaretlendi.');

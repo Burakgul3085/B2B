@@ -11,7 +11,7 @@
         'district' => (int) old('address.district_id') ?: '',
         'districts' => [],
         'delivery' => old('delivery_method', 'cargo'),
-        'payment' => old('payment_method', $rules['cardAvailable'] ? 'card' : 'cod'),
+        'payment' => old('payment_method', $rules['cardAvailable'] ? 'card' : ($rules['transferAvailable'] ? 'transfer' : 'cod')),
         'billingType' => old('billing_type', 'individual'),
         'billingSame' => old('billing_same', '1') === '1',
     ] + $rules;
@@ -135,6 +135,13 @@
                             <span><span class="font-semibold">Kapıda ödeme</span>
                                 <span class="block text-muted" x-text="codReason"></span></span>
                         </label>
+                        @if ($rules['transferAvailable'])
+                            <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="payment === 'transfer' ? 'border-primary ring-1 ring-primary' : 'border-line'">
+                                <input type="radio" name="payment_method" value="transfer" x-model="payment" class="mt-0.5 size-4 text-primary">
+                                <span><span class="font-semibold">Havale / EFT</span>
+                                    <span class="block text-muted">Hesap bilgileri sipariş sonrası gösterilir; ödeme {{ \App\Domain\Store\Payments\BankTransfer::days() }} gün içinde yapılır</span></span>
+                            </label>
+                        @endif
                     </div>
                     @error('payment_method')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
 
@@ -199,9 +206,9 @@
                 @error('consent')<p class="text-sm text-danger">{{ $message }}</p>@enderror
 
                 <button class="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:opacity-50" :disabled="! payment">
-                    <span x-text="payment === 'cod' ? 'Siparişi onayla' : 'Ödemeye geç'">Ödemeye geç</span>
+                    <span x-text="submitLabel">Ödemeye geç</span>
                 </button>
-                <p class="text-center text-xs text-muted" x-text="payment === 'cod' ? 'Telefonunuza gelen kodla siparişi doğrulayacaksınız.' : 'Kart bilgileriniz iyzico güvenli ödeme sayfasında alınır; mağazamızda saklanmaz.'"></p>
+                <p class="text-center text-xs text-muted" x-text="submitHint"></p>
             </aside>
         </form>
     </div>

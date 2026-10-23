@@ -23,7 +23,7 @@ Mesafeli Sözleşmeler Yönetmeliği uyarınca, ürünün size veya gösterdiği
 
 - Ürün elimize ulaşıp kontrol edildikten sonra en geç **14 gün** içinde iade yapılır.
 - Kartla ödemelerde tutar ödemede kullandığınız karta iade edilir; hesabınıza yansıma süresi bankanıza bağlıdır.
-- Kapıda ödemelerde tutar, iade talebinde bildirdiğiniz IBAN'a havale edilir.
+- Kapıda ödeme ve havale / EFT ile ödemelerde tutar, iade talebinde bildirdiğiniz IBAN'a havale edilir.
 - Siparişteki tüm ürünlerin iadesinde teslimat ücreti de iade edilir.
 
 ## Cayma hakkının kullanılamayacağı ürünler

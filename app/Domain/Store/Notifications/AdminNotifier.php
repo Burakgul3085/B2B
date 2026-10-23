@@ -32,9 +32,12 @@ class AdminNotifier
         if (! StoreSetting::flag('notify_orders')) {
             return;
         }
-        $intro = $order->status === 'awaiting_approval'
-            ? 'Kapıda ödemeli ilk sipariş: müşteriyi arayıp teyit edin.'
-            : ($order->payment_method === 'card' ? 'Kartla ödemesi alınmış yeni sipariş hazırlanmayı bekliyor.' : 'Kapıda ödemeli yeni sipariş hazırlanmayı bekliyor.');
+        $intro = match (true) {
+            $order->status === 'awaiting_approval' => 'Kapıda ödemeli ilk sipariş: müşteriyi arayıp teyit edin.',
+            $order->status === 'awaiting_transfer' => 'Havale / EFT ile ödenecek yeni sipariş. Ödeme hesaba geçince sipariş sayfasında "Havale alındı" ile onaylayın.',
+            $order->payment_method === 'card' => 'Kartla ödemesi alınmış yeni sipariş hazırlanmayı bekliyor.',
+            default => 'Kapıda ödemeli yeni sipariş hazırlanmayı bekliyor.',
+        };
 
         $this->send("Yeni sipariş {$order->order_no} — ".Money::format($order->total), 'Yeni sipariş', $intro, [
             ['Müşteri', $order->shipping_name],

@@ -9,7 +9,7 @@ export function checkout(settings) {
         init() {
             if (this.province) this.loadDistricts(true);
             this.$watch('isLocal', (v) => { if (!v && this.delivery === 'local') this.delivery = 'cargo'; });
-            this.$watch('codAllowed', (v) => { if (!v && this.payment === 'cod') this.payment = this.cardAvailable ? 'card' : ''; });
+            this.$watch('codAllowed', (v) => { if (!v && this.payment === 'cod') this.payment = this.cardAvailable ? 'card' : (this.transferAvailable ? 'transfer' : ''); });
         },
         async loadDistricts(keep) {
             if (!keep) this.district = '';
@@ -40,6 +40,12 @@ export function checkout(settings) {
             return Number(this.codFee) > 0 ? 'Nakit veya kart · ' + this.money(this.codFee) + ' hizmet bedeli' : 'Teslimatta nakit veya kartla';
         },
         get total() { return Number(this.subtotal) + Number(this.shippingFee) + (this.payment === 'cod' ? Number(this.codFee) : 0); },
+        get submitLabel() { return this.payment === 'card' ? 'Ödemeye geç' : 'Siparişi onayla'; },
+        get submitHint() {
+            if (this.payment === 'cod') return 'Telefonunuza gelen kodla siparişi doğrulayacaksınız.';
+            if (this.payment === 'transfer') return 'Hesap bilgileri ve son ödeme zamanı sipariş sayfasında ve e-postada gösterilir.';
+            return 'Kart bilgileriniz iyzico güvenli ödeme sayfasında alınır; mağazamızda saklanmaz.';
+        },
         positive(v) { return Number(v) > 0; },
         money(v) { return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(v)); },
     };

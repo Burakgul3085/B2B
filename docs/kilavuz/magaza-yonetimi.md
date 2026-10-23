@@ -1,0 +1,97 @@
+# Mağaza yönetimi kullanım kılavuzu
+
+Mağaza yönetimi, perakende sitenin (Yapboz Kırtasiye mağazası) yönetildiği paneldir. Kendi alt alan adında açılır (ör. `https://yonetim.<alan adı>`). Mağazanın ürünleri, stoğu, müşterileri ve siparişleri B2B'den tamamen ayrıdır: toptancı panelindeki ürün veya stok burada görünmez.
+
+## 1. Yöneticiler ve giriş
+
+- İlk **süper admin** hesabını platform yöneticisi açar (Platform → Mağaza Yöneticileri).
+- Süper admin ilk girişte **iki adımlı doğrulamayı** (Google Authenticator vb.) kurmak zorundadır.
+- Süper admin **Yönetim → Yöneticiler**'den başka yöneticiler açar. Yönetici sayısı sınırsızdır.
+- Yöneticiler birbirini veya süper admini silemez; yöneticiyi yalnızca süper admin kaldırır.
+- **Yönetim → İşlem Geçmişi:** Kimin ne zaman ne yaptığı (sipariş işlemleri, ayar değişiklikleri, stok düzeltmeleri…).
+- **Profil ve Güvenlik:** Şifre ve iki adımlı doğrulama.
+
+## 2. Yayına hazırlık
+
+Mağaza varsayılan olarak **kapalıdır**; ziyaretçiler "Çok yakında" sayfasını görür. Önerilen sıra:
+
+1. **Ayarlar → Mağaza Ayarları:**
+   - Satıcı bilgileri: unvan, vergi dairesi ve numarası, MERSİS, adres. Bu bilgiler yasal metinlere ve faturalara yansır.
+   - İletişim bilgileri, duyuru şeridi, ana sayfa SEO metni.
+   - Yönetici bildirimleri: yeni sipariş, iade, düşük stok e-postaları ve bunların gideceği adresler.
+   - Ödeme logo bandı.
+2. **Ayarlar → Yasal Metinler:** Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal-İade, KVKK, Gizlilik ve Çerez Politikası. Metinler başlangıç şablonudur, **hukukçuya kontrol ettirin**. Her kayıt yeni bir sürüm oluşturur; müşterinin hangi sürümü onayladığı siparişte saklanır.
+3. **Ayarlar → Ödeme ve Teslimat** (bkz. §4) ve **Ayarlar → Kargo Firmaları:** Takip bağlantısı şablonu, ör. `https://.../sorgula?no={takip}`.
+4. **Vitrin → Banner'lar** ve **Vitrin → Sayfalar** (Hakkımızda, İletişim…).
+5. Katalog ve stok (§3).
+6. **Ayarlar → Yayın Hazırlığı:** Eksik maddeleri tek ekranda gösterir. Hepsi tamamsa **Mağaza Ayarları → Yayın durumu → Mağazayı aç**.
+
+Mağaza kapalıyken **Mağaza Ayarları → Önizleme** bağlantısıyla siteyi müşteri gibi gezebilirsiniz.
+
+## 3. Katalog ve stok
+
+- **Katalog → Kategoriler:** Ağaç yapısında kategoriler. ↑ / ↓ düğmeleriyle sıralanır.
+- **Katalog → Markalar:** Logolu markalar.
+- **Katalog → Ürünler:**
+  - Ürün grubunun açıklaması, SEO alanları ve görselleri tanımlanır.
+  - Grubun altındaki **seçenekler** (renk, boy…) satılan birimlerdir. Her seçeneğin kodu (SKU), barkodu, **KDV dahil** fiyatı, üstü çizili fiyatı ve KDV oranı vardır.
+  - Toplu ekleme ve güncelleme için **Excel ile içe aktarma** kullanılabilir. Önce şablonu indirin.
+- **Stok → Stok Durumu:** Satılabilir miktar, stoktan ödeme aşamasında ayrılan miktar düşülerek gösterilir. Buradan giriş, sayım ve düzeltme yapılır. Kritik seviyenin altındaki ürünler işaretlidir.
+- **Stok → Stok Hareketleri:** Bütün hareketler. Hiçbir hareket silinmez; yanlış giriş ters kayıtla geri alınır.
+
+## 4. Ödeme ve teslimat ayarları
+
+**Ayarlar → Ödeme ve Teslimat** (tutarlar KDV dahil):
+
+| Bölüm | Ayar |
+|---|---|
+| Kargo | Sabit kargo ücreti ve **ücretsiz kargo sınırı**. Sınırın üzerindeki siparişlerde kargo ücretsizdir. |
+| Mağaza teslimatı (Eskişehir) | Kendi aracınızla teslimat: ücret ve teslimat yapılan ilçeler. |
+| Kapıda ödeme | Yalnızca Eskişehir mağaza teslimatında. En düşük/en yüksek tutar, hizmet bedeli, aynı telefonda en fazla açık sipariş, ilk siparişte telefonla teyit. Müşteri siparişi SMS koduyla doğrular. |
+| Kartla ödeme (iyzico) | API anahtarları, test/canlı ortam. Bildirim adresini (webhook) iyzico panelinde Ayarlar → Bildirim Ayarları'na girin. |
+| Havale / EFT | İsteğe bağlı. Banka hesapları (her satırda `Banka \| Hesap sahibi \| IBAN`) ve ödeme süresi (1–7 gün). |
+| SMS (Netgsm) | Kullanıcı kodu, şifre, onaylı başlık. Canlıda Netgsm bilgileri girilmeden kapıda ödeme açılamaz. |
+| İade | İade süresi (en az 14 gün) ve iade gönderim adresi. |
+
+Aynı sayfanın altında **kapıda ödeme engel listesi** ve son SMS'ler görünür. Engel kaldırmak mümkündür.
+
+## 5. Siparişler
+
+**Satış → Siparişler:** "Yeni (işlem bekleyen)" sekmesi sizden işlem bekleyen siparişleri gösterir. Menüdeki rakam bekleyen sipariş sayısıdır.
+
+| Ödeme | Akış |
+|---|---|
+| Kart | Ödeme iyzico'da alınır → **Ödendi** → Hazırlanıyor → Kargoya verildi / Yola çıktı → Teslim edildi. Ödeme 30 dakika içinde tamamlanmazsa sipariş kendiliğinden kapanır, stok serbest kalır. |
+| Kapıda ödeme | İlk siparişte **Onay bekliyor**: müşteriyi arayıp "Teyit edildi, onayla". Sonra Hazırlanıyor → Yola çıktı → **Teslim edildi** (tahsilat türü: nakit veya kapıda kart). |
+| Havale / EFT | **Havale bekleniyor**: müşteri sipariş numarasını açıklamaya yazarak ödeme yapar. Para hesaba geçince **"Havale alındı"** deyin; sipariş hazırlanmaya geçer. Süresinde ödenmeyen sipariş kendiliğinden iptal edilir, ürünler stoğa döner. |
+
+- **Kargo:** Kargo firması ve takip numarası girilir; müşteriye takip bağlantılı e-posta gider.
+- **Teslim alınmadı** (kapıda ödeme): Ürünler stoğa döner. Müşterinin telefonu ve teslimat adresi kapıda ödeme engel listesine girer; bu kişi bundan sonra yalnızca kartla ödeyebilir.
+- **İptal:** Yola çıkmadan yapılabilir.
+  - Kartla ödenmiş siparişin tutarı iptalle birlikte iyzico üzerinden karta iade edilir.
+  - Havalesi alınmış siparişte önce tutarı müşterinin hesabına gönderip **Para iadesi** ile elle kaydedin, sonra iptal edin.
+- **Fatura:** Şimdilik e-Arşiv faturası Uyumsoft'ta kesilir. Fatura numarası ve PDF siparişe eklenir; müşteri sipariş sayfasından indirir. İade faturası da eklenebilir.
+- **Para iadesi (ürün iadesi olmadan):** Eksik gönderim, hasar indirimi vb. Kartta iyzico'dan karta; kapıda ödeme ve havalede müşterinin hesabına havale edip elle kaydedilir.
+
+## 6. İadeler (cayma hakkı)
+
+Müşteri teslimden sonra iade süresi içinde sipariş sayfasından iade talebi açar. Telefonla gelen istekler için siparişte "Müşteri adına iade talebi aç" kullanılabilir.
+
+**Satış → İadeler:** Talep alındı → Onaylandı, ürün bekleniyor → Ürün teslim alındı (ürünler stoğa döner) → **Para iadesi yapıldı**. Talebi gerekçeyle reddedebilirsiniz.
+
+İade tutarı kartla ödemede karta gider. Kapıda ödeme ve havalede müşterinin bildirdiği IBAN'a havale edilip elle kaydedilir.
+
+## 7. Kampanya, kupon ve raporlar
+
+- **Satış → Kampanya ve Kuponlar:**
+  - Türler: yüzde indirim, tutar indirimi, ücretsiz teslimat.
+  - **Kupon:** Müşteri kodu sepette girer. Toplu tek kullanımlık kodlar üretilip CSV olarak indirilebilir.
+  - **Kampanya:** Koşulları tutan sepete kendiliğinden uygulanır.
+  - Koşullar: tarih aralığı, en düşük sepet tutarı, en yüksek indirim, toplam ve kişi başı kullanım sınırı, yalnızca ilk sipariş, belirli kategoriler veya ürün kodları.
+  - Bir siparişte tek indirim geçerlidir.
+- **Satış → Raporlar:** Tarih aralığına göre ciro, indirim, iade, günlük satış, ödeme ve teslimat yöntemine göre dağılım. Siparişler Excel olarak alınabilir.
+- **Genel Bakış:** Bugünün ve ayın özeti; onay bekleyen, havale bekleyen, hazırlanacak ve yoldaki siparişler; iade talepleri.
+
+## 8. Müşteri hesapları ve KVKK
+
+Müşteri üye olarak veya misafir olarak sipariş verebilir. Üye, hesabından siparişlerini, adreslerini ve iadelerini yönetir. Hesabını kapatabilir; bu durumda kişisel bilgileri anonimleştirilir, yasal saklama gereği sipariş kayıtları korunur. Çerez tercihleri sitedeki çerez bandından yönetilir.

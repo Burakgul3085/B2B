@@ -3,6 +3,7 @@
 namespace App\Domain\Store\Orders;
 
 use App\Domain\Mail\SystemMailer;
+use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreLegalDocument;
@@ -17,11 +18,14 @@ class OrderMailer
 {
     public function placed(StoreOrder $order): void
     {
-        $intro = $order->payment_method === 'cod'
-            ? ($order->status === 'awaiting_approval'
+        $intro = match ($order->payment_method) {
+            'cod' => $order->status === 'awaiting_approval'
                 ? 'Siparişinizi aldık. Kısa süre içinde sizi arayarak teyit edeceğiz; ödemeyi teslimatta yapacaksınız.'
-                : 'Siparişinizi aldık ve hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.')
-            : 'Ödemeniz alındı, siparişinizi hazırlamaya başladık.';
+                : 'Siparişinizi aldık ve hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.',
+            'transfer' => self::transferInstructions($order),
+            default => 'Ödemeniz alındı, siparişinizi hazırlamaya başladık.',
+        };
+        $bankRows = $order->payment_method === 'transfer' ? self::bankRows() : [];
 
         // Mesafeli Sözleşmeler Yönetmeliği: onaylanan Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi tüketiciye kalıcı
         // veri saklayıcısıyla (e-posta) iletilir; siparişte saklanan, onaylandığı sürümdeki doldurulmuş metinler gönderilir.
@@ -31,7 +35,27 @@ class OrderMailer
         ])->all();
 
         $this->send($order, "Siparişiniz alındı — {$order->order_no}", 'Siparişiniz için teşekkürler',
-            $intro.($documents ? ' Onayladığınız sözleşmeler bu e-postanın altındadır; saklamanızı öneririz.' : ''), true, null, $documents);
+            $intro.($documents ? ' Onayladığınız sözleşmeler bu e-postanın altındadır; saklamanızı öneririz.' : ''), true, null, $documents, $bankRows);
+    }
+
+    /** Havale / EFT ödeme talimatı: tutar, açıklamaya yazılacak sipariş numarası ve son ödeme zamanı. */
+    public static function transferInstructions(StoreOrder $order): string
+    {
+        return 'Siparişinizi aldık. Lütfen '.Money::format($order->total).' tutarını aşağıdaki hesaplardan birine, açıklamaya sipariş numaranızı ('
+            .$order->order_no.') yazarak '.BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i')
+            .' tarihine kadar gönderin. Ödemeniz hesabımıza geçince siparişinizi hazırlamaya başlarız; bu süre içinde ödeme gelmezse sipariş iptal edilir.';
+    }
+
+    /** @return list<array{0: string, 1: string}> */
+    private static function bankRows(): array
+    {
+        return array_map(fn ($a) => ["{$a['bank']} — {$a['holder']}", BankTransfer::formatIban($a['iban'])], BankTransfer::accounts());
+    }
+
+    public function transferReceived(StoreOrder $order): void
+    {
+        $this->send($order, "Ödemeniz alındı — {$order->order_no}", 'Ödemeniz alındı',
+            "{$order->order_no} numaralı siparişiniz için havale / EFT ödemeniz hesabımıza geçti. Siparişinizi hazırlamaya başladık.", false);
     }
 
     public function shipped(StoreOrder $order): void
@@ -46,9 +70,11 @@ class OrderMailer
 
     public function cancelled(StoreOrder $order): void
     {
-        $refund = $order->payment_status === 'refunded'
-            ? ' Ödemeniz kartınıza iade edildi; tutarın hesabınıza yansıması bankanıza göre birkaç gün sürebilir.'
-            : '';
+        $refund = match (true) {
+            $order->payment_status !== 'refunded' => '',
+            $order->payment_method === 'card' => ' Ödemeniz kartınıza iade edildi; tutarın hesabınıza yansıması bankanıza göre birkaç gün sürebilir.',
+            default => ' Ödemeniz banka hesabınıza iade edildi.',
+        };
         $this->send($order, "Siparişiniz iptal edildi — {$order->order_no}", 'Siparişiniz iptal edildi',
             "{$order->order_no} numaralı siparişiniz iptal edildi.{$refund} Sorularınız için bize ulaşabilirsiniz.", false);
     }
@@ -74,7 +100,7 @@ class OrderMailer
     }
 
     /** @param  array{0: string, 1: string}|null  $action  ek bağlantı (adres, etiket); yoksa sipariş sayfası */
-    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null, array $documents = []): void
+    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null, array $documents = [], array $extraRows = []): void
     {
         $rows = [];
         if ($withItems) {
@@ -92,6 +118,7 @@ class OrderMailer
             }
             $rows[] = ['Toplam (KDV dahil)', Money::format($order->total)];
         }
+        array_push($rows, ...$extraRows);
 
         $content = [
             'brand' => config('store.name'),

@@ -67,6 +67,17 @@
                 </div>
             </x-card>
 
+            <x-card title="Havale / EFT" description="İsteğe bağlı. Müşteri siparişten sonra hesap bilgilerini görür ve sipariş numarasını açıklamaya yazarak ödeme yapar. Ödeme hesaba geçince siparişte &quot;Havale alındı&quot; ile onaylarsınız.">
+                <div class="space-y-5">
+                    <x-toggle name="transfer_enabled" label="Havale / EFT ile ödeme açık" :checked="$s['transfer_enabled'] === '1'" />
+                    <x-field name="transfer_accounts" label="Banka hesapları" textarea maxlength="1500" :value="$s['transfer_accounts']"
+                        placeholder="Ziraat Bankası | Yapboz Kırtasiye Ltd. Şti. | TR00 0000 0000 0000 0000 0000 00"
+                        hint="Her satıra bir hesap: Banka | Hesap sahibi | IBAN (en fazla 5)." />
+                    <x-field name="transfer_days" label="Ödeme süresi (gün)" type="number" min="1" max="7" :value="$s['transfer_days']" required class="max-w-48"
+                        hint="Bu sürede ödenmeyen sipariş kendiliğinden iptal edilir ve ürünler stoğa döner." />
+                </div>
+            </x-card>
+
             <x-card title="SMS (Netgsm)" :description="$smsLive ? 'Netgsm bilgileri kayıtlı; SMS gerçekten gönderilir.' : 'Netgsm hesabı açıldığında bilgileri girip sürücüyü Netgsm yapın.'">
                 <div class="space-y-5">
                     <x-field name="sms_driver" label="Gönderim" :options="['log' => 'Geliştirme (SMS gönderilmez, günlüğe yazılır)', 'netgsm' => 'Netgsm']" :value="$s['sms_driver']" />

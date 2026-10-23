@@ -118,6 +118,9 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 **Kapıda ödeme:**
 `SMS doğrulandı` → (kural varsa `teyit bekliyor`) → `hazırlanıyor` → `yolda` → `teslim edildi + tahsil edildi (nakit/kart)`; alternatif son: `teslim alınmadı` → iptal
 
+**Havale / EFT** (isteğe bağlı, varsayılan kapalı):
+`havale bekleniyor` (stok hemen düşer) → yönetici "Havale alındı" → `hazırlanıyor` → `kargoda` veya `yolda` → `teslim edildi`. Ödeme süresi (1–7 gün, ayar) içinde ödenmeyen sipariş kendiliğinden iptal edilir, stok geri girer. Havalesi alınmış siparişin iptalinde tutar önce müşterinin hesabına elle iade edilip kaydedilir.
+
 **İptal ve iade:**
 - Kargoya verilmeden önce iptal edilen siparişte stok ters kayıtla geri girer; kartla ödendiyse iyzico iadesi yapılır.
 - Teslimden sonra 14 gün cayma hakkı vardır. İade gelen ürün stok hareketiyle geri girer, tam veya kısmi iade yapılır.
@@ -141,7 +144,7 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 
 ### 8.5 Teslimat yöntemleri
 - **Kendi teslimatım:** Eskişehir'deki izinli ilçeler için. Kart ve kapıda ödemenin ikisiyle de kullanılabilir. Ücret panelden belirlenir.
-- **Kargo:** Tüm Türkiye. Ücret kuralları: sabit, "X TL üzeri ücretsiz", desi tablosu. İlk sürücü manuel kargodur: firma adı, takip numarası ve takip bağlantısı şablonu girilir.
+- **Kargo:** Tüm Türkiye. Ücret kuralı: sabit ücret ve "X TL üzeri ücretsiz" (karar 2026-10-22: desiye göre ücret olmayacak; kargo firmasıyla anlaşılan sabit ücret uygulanır). İlk sürücü manuel kargodur: firma adı, takip numarası ve takip bağlantısı şablonu girilir.
 
 ## 9. Dış entegrasyonlar (sürücü yapısı)
 

@@ -10,6 +10,7 @@ use App\Domain\Store\Customers\AddressService;
 use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Notifications\AdminNotifier;
+use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Support\Decimal;
 use App\Models\Store\District;
@@ -32,6 +33,7 @@ use Illuminate\Validation\ValidationException;
  * Tarayıcıdan gelen fiyat veya tutar kullanılmaz (CLAUDE.md). Adres, fatura ve fiyatlar siparişe kopyalanır.
  *  - Kart: stok 20 dakika ayrılır, sipariş "ödeme bekleniyor" olur, ödeme iyzico'da alınır.
  *  - Kapıda: SMS doğrulamasından sonra stok hemen satışa düşer; sipariş "onay bekliyor" veya "hazırlanıyor" olur.
+ *  - Havale: stok hemen satışa düşer, sipariş "havale bekleniyor" olur; yönetici ödemeyi görünce onaylar (BankTransfer).
  */
 class CheckoutService
 {
@@ -152,6 +154,10 @@ class CheckoutService
             if (! $this->cardAvailable()) {
                 throw ValidationException::withMessages(['payment_method' => 'Kartla ödeme şu anda kullanılamıyor.']);
             }
+        } elseif ($paymentMethod === 'transfer') {
+            if (! BankTransfer::available()) {
+                throw ValidationException::withMessages(['payment_method' => 'Havale / EFT ile ödeme şu anda kullanılamıyor.']);
+            }
         } elseif ($paymentMethod === 'cod') {
             $codFee = $this->cod->fee();
             $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
@@ -218,7 +224,7 @@ class CheckoutService
     }
 
     /**
-     * Siparişi oluşturur. Kartta stok ayrılır; kapıda ödemede stok satışa düşer ve sepet boşaltılır.
+     * Siparişi oluşturur. Kartta stok ayrılır; kapıda ödeme ve havalede stok satışa düşer ve sepet boşaltılır.
      *
      * @throws DomainException (stok yetersizse InsufficientStoreStock)
      */
@@ -235,6 +241,7 @@ class CheckoutService
             $billingName = $draft['billing']['type'] === 'corporate' ? $draft['billing']['name'] : $draft['billing']['name_fallback'];
 
             $isCod = $draft['payment_method'] === 'cod';
+            $isTransfer = $draft['payment_method'] === 'transfer';
             $needsApproval = $isCod && $this->cod->needsApproval($draft['phone']);
 
             $order = StoreOrder::create([
@@ -243,7 +250,7 @@ class CheckoutService
                 'customer_id' => $customer?->id,
                 'email' => $draft['email'],
                 'phone' => $draft['phone'],
-                'status' => $isCod ? ($needsApproval ? 'awaiting_approval' : 'preparing') : 'pending_payment',
+                'status' => $isCod ? ($needsApproval ? 'awaiting_approval' : 'preparing') : ($isTransfer ? 'awaiting_transfer' : 'pending_payment'),
                 'payment_method' => $draft['payment_method'],
                 'payment_status' => $isCod ? 'cod_pending' : 'pending',
                 'delivery_method' => $draft['delivery_method'],
@@ -284,9 +291,9 @@ class CheckoutService
                 $quantities[$line['variant_id']] = ($quantities[$line['variant_id']] ?? 0) + $line['quantity'];
             }
 
-            if ($isCod) {
+            if ($isCod || $isTransfer) {
                 $sold = $this->stock->sell($quantities, "order:{$order->id}", 'store_order', $order->id);
-                $order->payments()->create(['driver' => 'cod', 'status' => 'initialized', 'amount' => $order->total]);
+                $order->payments()->create(['driver' => $draft['payment_method'], 'status' => 'initialized', 'amount' => $order->total]);
                 $cart->items()->delete();
             } else {
                 $holder = "order:{$order->id}";
@@ -295,7 +302,11 @@ class CheckoutService
             }
 
             $this->recordConsents($order, $draft, $shippingAddressText, $ip);
-            $this->orders->event($order, $order->status, $isCod ? 'Kapıda ödemeli sipariş oluşturuldu (SMS ile doğrulandı).' : 'Sipariş oluşturuldu; ödeme bekleniyor.');
+            $this->orders->event($order, $order->status, match (true) {
+                $isCod => 'Kapıda ödemeli sipariş oluşturuldu (SMS ile doğrulandı).',
+                $isTransfer => 'Sipariş oluşturuldu; havale / EFT bekleniyor (son gün '.BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i').').',
+                default => 'Sipariş oluşturuldu; ödeme bekleniyor.',
+            });
 
             if ($draft['save_address'] && $customer) {
                 try {
@@ -310,7 +321,7 @@ class CheckoutService
             return $order;
         });
 
-        if ($order->payment_method === 'cod') {
+        if (in_array($order->payment_method, ['cod', 'transfer'], true)) {
             $this->mailer->placed($order);
             $this->notifier->newOrder($order);
             $this->notifier->lowStock($sold);

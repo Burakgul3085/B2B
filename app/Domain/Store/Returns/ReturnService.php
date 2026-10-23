@@ -95,12 +95,12 @@ class ReturnService
             'items.*' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'reason' => ['required', 'in:'.implode(',', array_keys(StoreReturn::REASONS))],
             'note' => ['nullable', 'string', 'max:500'],
-            'iban' => [$order->payment_method === 'cod' ? 'required' : 'nullable', 'string', 'max:40'],
-            'account_name' => [$order->payment_method === 'cod' ? 'required' : 'nullable', 'string', 'max:120'],
+            'iban' => [$order->refundsToBank() ? 'required' : 'nullable', 'string', 'max:40'],
+            'account_name' => [$order->refundsToBank() ? 'required' : 'nullable', 'string', 'max:120'],
         ], [], ['items' => 'ürünler', 'reason' => 'iade nedeni', 'note' => 'açıklama', 'iban' => 'IBAN', 'account_name' => 'hesap sahibi'])->validate();
 
         $iban = null;
-        if ($order->payment_method === 'cod') {
+        if ($order->refundsToBank()) {
             $iban = self::normalizeIban($data['iban']);
             if (! $iban) {
                 throw ValidationException::withMessages(['iban' => 'Geçerli bir TR IBAN girin (TR ile başlayan 26 karakter).']);

@@ -6,7 +6,9 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Notifications\AdminNotifier;
+use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\RefundService;
+use App\Domain\Support\Money;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreCodBlock;
@@ -85,6 +87,40 @@ class OrderService
 
             return $order;
         });
+    }
+
+    /**
+     * Havale / EFT hesaba geçti (yönetici banka hesabında görüp onaylar): sipariş hazırlanmaya geçer.
+     *
+     * @throws DomainException
+     */
+    public function markTransferReceived(StoreOrder $order): void
+    {
+        $this->transition($order, ['awaiting_transfer'], 'preparing', ['payment_status' => 'paid', 'paid_at' => now(), 'approved_at' => now()],
+            'Havale / EFT alındı; sipariş hazırlanıyor.', 'store.order_transfer_received');
+        $order->payments()->where('driver', 'transfer')->where('status', 'initialized')->update(['status' => 'succeeded']);
+        $this->mailer->transferReceived($order->fresh());
+    }
+
+    /**
+     * Süresinde ödenmeyen havale siparişlerini iptal eder (stok geri döner, müşteriye e-posta gider).
+     *
+     * @return int iptal edilen sipariş sayısı
+     */
+    public function expireTransfers(): int
+    {
+        $count = 0;
+        StoreOrder::where('status', 'awaiting_transfer')->where('created_at', '<', now()->subDays(BankTransfer::days()))
+            ->orderBy('id')->each(function (StoreOrder $order) use (&$count) {
+                try {
+                    $this->cancel($order, 'Havale / EFT süresi içinde ödeme alınmadı.');
+                    $count++;
+                } catch (DomainException) {
+                    // Bu arada yönetici ödemeyi onayladıysa iptal edilmez.
+                }
+            });
+
+        return $count;
     }
 
     /** @throws DomainException */
@@ -166,7 +202,7 @@ class OrderService
 
     /**
      * Ürün iadesi olmadan kısmi para iadesi (eksik gönderim, hasarlı ürün için indirim, gönül alma).
-     * Kartla ödemede iyzico'ya (veya iyzico panelinden yapıldıysa "elle"), kapıda ödemede havaleyle (elle) işlenir.
+     * Kartla ödemede iyzico'ya (veya iyzico panelinden yapıldıysa "elle"), kapıda ödeme ve havalede havaleyle (elle) işlenir.
      *
      * @throws DomainException
      */
@@ -179,7 +215,7 @@ class OrderService
         if (! $order->isSettled()) {
             throw new DomainException('Ödemesi alınmamış siparişte para iadesi yapılamaz.');
         }
-        if ($order->payment_method === 'cod') {
+        if ($order->refundsToBank()) {
             $method = 'manual';
         }
         $refund = $this->refunds->refund($order, $amount, $method, [], false, null, mb_substr($reason, 0, 300), $ip);
@@ -197,18 +233,23 @@ class OrderService
 
     /**
      * Yola çıkmadan iptal. Kartla ödenmiş siparişte önce ödemenin tamamı iyzico üzerinden karta iade edilir;
-     * iade başarısız olursa sipariş iptal edilmez.
+     * iade başarısız olursa sipariş iptal edilmez. Havalesi alınmış siparişte para önce elle iade edilip kaydedilmelidir
+     * (müşterinin hesabı sistemde yoktur).
      *
      * @throws DomainException
      */
     public function cancel(StoreOrder $order, string $reason, ?string $ip = null): void
     {
-        $cancellable = ['pending_payment', 'awaiting_approval', 'paid', 'preparing'];
+        $cancellable = StoreOrder::CANCELLABLE;
         if (trim($reason) === '') {
             throw new DomainException('İptal gerekçesi yazın.');
         }
         if (! in_array($order->status, $cancellable, true)) {
             throw new DomainException('Sipariş bu durumdayken bu işlem yapılamaz ('.$order->statusLabel().').');
+        }
+        if ($order->payment_method === 'transfer' && bccomp($order->refundableAmount(), '0', 2) > 0) {
+            throw new DomainException('Havalesi alınmış sipariş: önce tutarı müşterinin hesabına iade edip "Para iadesi" ile elle kaydedin ('
+                .Money::format($order->refundableAmount()).'), sonra iptal edin.');
         }
 
         $paidByCard = $order->payment_method === 'card' && in_array($order->payment_status, ['paid', 'partially_refunded'], true);
@@ -221,7 +262,11 @@ class OrderService
             $wasPending = $order->status === 'pending_payment';
             $this->transition($order, $cancellable, 'cancelled',
                 ['cancelled_at' => now(), 'cancel_reason' => mb_substr($reason, 0, 300),
-                    'payment_status' => $paidByCard ? 'refunded' : ($order->payment_method === 'cod' ? 'void' : 'failed')],
+                    'payment_status' => match (true) {
+                        $paidByCard, $order->payment_status === 'refunded' => 'refunded',
+                        $order->payment_method === 'card' => 'failed',
+                        default => 'void',
+                    }],
                 'İptal edildi: '.$reason, 'store.order_cancelled');
 
             $this->voidDiscount($order);

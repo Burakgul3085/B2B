@@ -25,6 +25,7 @@ class DashboardController extends Controller
             'month' => $reports->summary($monthStart, $today),
             'waiting' => [
                 ['Onay bekleyen (kapıda ödeme)', StoreOrder::where('status', 'awaiting_approval')->count(), route('store_admin.orders.index', ['status' => 'new'])],
+                ['Havale bekleyen', StoreOrder::where('status', 'awaiting_transfer')->count(), route('store_admin.orders.index', ['status' => 'awaiting_transfer'])],
                 ['Hazırlanacak (ödendi)', StoreOrder::where('status', 'paid')->count(), route('store_admin.orders.index', ['status' => 'new'])],
                 ['Yola çıkacak (hazırlanıyor)', StoreOrder::where('status', 'preparing')->count(), route('store_admin.orders.index', ['status' => 'preparing'])],
                 ['Yolda', StoreOrder::where('status', 'shipped')->count(), route('store_admin.orders.index', ['status' => 'shipped'])],

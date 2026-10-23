@@ -1,6 +1,6 @@
 # Yapılmayanlar ve Bekleyenler
 
-> Son güncelleme: 22.10.2026 (CSP ve vitrin koyu teması sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
+> Son güncelleme: 23.10.2026 (havale / EFT ve kullanım kılavuzları sonrası). Bir madde tamamlandıkça buradan silinir veya "Tamamlandı" notu düşülür.
 
 ## 1. Mağaza: kalan aşamalar
 
@@ -8,7 +8,6 @@
 M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura). Kalanlar:
 - [ ] **Uyumsoft e-Arşiv sürücüsü.** Uyumsoft API kullanıcısı ve test ortamı gelince yazılacak; şimdilik fatura numarası ve PDF elle ekleniyor.
 - [ ] **Otomatik iade faturası.** Elle iade faturası eklenebiliyor; e-Arşiv bağlanınca otomatik oluşturulacak, belge türü mali müşavirle netleştirilecek.
-- [ ] **Desiye göre kargo ücreti.** Şimdilik tek sabit kargo ücreti ve ücretsiz kargo sınırı var; ürünlerde desi alanı tutuluyor ama ücrete yansımıyor. Kargo anlaşması yapılınca desi aralığı tablosu eklenecek.
 - [ ] **Kargo firması API'si:** Gönderi oluşturma, barkod, durum sorgulama. Anlaşma yapılan firmaya göre; şimdilik firma seçilip takip numarası elle giriliyor.
 
 ### M9'dan kalanlar (yayın aşaması)
@@ -16,7 +15,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 - [ ] Sunucu, HTTPS, yedekleme ve geri yükleme provası (B2B Aşama 10 ile birlikte).
 - [ ] Alan adının bağlanması (`yapbozkirtasiye.com` ve alt alan adları), ardından mağazanın açılması.
 - [ ] İşlem e-postası servisi seçimi (sipariş e-postaları için).
-- [ ] İsteğe bağlı: Cloudflare Turnstile ile ek bot koruması (anahtar ve CSP ayarı gerekir).
+- İsteğe bağlı, **şimdilik yapılmayacak** (karar 2026-10-22): Cloudflare Turnstile ile ek bot koruması. Mevcut bot koruması (gizli alan + süre denetimi + istek sınırı) çalışıyor.
 - [ ] Yönetimde **Ayarlar → Yayın Hazırlığı** ekranındaki eksik maddelerin tamamlanması (Hakkımızda ve İletişim sayfaları, ödeme logo bandı, yasal metinlerin gözden geçirilip kaydedilmesi vb.).
 
 ### M10 — Yayın sonrası
@@ -40,9 +39,10 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 
 ## 3. Mağaza: şu anki durumla ilgili notlar
 
-- **Ödeme yöntemleri kapalı.** Kapıda ödeme ve kartla ödeme varsayılan olarak kapalıdır; `Mağaza yönetimi → Ayarlar → Ödeme ve Teslimat` ekranından açılır.
+- **Ödeme yöntemleri kapalı.** Kapıda ödeme, kartla ödeme ve havale / EFT varsayılan olarak kapalıdır; `Mağaza yönetimi → Ayarlar → Ödeme ve Teslimat` ekranından açılır.
 - **SMS gönderilmiyor.** SMS sürücüsü `log` modunda; kodlar `storage/logs/laravel.log` dosyasına yazılır. Canlı ortamda gerçek SMS ayarlanmadan kapıda ödeme açılamaz.
 - **iyzico yalnızca sahte yanıtlarla denendi.** Ödeme ve para iadesi testleri iyzico yanıtlarını taklit ediyor; gerçek sandbox anahtarlarıyla uçtan uca deneme yapılmadı. Özellikle kalem bazında iade (`/payment/refund`) sandbox'ta mutlaka denenmeli.
+- **Kargo ücreti sabit.** Desiye göre ücret olmayacak (karar 22.10.2026): sabit kargo ücreti ve ücretsiz kargo sınırı, kargo firmasıyla yapılacak anlaşmaya göre Ödeme ve Teslimat ekranından girilir.
 - **Kargo firmalarının takip bağlantıları boş.** `Ayarlar → Kargo Firmaları` ekranından her firmanın gönderi sorgulama adresi `{takip}` ile girilmeli.
 - **Mağaza ziyaretçilere kapalı.** "Yakında" sayfası gösteriliyor; görmek için önizleme bağlantısı gerekir.
 - **Geliştirme veritabanında mağaza verisi yok.** Mağaza yöneticisi, ürün ve stok bulunmuyor. Süper admin `Platform → Mağaza Yöneticileri` ekranından açılır, ürünler mağaza panelinden eklenir.
@@ -57,7 +57,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 - [ ] Performansın sunucuda yeniden ölçülmesi (geliştirme bilgisayarında ölçüldü).
 - [ ] Sunucuda PHP yükleme sınırlarının 64M yapılması (50 MB banner videoları için).
 - [ ] Zamanlanmış görevlerin (`schedule:run`) ve kuyruk işçisinin sunucuda sürekli çalışması.
-- [ ] Kullanım ve kurulum dokümanları.
+- [x] Kullanım ve kurulum dokümanları: [kilavuz/](kilavuz/) (toptancı, bayi, mağaza yönetimi, platform, sunucu kurulumu).
 
 ### Eksik ekranlar ve özellikler
 B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).

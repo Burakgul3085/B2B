@@ -96,6 +96,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('siparisler', [Admin\OrderController::class, 'index'])->name('orders.index');
             Route::get('siparisler/{storeOrder}', [Admin\OrderController::class, 'show'])->name('orders.show');
             Route::post('siparisler/{storeOrder}/onayla', [Admin\OrderController::class, 'approve'])->name('orders.approve');
+            Route::post('siparisler/{storeOrder}/havale-alindi', [Admin\OrderController::class, 'transferReceived'])->name('orders.transfer-received');
             Route::post('siparisler/{storeOrder}/hazirla', [Admin\OrderController::class, 'prepare'])->name('orders.prepare');
             Route::post('siparisler/{storeOrder}/yola-cikar', [Admin\OrderController::class, 'ship'])->name('orders.ship');
             Route::post('siparisler/{storeOrder}/teslim', [Admin\OrderController::class, 'deliver'])->name('orders.deliver');

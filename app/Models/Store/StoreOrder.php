@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Durumlar (docs/13-magaza-mimarisi.md §8.3):
  *   kart:      pending_payment → paid → preparing → shipped → delivered   (ödeme başarısız: payment_failed)
  *   kapıda:    awaiting_approval → preparing → shipped → delivered        (teslim alınmadı: not_delivered)
- *   her ikisi: yola çıkmadan cancelled
+ *   havale:    awaiting_transfer → preparing → shipped → delivered        (süresinde ödenmezse: cancelled)
+ *   hepsi:     yola çıkmadan cancelled
  */
 class StoreOrder extends Model
 {
@@ -20,6 +21,7 @@ class StoreOrder extends Model
         'pending_payment' => 'Ödeme bekleniyor',
         'payment_failed' => 'Ödeme alınamadı',
         'awaiting_approval' => 'Onay bekliyor',
+        'awaiting_transfer' => 'Havale bekleniyor',
         'paid' => 'Ödendi',
         'preparing' => 'Hazırlanıyor',
         'shipped' => 'Yolda',
@@ -39,12 +41,15 @@ class StoreOrder extends Model
         'refunded' => 'İade edildi',
     ];
 
-    public const PAYMENT_METHODS = ['card' => 'Kredi / banka kartı', 'cod' => 'Kapıda ödeme'];
+    public const PAYMENT_METHODS = ['card' => 'Kredi / banka kartı', 'cod' => 'Kapıda ödeme', 'transfer' => 'Havale / EFT'];
 
     public const DELIVERY_METHODS = ['cargo' => 'Kargo', 'local' => 'Mağaza teslimatı (Eskişehir)'];
 
     /** Teslim edilmemiş, iptal edilmemiş siparişler. */
-    public const OPEN = ['pending_payment', 'awaiting_approval', 'paid', 'preparing', 'shipped'];
+    public const OPEN = ['pending_payment', 'awaiting_approval', 'awaiting_transfer', 'paid', 'preparing', 'shipped'];
+
+    /** Yola çıkmadan iptal edilebilen durumlar. */
+    public const CANCELLABLE = ['pending_payment', 'awaiting_approval', 'awaiting_transfer', 'paid', 'preparing'];
 
     protected $guarded = ['id'];
 
@@ -112,6 +117,12 @@ class StoreOrder extends Model
         return in_array($this->payment_status, ['paid', 'collected', 'partially_refunded'], true);
     }
 
+    /** Para iadesi müşterinin banka hesabına havaleyle (elle) yapılır: kapıda ödeme ve havale. Kartta iyzico'dan karta. */
+    public function refundsToBank(): bool
+    {
+        return $this->payment_method !== 'card';
+    }
+
     /** İade edilebilecek kalan tutar. */
     public function refundableAmount(): string
     {
@@ -138,7 +149,7 @@ class StoreOrder extends Model
     {
         return match ($this->status) {
             'delivered', 'paid' => 'success',
-            'pending_payment', 'awaiting_approval' => 'warning',
+            'pending_payment', 'awaiting_approval', 'awaiting_transfer' => 'warning',
             'payment_failed', 'not_delivered', 'cancelled' => 'danger',
             default => 'info',
         };

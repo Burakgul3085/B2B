@@ -10,6 +10,7 @@ use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\CodPolicy;
 use App\Domain\Store\Orders\DeliveryRules;
 use App\Domain\Store\Orders\LegalDocuments;
+use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\PaymentService;
 use App\Domain\Store\Sms\OtpService;
 use App\Domain\Support\Decimal;
@@ -29,6 +30,7 @@ use Illuminate\View\View;
  *  - Kart: sipariş oluşur (stok ayrılır) → iyzico ödeme sayfası → geri dönüşte sonuç iyzico'dan sorgulanır.
  *  - Kapıda ödeme: taslak oturuma alınır → telefona SMS kodu → kod doğrulanınca sepet ve tutar yeniden denetlenir
  *    ve sipariş oluşur.
+ *  - Havale / EFT: sipariş hemen oluşur; sipariş sayfasında hesap bilgileri ve son ödeme zamanı gösterilir.
  */
 class CheckoutController extends Controller
 {
@@ -73,6 +75,7 @@ class CheckoutController extends Controller
                 'codFee' => $cod->fee(),
                 'codMax' => Decimal::parse(StoreSetting::get('cod_max'), 2),
                 'cardAvailable' => $this->checkout->cardAvailable(),
+                'transferAvailable' => BankTransfer::available(),
             ],
             'legal' => collect(StoreLegalDocument::CHECKOUT_KEYS)->mapWithKeys(fn ($key) => [$key => StoreLegalDocument::current($key)]),
         ]);
@@ -98,6 +101,18 @@ class CheckoutController extends Controller
             $request->session()->put(self::DRAFT_KEY, ['draft' => $draft, 'expires' => now()->addMinutes(15)->timestamp]);
 
             return redirect()->route('store.checkout.verify');
+        }
+
+        if ($draft['payment_method'] === 'transfer') {
+            try {
+                $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
+            } catch (InsufficientStoreStock) {
+                return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
+            } catch (DomainException $e) {
+                return redirect()->route('store.cart')->withErrors(['cart' => $e->getMessage()]);
+            }
+
+            return redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token])->with('order_placed', true);
         }
 
         try {

@@ -1,11 +1,13 @@
 @php
     use App\Domain\Store\Customers\PhoneNumber;
+    use App\Domain\Store\Payments\BankTransfer;
     use App\Domain\Support\Money;
     use App\Models\Store\StoreLegalDocument;
     use App\Models\Store\StoreOrder;
 
     $isCod = $order->payment_method === 'cod';
-    $canCancel = in_array($order->status, ['pending_payment', 'awaiting_approval', 'paid', 'preparing'], true);
+    $canCancel = in_array($order->status, StoreOrder::CANCELLABLE, true);
+    $transferPaid = $order->payment_method === 'transfer' && bccomp($order->refundableAmount(), '0', 2) > 0;
     $refundsOnCancel = $order->payment_method === 'card' && $order->isSettled();
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" :title="'Sipariş '.$order->order_no">
@@ -25,6 +27,11 @@
                         @case('awaiting_approval')
                             <p class="text-muted">Kapıda ödemeli ilk sipariş. Müşteriyi arayıp ({{ PhoneNumber::format($order->phone) }}) teyit edin.</p>
                             <form method="POST" action="{{ route('store_admin.orders.approve', $order) }}">@csrf<x-button icon="check">Teyit edildi, onayla</x-button></form>
+                            @break
+                        @case('awaiting_transfer')
+                            <p class="text-muted">Müşterinin {{ Money::format($order->total) }} tutarını havale / EFT ile göndermesi bekleniyor (açıklamada sipariş no: <span class="font-medium text-ink">{{ $order->order_no }}</span>).
+                                Son gün {{ BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}; ödeme gelmezse sipariş kendiliğinden iptal edilir ve ürünler stoğa döner.</p>
+                            <form method="POST" action="{{ route('store_admin.orders.transfer-received', $order) }}" data-confirm="Ödeme banka hesabına geçti mi? Sipariş hazırlanmaya geçer ve müşteriye e-posta gönderilir.">@csrf<x-button icon="check">Havale alındı</x-button></form>
                             @break
                         @case('pending_payment')
                             <p class="text-muted">Müşterinin ödeme yapması bekleniyor. Ödeme gelmezse sipariş 30 dakika içinde kendiliğinden kapanır ve stok serbest kalır.</p>
@@ -66,7 +73,9 @@
                         @endif
                     @endif
 
-                    @if ($canCancel)
+                    @if ($canCancel && $transferPaid)
+                        <p class="border-t border-line pt-4 text-muted">Havalesi alınmış sipariş: iptal için önce {{ Money::format($order->refundableAmount()) }} tutarını müşterinin hesabına gönderip aşağıdaki <span class="font-medium text-ink">Para iadesi</span> bölümünden elle kaydedin.</p>
+                    @elseif ($canCancel)
                         <form method="POST" action="{{ route('store_admin.orders.cancel', $order) }}" class="flex flex-wrap items-end gap-3 border-t border-line pt-4"
                             data-confirm="{{ $refundsOnCancel ? 'Sipariş iptal edilsin ve '.Money::format($order->refundableAmount()).' karta iade edilsin mi? Bu işlem geri alınamaz.' : 'Sipariş iptal edilsin mi? Müşteriye e-posta gönderilir.' }}">
                             @csrf
@@ -112,7 +121,7 @@
                                         <x-field name="reason" label="İade nedeni" :options="['' => 'Seçin'] + \App\Models\Store\StoreReturn::REASONS" required />
                                         <x-field name="note" label="Not (isteğe bağlı)" maxlength="500" />
                                     </div>
-                                    @if ($isCod)
+                                    @if ($order->refundsToBank())
                                         <div class="grid gap-3 sm:grid-cols-2">
                                             <x-field name="iban" label="Müşterinin IBAN'ı" required maxlength="40" />
                                             <x-field name="account_name" label="Hesap sahibi" required maxlength="120" />
@@ -131,9 +140,9 @@
                                     @csrf
                                     <div class="grid gap-3 sm:grid-cols-3">
                                         <x-field name="amount" label="Tutar (₺)" required inputmode="decimal" />
-                                        @if ($isCod)
+                                        @if ($order->refundsToBank())
                                             <input type="hidden" name="method" value="manual">
-                                            <p class="self-end text-xs text-muted sm:col-span-2">Kapıda ödeme: tutarı müşteriye havale edip burada kaydedin.</p>
+                                            <p class="self-end text-xs text-muted sm:col-span-2">{{ $isCod ? 'Kapıda ödeme' : 'Havale / EFT' }}: tutarı müşterinin hesabına havale edip burada kaydedin.</p>
                                         @else
                                             <x-field name="method" label="Yöntem" :options="['iyzico' => 'Karta iade (iyzico)', 'manual' => 'iyzico panelinden yaptım (elle)']" class="sm:col-span-2" />
                                         @endif

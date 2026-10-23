@@ -39,7 +39,7 @@ class InvoiceService
         ], ['invoice_no.regex' => 'Fatura numarası yalnızca harf, rakam, - ve / içerebilir.'],
             ['invoice_no' => 'fatura numarası', 'issued_on' => 'fatura tarihi', 'file' => 'PDF dosyası'])->validate();
 
-        if (in_array($order->status, ['pending_payment', 'payment_failed'], true)) {
+        if (in_array($order->status, ['pending_payment', 'payment_failed', 'awaiting_transfer'], true)) {
             throw new DomainException('Ödemesi tamamlanmamış siparişe fatura eklenemez.');
         }
         $this->assertPdf($file);

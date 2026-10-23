@@ -3,7 +3,7 @@
     <x-page-header title="Siparişler" subtitle="Mağaza siparişleri. Kapıda ödemeli ilk siparişler teyit için onay bekler." />
 
     <div class="mb-4 flex flex-wrap gap-2 text-sm">
-        @foreach (['' => 'Tümü', 'new' => 'Yeni (işlem bekleyen)', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi', 'cancelled' => 'İptal'] as $key => $label)
+        @foreach (['' => 'Tümü', 'new' => 'Yeni (işlem bekleyen)', 'awaiting_transfer' => 'Havale bekleyen', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi', 'cancelled' => 'İptal'] as $key => $label)
             @php
                 $count = $key === 'new' ? ($counts['awaiting_approval'] ?? 0) + ($counts['paid'] ?? 0) : ($key === '' ? null : ($counts[$key] ?? 0));
                 $active = ($filters['status'] ?? '') === $key;

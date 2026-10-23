@@ -64,6 +64,11 @@ class StoreSetting extends Model
         'iyzico_api_key' => null,
         'iyzico_secret_key' => null,
 
+        // Havale / EFT. Hesaplar satır satır: "Banka | Hesap sahibi | IBAN". Süresinde ödenmeyen sipariş iptal edilir.
+        'transfer_enabled' => '0',
+        'transfer_accounts' => null,
+        'transfer_days' => '3',
+
         // SMS (Netgsm). log: geliştirmede kod günlüğe yazılır, SMS gönderilmez.
         'sms_driver' => 'log',
         'netgsm_usercode' => null,

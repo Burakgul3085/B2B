@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Platform\BackupService;
+use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Payments\PaymentService;
 use Database\Seeders\Support\DemoImages;
 use Illuminate\Support\Facades\Artisan;
@@ -69,6 +70,13 @@ Artisan::command('demo:videolar', function () {
 
 // Mağaza: geri dönüşü gelmeyen kart ödemelerini iyzico'dan sorgulayıp sonuçlandırır, süresi dolanları kapatır (stok serbest kalır).
 Schedule::command('store:expire-pending-payments')->everyFiveMinutes()->withoutOverlapping();
+
+// Mağaza: süresinde ödenmeyen havale / EFT siparişlerini iptal eder (stok geri döner, müşteriye e-posta gider).
+Schedule::command('store:expire-transfers')->hourly()->withoutOverlapping();
+
+Artisan::command('store:expire-transfers', function (OrderService $orders) {
+    $this->info($orders->expireTransfers().' havale siparişi iptal edildi.');
+})->purpose('Mağaza: ödeme süresi geçen havale / EFT siparişlerini iptal eder');
 
 Artisan::command('store:expire-pending-payments', function (PaymentService $payments) {
     $this->info($payments->expireStale().' bekleyen ödeme işlendi.');

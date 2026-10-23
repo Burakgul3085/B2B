@@ -1,12 +1,15 @@
 @php
     use App\Domain\Store\Customers\PhoneNumber;
+    use App\Domain\Store\Payments\BankTransfer;
     use App\Domain\Support\Money;
     use App\Models\Store\StoreOrder;
     use App\Models\Store\StoreReturn;
 
-    $steps = $order->payment_method === 'cod'
-        ? ['awaiting_approval' => 'Alındı', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi']
-        : ['paid' => 'Ödendi', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'];
+    $steps = match ($order->payment_method) {
+        'cod' => ['awaiting_approval' => 'Alındı', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
+        'transfer' => ['awaiting_transfer' => 'Ödeme bekleniyor', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
+        default => ['paid' => 'Ödendi', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
+    };
     $current = array_search($order->status === 'pending_payment' ? 'paid' : $order->status, array_keys($steps), true);
     $closed = in_array($order->status, ['cancelled', 'payment_failed', 'not_delivered'], true);
 @endphp
@@ -18,6 +21,7 @@
                 <p class="mt-1 text-sm">
                     @if ($order->status === 'awaiting_approval') Kısa süre içinde sizi arayarak siparişinizi teyit edeceğiz. Ödemeyi teslimatta yapacaksınız.
                     @elseif ($order->payment_method === 'cod') Siparişinizi hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.
+                    @elseif ($order->status === 'awaiting_transfer') Ödemenizi aşağıdaki hesaplardan birine gönderdiğinizde siparişinizi hazırlamaya başlayacağız.
                     @else Ödemeniz alındı, siparişinizi hazırlamaya başladık. @endif
                     Sipariş bilgileri {{ $order->email }} adresine gönderildi.
                 </p>
@@ -32,6 +36,21 @@
             </div>
             <x-badge :tone="$order->statusTone()" class="px-3! py-1! text-sm!">{{ $order->statusLabel() }}</x-badge>
         </div>
+
+        @if ($order->status === 'awaiting_transfer')
+            <section class="mt-6 rounded-2xl border border-amber-200 bg-warning-soft p-5 text-sm text-amber-900">
+                <h2 class="font-semibold">Havale / EFT ile ödeme</h2>
+                <p class="mt-1">Lütfen <span class="font-semibold">{{ Money::format($order->total) }}</span> tutarını aşağıdaki hesaplardan birine, açıklamaya
+                    <span class="font-semibold">{{ $order->order_no }}</span> yazarak <span class="font-semibold">{{ BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span> tarihine kadar gönderin.
+                    Ödemeniz hesabımıza geçince siparişinizi hazırlamaya başlarız; bu süre içinde ödeme gelmezse sipariş iptal edilir.</p>
+                <ul class="mt-3 space-y-2">
+                    @foreach (BankTransfer::accounts() as $account)
+                        <li class="rounded-xl bg-white/70 px-4 py-3 text-ink"><span class="font-medium">{{ $account['bank'] }}</span> · {{ $account['holder'] }}
+                            <span class="mt-0.5 block font-mono text-sm tracking-wide">{{ BankTransfer::formatIban($account['iban']) }}</span></li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
 
         @if ($order->status === 'pending_payment')
             <p class="mt-6 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">Ödemeniz henüz onaylanmadı. Ödeme sayfasından ayrıldıysanız birkaç dakika içinde sonuçlanacaktır.</p>
@@ -124,9 +143,9 @@
                             </fieldset>
                             <x-field name="reason" label="İade nedeni" :options="['' => 'Seçin'] + StoreReturn::REASONS" required />
                             <x-field name="note" label="Açıklama (isteğe bağlı)" textarea maxlength="500" />
-                            @if ($order->payment_method === 'cod')
+                            @if ($order->refundsToBank())
                                 <div class="grid gap-4 sm:grid-cols-2">
-                                    <x-field name="iban" label="İade için IBAN" required maxlength="40" placeholder="TR00 0000 0000 0000 0000 0000 00" hint="Kapıda ödemenin iadesi bu hesaba havale edilir." />
+                                    <x-field name="iban" label="İade için IBAN" required maxlength="40" placeholder="TR00 0000 0000 0000 0000 0000 00" hint="İade tutarı bu hesaba havale edilir." />
                                     <x-field name="account_name" label="Hesap sahibi" required maxlength="120" />
                                 </div>
                             @else

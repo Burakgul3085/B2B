@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Ödeme ve teslimat ayarları (mağaza yönetimi). Gizli anahtarlar (iyzico, Netgsm şifresi) şifreli saklanır,
+ * Ödeme ve teslimat ayarları (mağaza yönetimi): kargo, mağaza teslimatı, kapıda ödeme, kart (iyzico), havale / EFT, SMS. Gizli anahtarlar (iyzico, Netgsm şifresi) şifreli saklanır,
  * ekrana hiç geri yazılmaz; boş bırakılan gizli alan mevcut değeri korur.
  * Canlı ortamda gerçek SMS (Netgsm) yapılandırılmadan kapıda ödeme açılamaz (doğrulama kodu gönderilemez).
  */
@@ -35,6 +35,8 @@ class PaymentSettings
             'cod_max_open' => ['required', 'integer', 'min:1', 'max:10'],
             'return_days' => ['required', 'integer', 'min:14', 'max:90'],
             'return_address' => ['nullable', 'string', 'max:300'],
+            'transfer_accounts' => ['nullable', 'string', 'max:1500'],
+            'transfer_days' => ['nullable', 'integer', 'min:1', 'max:7'],
             'iyzico_mode' => ['required', 'in:sandbox,live'],
             'iyzico_api_key' => ['nullable', 'string', 'max:200'],
             'iyzico_secret_key' => ['nullable', 'string', 'max:200'],
@@ -46,6 +48,7 @@ class PaymentSettings
             'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
             'return_days' => 'iade süresi', 'return_address' => 'iade adresi',
+            'transfer_accounts' => 'banka hesapları', 'transfer_days' => 'ödeme süresi',
         ])->validate();
 
         $errors = [];
@@ -67,11 +70,19 @@ class PaymentSettings
         $eskisehir = District::where('province_id', Province::ESKISEHIR)->pluck('id')->all();
         $districts = array_values(array_intersect(array_map('intval', $data['local_districts'] ?? []), $eskisehir));
         $flags = [];
-        foreach (['local_delivery_enabled', 'cod_enabled', 'cod_first_order_approval', 'card_enabled'] as $key) {
+        foreach (['local_delivery_enabled', 'cod_enabled', 'cod_first_order_approval', 'card_enabled', 'transfer_enabled'] as $key) {
             $flags[$key] = filter_var($input[$key] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0';
         }
         if ($flags['local_delivery_enabled'] === '1' && $districts === []) {
             $errors['local_districts'] = 'Mağaza teslimatı için en az bir ilçe seçin.';
+        }
+
+        // Havale hesapları "Banka | Hesap sahibi | IBAN" satırlarıdır; IBAN doğrulanır, boşluksuz saklanır.
+        $transfer = BankTransfer::parse((string) ($data['transfer_accounts'] ?? ''));
+        if ($transfer['errors']) {
+            $errors['transfer_accounts'] = implode(' ', $transfer['errors']);
+        } elseif ($flags['transfer_enabled'] === '1' && $transfer['accounts'] === []) {
+            $errors['transfer_accounts'] = 'Havale / EFT için en az bir banka hesabı girin.';
         }
 
         if ($errors) {
@@ -85,6 +96,8 @@ class PaymentSettings
             'cod_max_open' => (string) $data['cod_max_open'],
             'return_days' => (string) $data['return_days'],
             'return_address' => trim((string) ($data['return_address'] ?? '')) ?: null,
+            'transfer_accounts' => implode("\n", array_map(fn ($a) => "{$a['bank']} | {$a['holder']} | {$a['iban']}", $transfer['accounts'])) ?: null,
+            'transfer_days' => (string) ($data['transfer_days'] ?? StoreSetting::get('transfer_days')),
             'iyzico_mode' => $data['iyzico_mode'],
             'sms_driver' => $data['sms_driver'],
             'netgsm_usercode' => trim((string) ($data['netgsm_usercode'] ?? '')) ?: null,
