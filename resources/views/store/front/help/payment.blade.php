@@ -9,7 +9,7 @@
             <div class="rounded-3xl border border-line p-6">
                 <p class="flex items-center gap-2 font-display text-lg font-extrabold"><x-icon name="lock" class="size-5 text-puzzle-green" /> Kredi ve banka kartı</p>
                 <p class="mt-1 text-sm text-muted">iyzico güvencesiyle, 3D Secure doğrulamalı ödeme. Kart bilgileriniz mağazamızda saklanmaz. Anlaşmalı kredi kartlarıyla taksit yapılabilir.</p>
-                <div class="mt-5 rounded-2xl bg-[#0b1631] p-5 sm:p-6"><x-store.payment-marks /></div>
+                <div class="mt-5 rounded-2xl border border-line bg-[#fff] p-5 sm:p-6"><x-store.payment-marks /></div>
             </div>
             @if ($settings['transfer_enabled'] === '1')
                 <div class="rounded-3xl border border-line p-6">

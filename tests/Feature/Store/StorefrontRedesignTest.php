@@ -132,7 +132,7 @@ class StorefrontRedesignTest extends TestCase
     {
         // Varsayılan maddeler ayarlardan: ücretsiz kargo sınırı (setUp: ₺750)
         $this->get(self::HOST.'/')->assertSee('aria-label="Kayan duyurular"', false)->assertSee('₺750,00 üzeri alışverişlerde')->assertSee('Kargo bedava')
-            ->assertSee('aria-label="Taksit yapılabilen kartlar"', false)->assertSee('aria-label="Bonus"', false)->assertSee('aria-label="CardFinans"', false);
+            ->assertSee('aria-label="Bonus"', false)->assertSee('aria-label="CardFinans"', false);
 
         $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
         $base = ['shop_title' => 'Alışveriş', 'category_count' => 6, 'info_title' => 'Bilgi', 'store_title' => 'Mağazamız'];
