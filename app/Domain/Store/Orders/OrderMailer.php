@@ -2,7 +2,7 @@
 
 namespace App\Domain\Store\Orders;
 
-use App\Domain\Mail\SystemMailer;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreInvoice;
@@ -132,6 +132,6 @@ class OrderMailer
         ];
         $email = $order->email;
 
-        dispatch(fn () => app(SystemMailer::class)->send($email, $subject, $content))->afterResponse();
+        dispatch(fn () => app(StoreMailer::class)->send($email, $subject, $content))->afterResponse();
     }
 }

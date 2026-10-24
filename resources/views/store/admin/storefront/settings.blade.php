@@ -11,9 +11,35 @@
                     <x-field name="whatsapp" label="WhatsApp numarası" :value="$settings['whatsapp']" maxlength="30" placeholder="90 5xx xxx xx xx" />
                     <x-field name="email" label="E-posta" type="email" :value="$settings['email']" />
                     <x-field name="address" label="Adres" :value="$settings['address']" maxlength="500" />
-                    <x-field name="instagram" label="Instagram adresi" :value="$settings['instagram']" placeholder="https://instagram.com/..." />
-                    <x-field name="facebook" label="Facebook adresi" :value="$settings['facebook']" placeholder="https://facebook.com/..." />
                 </div>
+            </x-card>
+            <x-card title="Sosyal medya" description="Doldurduğunuz hesapların simgeleri alt bilgide görünür; boş bırakılan görünmez.">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    @foreach (\App\Domain\Store\Content\SocialLinks::NETWORKS as $key => [$label, $example])
+                        <x-field :name="$key" :label="$label" :value="$settings[$key]" :placeholder="$example" />
+                    @endforeach
+                </div>
+            </x-card>
+            <x-card title="E-posta gönderimi (SMTP)" description="Sipariş, bildirim, stok ve e-bülten e-postaları bu hesapla gider. Boş bırakılırsa sistem e-posta hesabı kullanılır.">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-field name="mail_host" label="SMTP sunucusu" :value="$settings['mail_host']" placeholder="smtp.gmail.com" />
+                    <div class="grid grid-cols-2 gap-3">
+                        <x-field name="mail_port" label="Port" :value="$settings['mail_port']" inputmode="numeric" />
+                        <x-field name="mail_encryption" label="Şifreleme" :options="\App\Domain\Store\Mail\StoreMailer::ENCRYPTIONS" :value="$settings['mail_encryption']" />
+                    </div>
+                    <x-field name="mail_username" label="Kullanıcı adı" :value="$settings['mail_username']" autocomplete="off" placeholder="ornek@gmail.com" />
+                    <div>
+                        <x-field name="mail_password" type="password" label="Parola / uygulama şifresi" autocomplete="new-password"
+                            :hint="$settings['mail_password'] ? 'Kayıtlı. Değiştirmek için yeni parolayı yazın; boş bırakırsanız korunur.' : 'Gmail için Google hesabınızdan “uygulama şifresi” oluşturun.'" />
+                        @if ($settings['mail_password'])<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_mail_password" value="1" class="size-4 rounded border-line"> Kayıtlı parolayı sil</label>@endif
+                    </div>
+                    <x-field name="mail_from_address" label="Gönderen adresi" type="email" :value="$settings['mail_from_address']" placeholder="bilgi@yapbozkirtasiye.com" />
+                    <x-field name="mail_from_name" label="Gönderen adı" :value="$settings['mail_from_name']" :placeholder="config('store.name')" />
+                </div>
+                <p class="mt-4 text-xs text-muted">Örnek ayarlar — Gmail: smtp.gmail.com, 587, TLS (uygulama şifresiyle; günlük ~500 e-posta). Hostinger: smtp.hostinger.com, 465, SSL. Yandex: smtp.yandex.com, 465, SSL.</p>
+                @if (\App\Domain\Store\Mail\StoreMailer::hasOwnAccount())
+                    <button form="deneme-eposta" class="mt-4 inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-slate-50"><x-icon name="mail" class="size-4" /> Kendime deneme e-postası gönder</button>
+                @endif
             </x-card>
             <x-card title="Satıcı bilgileri" description="Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve iletişim sayfasında kullanılır; iyzico başvurusunda da istenir.">
                 <div class="grid gap-5 sm:grid-cols-2">
@@ -69,4 +95,5 @@
             </x-card>
         </div>
     </div>
+    <form id="deneme-eposta" method="POST" action="{{ route('store_admin.settings.test-mail') }}">@csrf</form>
 </x-layouts.panel>

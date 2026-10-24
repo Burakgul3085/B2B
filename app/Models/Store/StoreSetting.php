@@ -27,6 +27,26 @@ class StoreSetting extends Model
         'address' => null,
         'instagram' => null,
         'facebook' => null,
+        'x' => null,
+        'youtube' => null,
+        'tiktok' => null,
+        'linkedin' => null,
+        'pinterest' => null,
+
+        // Mağazanın e-posta hesabı (SMTP). Boşsa sistem e-posta hesabı kullanılır. Parola şifreli saklanır.
+        'mail_host' => null,
+        'mail_port' => '587',
+        'mail_encryption' => 'tls',
+        'mail_username' => null,
+        'mail_password' => null,
+        'mail_from_address' => null,
+        'mail_from_name' => null,
+
+        // E-bülten
+        'newsletter_enabled' => '1',
+        'newsletter_title' => 'Kampanyalardan ilk siz haberdar olun',
+        'newsletter_text' => 'Yeni ürünler, indirimler ve size özel fırsatlar e-postanıza gelsin.',
+        'newsletter_consent' => 'Kampanya ve duyurular için ticari elektronik ileti almayı kabul ediyorum.',
         'payment_logos_path' => null, // alt bilgideki ödeme logo bandı (iyzico'nun verdiği görsel)
 
         // Satıcı bilgileri (yasal metinler, iletişim sayfası, fatura)
@@ -81,7 +101,7 @@ class StoreSetting extends Model
     ];
 
     /** Veritabanında şifreli tutulan anahtarlar. */
-    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password'];
+    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password', 'mail_password'];
 
     private const CACHE_KEY = 'store.settings';
 

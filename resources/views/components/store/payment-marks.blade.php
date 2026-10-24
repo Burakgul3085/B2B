@@ -22,7 +22,7 @@
     ];
     $others = array_filter(['building' => $transfer ? 'Havale / EFT' : null, 'truck' => $cod ? 'Kapıda ödeme' : null]);
 @endphp
-<div {{ $attributes->merge(['class' => 'w-full space-y-5 lg:w-[620px]']) }}>
+<div {{ $attributes->merge(['class' => 'w-full space-y-5']) }}>
     <div>
         <p class="{{ $label }}">Kabul edilen kartlar</p>
         <ul class="grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Ödeme yöntemleri">

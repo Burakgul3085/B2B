@@ -87,6 +87,10 @@
                 ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],
                 ['label' => 'Raporlar', 'route' => 'store_admin.reports.index', 'icon' => 'grid', 'active' => 'store_admin.reports.*'],
             ]],
+            ['label' => 'Pazarlama', 'items' => [
+                ['label' => 'E-bülten Aboneleri', 'route' => 'store_admin.newsletter.index', 'icon' => 'users', 'active' => 'store_admin.newsletter.*'],
+                ['label' => 'Toplu E-posta', 'route' => 'store_admin.campaigns.index', 'icon' => 'mail', 'active' => 'store_admin.campaigns.*'],
+            ]],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'store_admin.products.index', 'icon' => 'package', 'active' => 'store_admin.products.*'],
                 ['label' => 'Kategoriler', 'route' => 'store_admin.categories.index', 'icon' => 'list', 'active' => 'store_admin.categories.*'],
@@ -98,6 +102,7 @@
                 ['label' => 'Ana Sayfa', 'route' => 'store_admin.home-layout.edit', 'icon' => 'home', 'active' => 'store_admin.home-layout.*'],
                 ['label' => 'Seçkiler', 'route' => 'store_admin.collections.index', 'icon' => 'star', 'active' => 'store_admin.collections.*'],
                 ['label' => 'Blog', 'route' => 'store_admin.blog.index', 'icon' => 'book-open', 'active' => 'store_admin.blog.*'],
+                ['label' => 'Yardım Sayfaları', 'route' => 'store_admin.help-pages.index', 'icon' => 'message-circle', 'active' => 'store_admin.help-pages.*'],
                 ['label' => "Banner'lar", 'route' => 'store_admin.banners.index', 'icon' => 'image', 'active' => 'store_admin.banners.*'],
                 ['label' => 'Hakkımızda', 'route' => 'store_admin.site-pages.about', 'icon' => 'building', 'active' => 'store_admin.site-pages.about*'],
                 ['label' => 'İletişim', 'route' => 'store_admin.site-pages.contact', 'icon' => 'map-pin', 'active' => 'store_admin.site-pages.contact*'],

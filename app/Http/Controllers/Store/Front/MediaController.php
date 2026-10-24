@@ -10,6 +10,7 @@ use App\Models\Store\StoreBlogPost;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreCollection;
+use App\Models\Store\StoreNewsletterCampaign;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
 use App\Models\Store\StoreSetting;
@@ -67,6 +68,14 @@ class MediaController extends Controller
         abort_unless($storeCollection->is_active && $storeCollection->image_path, 404);
 
         return $this->serve($storeCollection->image_path, $request->integer('w') ?: null);
+    }
+
+    /** E-bülten görseli (e-postalardan yüklenir; gizli içerik değildir). */
+    public function newsletter(Request $request, StoreNewsletterCampaign $storeNewsletterCampaign): StreamedResponse
+    {
+        abort_unless($storeNewsletterCampaign->image_path, 404);
+
+        return $this->serve($storeNewsletterCampaign->image_path, $request->integer('w') ?: null);
     }
 
     public function blog(Request $request, StoreBlogPost $storeBlogPost): StreamedResponse

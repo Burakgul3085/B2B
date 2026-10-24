@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Store;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Content\MapLink;
 use App\Domain\Store\Content\OpeningHours;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
 use App\Models\Store\StorePage;
@@ -34,7 +34,7 @@ class StoreSitePagesTest extends TestCase
         StoreSetting::put(['is_open' => '1', 'phone' => '0222 123 45 67', 'whatsapp' => '0532 123 45 67', 'email' => 'info@yapboz.test',
             'address' => 'Hoşnudiye Mah. İsmet İnönü Cad. No 5, Tepebaşı / Eskişehir', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'company_mersis' => '0123456789012345']);
         $test = $this;
-        $this->instance(SystemMailer::class, new class($test) extends SystemMailer
+        $this->instance(StoreMailer::class, new class($test) extends StoreMailer
         {
             public function __construct(private $test) {}
 

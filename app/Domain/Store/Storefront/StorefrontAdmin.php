@@ -91,6 +91,17 @@ class StorefrontAdmin
             'address' => ['nullable', 'string', 'max:500'],
             'instagram' => ['nullable', 'url:https', 'max:255'],
             'facebook' => ['nullable', 'url:https', 'max:255'],
+            'x' => ['nullable', 'url:https', 'max:255'],
+            'youtube' => ['nullable', 'url:https', 'max:255'],
+            'tiktok' => ['nullable', 'url:https', 'max:255'],
+            'linkedin' => ['nullable', 'url:https', 'max:255'],
+            'pinterest' => ['nullable', 'url:https', 'max:255'],
+            'mail_host' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9.-]+$/'],
+            'mail_port' => ['nullable', 'integer', 'between:1,65535'],
+            'mail_encryption' => ['nullable', 'in:tls,ssl'],
+            'mail_username' => ['nullable', 'string', 'max:190'],
+            'mail_from_address' => ['nullable', 'email', 'max:190'],
+            'mail_from_name' => ['nullable', 'string', 'max:80'],
             'company_title' => ['nullable', 'string', 'max:200'],
             'company_tax_office' => ['nullable', 'string', 'max:80'],
             'company_tax_number' => ['nullable', 'regex:/^\d{10,11}$/'],
@@ -100,8 +111,16 @@ class StorefrontAdmin
             'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
             'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'footer_about' => 'kısa tanıtım',
             'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
-            'notify_emails' => 'bildirim adresleri',
+            'notify_emails' => 'bildirim adresleri', 'mail_host' => 'SMTP sunucusu', 'mail_port' => 'port', 'mail_username' => 'kullanıcı adı',
+            'mail_from_address' => 'gönderen adresi', 'mail_from_name' => 'gönderen adı',
         ])->validate();
+        $data['mail_port'] = isset($data['mail_port']) ? (string) $data['mail_port'] : '587';
+        // Parola yalnızca yazıldıysa değişir (boş bırakılırsa eskisi korunur).
+        if (filled($input['mail_password'] ?? null)) {
+            StoreSetting::putSecret('mail_password', trim($input['mail_password']));
+        } elseif (filter_var($input['remove_mail_password'] ?? false, FILTER_VALIDATE_BOOL)) {
+            StoreSetting::putSecret('mail_password', null);
+        }
 
         // Bildirim adresleri: virgülle ayrılmış e-postalar (en fazla 10).
         $emails = array_values(array_unique(array_filter(array_map(fn ($e) => strtolower(trim($e)), preg_split('/[,;\s]+/', (string) ($data['notify_emails'] ?? ''))))));

@@ -6,6 +6,7 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
+use App\Models\Store\StorePage;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -146,7 +147,7 @@ class StorefrontRedesignTest extends TestCase
 
     public function test_footer_shows_store_map_to_everyone_without_address(): void
     {
-        \App\Models\Store\StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => [
+        StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => [
             'map_embed' => 'https://www.google.com/maps?q=39.77,30.52&z=17&hl=tr&output=embed',
             'map_directions' => 'https://www.google.com/maps/dir/?api=1&destination=39.77,30.52',
         ]]);

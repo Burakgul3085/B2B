@@ -23,6 +23,10 @@ class StoreFooter
     /** Kayan şerit: en fazla madde, renkler ve hızlar (madde başına saniye). */
     public const MAX_MARQUEE = 8;
 
+    public const MAX_COLUMNS = 4;
+
+    public const MAX_LINKS = 10;
+
     public const MARQUEE_COLORS = ['orange' => 'Turuncu', 'navy' => 'Lacivert', 'green' => 'Yeşil', 'blue' => 'Mavi', 'yellow' => 'Sarı'];
 
     public const MARQUEE_SPEEDS = ['slow' => ['Yavaş', 9], 'normal' => ['Normal', 6], 'fast' => ['Hızlı', 4]];
@@ -39,9 +43,12 @@ class StoreFooter
                 ['icon' => 'lock', 'title' => 'Güvenli ödeme', 'text' => '256-bit SSL · iyzico güvencesi'],
                 ['icon' => 'refresh', 'title' => 'Kolay iade', 'text' => '14 gün içinde iade hakkı'],
             ],
-            'shop_title' => 'Alışveriş',
-            'category_count' => 6,
-            'info_title' => 'Bilgi',
+            // Bağlantı sütunları (en fazla 4, her biri en fazla 10 bağlantı). Bağlantılar FooterLinks anahtarlarıdır.
+            'columns' => [
+                ['title' => 'Kurumsal', 'links' => self::links(['about', 'contact', 'blog', 'legal', 'legal:kvkk', 'legal:iptal-iade'])],
+                ['title' => 'Üyelik', 'links' => self::links(['register', 'login', 'password', 'account', 'orders', 'favorites'])],
+                ['title' => 'Yardım', 'links' => self::links(['help', 'faq', 'shipping', 'payment', 'tracking', 'cookies', 'b2b'])],
+            ],
             'store_title' => 'Mağazamız',
             'show_map' => true,
             'show_hours' => true,
@@ -108,6 +115,12 @@ class StoreFooter
         return $items;
     }
 
+    /** @param  list<string>  $keys */
+    private static function links(array $keys): array
+    {
+        return array_map(fn ($key) => ['key' => $key, 'label' => null], $keys);
+    }
+
     public static function config(): array
     {
         $saved = json_decode((string) StoreSetting::get('footer'), true);
@@ -145,10 +158,13 @@ class StoreFooter
             'strip.*.icon' => ['nullable', 'in:'.implode(',', array_keys(self::ICONS))],
             'strip.*.title' => ['nullable', 'string', 'max:40'],
             'strip.*.text' => ['nullable', 'string', 'max:60'],
-            'shop_title' => ['required', 'string', 'max:30'],
-            'category_count' => ['required', 'integer', 'min:0', 'max:10'],
-            'info_title' => ['required', 'string', 'max:30'],
-            'store_title' => ['required', 'string', 'max:30'],
+            'store_title' => ['nullable', 'string', 'max:30'],
+            'columns' => ['nullable', 'array', 'max:'.self::MAX_COLUMNS],
+            'columns.*.title' => ['nullable', 'string', 'max:30'],
+            'columns.*.links' => ['nullable', 'array', 'max:'.self::MAX_LINKS],
+            'columns.*.links.*.key' => ['nullable', 'string', 'max:255'],
+            'columns.*.links.*.url' => ['nullable', 'string', 'max:255'],
+            'columns.*.links.*.label' => ['nullable', 'string', 'max:40'],
             'bottom_note' => ['nullable', 'string', 'max:120'],
             'manager_name' => ['nullable', 'string', 'max:60'],
             'topbar_items' => ['nullable', 'array', 'max:3'],
@@ -160,8 +176,8 @@ class StoreFooter
             'marquee_items.*.text' => ['nullable', 'string', 'max:60'],
             'marquee_items.*.badge' => ['nullable', 'string', 'max:30'],
         ], [], [
-            'footer_about' => 'tanıtım metni', 'tagline' => 'logo altı yazı', 'shop_title' => 'alışveriş başlığı', 'category_count' => 'kategori sayısı',
-            'info_title' => 'bilgi başlığı', 'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not', 'manager_name' => 'sayfa yöneticisi',
+            'footer_about' => 'tanıtım metni', 'tagline' => 'logo altı yazı', 'columns.*.title' => 'sütun başlığı', 'columns.*.links.*.label' => 'bağlantı adı',
+            'store_title' => 'mağaza başlığı', 'bottom_note' => 'alt not', 'manager_name' => 'sayfa yöneticisi',
         ])->validate();
 
         $strip = [];
@@ -185,15 +201,42 @@ class StoreFooter
             $marquee[] = ['icon' => $row['icon'] ?? 'check-circle', 'text' => $text, 'badge' => $badge ?: null];
         }
 
+        $columns = null;
+        if (array_key_exists('columns', $data)) {
+            $columns = [];
+            foreach (array_values($data['columns'] ?? []) as $c => $column) {
+                $links = [];
+                foreach (array_values($column['links'] ?? []) as $l => $row) {
+                    $key = trim((string) ($row['key'] ?? ''));
+                    if ($key === 'url') {
+                        $key = trim((string) ($row['url'] ?? ''));
+                        if (! FooterLinks::isUrl($key)) {
+                            throw ValidationException::withMessages(["columns.{$c}.links.{$l}.url" => 'Özel bağlantı https:// ile başlayan geçerli bir adres olmalı.']);
+                        }
+                        if (trim((string) ($row['label'] ?? '')) === '') {
+                            throw ValidationException::withMessages(["columns.{$c}.links.{$l}.label" => 'Özel bağlantıya bir ad yazın.']);
+                        }
+                    } elseif ($key !== '' && FooterLinks::label($key) === null) {
+                        throw ValidationException::withMessages(["columns.{$c}.links.{$l}.key" => 'Listeden bir sayfa seçin.']);
+                    }
+                    if ($key !== '') {
+                        $links[] = ['key' => $key, 'label' => trim((string) ($row['label'] ?? '')) ?: null];
+                    }
+                }
+                $title = trim((string) ($column['title'] ?? ''));
+                if ($title !== '' || $links) {
+                    $columns[] = ['title' => $title ?: 'Bağlantılar', 'links' => $links];
+                }
+            }
+        }
+
         $flag = fn (string $key) => filter_var($input[$key] ?? false, FILTER_VALIDATE_BOOL);
         $config = [
             'tagline' => trim((string) ($data['tagline'] ?? '')) ?: null,
             'strip_enabled' => $flag('strip_enabled'),
             'strip' => $strip,
-            'shop_title' => trim($data['shop_title']),
-            'category_count' => (int) $data['category_count'],
-            'info_title' => trim($data['info_title']),
-            'store_title' => trim($data['store_title']),
+            'columns' => $columns ?? self::config()['columns'],
+            'store_title' => trim((string) ($data['store_title'] ?? '')) ?: 'Mağazamız',
             'show_map' => $flag('show_map'),
             'show_hours' => $flag('show_hours'),
             'show_b2b' => $flag('show_b2b'),

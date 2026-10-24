@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Store;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreCustomer;
@@ -139,9 +139,9 @@ class StorefrontEngagementTest extends TestCase
         $this->post(self::HOST.'/stok-bildirimi', ['variant_id' => $variant->id, 'email' => 'ali@ornek.com']);
         $this->assertSame(1, StoreStockAlert::where('email', 'ali@ornek.com')->count());
 
-        $mailer = Mockery::mock(SystemMailer::class);
+        $mailer = Mockery::mock(StoreMailer::class);
         $mailer->shouldReceive('send')->once()->withArgs(fn ($to, $subject) => $to === 'ali@ornek.com' && str_contains($subject, 'Jel Kalem'))->andReturnTrue();
-        $this->app->instance(SystemMailer::class, $mailer);
+        $this->app->instance(StoreMailer::class, $mailer);
 
         $this->artisan('store:stock-alerts')->expectsOutputToContain('0 stok bildirimi')->assertSuccessful();
         app(StoreStockService::class)->receive($variant->fresh(), 3);

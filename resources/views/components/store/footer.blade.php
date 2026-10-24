@@ -11,14 +11,13 @@
         str_starts_with($digits, '0') => '9'.$digits,
         default => '90'.$digits,
     };
-    $socials = array_filter([
-        $settings['instagram'] ? ['instagram', $settings['instagram'], 'Instagram'] : null,
-        $whatsapp ? ['message-circle', 'https://wa.me/'.$whatsapp, 'WhatsApp'] : null,
-        $settings['facebook'] ? ['facebook', $settings['facebook'], 'Facebook'] : null,
-    ]);
+    // Mağaza Ayarları → Sosyal medya: yalnızca doldurulan hesaplar
+    $socials = array_map(fn ($s) => [$s['key'], $s['url'], $s['label']], \App\Domain\Store\Content\SocialLinks::filled());
+    if ($whatsapp) {
+        $socials[] = ['message-circle', 'https://wa.me/'.$whatsapp, 'WhatsApp'];
+    }
     $strip = $footer['strip_enabled'] ? $footer['strip'] : [];
     $stripCols = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-3', 4 => 'sm:grid-cols-2 lg:grid-cols-4'];
-    $legal = ['mesafeli-satis', 'iptal-iade', 'kvkk', 'gizlilik-cerez'];
     $place = $settings['address'] ? trim(\Illuminate\Support\Str::afterLast($settings['address'], ',')) : null;
     $link = 'text-white/70 transition hover:text-white';
     $heading = 'text-xs font-bold tracking-[0.2em] text-amber-400 uppercase';
@@ -37,9 +36,13 @@
         </div>
     @endif
 
+    @if (app(\App\Domain\Store\Newsletter\Subscriptions::class)->formAvailable())
+        @include('components.store._newsletter', ['title' => $settings['newsletter_title'], 'text' => $settings['newsletter_text'], 'consent' => $settings['newsletter_consent']])
+    @endif
+
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-12 lg:px-8">
         {{-- Marka ve iletişim --}}
-        <div class="lg:col-span-4">
+        <div class="lg:col-span-3">
             <a href="{{ route('store.home') }}" class="inline-flex items-center gap-3">
                 <x-puzzle-logo :animated="false" class="size-12" />
                 <span>
@@ -60,7 +63,7 @@
                 @endif
             </ul>
             @if ($socials)
-                <div class="mt-6 flex gap-2.5">
+                <div class="mt-6 flex flex-wrap gap-2.5">
                     @foreach ($socials as [$icon, $url, $label])
                         <a href="{{ $url }}" target="_blank" rel="noopener" aria-label="{{ $label }}"
                             class="flex size-10 items-center justify-center rounded-xl text-white/80 ring-1 ring-white/15 transition hover:bg-white/10 hover:text-white"><x-icon :name="$icon" class="size-4.5" /></a>
@@ -69,33 +72,33 @@
             @endif
         </div>
 
-        {{-- Alışveriş --}}
-        <div class="lg:col-span-2">
-            <p class="{{ $heading }}">{{ $footer['shop_title'] }}</p>
-            <ul class="mt-5 space-y-3 text-[15px]">
-                <li><a href="{{ route('store.products') }}" class="{{ $link }}">Tüm ürünler</a></li>
-                @foreach ($menu->take($footer['category_count']) as $root)
-                    <li><a href="{{ route('store.category', $root->slug) }}" class="{{ $link }}">{{ $root->name }}</a></li>
+        {{-- Bağlantı sütunları (Vitrin → Üst ve Alt Bilgi → Sütunlar) --}}
+        @php
+            $columns = collect($footer['columns'])->map(fn ($c) => ['title' => $c['title'], 'links' => \App\Domain\Store\Content\FooterLinks::render(
+                $footer['show_b2b'] ? $c['links'] : array_values(array_filter($c['links'], fn ($l) => ($l['key'] ?? '') !== 'b2b')), $b2bLogin)])
+                ->filter(fn ($c) => $c['links'])->values();
+            $colGrid = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-3', 4 => 'sm:grid-cols-2 xl:grid-cols-4'][max(1, $columns->count())];
+        @endphp
+        @if ($columns->isNotEmpty())
+            <div class="grid gap-10 sm:col-span-2 lg:col-span-6 {{ $colGrid }}">
+                @foreach ($columns as $column)
+                    <div>
+                        <p class="{{ $heading }}">{{ $column['title'] }}</p>
+                        <ul class="mt-5 space-y-3 text-[15px]">
+                            @foreach ($column['links'] as $item)
+                                <li>
+                                    @if ($item['cookies'])
+                                        <button type="button" data-cookie-settings class="{{ $link }}">{{ $item['label'] }}</button>
+                                    @else
+                                        <a href="{{ $item['url'] }}" class="{{ $link }}" @if ($item['external']) target="_blank" rel="noopener" @endif>{{ $item['label'] }}</a>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endforeach
-                <li><a href="{{ route('store.brands') }}" class="{{ $link }}">Markalar</a></li>
-            </ul>
-        </div>
-
-        {{-- Bilgi --}}
-        <div class="lg:col-span-3">
-            <p class="{{ $heading }}">{{ $footer['info_title'] }}</p>
-            <ul class="mt-5 space-y-3 text-[15px]">
-                @foreach ($pages as $page)
-                    <li><a href="{{ $page['url'] }}" class="{{ $link }}">{{ $page['title'] }}</a></li>
-                @endforeach
-                @if (\App\Models\Store\StoreBlogPost::anyLive())<li><a href="{{ route('store.blog') }}" class="{{ $link }}">Blog</a></li>@endif
-                @foreach ($legal as $key)
-                    <li><a href="{{ route('store.legal', $key) }}" class="{{ $link }}">{{ \App\Models\Store\StoreLegalDocument::KEYS[$key] }}</a></li>
-                @endforeach
-                <li><button type="button" data-cookie-settings class="{{ $link }}">Çerez tercihleri</button></li>
-                @if ($footer['show_b2b'])<li><a href="{{ $b2bLogin }}" class="{{ $link }}">Bayi girişi</a></li>@endif
-            </ul>
-        </div>
+            </div>
+        @endif
 
         {{-- Mağazamız --}}
         @if ($footer['directions'] || $footer['hours'])
@@ -163,7 +166,7 @@
                         <span class="mt-4 inline-block rounded-lg bg-[#fff] px-2.5 py-1.5"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-6 w-auto" loading="lazy"></span>
                     @endif
                 </div>
-                <x-store.payment-marks :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
+                <x-store.payment-marks class="lg:w-[620px]" :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
             </div>
         </div>
     </div>

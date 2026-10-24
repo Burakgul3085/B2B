@@ -495,3 +495,31 @@ export function starRating(initial) {
         },
     };
 }
+
+/** Toplu e-posta gönderim ilerlemesi: gönderim sürerken birkaç saniyede bir durumu sorar. */
+export function campaignProgress(url, initial) {
+    return {
+        state: initial,
+        timer: null,
+        init() {
+            if (this.state.status === 'sending') {
+                this.timer = setInterval(() => this.poll(), 4000);
+            }
+        },
+        async poll() {
+            const res = await window.fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            if (res.ok) {
+                this.state = await res.json();
+                if (this.state.status !== 'sending') {
+                    clearInterval(this.timer);
+                }
+            }
+        },
+        get barStyle() {
+            return 'width: ' + this.state.percent + '%';
+        },
+        destroy() {
+            clearInterval(this.timer);
+        },
+    };
+}

@@ -12,7 +12,7 @@ use Illuminate\View\View;
 /** Vitrin → Alt Bilgi: mağazanın alt bilgisi (güven şeridi, sütun başlıkları, gösterilecek bölümler). */
 class FooterController extends Controller
 {
-    private const FIELDS = ['footer_about', 'tagline', 'strip_enabled', 'strip', 'shop_title', 'category_count', 'info_title', 'store_title',
+    private const FIELDS = ['footer_about', 'tagline', 'strip_enabled', 'strip', 'columns', 'store_title',
         'show_map', 'show_hours', 'show_b2b', 'whatsapp_button', 'bottom_note', 'manager_name', 'marquee_enabled', 'marquee_color', 'marquee_speed', 'marquee_items', 'topbar_enabled', 'topbar_items'];
 
     public function edit(): View

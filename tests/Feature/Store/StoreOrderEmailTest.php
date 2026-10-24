@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Store;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Models\Store\District;
 use App\Models\Store\StoreProduct;
@@ -23,7 +23,7 @@ class StoreOrderEmailTest extends TestCase
     public function test_order_placed_email_contains_the_accepted_contracts(): void
     {
         $test = $this;
-        $this->instance(SystemMailer::class, new class($test) extends SystemMailer
+        $this->instance(StoreMailer::class, new class($test) extends StoreMailer
         {
             public function __construct(private $test) {}
 

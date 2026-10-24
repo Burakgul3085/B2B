@@ -109,6 +109,21 @@ Tükenen ürünün sayfasında ziyaretçi e-posta bırakabilir. Ürünü stoğa 
 - **Yayında** açıkken yazı kaydettiğiniz an yayımlanır; **Yayın tarihi**ne ileri bir tarih yazarsanız o an yayına girer (listede "Zamanlandı").
 - Yayında yazı olduğunda üst menüde ve alt bilgide "Blog" bağlantısı, ana sayfada "Blogdan" bölümü kendiliğinden görünür.
 
+### E-posta gönderimi (Mağaza Ayarları)
+
+Sipariş, bildirim, stok ve e-bülten e-postaları mağazanın kendi e-posta hesabıyla gider. **Mağaza Ayarları → E-posta gönderimi** bölümüne SMTP sunucusu, port, şifreleme, kullanıcı adı, parola ve gönderen adresini girin; **Kendime deneme e-postası gönder** ile deneyin. Gmail için Google hesabınızdan "uygulama şifresi" oluşturup onu kullanın (günde ~500 e-posta sınırı vardır).
+
+### E-bülten ve toplu e-posta (Pazarlama)
+
+- **E-bülten Aboneleri:** Alt bilgideki formdan abone olan kişiye onay e-postası gider; bağlantıya tıklayınca abone olur. Üye olurken veya Hesabım'da "kampanyalardan haberdar olmak istiyorum" diyen müşteriler de listeye eklenir. Liste CSV olarak, İYS'ye yüklenecek biçimde de indirilebilir. Alt bilgideki başlık, açıklama ve onay metni aynı ekrandan düzenlenir.
+- **Toplu E-posta:** **Yeni e-posta** → konu, metin, isteğe bağlı görsel ve düğme → **Taslağı kaydet** → **Önizle** ve **Kendime deneme gönder** → **… aboneye gönder**. E-postalar arka planda dakikada ~40 adet gider; ilerleme ekranda görünür, gerekirse **Gönderimi durdur**. Her e-postada "Abonelikten çık" bağlantısı vardır.
+
+### Alt bilgi sütunları ve Yardım Sayfaları
+
+- **Vitrin → Üst ve Alt Bilgi → Bağlantı sütunları:** en fazla 4 sütun; her bağlantı için listeden bir sayfa seçin, isterseniz görünen adını değiştirin. "Özel adres…" ile başka bir siteye bağlantı da verilebilir.
+- **Vitrin → Yardım Sayfaları:** Yardım Merkezi kutuları, Sıkça Sorulan Sorular, Sipariş ve Teslimat, Ödeme Seçenekleri, Kargo Takip ve Yasal Haklar sayfalarının başlık ve metinleri. Kargo ücreti, ücretsiz kargo sınırı ve ödeme yöntemleri ayarlardan otomatik yazılır. Yayından kaldırılan sayfanın bağlantısı her yerden gizlenir.
+- **Sosyal medya:** Mağaza Ayarları → Sosyal medya; doldurduğunuz hesapların simgesi alt bilgide görünür.
+
 ## 8. Müşteri hesapları ve KVKK
 
 Müşteri üye olarak veya misafir olarak sipariş verebilir. Üye, hesabından siparişlerini, adreslerini ve iadelerini yönetir. Hesabını kapatabilir; bu durumda kişisel bilgileri anonimleştirilir, yasal saklama gereği sipariş kayıtları korunur. Çerez tercihleri sitedeki çerez bandından yönetilir.

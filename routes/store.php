@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Store\Content\HelpPages;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Store\Admin;
 use App\Http\Controllers\Store\Front;
@@ -98,6 +99,9 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('seckiler/{storeCollection}', [Admin\CollectionController::class, 'update'])->name('collections.update');
                 Route::delete('seckiler/{storeCollection}', [Admin\CollectionController::class, 'destroy'])->name('collections.destroy');
                 Route::get('seckiler/{storeCollection}/gorsel', [Admin\CollectionController::class, 'image'])->name('collections.image');
+                Route::get('yardim-sayfalari', [Admin\HelpPageController::class, 'index'])->name('help-pages.index');
+                Route::get('yardim-sayfalari/{key}', [Admin\HelpPageController::class, 'edit'])->whereIn('key', array_keys(HelpPages::PAGES))->name('help-pages.edit');
+                Route::put('yardim-sayfalari/{key}', [Admin\HelpPageController::class, 'update'])->whereIn('key', array_keys(HelpPages::PAGES))->name('help-pages.update');
                 Route::get('blog', [Admin\BlogController::class, 'index'])->name('blog.index');
                 Route::put('blog/kategoriler', [Admin\BlogController::class, 'categories'])->name('blog.categories');
                 Route::get('blog/yeni', [Admin\BlogController::class, 'create'])->name('blog.create');
@@ -111,6 +115,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('ayarlar', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
                 Route::put('ayarlar', [Admin\SettingsController::class, 'update'])->name('settings.update');
                 Route::put('ayarlar/yayin', [Admin\SettingsController::class, 'open'])->name('settings.open');
+                Route::post('ayarlar/deneme-eposta', [Admin\SettingsController::class, 'testMail'])->middleware('throttle:5,10,settings.test-mail')->name('settings.test-mail');
             });
 
             // Siparişler (M6)
@@ -138,6 +143,24 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('yorumlar', [Admin\ReviewController::class, 'index'])->name('reviews.index');
             Route::put('yorumlar/{storeReview}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
             Route::delete('yorumlar/{storeReview}', [Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
+
+            // Pazarlama: e-bülten aboneleri ve toplu e-posta
+            Route::get('pazarlama/e-bulten', [Admin\NewsletterController::class, 'index'])->name('newsletter.index');
+            Route::get('pazarlama/e-bulten/disa-aktar', [Admin\NewsletterController::class, 'export'])->name('newsletter.export');
+            Route::put('pazarlama/e-bulten/ayarlar', [Admin\NewsletterController::class, 'settings'])->name('newsletter.settings');
+            Route::delete('pazarlama/e-bulten/{storeNewsletterSubscriber}', [Admin\NewsletterController::class, 'destroy'])->name('newsletter.destroy');
+            Route::get('pazarlama/toplu-eposta', [Admin\CampaignController::class, 'index'])->name('campaigns.index');
+            Route::get('pazarlama/toplu-eposta/yeni', [Admin\CampaignController::class, 'create'])->name('campaigns.create');
+            Route::post('pazarlama/toplu-eposta', [Admin\CampaignController::class, 'store'])->name('campaigns.store');
+            Route::get('pazarlama/toplu-eposta/{storeNewsletterCampaign}', [Admin\CampaignController::class, 'edit'])->name('campaigns.edit');
+            Route::put('pazarlama/toplu-eposta/{storeNewsletterCampaign}', [Admin\CampaignController::class, 'update'])->name('campaigns.update');
+            Route::delete('pazarlama/toplu-eposta/{storeNewsletterCampaign}', [Admin\CampaignController::class, 'destroy'])->name('campaigns.destroy');
+            Route::get('pazarlama/toplu-eposta/{storeNewsletterCampaign}/onizleme', [Admin\CampaignController::class, 'preview'])->name('campaigns.preview');
+            Route::get('pazarlama/toplu-eposta/{storeNewsletterCampaign}/gorsel', [Admin\CampaignController::class, 'image'])->name('campaigns.image');
+            Route::get('pazarlama/toplu-eposta/{storeNewsletterCampaign}/durum', [Admin\CampaignController::class, 'progress'])->name('campaigns.progress');
+            Route::post('pazarlama/toplu-eposta/{storeNewsletterCampaign}/deneme', [Admin\CampaignController::class, 'test'])->middleware('throttle:10,10,campaigns.test')->name('campaigns.test');
+            Route::post('pazarlama/toplu-eposta/{storeNewsletterCampaign}/gonder', [Admin\CampaignController::class, 'send'])->name('campaigns.send');
+            Route::post('pazarlama/toplu-eposta/{storeNewsletterCampaign}/durdur', [Admin\CampaignController::class, 'cancel'])->name('campaigns.cancel');
             Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
             Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
             Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
@@ -204,8 +227,15 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     // iyzico anlık bildirimi (webhook): müşteri ödeme sonrası sayfayı kapatsa da sipariş hemen sonuçlanır.
     Route::post('odeme/iyzico/bildirim', [Front\CheckoutController::class, 'webhook'])->middleware('throttle:120,1,payment.webhook')->name('payment.webhook');
 
+    // E-bülten onayı ve abonelikten çıkma: mağaza kapalıyken de çalışır (e-postadaki bağlantılar)
+    Route::get('bulten/onay/{token}', [Front\NewsletterController::class, 'confirm'])->middleware('throttle:30,1,newsletter.confirm')->name('newsletter.confirm');
+    Route::get('bulten/ayril/{token}', [Front\NewsletterController::class, 'showUnsubscribe'])->middleware('throttle:30,1,newsletter.leave')->name('newsletter.unsubscribe');
+    Route::post('bulten/ayril/{token}', [Front\NewsletterController::class, 'unsubscribe'])->middleware('throttle:30,1,newsletter.leave.store')->name('newsletter.unsubscribe.store');
+    Route::get('gorsel/bulten/{storeNewsletterCampaign}', [Front\MediaController::class, 'newsletter'])->name('media.newsletter');
+
     // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
     Route::middleware('store.open')->group(function () {
+        Route::post('bulten', [Front\NewsletterController::class, 'subscribe'])->middleware(['throttle:5,10,newsletter.subscribe', 'store.bot'])->name('newsletter.subscribe');
         Route::get('/', Front\HomeController::class)->name('home');
         Route::get('urunler', [Front\ListingController::class, 'index'])->name('products');
         Route::get('kategori/{slug}', [Front\ListingController::class, 'category'])->name('category');
@@ -219,6 +249,11 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
         Route::get('blog', [Front\BlogController::class, 'index'])->name('blog');
+        // Yardım sayfaları (Vitrin → Yardım Sayfaları)
+        foreach (HelpPages::PAGES as $helpKey => [, $helpPath]) {
+            Route::get($helpPath, [Front\HelpController::class, 'show'])->defaults('help', $helpKey)->name('help.'.$helpKey);
+        }
+        Route::post('kargo-takip', [Front\HelpController::class, 'track'])->middleware(['throttle:10,1,help.track', 'store.bot'])->name('help.track');
         Route::get('blog/kategori/{slug}', [Front\BlogController::class, 'category'])->name('blog.category');
         Route::get('blog/{slug}', [Front\BlogController::class, 'show'])->name('blog.post');
         Route::get('iletisim', [Front\SitePageController::class, 'contact'])->name('contact');

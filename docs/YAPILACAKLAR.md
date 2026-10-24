@@ -74,6 +74,14 @@ B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hat
   - [x] Aşama 4: favoriler (üyeler), ürün yorumları (yalnızca ürünü teslim alan üyeler, Katalog → Yorumlar'da onay ve mağaza yanıtı; puan yalnızca onaylı yorumlardan, JSON-LD dahil), stoğa gelince haber ver (`store:stock-alerts`, 10 dakikada bir; e-posta gönderimden sonra silinir, en geç 180 gün), son bakılanlar (oturumda; ürün sayfası ve ana sayfa bloğu). Hesap kapatılınca favori, yorum ve bildirim kayıtları silinir.
   - [ ] KVKK Aydınlatma Metni'ne "stok bildirimi için bırakılan e-posta" ve "ürün yorumları (ad + soyadının baş harfi)" maddelerinin eklenmesi (Ayarlar → Yasal Metinler; mağaza sahibi).
   - [x] Aşama 5: blog (Vitrin → Blog): kategoriler, Markdown yazı, kapak, yazıda geçen ürünler (SKU), ileri tarihli yayın, SEO alanları; /blog, kategori sayfaları, BlogPosting JSON-LD, site haritası, ana sayfa "Blogdan" bloğu; menü ve alt bilgide bağlantı yalnızca yayında yazı varsa.
+- Alt bilgi ve e-bülten (2026-10-24):
+  - [x] Mağaza e-posta hesabı (SMTP) Mağaza Ayarları'ndan; tüm mağaza e-postaları (sipariş, bildirim, stok, e-bülten) bununla gider, boşsa sistem hesabı.
+  - [x] Sosyal medya: Instagram, Facebook, X, YouTube, TikTok, LinkedIn, Pinterest; doldurulanların simgesi alt bilgide.
+  - [x] Alt bilgi sütunları yönetimden (Kurumsal / Üyelik / Yardım varsayılan; en fazla 4 sütun, özel adres de eklenebilir).
+  - [x] Yardım sayfaları (Vitrin → Yardım Sayfaları): Yardım Merkezi, SSS, Sipariş ve Teslimat, Ödeme Seçenekleri, Kargo Takip, Yasal Haklar.
+  - [x] E-bülten: iki adımlı onay, onay metni/tarih/IP kaydı, tek tıkla ayrılma, üyelik izniyle eşitleme, toplu e-posta (parti parti, ilerleme), CSV ve İYS dışa aktarma.
+  - [ ] Mağaza e-posta hesabının girilmesi (Mağaza Ayarları → E-posta gönderimi). Girilene kadar alt bilgideki abonelik formu gizlidir.
+  - [ ] İYS (iys.org.tr) kaydı ve onayların yüklenmesi; KVKK Aydınlatma Metni'ne e-bülten maddesi (mağaza sahibi).
 
 ### Teknik borç
 - [x] **CSP'den `'unsafe-eval'` kaldırıldı.** Alpine'in CSP sürümüne (`@alpinejs/csp`) geçildi; mantık içeren ifadeler `resources/js/components.js` bileşenlerine taşındı, sunucu verisi `@alpine()` ile basılıyor. Şablonlar `npm run denetim:alpine` ile CSP ayrıştırıcısına karşı denetleniyor.

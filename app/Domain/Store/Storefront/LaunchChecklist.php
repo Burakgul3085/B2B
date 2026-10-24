@@ -2,8 +2,8 @@
 
 namespace App\Domain\Store\Storefront;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Content\SitePages;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Sms\SmsGateway;
 use App\Models\Store\StoreAdmin;
@@ -18,7 +18,7 @@ use App\Models\Store\StoreSetting;
  */
 class LaunchChecklist
 {
-    public function __construct(private IyzicoClient $iyzico, private SmsGateway $sms, private SystemMailer $mailer) {}
+    public function __construct(private IyzicoClient $iyzico, private SmsGateway $sms, private StoreMailer $mailer) {}
 
     /** @return list<array{group: string, items: list<array{label: string, status: string, hint: string, route: ?string}>}> */
     public function groups(): array
@@ -62,7 +62,7 @@ class LaunchChecklist
             ]],
             ['group' => 'Güvenlik ve işletim', 'items' => [
                 $this->item('Yöneticilerde iki adımlı doğrulama', $without2fa ? 'warn' : 'ok', $without2fa ? "{$without2fa} etkin yönetici iki adımlı doğrulamayı açmadı." : 'Tüm etkin yöneticilerde açık.', null),
-                $this->item('Sistem e-postası', $this->mailer->isConfigured() ? 'ok' : 'later', 'Sipariş ve bildirim e-postaları için SMTP bilgileri sunucu ortamında (.env) girilecek.', null),
+                $this->item('Sistem e-postası', $this->mailer->isConfigured() ? 'ok' : 'later', 'Sipariş, bildirim ve e-bülten e-postaları için Mağaza Ayarları → E-posta gönderimi bölümüne SMTP hesabı girin.', null),
                 $this->item('Alan adı ve HTTPS', str_ends_with((string) config('store.domain'), '.localhost') ? 'later' : 'ok', 'yapbozkirtasiye.com ve alt alan adları sunucu kurulumunda bağlanacak.', null),
                 $this->item('Zamanlanmış görevler ve kuyruk', 'later', 'Süresi dolan kart ödemelerinin kapanması ve e-postalar için sunucuda schedule:run ve queue:work sürekli çalışmalı.', null),
                 $this->item('Yedekleme', 'later', 'Veritabanı ve yüklenen dosyaların günlük yedeği ve geri yükleme provası sunucu aşamasında.', null),

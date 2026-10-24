@@ -12,6 +12,7 @@
     $navLink = 'inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold text-ink/80 transition hover:text-ink';
     // Dar masaüstünde (lg) gizlenen bağlantılar: "hidden" ile "inline-flex" aynı sınıfta çakışmasın diye ayrı dize.
     $navLinkXl = str_replace('inline-flex', 'hidden xl:inline-flex', $navLink);
+    $navLink2xl = str_replace('inline-flex', 'hidden 2xl:inline-flex', $navLink);
 @endphp
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
@@ -116,7 +117,7 @@
             <a href="{{ route('store.products', ['indirim' => 1]) }}" class="{{ $navLink }}"><x-icon name="percent" class="size-4 text-puzzle-orange" /> İndirimler</a>
             <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLinkXl }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
             <a href="{{ route('store.brands') }}" class="{{ $navLinkXl }}">Markalar</a>
-            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLinkXl }}">Blog</a>@endif
+            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLink2xl }}">Blog</a>@endif
         </div>
 
         @if ($menu->isNotEmpty())

@@ -2,6 +2,7 @@
 
 namespace App\Models\Store;
 
+use App\Domain\Store\Support\PerRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -40,7 +41,7 @@ class StoreBlogPost extends Model
     /** Menü ve alt bilgideki "Blog" bağlantısı yalnızca yayında yazı varsa (istek başına tek sorgu). */
     public static function anyLive(): bool
     {
-        return once(fn () => static::live()->exists());
+        return PerRequest::remember('blog.any_live', fn () => static::live()->exists());
     }
 
     public function isLive(): bool

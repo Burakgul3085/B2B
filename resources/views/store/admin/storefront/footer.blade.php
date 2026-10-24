@@ -58,13 +58,48 @@
                     </div>
                 </x-card>
 
-                <x-card title="Sütunlar">
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        <x-field name="shop_title" label="Alışveriş sütunu başlığı" :value="$footer['shop_title']" required maxlength="30" />
-                        <x-field name="category_count" label="Gösterilecek kategori sayısı" type="number" min="0" max="10" :value="$footer['category_count']" required
-                            hint="Ana kategoriler, katalogdaki sırasıyla." />
-                        <x-field name="info_title" label="Bilgi sütunu başlığı" :value="$footer['info_title']" required maxlength="30" hint="Yayındaki sayfalar ve yasal metinler." />
-                        <x-field name="store_title" label="Mağaza sütunu başlığı" :value="$footer['store_title']" required maxlength="30" hint="Harita kartı ve çalışma saatleri." />
+                <x-card title="Bağlantı sütunları" description="Alt bilgideki sütunlar (en fazla 4) ve bağlantıları. Listeden bir sayfa seçin; isterseniz görünen adını değiştirin. Yayında olmayan sayfanın bağlantısı kendiliğinden gizlenir. “Özel adres” ile başka bir siteye de bağlantı verebilirsiniz.">
+                    @php
+                        $linkOptions = \App\Domain\Store\Content\FooterLinks::options();
+                        $columns = old('columns') ? array_values(old('columns')) : $footer['columns'];
+                    @endphp
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        @for ($c = 0; $c < \App\Domain\Store\Content\StoreFooter::MAX_COLUMNS; $c++)
+                            @php $column = $columns[$c] ?? ['title' => '', 'links' => []]; @endphp
+                            <div class="rounded-xl bg-surface p-4">
+                                <x-field :name="'columns['.$c.'][title]'" :label="($c + 1).'. sütun başlığı'" :value="$column['title']" maxlength="30" placeholder="ör. Kurumsal" />
+                                <div class="mt-3 space-y-2" x-data="{ shown: {{ max(3, count($column['links']) + 1) }} }">
+                                    @for ($l = 0; $l < \App\Domain\Store\Content\StoreFooter::MAX_LINKS; $l++)
+                                        @php
+                                            $row = $column['links'][$l] ?? ['key' => '', 'label' => null];
+                                            $isUrl = \App\Domain\Store\Content\FooterLinks::isUrl((string) ($row['key'] ?? '')) || ($row['key'] ?? '') === 'url';
+                                        @endphp
+                                        <div class="grid gap-2 sm:grid-cols-2" x-show="shown > {{ $l }}" @if ($l >= max(3, count($column['links']) + 1)) x-cloak @endif x-data="{ custom: {{ $isUrl ? 'true' : 'false' }} }">
+                                            <select name="columns[{{ $c }}][links][{{ $l }}][key]" class="field-input text-sm" aria-label="{{ $c + 1 }}. sütun, {{ $l + 1 }}. bağlantı" @change="custom = $event.target.value === 'url'">
+                                                <option value="">— Bağlantı yok —</option>
+                                                @foreach ($linkOptions as $group => $options)
+                                                    <optgroup label="{{ $group }}">
+                                                        @foreach ($options as $key => $label)
+                                                            <option value="{{ $key }}" @selected(($row['key'] ?? '') === $key)>{{ $label }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endforeach
+                                                <option value="url" @selected($isUrl)>Özel adres…</option>
+                                            </select>
+                                            <input name="columns[{{ $c }}][links][{{ $l }}][label]" value="{{ $row['label'] ?? '' }}" maxlength="40" class="field-input text-sm" placeholder="Görünen ad (isteğe bağlı)" aria-label="Görünen ad">
+                                            <input name="columns[{{ $c }}][links][{{ $l }}][url]" value="{{ $isUrl && ($row['key'] ?? '') !== 'url' ? $row['key'] : ($row['url'] ?? '') }}" maxlength="255" x-show="custom" @if (! $isUrl) x-cloak @endif
+                                                class="field-input text-sm sm:col-span-2" placeholder="https://…" aria-label="Özel adres">
+                                            @error('columns.'.$c.'.links.'.$l.'.url')<p class="text-xs text-danger sm:col-span-2">{{ $message }}</p>@enderror
+                                            @error('columns.'.$c.'.links.'.$l.'.label')<p class="text-xs text-danger sm:col-span-2">{{ $message }}</p>@enderror
+                                        </div>
+                                    @endfor
+                                    <button type="button" x-show="shown < {{ \App\Domain\Store\Content\StoreFooter::MAX_LINKS }}" @click="shown++" class="text-sm font-medium text-primary hover:underline">+ Bağlantı ekle</button>
+                                </div>
+                            </div>
+                        @endfor
+                    </div>
+                    <div class="mt-4 max-w-sm">
+                        <x-field name="store_title" label="Mağaza sütunu başlığı" :value="$footer['store_title']" maxlength="30" hint="Harita ve çalışma saatlerinin başlığı." />
                     </div>
                 </x-card>
             </div>

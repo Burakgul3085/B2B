@@ -2,8 +2,8 @@
 
 namespace App\Domain\Store\Notifications;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Customers\PhoneNumber;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
@@ -111,7 +111,7 @@ class AdminNotifier
             'action_url' => $url, 'action_label' => $label, 'outro' => 'Bu bildirimleri Mağaza Ayarları → Yönetici bildirimleri bölümünden değiştirebilirsiniz.'];
         dispatch(function () use ($recipients, $subject, $content) {
             foreach ($recipients as $to) {
-                app(SystemMailer::class)->send($to, $subject, $content);
+                app(StoreMailer::class)->send($to, $subject, $content);
             }
         })->afterResponse();
     }

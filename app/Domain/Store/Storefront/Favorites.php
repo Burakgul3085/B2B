@@ -2,6 +2,7 @@
 
 namespace App\Domain\Store\Storefront;
 
+use App\Domain\Store\Support\PerRequest;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreFavorite;
 use App\Models\Store\StoreProduct;
@@ -16,7 +17,7 @@ class Favorites
     /** @return array<int, true> oturumdaki müşterinin favori ürün kimlikleri */
     public static function ids(): array
     {
-        return once(function () {
+        return PerRequest::remember('favorites.ids', function () {
             $customer = Auth::guard('customer')->user();
 
             return $customer ? array_fill_keys(StoreFavorite::where('customer_id', $customer->id)->pluck('product_id')->all(), true) : [];

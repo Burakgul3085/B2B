@@ -2,7 +2,7 @@
 
 namespace App\Domain\Store\Inventory;
 
-use App\Domain\Mail\SystemMailer;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Support\Money;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreProductVariant;
@@ -18,7 +18,7 @@ class StockAlerts
 {
     public const RETENTION_DAYS = 180;
 
-    public function __construct(private StoreStockService $stock, private SystemMailer $mailer) {}
+    public function __construct(private StoreStockService $stock, private StoreMailer $mailer) {}
 
     /** @throws ValidationException */
     public function subscribe(array $input, ?StoreCustomer $customer): StoreProductVariant

@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Store;
 
-use App\Domain\Mail\SystemMailer;
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
@@ -40,7 +40,7 @@ class StoreTransferTest extends TestCase
     {
         parent::setUp();
         $test = $this;
-        $this->instance(SystemMailer::class, new class($test) extends SystemMailer
+        $this->instance(StoreMailer::class, new class($test) extends StoreMailer
         {
             public function __construct(private $test) {}
 

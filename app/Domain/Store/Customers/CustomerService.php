@@ -5,6 +5,7 @@ namespace App\Domain\Store\Customers;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\Area;
 use App\Domain\Auth\AuthTokenService;
+use App\Domain\Store\Newsletter\Subscriptions;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreFavorite;
@@ -62,6 +63,7 @@ class CustomerService
                 'marketing_consent_at' => filter_var($input['marketing'] ?? false, FILTER_VALIDATE_BOOL) ? now() : null,
             ])->save();
             $this->audit->log('store.customer_registered', $customer, [], [], actorArea: Area::Customer, actorId: $customer->id);
+            app(Subscriptions::class)->syncCustomer($customer, 'register', request()->ip());
 
             return $customer;
         });
@@ -83,6 +85,7 @@ class CustomerService
             'phone' => $data['phone'] ?? null,
             'marketing_consent_at' => filter_var($input['marketing'] ?? false, FILTER_VALIDATE_BOOL) ? ($customer->marketing_consent_at ?? now()) : null,
         ])->save();
+        app(Subscriptions::class)->syncCustomer($customer, 'account', request()->ip());
     }
 
     /** @throws ValidationException */
@@ -141,6 +144,7 @@ class CustomerService
             StoreCart::where('customer_id', $customer->id)->delete();
             // Favoriler, yorumlar (adı içerir) ve stok bildirimleri de silinir.
             StoreFavorite::where('customer_id', $customer->id)->delete();
+            app(Subscriptions::class)->forget($customer->email);
             StoreReview::where('customer_id', $customer->id)->delete();
             StoreStockAlert::where('customer_id', $customer->id)->orWhere('email', mb_strtolower($customer->email))->delete();
             $this->tokens->revoke(Area::Customer, $customer->id, 'password_reset');
