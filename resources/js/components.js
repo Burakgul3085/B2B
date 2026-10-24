@@ -608,3 +608,12 @@ export function photoGallery(photos) {
         },
     };
 }
+
+/** Sayfayı yazdırır: düğmede x-data="printPage" @click="print()". */
+export function printPage() {
+    return {
+        print() {
+            window.print();
+        },
+    };
+}

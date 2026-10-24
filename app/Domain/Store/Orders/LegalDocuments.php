@@ -72,6 +72,25 @@ class LegalDocuments
         return new HtmlString(Str::markdown($markdown, ['html_input' => 'strip', 'allow_unsafe_links' => false]));
     }
 
+    /**
+     * Ara başlıklara (h2) bağlantı kimliği ekler ve içindekiler listesini döndürür (vitrindeki belge sayfası).
+     *
+     * @return array{0: HtmlString, 1: list<array{id: string, title: string}>}
+     */
+    public static function withAnchors(HtmlString $html): array
+    {
+        $toc = [];
+        $out = preg_replace_callback('#<h2>(.*?)</h2>#s', function ($m) use (&$toc) {
+            $title = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8'));
+            $id = 'b-'.(count($toc) + 1).'-'.Str::slug($title);
+            $toc[] = ['id' => $id, 'title' => $title];
+
+            return '<h2 id="'.$id.'">'.$m[1].'</h2>';
+        }, (string) $html);
+
+        return [new HtmlString($out), $toc];
+    }
+
     /** Yeni sürüm kaydeder (eski sürümler ve onlara verilmiş onaylar korunur). */
     public function publish(string $key, string $title, string $body): StoreLegalDocument
     {
