@@ -9,6 +9,16 @@
         </div>
     @endif
 
+    @php $n = fn (int $v) => number_format($v, 0, ',', '.'); $v = $visitors; @endphp
+    <div class="mb-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <x-kpi label="Şu an sitede" :value="$n($v['online'])" :hint="'Son '.\App\Domain\Store\Visitors\VisitorCounter::ONLINE_MINUTES.' dakikada sayfa açan'" />
+        <x-kpi label="Bugün ziyaretçi" :value="$n($v['today']['visitors'])" :hint="$n($v['today']['views']).' sayfa görüntüleme'" />
+        <x-kpi label="Dün ziyaretçi" :value="$n($v['yesterday']['visitors'])" :hint="$n($v['yesterday']['views']).' sayfa görüntüleme'" />
+        <x-kpi label="Bu ay ziyaretçi" :value="$n($v['month']['visitors'])" :hint="$n($v['month']['views']).' sayfa görüntüleme'" />
+        <x-kpi label="Toplam ziyaretçi" :value="$n($v['total']['visitors'])" :hint="$n($v['total']['views']).' sayfa görüntüleme'" />
+    </div>
+    <p class="mb-6 text-xs text-muted">Bir kişi bir gün içinde kaç sayfa açarsa açsın bir kez sayılır; botlar sayılmaz.@if ($v['since']) Sayım {{ \Illuminate\Support\Carbon::parse($v['since'])->format('d.m.Y') }} tarihinde başladı.@endif</p>
+
     <div class="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-kpi label="Bugün sipariş" :value="$today['orders']" :hint="Money::format($today['gross'])" :href="route('store_admin.orders.index')" />
         <x-kpi label="Bu ay net satış" :value="Money::format($month['net'])" :hint="$month['orders'].' sipariş · ortalama '.Money::format($month['average'])" :href="route('store_admin.reports.index')" />

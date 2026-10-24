@@ -3,6 +3,7 @@
 use App\Domain\Auth\Area;
 use App\Domain\Platform\ErrorRecorder;
 use App\Domain\Tenancy\MissingTenantContext;
+use App\Http\Middleware\CountStoreVisit;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureStoreOpen;
 use App\Http\Middleware\EnsureStoreSuperAdmin;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'store.super' => EnsureStoreSuperAdmin::class,
             'store.open' => EnsureStoreOpen::class,
             'store.bot' => StoreBotGuard::class,
+            'store.visit' => CountStoreVisit::class,
         ]);
 
         // Oturumsuz kullanıcı, girmeye çalıştığı alanın kendi giriş sayfasına gider.

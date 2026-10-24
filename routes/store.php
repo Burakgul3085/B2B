@@ -234,7 +234,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('gorsel/bulten/{storeNewsletterCampaign}', [Front\MediaController::class, 'newsletter'])->name('media.newsletter');
 
     // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
-    Route::middleware('store.open')->group(function () {
+    Route::middleware(['store.open', 'store.visit'])->group(function () {
         Route::post('bulten', [Front\NewsletterController::class, 'subscribe'])->middleware(['throttle:5,10,newsletter.subscribe', 'store.bot'])->name('newsletter.subscribe');
         Route::get('/', Front\HomeController::class)->name('home');
         Route::get('urunler', [Front\ListingController::class, 'index'])->name('products');

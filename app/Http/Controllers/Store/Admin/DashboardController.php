@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Reports\StoreReports;
+use App\Domain\Store\Visitors\VisitorCounter;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreOrder;
@@ -12,10 +13,10 @@ use App\Models\Store\StoreReturn;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Mağaza yönetimi ana sayfası: satış özeti, bekleyen işler, stok ve son işlemler. */
+/** Mağaza yönetimi ana sayfası: ziyaretçiler, satış özeti, bekleyen işler, stok ve son işlemler. */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, StoreReports $reports): View
+    public function __invoke(Request $request, StoreReports $reports, VisitorCounter $visitors): View
     {
         $today = now('Europe/Istanbul')->toDateString();
         $monthStart = now('Europe/Istanbul')->startOfMonth()->toDateString();
@@ -23,6 +24,7 @@ class DashboardController extends Controller
         return view('store.admin.dashboard', [
             'today' => $reports->summary($today, $today),
             'month' => $reports->summary($monthStart, $today),
+            'visitors' => $visitors->stats(),
             'waiting' => [
                 ['Onay bekleyen (kapıda ödeme)', StoreOrder::where('status', 'awaiting_approval')->count(), route('store_admin.orders.index', ['status' => 'new'])],
                 ['Havale bekleyen', StoreOrder::where('status', 'awaiting_transfer')->count(), route('store_admin.orders.index', ['status' => 'awaiting_transfer'])],
