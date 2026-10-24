@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Storefront\BrandDirectory;
 use App\Http\Controllers\Controller;
-use App\Models\Store\StoreBrand;
 use Illuminate\View\View;
 
-/** Markalar sayfası. (Hakkımızda ve İletişim: SitePageController) */
+/** Markalar sayfası: öne çıkan markalar ve A–Z liste. (Hakkımızda ve İletişim: SitePageController) */
 class PageController extends Controller
 {
-    public function brands(): View
+    public function brands(BrandDirectory $directory): View
     {
-        $brands = StoreBrand::where('is_active', true)
-            ->withCount(['products' => fn ($q) => $q->where('is_published', true)->whereHas('activeVariants')])
-            ->orderBy('name')->get()
-            ->filter(fn ($b) => $b->products_count > 0);
+        $brands = $directory->all();
 
-        return view('store.front.brands', ['brands' => $brands]);
+        return view('store.front.brands', [
+            'brands' => $brands,
+            'groups' => $brands->groupBy('letter'),
+            'featured' => $directory->featured($brands),
+            'letters' => BrandDirectory::LETTERS,
+        ]);
     }
 }

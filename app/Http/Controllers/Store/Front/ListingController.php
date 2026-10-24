@@ -20,9 +20,15 @@ class ListingController extends Controller
 
     public function index(Request $request): View
     {
+        $title = match (true) {
+            $request->boolean('yeni') => 'Yeni Gelenler',
+            $request->boolean('indirim') => 'İndirimdeki Ürünler',
+            default => 'Tüm Ürünler',
+        };
+
         return $this->render($request, $this->catalog->products(), [
-            'title' => 'Tüm Ürünler',
-            'breadcrumbs' => [['Tüm Ürünler', null]],
+            'title' => $title,
+            'breadcrumbs' => [[$title, null]],
         ]);
     }
 
@@ -99,26 +105,47 @@ class ListingController extends Controller
     private function render(Request $request, Builder $base, array $data): View
     {
         $filters = $request->validate([
+            'kategori' => ['nullable', 'array', 'max:50'],
+            'kategori.*' => ['integer'],
             'marka' => ['nullable', 'array', 'max:50'],
             'marka.*' => ['integer'],
+            'q' => ['nullable', 'string', 'max:100'],
             'min' => ['nullable', 'string', 'max:20'],
             'max' => ['nullable', 'string', 'max:20'],
             'stokta' => ['nullable', 'boolean'],
             'indirim' => ['nullable', 'boolean'],
+            'yeni' => ['nullable', 'boolean'],
             'sirala' => ['nullable', Rule::in(array_keys(Catalog::SORTS))],
+            'gorunum' => ['nullable', Rule::in(['izgara', 'liste'])],
         ]);
-        $filtered = array_filter($filters, fn ($v) => $v !== null && $v !== [] && $v !== '');
+        // Arama sayfasında aranan kelime listenin kendisidir; filtre olarak ikinci kez uygulanmaz.
+        if (isset($data['searchTerm'])) {
+            unset($filters['q']);
+        }
+        if (($filters['yeni'] ?? false) && empty($filters['sirala'])) {
+            $filters['sirala'] = 'yeni';
+        }
+        $filtered = array_filter($filters, fn ($v) => $v !== null && $v !== [] && $v !== '' && $v !== false && $v !== '0');
 
         $products = $this->catalog->forCards($this->catalog->filter(clone $base, $filters))
             ->paginate(Catalog::PER_PAGE)
             ->withQueryString();
+        $onlyNew = (bool) ($filters['yeni'] ?? false);
 
         return view('store.front.listing', $data + [
             'products' => $products,
             'filters' => $filters,
+            'view' => $filters['gorunum'] ?? 'izgara',
+            'onlyNew' => $onlyNew,
+            'newDays' => Catalog::newDays(),
+            // Son günlerde yeni ürün yoksa boş sayfa yerine en son eklenenler gösterilir.
+            'latest' => $onlyNew && $products->isEmpty()
+                ? $this->catalog->forCards($this->catalog->products())->orderByDesc('published_at')->orderByDesc('id')->limit(8)->get()
+                : collect(),
+            'categoryFacets' => $this->catalog->categoryFacets($base),
             'brandFacets' => ($data['hideBrandFilter'] ?? false) ? collect() : $this->catalog->brandFacets($base),
             // Filtrelenmiş veya sayfalanmış listeler dizine eklenmez; kanonik adres filtresiz liste olur.
-            'noindex' => ($data['noindex'] ?? false) || array_diff_key($filtered, ['sirala' => 1]) !== [] || $products->currentPage() > 1,
+            'noindex' => ($data['noindex'] ?? false) || array_diff_key($filtered, ['sirala' => 1, 'gorunum' => 1]) !== [] || $products->currentPage() > 1,
         ]);
     }
 }

@@ -1,6 +1,7 @@
 {{--
-    Vitrin üst bilgisi: üst şerit (lacivert), logo + canlı arama + hesap/sepet/tema, geniş kategori menüsü, mobil çekmece.
-    Kategori renkleri: Catalog::menu() her ana kategoriye bir yapboz rengi (palette) verir.
+    Vitrin üst bilgisi: üst şerit (lacivert), logo + canlı arama + hesap/sepet/tema, menü çubuğu, mobil çekmece.
+    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › yayındaki
+    sabit sayfalar (Hakkımızda, İletişim) › Blog (yazı varsa). Kategori renkleri: Catalog::menu() her ana kategoriye bir yapboz rengi verir.
 --}}
 @props(['storeName', 'settings', 'menu', 'footer', 'pages', 'customer', 'cartCount'])
 @php
@@ -8,11 +9,18 @@
 
     $whatsapp = \App\Domain\Store\Storefront\ProductPage::whatsapp($settings['whatsapp']);
     $q = request()->routeIs('store.search') ? (string) request('q') : '';
-    $roots = $menu->take(6);
-    $navLink = 'inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold text-ink/80 transition hover:text-ink';
-    // Dar masaüstünde (lg) gizlenen bağlantılar: "hidden" ile "inline-flex" aynı sınıfta çakışmasın diye ayrı dize.
-    $navLinkXl = str_replace('inline-flex', 'hidden xl:inline-flex', $navLink);
-    $navLink2xl = str_replace('inline-flex', 'hidden 2xl:inline-flex', $navLink);
+    $listing = request()->routeIs('store.products');
+    $links = [
+        ['Tüm ürünler', route('store.products'), $listing && ! request()->boolean('yeni') && ! request()->boolean('indirim'), null],
+        ['Markalar', route('store.brands'), request()->routeIs('store.brands'), null],
+        ['Yeni gelenler', route('store.products', ['yeni' => 1]), $listing && request()->boolean('yeni'), ['star', 'text-puzzle-yellow']],
+        ['İndirimler', route('store.products', ['indirim' => 1]), $listing && request()->boolean('indirim') && ! request()->boolean('yeni'), ['percent', 'text-puzzle-orange']],
+        ...array_map(fn ($page) => [$page['title'], $page['url'], url()->current() === $page['url'], null], $pages),
+    ];
+    if (\App\Models\Store\StoreBlogPost::anyLive()) {
+        $links[] = ['Blog', route('store.blog'), request()->routeIs('store.blog*'), null];
+    }
+    $navLink = 'relative inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold transition hover:text-ink';
 @endphp
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
@@ -86,18 +94,12 @@
                     <x-icon name="grid" class="size-4" /> Tüm kategoriler <x-icon name="chevron-down" class="size-4 transition" ::class="open && 'rotate-180'" />
                 </button>
             @endif
-            @foreach ($roots as $root)
-                @php $c = Palette::classes($root->palette); @endphp
-                <a href="{{ route('store.category', $root->slug) }}" @class([$loop->index >= 4 ? $navLinkXl : $navLink, 'group relative'])>
-                    <span class="size-2 rounded-full {{ $c['solid'] }}"></span>{{ $root->name }}
-                    <span class="absolute inset-x-3 bottom-0 h-0.5 origin-left scale-x-0 rounded-full transition group-hover:scale-x-100 {{ $c['solid'] }}"></span>
+            @foreach ($links as [$label, $url, $active, $icon])
+                <a href="{{ $url }}" @class([$navLink, 'group', 'text-ink' => $active, 'text-ink/80' => ! $active]) @if ($active) aria-current="page" @endif>
+                    @if ($icon)<x-icon :name="$icon[0]" class="size-4 {{ $icon[1] }}" />@endif{{ $label }}
+                    <span @class(['absolute inset-x-3 bottom-0 h-0.5 origin-left rounded-full bg-puzzle-orange transition group-hover:scale-x-100', 'scale-x-0' => ! $active])></span>
                 </a>
             @endforeach
-            <span class="ml-auto"></span>
-            <a href="{{ route('store.products', ['indirim' => 1]) }}" class="{{ $navLink }}"><x-icon name="percent" class="size-4 text-puzzle-orange" /> İndirimler</a>
-            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="{{ $navLinkXl }}"><x-icon name="star" class="size-4 text-puzzle-yellow" /> Yeni gelenler</a>
-            <a href="{{ route('store.brands') }}" class="{{ $navLinkXl }}">Markalar</a>
-            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="{{ $navLink2xl }}">Blog</a>@endif
         </div>
 
         @if ($menu->isNotEmpty())
@@ -129,9 +131,19 @@
                                     <a href="{{ route('store.category', $root->slug) }}" class="shrink-0 text-sm font-semibold {{ $c['text'] }} hover:underline">Tümünü gör →</a>
                                 </div>
                                 @if ($root->children->isNotEmpty())
-                                    <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-1">
+                                    {{-- Alt kategoriler başlık, onların alt kategorileri (3. seviye) altında liste --}}
+                                    <ul class="filter-scroll mt-4 grid max-h-[60vh] grid-cols-2 gap-x-6 gap-y-4 overflow-y-auto pr-1">
                                         @foreach ($root->children as $child)
-                                            <li><a href="{{ route('store.category', $child->slug) }}" class="block rounded-lg px-2 py-2 text-sm text-ink/80 hover:bg-surface hover:text-ink">{{ $child->name }}</a></li>
+                                            <li>
+                                                <a href="{{ route('store.category', $child->slug) }}" class="block rounded-lg px-2 py-1.5 text-sm font-semibold hover:bg-surface {{ $c['text'] }}">{{ $child->name }}</a>
+                                                @if ($child->children->isNotEmpty())
+                                                    <ul class="mt-0.5 ml-2 border-l-2 pl-2 {{ $c['border'] }}">
+                                                        @foreach ($child->children as $grandchild)
+                                                            <li><a href="{{ route('store.category', $grandchild->slug) }}" class="block rounded-lg px-2 py-1 text-sm text-ink/75 hover:bg-surface hover:text-ink">{{ $grandchild->name }}</a></li>
+                                                        @endforeach
+                                                    </ul>
+                                                @endif
+                                            </li>
                                         @endforeach
                                     </ul>
                                 @else
@@ -181,7 +193,12 @@
                     @if ($root->children->isNotEmpty())
                         <ul x-show="open" x-cloak class="mb-2 ml-6 border-l-2 pl-3 {{ $c['border'] }}">
                             @foreach ($root->children as $child)
-                                <li><a href="{{ route('store.category', $child->slug) }}" class="block py-2 text-sm text-ink/80">{{ $child->name }}</a></li>
+                                <li>
+                                    <a href="{{ route('store.category', $child->slug) }}" class="block py-2 text-sm text-ink/80">{{ $child->name }}</a>
+                                    @foreach ($child->children as $grandchild)
+                                        <a href="{{ route('store.category', $grandchild->slug) }}" class="block py-1.5 pl-3 text-[13px] text-muted">{{ $grandchild->name }}</a>
+                                    @endforeach
+                                </li>
                             @endforeach
                         </ul>
                     @endif
@@ -189,11 +206,9 @@
             @endforeach
         </ul>
         <div class="mt-4 space-y-1 border-t border-line px-4 py-4 text-sm font-medium">
-            <a href="{{ route('store.products', ['indirim' => 1]) }}" class="block py-2">İndirimler</a>
-            <a href="{{ route('store.products', ['sirala' => 'yeni']) }}" class="block py-2">Yeni gelenler</a>
-            @if (\App\Models\Store\StoreBlogPost::anyLive())<a href="{{ route('store.blog') }}" class="block py-2">Blog</a>@endif
-            <a href="{{ route('store.brands') }}" class="block py-2">Markalar</a>
-            @foreach ($pages as $page)<a href="{{ $page['url'] }}" class="block py-2">{{ $page['title'] }}</a>@endforeach
+            @foreach ($links as [$label, $url, $active])
+                <a href="{{ $url }}" @class(['block py-2', 'text-puzzle-orange' => $active])>{{ $label }}</a>
+            @endforeach
         </div>
         @if ($settings['phone'] || $whatsapp)
             <div class="mt-auto space-y-2 bg-surface px-4 py-4 text-sm">

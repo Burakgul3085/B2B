@@ -4,7 +4,7 @@
 
     $variant = $product->cheapestVariant();
     $inStock = $product->inStock();
-    $isNew = $product->published_at && $product->published_at->gt(now()->subDays(30));
+    $isNew = \App\Domain\Store\Storefront\Catalog::isNew($product);
     $url = route('store.product', $product->slug);
     $stockLeft = (int) $product->activeVariants->sum('stock_quantity');
     $second = $product->relationLoaded('cardImages') ? $product->cardImages->get(1) : null;

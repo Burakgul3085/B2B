@@ -85,6 +85,8 @@
                     <p class="text-sm text-muted">Alt bilgideki tanıtım metni ve düzeni: <a href="{{ route('store_admin.footer.edit') }}" class="font-medium text-primary hover:underline">Vitrin → Alt Bilgi</a>.</p>
                     <x-field name="meta_title" label="Ana sayfa SEO başlığı" :value="$settings['meta_title']" maxlength="160" :hint="'Boşsa: '.config('store.name')" />
                     <x-field name="meta_description" label="Ana sayfa SEO açıklaması" :value="$settings['meta_description']" maxlength="320" hint="Google sonuçlarında görünen açıklama (150–160 karakter ideal)." />
+                    <x-field name="new_product_days" label="Yeni ürün süresi (gün)" type="number" min="1" max="365" inputmode="numeric" :value="$settings['new_product_days']"
+                        hint="Son bu kadar günde yayınlanan ürünler “Yeni gelenler” sayfasında listelenir ve kartlarında “Yeni” rozeti görünür." />
                 </div>
             </x-card>
             <x-button>Kaydet</x-button>

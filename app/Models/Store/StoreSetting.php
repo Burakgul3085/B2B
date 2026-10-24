@@ -21,6 +21,7 @@ class StoreSetting extends Model
         'footer_about' => null,
         'footer' => null,            // alt bilgi ayarları (JSON, App\Domain\Store\Content\StoreFooter)
         'home' => null,              // ana sayfa blokları (JSON, App\Domain\Store\Storefront\HomeLayout)
+        'new_product_days' => '30',  // "Yeni gelenler" ve "Yeni" rozeti: son kaç günde yayınlanan ürünler
         'phone' => null,
         'whatsapp' => null,
         'email' => null,

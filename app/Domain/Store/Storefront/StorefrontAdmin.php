@@ -84,6 +84,7 @@ class StorefrontAdmin
             'announcement' => ['nullable', 'string', 'max:200'],
             'meta_title' => ['nullable', 'string', 'max:160'],
             'meta_description' => ['nullable', 'string', 'max:320'],
+            'new_product_days' => ['nullable', 'integer', 'between:1,365'],
             'footer_about' => ['nullable', 'string', 'max:600'],
             'phone' => ['nullable', 'string', 'max:30'],
             'whatsapp' => ['nullable', 'string', 'max:30', 'regex:/^[0-9 +()-]+$/'],
@@ -109,7 +110,7 @@ class StorefrontAdmin
             'notify_emails' => ['nullable', 'string', 'max:500'],
         ], ['company_tax_number.regex' => 'Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalıdır.', 'company_mersis.regex' => 'MERSİS numarası 16 haneli olmalıdır.'], [
             'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
-            'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'footer_about' => 'kısa tanıtım',
+            'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'new_product_days' => 'yeni ürün süresi', 'footer_about' => 'kısa tanıtım',
             'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
             'notify_emails' => 'bildirim adresleri', 'mail_host' => 'SMTP sunucusu', 'mail_port' => 'port', 'mail_username' => 'e-posta adresi',
             'mail_from_address' => 'gönderen adresi', 'mail_from_name' => 'gönderen adı',
@@ -131,6 +132,9 @@ class StorefrontAdmin
             throw ValidationException::withMessages(['notify_emails' => 'Geçerli e-posta adreslerini virgülle ayırarak yazın (en fazla 10).']);
         }
         $data['notify_emails'] = $emails ? implode(', ', $emails) : null;
+        if (array_key_exists('new_product_days', $data)) {
+            $data['new_product_days'] = (string) ($data['new_product_days'] ?? StoreSetting::DEFAULTS['new_product_days']);
+        }
         foreach (['notify_orders', 'notify_returns', 'notify_low_stock', 'notify_messages'] as $flag) {
             $data[$flag] = filter_var($input[$flag] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0';
         }

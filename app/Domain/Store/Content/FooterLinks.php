@@ -74,7 +74,7 @@ final class FooterLinks
             'newsletter' => route('store.home').'#e-bulten',
             'products' => route('store.products'),
             'deals' => route('store.products', ['indirim' => 1]),
-            'new' => route('store.products', ['sirala' => 'yeni']),
+            'new' => route('store.products', ['yeni' => 1]),
             'brands' => route('store.brands'),
             'b2b' => null, // adres alt bilgiye dışarıdan verilir (render)
             'cookies' => '#cerez',
