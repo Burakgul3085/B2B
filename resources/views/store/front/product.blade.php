@@ -137,11 +137,13 @@
                     <button :disabled="v.available === 0" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-navy px-6 py-3 font-semibold text-white shadow-lg shadow-navy/15 transition hover:bg-puzzle-orange disabled:cursor-not-allowed disabled:opacity-50">
                         <x-icon name="cart" class="size-5" /> <span x-text="v.available === 0 ? 'Tükendi' : 'Sepete ekle'">Sepete ekle</span>
                     </button>
+                    @auth('customer')
                     <button type="button" x-data="favorite(@alpine(route('store.favorites.toggle', $product->id)), @alpine($isFavorite), @alpine(route('store.login')))" @click="toggle()"
                         :aria-pressed="on" :class="on ? 'border-puzzle-orange text-puzzle-orange' : 'border-line text-ink/60 hover:text-puzzle-orange'"
                         class="flex w-14 items-center justify-center rounded-xl border transition" aria-label="Favorilere ekle">
                         <svg viewBox="0 0 24 24" class="size-5" :fill="on ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     </button>
+                    @endauth
                 </form>
 
                 {{-- Tükenen seçenek: stoğa gelince tek seferlik e-posta --}}

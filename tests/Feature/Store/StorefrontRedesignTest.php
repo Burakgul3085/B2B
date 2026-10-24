@@ -46,21 +46,28 @@ class StorefrontRedesignTest extends TestCase
         return $product;
     }
 
-    public function test_header_shows_top_bar_mega_menu_and_category_colours(): void
+    public function test_header_mega_menu_and_category_colours(): void
     {
         $this->get(self::HOST.'/')->assertOk()
-            ->assertSee('₺750,00 üzeri ücretsiz kargo')->assertSee('Eskişehir içi mağaza teslimatı')->assertSee('WhatsApp destek')
             ->assertSee('Tüm kategoriler')->assertSee('Tükenmez ve jel kalemler')->assertSee('Jel Kalemler')
             ->assertSee('bg-puzzle-green', false)   // seçilen renk
-            ->assertSee('bg-puzzle-green', false)
-            ->assertSee('https://wa.me/905321234567', false)
-            ->assertSee('Hızlı menü');               // mobil alt menü
+            ->assertSee('https://wa.me/905321234567', false)   // mobil çekmecede WhatsApp
+            ->assertDontSee('Sipariş takibi')                   // lacivert üst şerit kaldırıldı
+            ->assertSee('Hızlı menü');                          // mobil alt menü
 
-        // Yönetimden yazılan üst şerit maddeleri otomatik olanların yerine geçer.
-        $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
-        $this->put(route('store_admin.footer.update'), ['shop_title' => 'Alışveriş', 'category_count' => 6, 'info_title' => 'Bilgi', 'store_title' => 'Mağazamız',
-            'topbar_enabled' => '1', 'topbar_items' => ['Aynı gün kargo', '', 'Orijinal ürün']])->assertSessionHasNoErrors();
-        $this->get(self::HOST.'/')->assertSee('Aynı gün kargo')->assertSee('Orijinal ürün')->assertDontSee('üzeri ücretsiz kargo');
+        // Duyuru yazılmışsa ince bir şerit olarak görünür.
+        StoreSetting::put(['announcement' => 'Okula dönüş fırsatları başladı!']);
+        $this->get(self::HOST.'/')->assertSee('Okula dönüş fırsatları başladı!');
+    }
+
+    public function test_favorites_are_shown_only_to_members(): void
+    {
+        $this->product('Jel Kalem', '20.00');
+        $this->get(self::HOST.'/urunler')->assertDontSee('aria-label="Favorilerim"', false)->assertDontSee('favorilere ekle');
+
+        $customer = \App\Models\Store\StoreCustomer::create(['first_name' => 'Ayşe', 'last_name' => 'Kaya', 'email' => 'ayse@ornek.com', 'password' => self::PASSWORD]);
+        $this->actingAs($customer, 'customer');
+        $this->get(self::HOST.'/urunler')->assertSee('aria-label="Favorilerim"', false)->assertSee('Jel Kalem favorilere ekle');
     }
 
     public function test_category_colour_tagline_and_image_are_managed(): void

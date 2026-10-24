@@ -26,17 +26,6 @@
                     <p class="mt-3 text-xs text-muted">Vurgulu kutu büyük harfle yazılır. Fare şeridin üzerine gelince kayma durur; hareket azaltmayı seçen ziyaretçilerde şerit sabit durur.</p>
                 </x-card>
 
-                <x-card title="Üst şerit" description="Sayfanın en üstündeki lacivert şerit (masaüstü). Boş bırakırsanız maddeler ayarlardan üretilir: ücretsiz kargo sınırı, Eskişehir teslimatı, güvenli alışveriş. Sağda telefon ve WhatsApp görünür.">
-                    <x-toggle name="topbar_enabled" label="Üst şeridi göster" :checked="$footer['topbar_enabled']" class="mb-4" />
-                    <div class="grid gap-3 sm:grid-cols-3">
-                        @for ($i = 0; $i < 3; $i++)
-                            <x-field :name="'topbar_items['.$i.']'" :label="($i + 1).'. madde'" :value="$footer['topbar_items'][$i] ?? null" maxlength="50"
-                                :placeholder="\App\Domain\Store\Content\StoreFooter::topbar(['topbar_items' => []])[$i][1] ?? ''" />
-                        @endfor
-                    </div>
-                    <p class="mt-3 text-xs text-muted">Kampanya duyurusu (ör. “Okula dönüş fırsatları başladı!”) Mağaza Ayarları → Duyuru şeridi'nden yazılır ve şeridin ortasında görünür.</p>
-                </x-card>
-
                 <x-card title="Güven şeridi" description="Alt bilginin en üstündeki kısa maddeler (en fazla 4). Boş bırakılan madde görünmez.">
                     <x-toggle name="strip_enabled" label="Güven şeridini göster" :checked="$footer['strip_enabled']" class="mb-4" />
                     <div class="space-y-3">

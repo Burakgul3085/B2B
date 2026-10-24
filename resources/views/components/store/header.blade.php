@@ -17,30 +17,9 @@
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
 
-{{-- Üst şerit --}}
-@if ($footer['topbar'] || $settings['announcement'])
-    <div class="bg-navy text-white">
-        <div class="mx-auto flex min-h-10 max-w-7xl items-center gap-6 px-4 py-2 text-[13px] sm:px-6 lg:px-8">
-            {{-- Kayan şerit açıkken aynı maddeler burada tekrar edilmez --}}
-            <ul @class(['hidden items-center gap-6 text-white/75', 'lg:flex' => ! $footer['marquee']])>
-                @foreach ($footer['topbar'] as [$icon, $text])
-                    <li class="flex items-center gap-2 whitespace-nowrap"><x-icon :name="$icon" class="size-4 text-puzzle-sun" /> {{ $text }}</li>
-                @endforeach
-            </ul>
-            @if ($settings['announcement'])
-                <p class="flex-1 truncate text-center font-semibold text-amber-300">{{ $settings['announcement'] }}</p>
-            @endif
-            <div class="ml-auto hidden shrink-0 items-center gap-5 whitespace-nowrap text-white/75 md:flex">
-                @if ($settings['phone'])
-                    <a href="tel:{{ preg_replace('/[^\d+]/', '', $settings['phone']) }}" class="flex items-center gap-1.5 hover:text-white"><x-icon name="phone" class="size-3.5" /> {{ $settings['phone'] }}</a>
-                @endif
-                @if ($whatsapp)
-                    <a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-white"><x-icon name="message-circle" class="size-3.5" /> WhatsApp destek</a>
-                @endif
-                <a href="{{ $customer ? route('store.account') : route('store.login') }}" class="hover:text-white">Sipariş takibi</a>
-            </div>
-        </div>
-    </div>
+{{-- Duyuru: yalnızca Mağaza Ayarları'nda yazılmışsa, ince bir şerit --}}
+@if ($settings['announcement'])
+    <div class="bg-navy px-4 py-2 text-center text-[13px] font-semibold text-amber-300">{{ $settings['announcement'] }}</div>
 @endif
 
 <header class="sticky top-0 z-30 bg-white/95 shadow-[0_1px_0_var(--color-line)] backdrop-blur">
@@ -60,31 +39,32 @@
             @include('store.front._search-box', ['inputId' => 'arama'])
         </form>
 
-        <div class="ml-auto flex items-center gap-0.5 md:ml-0 sm:gap-1">
-            <a href="{{ $customer ? route('store.account') : route('store.login') }}" class="flex items-center gap-2.5 rounded-xl p-2 hover:bg-slate-100 sm:px-3"
+        {{-- Sağ: (üyeye) favoriler · hesap · sepet │ tema --}}
+        <div class="ml-auto flex items-center gap-1 md:ml-0 sm:gap-2">
+            @if ($customer)
+                <a href="{{ route('store.favorites') }}" class="hidden size-11 items-center justify-center rounded-xl text-ink/80 transition hover:bg-surface hover:text-puzzle-orange sm:flex" aria-label="Favorilerim" title="Favorilerim">
+                    <x-icon name="heart" class="size-6" />
+                </a>
+            @endif
+            <a href="{{ $customer ? route('store.account') : route('store.login') }}" class="flex h-11 items-center gap-2.5 rounded-xl px-2 transition hover:bg-surface sm:px-3"
                 aria-label="{{ $customer ? 'Hesabım' : 'Giriş yap' }}">
-                <x-icon name="user" class="size-6" />
+                <span class="flex size-9 items-center justify-center rounded-full bg-surface text-navy-ink ring-1 ring-line"><x-icon name="user" class="size-5" /></span>
                 <span class="hidden text-left leading-tight lg:block">
                     <span class="block text-[11px] text-muted">{{ $customer ? 'Merhaba, '.$customer->first_name : 'Hoş geldiniz' }}</span>
                     <span class="block text-sm font-semibold">{{ $customer ? 'Hesabım' : 'Giriş yap' }}</span>
                 </span>
             </a>
-            <a href="{{ $customer ? route('store.favorites') : route('store.login') }}" class="hidden rounded-xl p-2 hover:bg-slate-100 sm:block" aria-label="Favorilerim">
-                <x-icon name="heart" class="size-6" />
-            </a>
             <a href="{{ route('store.cart') }}" x-data="cartBadge({{ $cartCount }})" @click.prevent="openCart"
-                class="relative flex items-center gap-2.5 rounded-xl p-2 hover:bg-slate-100 sm:px-3" aria-label="Sepet ({{ $cartCount }} ürün)">
+                class="relative flex h-11 items-center gap-2.5 rounded-xl bg-navy px-3 text-white shadow-md shadow-navy/20 transition hover:bg-puzzle-orange lg:px-4" aria-label="Sepet ({{ $cartCount }} ürün)">
                 <span class="relative">
-                    <x-icon name="cart" class="size-6" />
+                    <x-icon name="cart" class="size-5" />
                     <span x-show="count > 0" x-text="count" @if (! $cartCount) x-cloak @endif
-                        class="absolute -top-2 -right-2.5 min-w-5 rounded-full bg-puzzle-orange px-1 text-center text-[11px] leading-5 font-bold text-white tabular-nums">{{ $cartCount }}</span>
+                        class="absolute -top-2.5 -right-3 min-w-5 rounded-full bg-puzzle-orange px-1 text-center text-[11px] leading-5 font-bold text-white tabular-nums ring-2 ring-white">{{ $cartCount }}</span>
                 </span>
-                <span class="hidden text-left leading-tight lg:block">
-                    <span class="block text-[11px] text-muted">Alışveriş</span>
-                    <span class="block text-sm font-semibold">Sepetim</span>
-                </span>
+                <span class="hidden text-sm font-semibold lg:block">Sepetim</span>
             </a>
-            <button type="button" x-data="themeSwitch" @click="toggle" class="rounded-xl p-2 hover:bg-slate-100" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
+            <span class="mx-1 hidden h-8 w-px bg-line sm:block" aria-hidden="true"></span>
+            <button type="button" x-data="themeSwitch" @click="toggle" class="flex size-11 items-center justify-center rounded-xl text-ink/70 ring-1 ring-line transition hover:bg-surface hover:text-ink" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
                 <span x-show="! isDark"><x-icon name="moon" class="size-5" /></span>
                 <span x-show="isDark" x-cloak><x-icon name="sun" class="size-5" /></span>
             </button>
