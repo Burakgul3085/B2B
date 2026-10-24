@@ -103,7 +103,7 @@ class StoreSetting extends Model
     /** Veritabanında şifreli tutulan anahtarlar. */
     public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password', 'mail_password'];
 
-    private const CACHE_KEY = 'store.settings';
+    private const CACHE_KEY = 'store.settings.saved';
 
     protected $primaryKey = 'key';
 
@@ -116,10 +116,11 @@ class StoreSetting extends Model
     /** @return array<string, ?string> */
     public static function values(): array
     {
-        return Cache::rememberForever(self::CACHE_KEY, fn () => array_merge(
-            self::DEFAULTS,
-            static::query()->whereIn('key', array_keys(self::DEFAULTS))->pluck('value', 'key')->all(),
-        ));
+        // Önbellekte yalnızca kayıtlı değerler tutulur; varsayılanlar her okumada eklenir. Böylece yeni bir ayar
+        // anahtarı eklenip yayınlandığında eski önbellek o anahtarı eksik bırakmaz.
+        $saved = Cache::rememberForever(self::CACHE_KEY, fn () => static::query()->pluck('value', 'key')->all());
+
+        return array_merge(self::DEFAULTS, array_intersect_key($saved, self::DEFAULTS));
     }
 
     public static function get(string $key): ?string
