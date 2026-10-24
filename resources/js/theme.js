@@ -27,7 +27,10 @@ export function themeSwitch() {
         set(mode) {
             this.mode = mode;
             const secure = location.protocol === 'https:' ? '; Secure' : '';
-            document.cookie = `${COOKIE}=${mode}; Max-Age=${60 * 60 * 24 * 365}; Path=/; SameSite=Lax${secure}`;
+            // Mağazada işlevsel çerez izni yoksa tercih yalnızca tarayıcı açıkken hatırlanır (oturumluk çerez).
+            const persist = typeof window.storeConsentAllows !== 'function' || window.storeConsentAllows('functional');
+            const maxAge = persist ? `; Max-Age=${60 * 60 * 24 * 365}` : '';
+            document.cookie = `${COOKIE}=${mode}${maxAge}; Path=/; SameSite=Lax${secure}`;
             applyTheme(mode);
         },
         /** Şu an koyu görünüyor mu ("auto"da tarayıcı ayarına göre). */

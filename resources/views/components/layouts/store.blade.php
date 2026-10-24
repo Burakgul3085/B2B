@@ -109,18 +109,6 @@
         <a href="{{ $storeCustomer ? route('store.account') : route('store.login') }}" class="{{ $tab }}"><x-icon name="user" class="size-5" />Hesabım</a>
     </nav>
 
-    {{-- Çerez tercihi (Gizlilik ve Çerez Politikası). Yalnızca zorunlu çerezler kullanılır. --}}
-    <div x-data="cookieConsent" x-show="open" x-cloak role="dialog" aria-label="Çerez tercihi"
-        class="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white/95 shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-4 sm:left-4 sm:max-w-md sm:rounded-2xl sm:border">
-        <div class="p-5">
-            <p class="text-sm font-semibold">Çerezler</p>
-            <p class="mt-1 text-sm text-muted">Sitemizin çalışması için zorunlu çerezler (oturum, sepet, güvenlik) kullanıyoruz. Analiz veya reklam çerezi kullanmıyoruz; ileride kullanırsak yalnızca onayınızla etkinleşir.
-                <a href="{{ route('store.legal', 'gizlilik-cerez') }}" class="font-medium text-primary underline">Çerez Politikası</a></p>
-            <div class="mt-4 flex flex-wrap gap-2">
-                <button type="button" @click="choose('all')" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover">Kabul et</button>
-                <button type="button" @click="choose('essential')" class="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-slate-50">Yalnızca zorunlu</button>
-            </div>
-        </div>
-    </div>
+    <x-store.cookie-consent />
 </body>
 </html>
