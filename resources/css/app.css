@@ -77,7 +77,14 @@
 
     /* Mağaza hesap sayfaları (giriş, üyelik, parola): daha iri alanlar ve parola göster düğmesi */
     .auth-form .field-input {
-        @apply h-12 rounded-xl px-4 text-[15px];
+        @apply rounded-xl px-4 text-[15px];
+    }
+    .auth-form input.field-input,
+    .auth-form select.field-input {
+        @apply h-12;
+    }
+    .auth-form textarea.field-input {
+        @apply py-3;
     }
     .auth-form .password-eye {
         @apply absolute top-[33px] right-2 flex size-9 items-center justify-center rounded-lg text-muted transition hover:bg-surface hover:text-ink;
