@@ -20,23 +20,36 @@
                     @endforeach
                 </div>
             </x-card>
-            <x-card title="E-posta gönderimi (SMTP)" description="Sipariş, bildirim, stok ve e-bülten e-postaları bu hesapla gider. Boş bırakılırsa sistem e-posta hesabı kullanılır.">
+            @php [$smtpHost, $smtpPort, , $smtpProvider] = \App\Domain\Store\Mail\StoreMailer::detect($settings['mail_username']); @endphp
+            <x-card title="E-posta gönderimi" description="Sipariş, bildirim, stok ve e-bülten e-postaları bu hesapla gider. Yalnızca e-posta adresinizi ve uygulama şifrenizi yazın; sunucu ayarları adresinizden otomatik bulunur.">
                 <div class="grid gap-5 sm:grid-cols-2">
-                    <x-field name="mail_host" label="SMTP sunucusu" :value="$settings['mail_host']" placeholder="smtp.gmail.com" />
-                    <div class="grid grid-cols-2 gap-3">
-                        <x-field name="mail_port" label="Port" :value="$settings['mail_port']" inputmode="numeric" />
-                        <x-field name="mail_encryption" label="Şifreleme" :options="\App\Domain\Store\Mail\StoreMailer::ENCRYPTIONS" :value="$settings['mail_encryption']" />
-                    </div>
-                    <x-field name="mail_username" label="Kullanıcı adı" :value="$settings['mail_username']" autocomplete="off" placeholder="ornek@gmail.com" />
+                    <x-field name="mail_username" label="E-posta adresi" type="email" :value="$settings['mail_username']" autocomplete="off" placeholder="ornek@gmail.com" />
                     <div>
-                        <x-field name="mail_password" type="password" label="Parola / uygulama şifresi" autocomplete="new-password"
-                            :hint="$settings['mail_password'] ? 'Kayıtlı. Değiştirmek için yeni parolayı yazın; boş bırakırsanız korunur.' : 'Gmail için Google hesabınızdan “uygulama şifresi” oluşturun.'" />
-                        @if ($settings['mail_password'])<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_mail_password" value="1" class="size-4 rounded border-line"> Kayıtlı parolayı sil</label>@endif
+                        <x-field name="mail_password" type="password" label="Uygulama şifresi" autocomplete="new-password" placeholder="abcd efgh ijkl mnop"
+                            :hint="$settings['mail_password'] ? 'Kayıtlı. Değiştirmek için yeni şifreyi yazın; boş bırakırsanız korunur.' : 'Gmail: Google Hesabı → Güvenlik → 2 Adımlı Doğrulama → Uygulama şifreleri (16 hane).'" />
+                        @if ($settings['mail_password'])<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_mail_password" value="1" class="size-4 rounded border-line"> Kayıtlı şifreyi sil</label>@endif
                     </div>
-                    <x-field name="mail_from_address" label="Gönderen adresi" type="email" :value="$settings['mail_from_address']" placeholder="bilgi@yapbozkirtasiye.com" />
-                    <x-field name="mail_from_name" label="Gönderen adı" :value="$settings['mail_from_name']" :placeholder="config('store.name')" />
+                    <x-field name="mail_from_name" label="Gönderen adı (isteğe bağlı)" :value="$settings['mail_from_name']" :placeholder="config('store.name')" class="sm:col-span-2" />
                 </div>
-                <p class="mt-4 text-xs text-muted">Örnek ayarlar — Gmail: smtp.gmail.com, 587, TLS (uygulama şifresiyle; günlük ~500 e-posta). Hostinger: smtp.hostinger.com, 465, SSL. Yandex: smtp.yandex.com, 465, SSL.</p>
+                @if ($settings['mail_username'])
+                    <p class="mt-4 flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                        <x-icon name="check-circle" class="size-4 text-success" />
+                        @if ($settings['mail_host'])Elle girilen sunucu: <span class="font-semibold">{{ $settings['mail_host'] }}:{{ $settings['mail_port'] }}</span>
+                        @else Algılanan: <span class="font-semibold">{{ $smtpProvider }}</span> <span class="text-muted">({{ $smtpHost }}:{{ $smtpPort }})</span>@endif
+                    </p>
+                @endif
+                <details class="mt-4 rounded-lg border border-line px-4 py-3" @if ($settings['mail_host'] || $errors->hasAny(['mail_host', 'mail_port', 'mail_from_address'])) open @endif>
+                    <summary class="cursor-pointer text-sm font-medium">Gelişmiş ayarlar (genellikle gerekmez)</summary>
+                    <p class="mt-2 text-xs text-muted">Yalnızca adresiniz algılanamıyorsa veya farklı bir e-posta sunucusu kullanıyorsanız doldurun. Boş bırakılırsa otomatik ayar kullanılır.</p>
+                    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                        <x-field name="mail_host" label="SMTP sunucusu" :value="$settings['mail_host']" :placeholder="$smtpHost" />
+                        <div class="grid grid-cols-2 gap-3">
+                            <x-field name="mail_port" label="Port" :value="$settings['mail_host'] ? $settings['mail_port'] : null" inputmode="numeric" :placeholder="(string) $smtpPort" />
+                            <x-field name="mail_encryption" label="Şifreleme" :options="\App\Domain\Store\Mail\StoreMailer::ENCRYPTIONS" :value="$settings['mail_encryption']" />
+                        </div>
+                        <x-field name="mail_from_address" label="Gönderen adresi (farklıysa)" type="email" :value="$settings['mail_from_address']" placeholder="E-posta adresiyle aynı" class="sm:col-span-2" />
+                    </div>
+                </details>
                 @if (\App\Domain\Store\Mail\StoreMailer::hasOwnAccount())
                     <button form="deneme-eposta" class="mt-4 inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-slate-50"><x-icon name="mail" class="size-4" /> Kendime deneme e-postası gönder</button>
                 @endif

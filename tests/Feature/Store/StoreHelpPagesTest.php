@@ -111,8 +111,15 @@ class StoreHelpPagesTest extends TestCase
         $this->assertSame('uygulama-sifresi', StoreSetting::secret('mail_password'));
         $this->get(route('store_admin.settings.edit'))->assertOk()->assertDontSee('uygulama-sifresi')->assertSee('Kendime deneme e-postası gönder');
 
+        // Yalnızca e-posta ve uygulama şifresi yeterli; sunucu adresten bulunur, şifredeki boşluklar atılır.
+        $this->put(route('store_admin.settings.update'), ['mail_host' => '', 'mail_username' => 'Yapboz@Gmail.com', 'mail_password' => 'abcd efgh ijkl mnop'])->assertSessionHasNoErrors();
+        $this->assertSame(['yapboz@gmail.com', 'abcdefghijklmnop'], [StoreSetting::get('mail_username'), StoreSetting::secret('mail_password')]);
+        $this->assertSame(['smtp.gmail.com', 587, 'tls', 'Gmail'], StoreMailer::detect('yapboz@gmail.com'));
+        $this->assertSame('smtp.hostinger.com', StoreMailer::detect('bilgi@yapbozkirtasiye.com')[0]);
+        $this->get(route('store_admin.settings.edit'))->assertSee('Algılanan:')->assertSee('Gmail');
+
         // Boş parola eskisini korur
-        $this->put(route('store_admin.settings.update'), ['mail_host' => 'smtp.gmail.com', 'mail_username' => 'yapboz@gmail.com', 'mail_from_address' => 'yapboz@gmail.com']);
-        $this->assertSame('uygulama-sifresi', StoreSetting::secret('mail_password'));
+        $this->put(route('store_admin.settings.update'), ['mail_username' => 'yapboz@gmail.com']);
+        $this->assertSame('abcdefghijklmnop', StoreSetting::secret('mail_password'));
     }
 }

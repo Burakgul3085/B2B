@@ -99,7 +99,7 @@ class StorefrontAdmin
             'mail_host' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9.-]+$/'],
             'mail_port' => ['nullable', 'integer', 'between:1,65535'],
             'mail_encryption' => ['nullable', 'in:tls,ssl'],
-            'mail_username' => ['nullable', 'string', 'max:190'],
+            'mail_username' => ['nullable', 'email', 'max:190'],
             'mail_from_address' => ['nullable', 'email', 'max:190'],
             'mail_from_name' => ['nullable', 'string', 'max:80'],
             'company_title' => ['nullable', 'string', 'max:200'],
@@ -111,13 +111,16 @@ class StorefrontAdmin
             'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
             'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'footer_about' => 'kısa tanıtım',
             'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
-            'notify_emails' => 'bildirim adresleri', 'mail_host' => 'SMTP sunucusu', 'mail_port' => 'port', 'mail_username' => 'kullanıcı adı',
+            'notify_emails' => 'bildirim adresleri', 'mail_host' => 'SMTP sunucusu', 'mail_port' => 'port', 'mail_username' => 'e-posta adresi',
             'mail_from_address' => 'gönderen adresi', 'mail_from_name' => 'gönderen adı',
         ])->validate();
-        $data['mail_port'] = isset($data['mail_port']) ? (string) $data['mail_port'] : '587';
+        // Sunucu boşsa port ve şifreleme e-posta adresinden bulunur (StoreMailer::detect).
+        $data['mail_port'] = filled($data['mail_host'] ?? null) && isset($data['mail_port']) ? (string) $data['mail_port'] : '587';
+        $data['mail_username'] = isset($data['mail_username']) ? mb_strtolower(trim($data['mail_username'])) : null;
         // Parola yalnızca yazıldıysa değişir (boş bırakılırsa eskisi korunur).
         if (filled($input['mail_password'] ?? null)) {
-            StoreSetting::putSecret('mail_password', trim($input['mail_password']));
+            // Google uygulama şifresi 4'erli gruplar halinde gösterilir; boşluklar atılır.
+            StoreSetting::putSecret('mail_password', preg_replace('/\s+/', '', $input['mail_password']));
         } elseif (filter_var($input['remove_mail_password'] ?? false, FILTER_VALIDATE_BOOL)) {
             StoreSetting::putSecret('mail_password', null);
         }

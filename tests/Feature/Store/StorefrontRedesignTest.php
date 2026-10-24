@@ -6,6 +6,7 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
+use App\Models\Store\StoreCustomer;
 use App\Models\Store\StorePage;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
@@ -65,7 +66,7 @@ class StorefrontRedesignTest extends TestCase
         $this->product('Jel Kalem', '20.00');
         $this->get(self::HOST.'/urunler')->assertDontSee('aria-label="Favorilerim"', false)->assertDontSee('favorilere ekle');
 
-        $customer = \App\Models\Store\StoreCustomer::create(['first_name' => 'Ayşe', 'last_name' => 'Kaya', 'email' => 'ayse@ornek.com', 'password' => self::PASSWORD]);
+        $customer = StoreCustomer::create(['first_name' => 'Ayşe', 'last_name' => 'Kaya', 'email' => 'ayse@ornek.com', 'password' => self::PASSWORD]);
         $this->actingAs($customer, 'customer');
         $this->get(self::HOST.'/urunler')->assertSee('aria-label="Favorilerim"', false)->assertSee('Jel Kalem favorilere ekle');
     }
