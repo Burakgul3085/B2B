@@ -7,8 +7,8 @@ use App\Http\Middleware\EnsureStoreOpen;
 
 /**
  * Mağazanın kullandığı çerezler, çerez tercihleri penceresinde kategoriye göre listelenir. Yalnızca gerçekten
- * kullanılan çerezler yazılır; analitik ve pazarlama kategorileri şu an boştur — ileride bir betik eklenirse yalnızca
- * ziyaretçi o kategoriye izin verdiyse yüklenmelidir (window.storeConsentAllows('analytics')).
+ * kullanılan çerezler yazılır. Analitik kategorisi Google Analytics tanımlıysa (store.analytics_id) doludur; pazarlama
+ * şu an boştur. Bu betikler yalnızca ziyaretçi o kategoriye izin verdiyse yüklenir (window.storeConsentAllows('analytics')).
  */
 final class CookieCatalog
 {
@@ -18,6 +18,7 @@ final class CookieCatalog
     public static function categories(): array
     {
         $session = (int) config('session.lifetime');
+        $analytics = (bool) config('store.analytics_id');
 
         return [
             'essential' => [
@@ -39,8 +40,13 @@ final class CookieCatalog
             ],
             'analytics' => [
                 'title' => 'Analitik çerezler', 'icon' => 'grid', 'required' => false,
-                'text' => 'Sitenin nasıl kullanıldığını anonim olarak ölçmemize yardımcı olur. Şu anda analitik çerez kullanmıyoruz; ileride kullanırsak yalnızca bu izinle etkinleşir.',
-                'cookies' => [],
+                'text' => $analytics
+                    ? 'Sitenin nasıl kullanıldığını (ziyaret ve sayfa görüntüleme sayıları) Google Analytics ile ölçmemize yardımcı olur. Yalnızca bu izni verirseniz etkinleşir.'
+                    : 'Sitenin nasıl kullanıldığını anonim olarak ölçmemize yardımcı olur. Şu anda analitik çerez kullanmıyoruz; ileride kullanırsak yalnızca bu izinle etkinleşir.',
+                'cookies' => $analytics ? [
+                    ['_ga', 'Google Analytics: ziyaretçileri birbirinden ayırt eder.', '2 yıl'],
+                    ['_ga_*', 'Google Analytics: ziyaret (oturum) bilgisini saklar.', '2 yıl'],
+                ] : [],
             ],
             'marketing' => [
                 'title' => 'Pazarlama çerezleri', 'icon' => 'gift', 'required' => false,

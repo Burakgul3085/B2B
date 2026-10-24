@@ -17,6 +17,10 @@ return [
     // Mağaza formlarında bot koruması (tuzak alanı + en kısa doldurma süresi). Yalnızca testlerde kapatılır.
     'bot_protection' => (bool) env('STORE_BOT_PROTECTION', true),
 
+    // Google Analytics 4 ölçüm kimliği (yalnızca vitrin). Betik, ziyaretçi analitik çerezlere izin verirse yüklenir.
+    // Boşsa kapalıdır; üretimde varsayılan mağazanın kimliğidir, yerelde ve testlerde kapalıdır.
+    'analytics_id' => env('STORE_ANALYTICS_ID', env('APP_ENV') === 'production' ? 'G-P86EVFT132' : null),
+
     // Alt bilgideki yazılım geliştirici künyesi (sabit)
     'developer' => [
         'name' => 'Burak Gül',

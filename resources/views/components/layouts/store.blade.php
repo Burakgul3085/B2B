@@ -34,6 +34,7 @@
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
     @if ($ogImage)<meta property="og:image" content="{{ $ogImage }}"><meta name="twitter:card" content="summary_large_image">@endif
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    @if (config('store.analytics_id') && ! $preview)<meta name="ga-measurement-id" content="{{ config('store.analytics_id') }}">@endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @foreach ($jsonLd as $block)
         <script type="application/ld+json">{!! json_encode($block, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}</script>

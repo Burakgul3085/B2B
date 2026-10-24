@@ -22,15 +22,19 @@ class SecurityHeaders
         // CSP sürümü kullanılır). Bileşenlerdeki style özellikleri için 'unsafe-inline' (stil) gerekir.
         // Vite geliştirme sunucusu (npm run dev) çalışırken politika uygulanmaz.
         if (! Vite::isRunningHot()) {
+            // Google Analytics yalnızca mağaza vitrininde ve ölçüm kimliği tanımlıysa izinlidir.
+            $analytics = config('store.analytics_id') && $request->getHost() === config('store.domain');
+            $gaHosts = 'https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com';
+
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                "script-src 'self'",
+                "script-src 'self'".($analytics ? ' https://www.googletagmanager.com' : ''),
                 "style-src 'self' 'unsafe-inline'",
-                "img-src 'self' data: blob:",
+                "img-src 'self' data: blob:".($analytics ? ' https://*.google-analytics.com https://*.googletagmanager.com' : ''),
                 "media-src 'self' blob:", // vitrin slayt formunda seçilen videonun önizlemesi (blob:)
                 "font-src 'self'",
                 'frame-src https://www.google.com', // iletişim sayfasındaki Google Haritalar
-                "connect-src 'self'",
+                "connect-src 'self'".($analytics ? " {$gaHosts}" : ''),
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",

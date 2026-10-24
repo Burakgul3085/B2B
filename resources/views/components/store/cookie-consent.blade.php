@@ -12,7 +12,7 @@
                 <span class="flex size-9 items-center justify-center rounded-xl bg-puzzle-orange-soft text-puzzle-orange"><x-icon name="shield" class="size-5" /></span>
                 Çerezleri kullanıyoruz
             </p>
-            <p class="mt-2.5 text-sm leading-relaxed text-muted">Sitemizin çalışması için zorunlu çerezler kullanırız. Tema tercihiniz gibi işlevsel çerezler ve ileride kullanabileceğimiz analitik/pazarlama çerezleri yalnızca izninizle çalışır.
+            <p class="mt-2.5 text-sm leading-relaxed text-muted">Sitemizin çalışması için zorunlu çerezler kullanırız. Tema tercihiniz gibi işlevsel çerezler ile analitik ve pazarlama çerezleri yalnızca izninizle çalışır.
                 <a href="{{ route('store.legal', 'gizlilik-cerez') }}" class="font-semibold text-navy-ink underline">Çerez Politikası</a></p>
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <button type="button" @click="acceptAll()" class="col-span-2 h-11 rounded-xl bg-navy text-sm font-semibold text-white transition hover:bg-puzzle-orange">Tümünü kabul et</button>
