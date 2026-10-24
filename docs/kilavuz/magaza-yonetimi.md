@@ -154,6 +154,22 @@ Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı va
     - Kişi verilerinin silinmesini isterse mesajı silebilirsiniz.
     - Yeni mesaj bildirimi, Mağaza Ayarları → Yönetici bildirimleri bölümünden açılıp kapatılır; bildirimin gitmesi için sistem e-postası tanımlı olmalıdır.
 
+### Hakkımızda sayfasının bölümleri
+
+Vitrin → Hakkımızda ekranında sayfa 9 bölümden oluşur; her bölümün "Bu bölüm sayfada görünsün" anahtarı vardır, boş bırakılan bölüm de görünmez:
+
+1. **Kapak:** başlık, slogan, geniş mağaza fotoğrafı (yoksa yapboz desenli lacivert zemin).
+2. **Rakamlarla biz:** en fazla 6 rakam (simge + değer + açıklama); sayfa açılınca sayarak gelir (yıllar sayılmaz).
+3. **Hikâyemiz:** başlık, metin, iki fotoğraf ve isteğe bağlı rozet (ör. "28" + "yıldır hizmetinizde").
+4. **Misyon, vizyon, değerler:** metni yazılan kartlar görünür.
+5. **Neden biz:** en fazla 6 kart.
+6. **Yolculuğumuz:** yıl + başlık + kısa açıklama, en fazla 10 adım.
+7. **Fotoğraf galerisi:** en fazla 24 fotoğraf; sıra numarası ve açıklama verilebilir, tıklayınca büyük görünür.
+8. **Ekibimiz:** fotoğraf, ad ve görev; en fazla 8 kişi.
+9. **Kapanış bandı:** başlık, metin, düğme yazısı ve adresi.
+
+Rakam, yıl gibi bilgileri gerçek değerlerle doldurun; örnekler yalnızca alanlarda gri ipucu olarak görünür.
+
 ## 10. Alt bilgi
 
 **Kayan şerit** (Vitrin → Üst ve Alt Bilgi): sayfanın en üstünde sağdan sola kayan renkli bant. En fazla 8 madde; her madde simge + metin + isteğe bağlı vurgulu kutu (ör. "₺750 üzeri alışverişlerde" + "KARGO BEDAVA"). Renk ve hız seçilir; hepsi boşsa maddeler ayarlardan üretilir.

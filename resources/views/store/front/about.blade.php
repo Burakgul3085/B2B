@@ -1,9 +1,23 @@
+{{--
+    Hakkımızda: tüm içerik Vitrin → Hakkımızda'dan. Boş veya kapatılmış bölüm görünmez.
+    Bölümler: kapak · rakamlar · hikâye · misyon/vizyon/değerler · neden biz · yolculuğumuz · galeri · ekip · kapanış bandı.
+--}}
 @php
     use App\Domain\Store\Content\SitePages;
+    use App\Domain\Store\Storefront\Palette;
 
     $c = $content;
-    $cols = [1 => 'lg:grid-cols-1', 2 => 'lg:grid-cols-2', 3 => 'lg:grid-cols-3', 4 => 'lg:grid-cols-4'];
+    $name = config('store.name');
+    $on = fn (string $section) => SitePages::sectionOn($c, $section);
     $image = fn (string $path, ?int $w = null) => route($imageRoute, array_filter(['file' => basename($path), 'w' => $w]));
+    $tone = fn (int $i) => Palette::classes(Palette::CYCLE[$i % 4]);
+    // Sıra koddaki tanımdan (veritabanı JSON anahtar sırasını korumaz)
+    $pillars = collect(SitePages::PILLARS)->map(fn ($def, $key) => $c['pillars'][$key] ?? ['title' => $def[0], 'text' => null])->filter(fn ($p) => filled($p['text'] ?? null));
+    $contactLive = \App\Models\Store\StorePage::where('key', 'contact')->where('is_published', true)->exists();
+    $prose = 'space-y-4 text-[16px] leading-relaxed text-slate-700 [&_a]:font-semibold [&_a]:text-navy-ink [&_a]:underline [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:text-ink [&_h3]:mt-6 [&_h3]:font-bold [&_h3]:text-ink [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-ink [&_ul]:list-disc';
+    $eyebrow = 'text-xs font-bold tracking-[0.2em] uppercase';
+    $statCols = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-3', 4 => 'sm:grid-cols-2 lg:grid-cols-4', 5 => 'sm:grid-cols-3 lg:grid-cols-5', 6 => 'sm:grid-cols-3 lg:grid-cols-6'];
+    $gallery = collect($c['gallery'])->map(fn ($path) => ['src' => $image($path, 1800), 'thumb' => $image($path, 900), 'caption' => $c['gallery_captions'][basename($path)] ?? null])->values();
 @endphp
 <x-layouts.store :title="$page->seo_title ?: $c['headline']" :description="$page->seo_description ?: ($c['tagline'] ?: $c['story'])"
     :canonical="route('store.about')" :noindex="$adminPreview" :ogImage="$c['cover'] ? $image($c['cover'], 1200) : null">
@@ -11,64 +25,219 @@
         <div class="bg-amber-400 px-4 py-2 text-center text-sm font-medium text-slate-900">Önizleme: kaydedilmiş içerik{{ $page->is_published ? '' : ' — sayfa henüz yayında değil' }}.</div>
     @endif
 
-    {{-- Üst bölüm --}}
-    <section @class(['relative overflow-hidden', 'bg-surface' => ! $c['cover']])>
+    {{-- 1. Kapak --}}
+    <section class="relative isolate overflow-hidden bg-[#0b1631] text-white">
         @if ($c['cover'])
-            <img src="{{ $image($c['cover'], 2400) }}" alt="" class="absolute inset-0 size-full object-cover">
-            <div class="absolute inset-0 bg-slate-950/55"></div>
+            <img src="{{ $image($c['cover'], 2400) }}" alt="" class="absolute inset-0 -z-10 size-full object-cover" fetchpriority="high">
+            <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#0b1631] via-[#0b1631]/80 to-[#0b1631]/30"></div>
+        @else
+            <div class="pointer-events-none absolute -right-12 -bottom-16 -z-10 hidden rotate-12 grid-cols-2 gap-4 md:grid" aria-hidden="true">
+                <span class="size-32 rounded-[2rem] bg-puzzle-orange"></span><span class="size-32 rounded-[2rem] bg-puzzle-green"></span>
+                <span class="size-32 rounded-[2rem] bg-puzzle-blue"></span><span class="size-32 rounded-[2rem] bg-puzzle-yellow"></span>
+            </div>
         @endif
-        <div @class(['relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8', 'py-20 sm:py-28 text-white' => $c['cover'], 'py-12 sm:py-16' => ! $c['cover']])>
-            @unless ($c['cover'])@include('store.front._breadcrumbs', ['items' => [['Hakkımızda', null]]])@endunless
-            <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">{{ $c['headline'] }}</h1>
-            @if ($c['tagline'])<p @class(['mt-4 max-w-2xl text-lg', 'text-white/90' => $c['cover'], 'text-muted' => ! $c['cover']])>{{ $c['tagline'] }}</p>@endif
+        <div @class(['mx-auto flex max-w-7xl flex-col justify-end px-4 sm:px-6 lg:px-8', 'min-h-[520px] pt-16 pb-28' => $c['cover'], 'pt-14 pb-24 sm:pt-20' => ! $c['cover']])>
+            <nav class="text-sm text-white/60" aria-label="Konum"><a href="{{ route('store.home') }}" class="hover:text-white">Ana sayfa</a> <span class="mx-1">›</span> Hakkımızda</nav>
+            <p class="mt-8 flex items-center gap-2 {{ $eyebrow }} text-amber-400">
+                <span class="inline-flex gap-0.5" aria-hidden="true"><span class="size-2 rounded-[3px] bg-puzzle-orange"></span><span class="size-2 rounded-[3px] bg-puzzle-green"></span><span class="size-2 rounded-[3px] bg-puzzle-blue"></span><span class="size-2 rounded-[3px] bg-puzzle-yellow"></span></span>
+                Hakkımızda
+            </p>
+            <h1 class="mt-3 max-w-3xl font-display text-4xl leading-[1.08] font-extrabold tracking-tight sm:text-6xl">{{ $c['headline'] }}</h1>
+            @if ($c['tagline'])<p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/80 sm:text-xl">{{ $c['tagline'] }}</p>@endif
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href="{{ route('store.products') }}" class="inline-flex h-12 items-center gap-2 rounded-xl bg-puzzle-orange px-6 font-semibold text-white shadow-lg shadow-black/25 transition hover:brightness-110">Ürünleri keşfet <x-icon name="arrow-right" class="size-4" /></a>
+                @if ($contactLive)<a href="{{ route('store.contact') }}" class="inline-flex h-12 items-center gap-2 rounded-xl px-6 font-semibold text-white ring-1 ring-white/40 transition hover:bg-white/10">Bize ulaşın</a>@endif
+            </div>
         </div>
     </section>
 
-    <div class="mx-auto max-w-5xl space-y-16 px-4 py-12 sm:px-6 lg:px-8">
-        @if ($c['story'])
-            <section class="mx-auto max-w-3xl space-y-4 text-[16px] leading-relaxed text-slate-700 [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-ink [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-ink [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-ink [&_ul]:list-disc">
-                {{ SitePages::markdown($c['story']) }}
-            </section>
-        @endif
-
-        @if ($c['stats'])
-            <section class="grid grid-cols-2 gap-4 {{ $cols[count($c['stats'])] }}">
-                @foreach ($c['stats'] as $stat)
-                    <div class="rounded-2xl bg-surface p-6 text-center">
-                        <p class="text-3xl font-bold tracking-tight text-primary sm:text-4xl">{{ $stat['value'] }}</p>
-                        <p class="mt-1 text-sm text-muted">{{ $stat['label'] }}</p>
+    {{-- 2. Rakamlar (kapağın üzerine biner) --}}
+    @if ($c['stats'] && $on('stats'))
+        <div class="relative z-10 mx-auto -mt-16 max-w-6xl px-4 sm:px-6 lg:px-8">
+            <dl class="grid grid-cols-2 overflow-hidden rounded-3xl bg-white shadow-2xl shadow-navy/15 ring-1 ring-line {{ $statCols[count($c['stats'])] }}">
+                @foreach ($c['stats'] as $i => $stat)
+                    <div class="flex flex-col items-center px-4 py-7 text-center sm:py-8 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line">
+                        <span class="flex size-11 items-center justify-center rounded-2xl {{ $tone($i)['soft'] }} {{ $tone($i)['text'] }}"><x-icon :name="$stat['icon'] ?? 'star'" class="size-5" /></span>
+                        <dd class="mt-3 font-display text-3xl font-extrabold tracking-tight text-navy-ink tabular-nums sm:text-4xl" x-data="countUp(@alpine($stat['value']))" x-text="shown">{{ $stat['value'] }}</dd>
+                        <dt class="mt-1 text-sm text-muted">{{ $stat['label'] }}</dt>
                     </div>
                 @endforeach
+            </dl>
+        </div>
+    @endif
+
+    <div class="space-y-24 py-20 sm:space-y-28">
+        {{-- 3. Hikâye --}}
+        @if ($c['story'] && $on('story'))
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div @class(['grid items-center gap-12', 'lg:grid-cols-2 lg:gap-16' => $c['story_images'] || $c['badge_value']])>
+                    <div @class(['max-w-3xl', 'mx-auto' => ! $c['story_images'] && ! $c['badge_value']])>
+                        <p class="{{ $eyebrow }} text-puzzle-orange">Biz kimiz</p>
+                        <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['story_title'] }}</h2>
+                        <div class="mt-6 {{ $prose }}">{{ SitePages::markdown($c['story']) }}</div>
+                    </div>
+                    @if ($c['story_images'] || $c['badge_value'])
+                        <div class="relative mx-auto w-full max-w-lg pb-10 lg:max-w-none">
+                            @if ($c['story_images'][0] ?? null)
+                                <img src="{{ $image($c['story_images'][0], 1200) }}" alt="{{ $name }}" loading="lazy" class="aspect-[4/5] w-full rounded-[2rem] object-cover shadow-2xl shadow-navy/20 sm:w-4/5 lg:ml-auto">
+                            @else
+                                <div class="grid aspect-[4/5] w-full grid-cols-2 gap-4 rounded-[2rem] bg-surface p-10 sm:w-4/5 lg:ml-auto" aria-hidden="true">
+                                    <span class="rounded-3xl bg-puzzle-orange"></span><span class="rounded-3xl bg-puzzle-green"></span><span class="rounded-3xl bg-puzzle-blue"></span><span class="rounded-3xl bg-puzzle-yellow"></span>
+                                </div>
+                            @endif
+                            @if ($c['story_images'][1] ?? null)
+                                <img src="{{ $image($c['story_images'][1], 800) }}" alt="" loading="lazy" class="absolute bottom-0 left-0 hidden aspect-square w-2/5 rounded-3xl object-cover shadow-xl ring-8 ring-white sm:block">
+                            @endif
+                            @if ($c['badge_value'])
+                                <div class="absolute top-8 -left-2 rounded-3xl bg-[#0b1631] px-6 py-5 text-white shadow-2xl shadow-navy/30 sm:left-6">
+                                    <p class="font-display text-4xl leading-none font-extrabold text-amber-400">{{ $c['badge_value'] }}</p>
+                                    @if ($c['badge_label'])<p class="mt-1.5 max-w-[9rem] text-sm leading-snug text-white/80">{{ $c['badge_label'] }}</p>@endif
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
             </section>
         @endif
 
-        @if ($c['features'])
-            <section>
-                <h2 class="text-center text-2xl font-bold tracking-tight">Neden {{ config('store.name') }}?</h2>
-                <div class="mt-8 grid gap-6 sm:grid-cols-2 {{ $cols[count($c['features'])] }}">
-                    @foreach ($c['features'] as $feature)
-                        <div class="rounded-2xl border border-line p-6">
-                            <span class="flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary"><x-icon :name="$feature['icon']" class="size-5" /></span>
-                            <h3 class="mt-4 font-semibold">{{ $feature['title'] }}</h3>
-                            @if ($feature['text'])<p class="mt-1.5 text-sm text-muted">{{ $feature['text'] }}</p>@endif
+        {{-- 4. Misyon, vizyon, değerler --}}
+        @if ($pillars->isNotEmpty() && $on('pillars'))
+            <section class="bg-surface py-20">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div class="mx-auto max-w-2xl text-center">
+                        <p class="{{ $eyebrow }} text-puzzle-blue">Yol haritamız</p>
+                        <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Neye inanıyoruz?</h2>
+                    </div>
+                    <div @class(['mt-12 grid gap-6', 'md:grid-cols-2' => $pillars->count() === 2, 'md:grid-cols-3' => $pillars->count() === 3])>
+                        @foreach ($pillars as $key => $pillar)
+                            @php $t = $tone($loop->index); @endphp
+                            <article class="relative overflow-hidden rounded-3xl bg-white p-8 shadow-sm ring-1 ring-line">
+                                <span class="absolute inset-x-0 top-0 h-1.5 {{ $t['solid'] }}"></span>
+                                <span class="flex size-12 items-center justify-center rounded-2xl {{ $t['soft'] }} {{ $t['text'] }}"><x-icon :name="SitePages::PILLARS[$key][1]" class="size-6" /></span>
+                                <h3 class="mt-5 font-display text-xl font-extrabold">{{ $pillar['title'] }}</h3>
+                                <p class="mt-3 leading-relaxed whitespace-pre-line text-slate-700">{{ $pillar['text'] }}</p>
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        {{-- 5. Neden biz --}}
+        @if ($c['features'] && $on('features'))
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <p class="{{ $eyebrow }} text-puzzle-green">Farkımız</p>
+                    <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['features_title'] ?: 'Neden '.$name.'?' }}</h2>
+                </div>
+                <div @class(['mt-12 grid gap-5 sm:grid-cols-2', 'lg:grid-cols-3' => count($c['features']) !== 4, 'lg:grid-cols-4' => count($c['features']) === 4])>
+                    @foreach ($c['features'] as $i => $feature)
+                        <div class="group rounded-3xl border border-line bg-white p-7 transition hover:-translate-y-1 hover:border-transparent hover:shadow-xl hover:shadow-navy/10">
+                            <span class="flex size-12 items-center justify-center rounded-2xl text-white shadow-lg transition group-hover:scale-110 {{ $tone($i)['solid'] }}"><x-icon :name="$feature['icon']" class="size-6" /></span>
+                            <h3 class="mt-5 font-display text-lg font-extrabold">{{ $feature['title'] }}</h3>
+                            @if ($feature['text'])<p class="mt-2 text-sm leading-relaxed text-muted">{{ $feature['text'] }}</p>@endif
                         </div>
                     @endforeach
                 </div>
             </section>
         @endif
 
-        @if ($c['gallery'])
-            <section class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                @foreach ($c['gallery'] as $path)
-                    <img src="{{ $image($path, 900) }}" alt="{{ config('store.name') }}" loading="lazy" class="aspect-[4/3] w-full rounded-2xl object-cover">
-                @endforeach
+        {{-- 6. Yolculuğumuz --}}
+        @if ($c['timeline'] && $on('timeline'))
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <p class="{{ $eyebrow }} text-puzzle-yellow">Kilometre taşları</p>
+                    <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['timeline_title'] }}</h2>
+                </div>
+                <ol class="relative mt-14 space-y-8 border-l-2 border-line pl-8 lg:flex lg:space-y-0 lg:border-t-2 lg:border-l-0 lg:pt-10 lg:pl-0">
+                    @foreach ($c['timeline'] as $i => $step)
+                        <li class="relative lg:flex-1 lg:px-4">
+                            <span class="absolute top-1 -left-[41px] flex size-5 items-center justify-center rounded-full ring-4 ring-white lg:-top-[51px] lg:left-4 {{ $tone($i)['solid'] }}"></span>
+                            <p class="inline-flex rounded-lg px-2.5 py-1 font-display text-sm font-extrabold {{ $tone($i)['soft'] }} {{ $tone($i)['text'] }}">{{ $step['year'] }}</p>
+                            <h3 class="mt-3 font-display text-lg leading-snug font-extrabold">{{ $step['title'] }}</h3>
+                            @if ($step['text'])<p class="mt-1.5 text-sm leading-relaxed text-muted">{{ $step['text'] }}</p>@endif
+                        </li>
+                    @endforeach
+                </ol>
             </section>
         @endif
 
+        {{-- 7. Galeri --}}
+        @if ($gallery->isNotEmpty() && $on('gallery'))
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" x-data="photoGallery(@alpine($gallery->all()))" @keydown.window.escape="close()" @keydown.window.arrow-right="next()" @keydown.window.arrow-left="prev()">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="{{ $eyebrow }} text-puzzle-orange">Galeri</p>
+                        <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['gallery_title'] }}</h2>
+                    </div>
+                    <p class="text-sm text-muted">{{ $gallery->count() }} fotoğraf</p>
+                </div>
+                <div class="mt-10 grid grid-flow-dense auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[200px] md:grid-cols-4 md:gap-4">
+                    @foreach ($gallery as $i => $photo)
+                        @php $big = $i % 6 === 0; $wide = $i % 6 === 4; @endphp
+                        <button type="button" @click="open({{ $i }})" @class(['group relative overflow-hidden rounded-2xl bg-surface focus:ring-4 focus:ring-amber-400/50 focus:outline-none',
+                            'col-span-2 row-span-2' => $big, 'md:col-span-2' => $wide]) aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
+                            <img src="{{ $photo['thumb'] }}" alt="{{ $photo['caption'] ?? $name }}" loading="lazy" class="size-full object-cover transition duration-700 group-hover:scale-105">
+                            <span class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"></span>
+                            @if ($photo['caption'])<span class="absolute inset-x-0 bottom-0 translate-y-2 p-4 text-left text-sm font-semibold text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">{{ $photo['caption'] }}</span>@endif
+                        </button>
+                    @endforeach
+                </div>
+
+                {{-- Büyük görünüm --}}
+                <div x-show="index !== null" x-cloak x-transition.opacity class="lightbox fixed inset-0 z-[70] flex items-center justify-center bg-[#0b1631]/95 p-4" @click.self="close()" role="dialog" aria-modal="true" aria-label="Fotoğraf">
+                    <button type="button" @click="close()" class="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Kapat"><x-icon name="x" class="size-6" /></button>
+                    <button type="button" @click="prev()" x-show="photos.length > 1" class="absolute left-3 flex size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:left-6" aria-label="Önceki"><x-icon name="arrow-right" class="size-6 rotate-180" /></button>
+                    <figure class="max-h-full max-w-5xl">
+                        <img :src="current.src" :alt="current.caption || ''" class="max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl">
+                        <figcaption class="mt-4 flex items-center justify-between gap-4 text-sm text-white/80">
+                            <span x-text="current.caption || ''"></span>
+                            <span class="tabular-nums text-white/50" x-text="counter"></span>
+                        </figcaption>
+                    </figure>
+                    <button type="button" @click="next()" x-show="photos.length > 1" class="absolute right-3 flex size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:right-6" aria-label="Sonraki"><x-icon name="arrow-right" class="size-6" /></button>
+                </div>
+            </section>
+        @endif
+
+        {{-- 8. Ekip --}}
+        @if ($c['team'] && $on('team'))
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <p class="{{ $eyebrow }} text-puzzle-blue">İnsanlarımız</p>
+                    <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['team_title'] }}</h2>
+                </div>
+                <div class="mt-12 flex flex-wrap justify-center gap-6">
+                    @foreach ($c['team'] as $i => $member)
+                        <article class="w-[calc(50%-0.75rem)] text-center sm:w-56">
+                            @if ($member['photo'])
+                                <img src="{{ $image($member['photo'], 600) }}" alt="{{ $member['name'] }}" loading="lazy" class="mx-auto aspect-square w-full rounded-3xl object-cover shadow-lg">
+                            @else
+                                <span class="mx-auto flex aspect-square w-full items-center justify-center rounded-3xl font-display text-5xl font-extrabold text-white {{ $tone($i)['solid'] }}">{{ mb_strtoupper(mb_substr($member['name'], 0, 1)) }}</span>
+                            @endif
+                            <h3 class="mt-4 font-display text-lg font-extrabold">{{ $member['name'] }}</h3>
+                            @if ($member['role'])<p class="text-sm text-muted">{{ $member['role'] }}</p>@endif
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- 9. Kapanış bandı --}}
         @if ($c['show_cta'])
-            <section class="rounded-3xl bg-primary px-6 py-10 text-center text-white">
-                <h2 class="text-2xl font-bold tracking-tight">Aradığınız kırtasiye ürünleri burada</h2>
-                <a href="{{ route('store.products') }}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-primary hover:bg-slate-100">Ürünlere göz atın <x-icon name="arrow-right" class="size-4" /></a>
+            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="relative overflow-hidden rounded-[2rem] bg-[#0b1631] px-6 py-14 text-center text-white sm:px-12">
+                    <div class="pointer-events-none absolute -top-10 -left-10 grid -rotate-12 grid-cols-2 gap-2 opacity-90" aria-hidden="true">
+                        <span class="size-16 rounded-2xl bg-puzzle-orange"></span><span class="size-16 rounded-2xl bg-puzzle-green"></span><span class="size-16 rounded-2xl bg-puzzle-blue"></span><span class="size-16 rounded-2xl bg-puzzle-yellow"></span>
+                    </div>
+                    <div class="pointer-events-none absolute -right-12 -bottom-12 grid rotate-12 grid-cols-2 gap-2 opacity-90" aria-hidden="true">
+                        <span class="size-16 rounded-2xl bg-puzzle-yellow"></span><span class="size-16 rounded-2xl bg-puzzle-blue"></span><span class="size-16 rounded-2xl bg-puzzle-green"></span><span class="size-16 rounded-2xl bg-puzzle-orange"></span>
+                    </div>
+                    <h2 class="relative mx-auto max-w-2xl font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['cta_title'] }}</h2>
+                    @if ($c['cta_text'])<p class="relative mx-auto mt-4 max-w-xl text-white/75">{{ $c['cta_text'] }}</p>@endif
+                    <a href="{{ $c['cta_url'] ? (str_starts_with($c['cta_url'], '/') ? url($c['cta_url']) : $c['cta_url']) : route('store.products') }}"
+                        class="relative mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-7 font-semibold text-navy transition hover:bg-amber-400">{{ $c['cta_label'] }} <x-icon name="arrow-right" class="size-4" /></a>
+                </div>
             </section>
         @endif
     </div>

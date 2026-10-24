@@ -4,6 +4,7 @@ namespace Tests\Feature\Store;
 
 use App\Domain\Store\Content\MapLink;
 use App\Domain\Store\Content\OpeningHours;
+use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
@@ -89,7 +90,7 @@ class StoreSitePagesTest extends TestCase
 
         $page = StorePage::where('key', 'about')->sole();
         $this->assertTrue($page->is_published);
-        $this->assertEquals([['value' => '1998', 'label' => 'Kuruluş']], $page->content['stats']);
+        $this->assertEquals([['value' => '1998', 'label' => 'Kuruluş', 'icon' => 'star']], $page->content['stats']);
         $this->assertCount(1, $page->content['features']);
         $this->assertCount(2, $page->content['gallery']);
         Storage::disk('local')->assertExists($page->content['cover']);
@@ -119,6 +120,52 @@ class StoreSitePagesTest extends TestCase
         $this->get(route('store_admin.site-pages.preview', 'about'))->assertOk()->assertSee('Önizleme')->assertSee('Biz Kimiz')
             ->assertSee(route('store_admin.site-pages.image', $cover));
         $this->get(route('store_admin.site-pages.image', $cover))->assertOk();
+    }
+
+    public function test_about_page_sections_gallery_team_and_toggles(): void
+    {
+        $base = ['headline' => 'Biz Kimiz', 'is_published' => '1', 'story' => 'Küçük bir dükkânla başladık.'];
+        $this->put(route('store_admin.site-pages.about.update'), $base + ['timeline' => [['year' => '1998', 'title' => '']]])->assertSessionHasErrors('timeline.0');
+        $this->put(route('store_admin.site-pages.about.update'), $base + ['cta_url' => 'javascript:alert(1)'])->assertSessionHasErrors('cta_url');
+
+        $this->put(route('store_admin.site-pages.about.update'), $base + [
+            'stats' => [['icon' => 'users', 'value' => '10.000+', 'label' => 'Mutlu müşteri']],
+            'story_title' => 'Nasıl başladık', 'badge_value' => '28', 'badge_label' => 'yıldır hizmetinizde',
+            'pillars' => ['mission' => ['title' => 'Misyonumuz', 'text' => 'Her öğrenciye kaliteli kırtasiye.'], 'vision' => ['title' => 'Vizyonumuz', 'text' => ''], 'values' => ['title' => 'Değerlerimiz', 'text' => 'Dürüstlük.']],
+            'timeline' => [['year' => '1998', 'title' => 'İlk dükkân', 'text' => 'Tepebaşı'], ['year' => '2026', 'title' => 'Online mağaza', 'text' => '']],
+            'team' => [['name' => 'Onur Birbilen', 'role' => 'Mağaza yöneticisi'], ['name' => '', 'role' => '']],
+            'cta_title' => 'Okula hazır mısınız?', 'cta_label' => 'Bize ulaşın', 'cta_url' => '/iletisim',
+            'sections' => array_fill_keys(array_keys(SitePages::ABOUT_SECTIONS), '1'), 'show_cta' => '1',
+            'story_images' => [0 => $this->image(), 1 => $this->image()], 'gallery' => [$this->image(), $this->image()], 'team_photo' => [0 => $this->image()],
+        ])->assertSessionHasNoErrors();
+
+        $c = StorePage::where('key', 'about')->sole()->content;
+        $this->assertCount(2, $c['story_images']);
+        $this->assertCount(1, $c['team']);
+        $this->assertNotNull($c['team'][0]['photo']);
+        [$first, $second] = array_map('basename', $c['gallery']);
+
+        $this->get(self::HOST.'/hakkimizda')->assertOk()
+            ->assertSee('10.000+')->assertSee('Mutlu müşteri')->assertSee('Nasıl başladık')->assertSee('yıldır hizmetinizde')
+            ->assertSee('Her öğrenciye kaliteli kırtasiye.')->assertSee('Değerlerimiz')->assertDontSee('Vizyonumuz')
+            ->assertSee('İlk dükkân')->assertSee('Online mağaza')->assertSee('Onur Birbilen')->assertSee('Mağaza yöneticisi')
+            ->assertSee('Okula hazır mısınız?')->assertSee('2 fotoğraf');
+        // Hikâye ve ekip fotoğrafları da sayfaya ait sayılır
+        $this->get(self::HOST.'/gorsel/sayfa/'.basename($c['team'][0]['photo']))->assertOk();
+        $this->get(self::HOST.'/gorsel/sayfa/'.basename($c['story_images'][1]))->assertOk();
+
+        // Galeri sırası ve açıklaması; bölüm kapatma; ekipten çıkarılan kişinin fotoğrafı silinir
+        $this->put(route('store_admin.site-pages.about.update'), $base + [
+            'gallery_order' => [$first => 2, $second => 1], 'gallery_captions' => [$first => 'Vitrinimiz'],
+            'team' => [['name' => '', 'role' => '']], 'show_cta' => '0',
+            'sections' => ['stats' => '0'] + array_fill_keys(array_keys(SitePages::ABOUT_SECTIONS), '1'),
+        ])->assertSessionHasNoErrors();
+        $fresh = StorePage::where('key', 'about')->sole()->content;
+        $this->assertSame([$second, $first], array_map('basename', $fresh['gallery']));
+        $this->assertSame(['stats'], $fresh['hidden_sections']);
+        $this->assertSame([], $fresh['team']);
+        Storage::disk('local')->assertMissing($c['team'][0]['photo']);
+        $this->get(self::HOST.'/hakkimizda')->assertSee('Vitrinimiz')->assertDontSee('Mutlu müşteri')->assertDontSee('Okula hazır mısınız?');
     }
 
     public function test_contact_page_hours_map_and_details(): void

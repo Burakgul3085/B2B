@@ -17,7 +17,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** Vitrin → Hakkımızda ve İletişim: sayfaya özel formlar, önizleme. */
 class SitePageController extends Controller
 {
-    private const ABOUT_FIELDS = ['headline', 'tagline', 'story', 'stats', 'features', 'show_cta', 'is_published', 'seo_title', 'seo_description'];
+    private const ABOUT_FIELDS = ['headline', 'tagline', 'story_title', 'story', 'badge_value', 'badge_label', 'stats', 'pillars', 'features_title', 'features',
+        'timeline_title', 'timeline', 'gallery_title', 'gallery_captions', 'gallery_order', 'remove_gallery', 'team_title', 'team', 'remove_team_photo',
+        'remove_cover', 'remove_story_image', 'show_cta', 'cta_title', 'cta_text', 'cta_label', 'cta_url', 'sections', 'is_published', 'seo_title', 'seo_description'];
 
     private const CONTACT_FIELDS = ['intro', 'hours', 'hours_note', 'map_input', 'form_enabled', 'is_published', 'seo_title', 'seo_description'];
 
@@ -32,15 +34,23 @@ class SitePageController extends Controller
     {
         $request->validate([
             'cover' => ['nullable', 'file', 'max:8192'],
+            'story_images' => ['nullable', 'array', 'max:2'],
+            'story_images.*' => ['file', 'max:8192'],
             'gallery' => ['nullable', 'array', 'max:'.SitePages::MAX_GALLERY],
             'gallery.*' => ['file', 'max:8192'],
+            'team_photo' => ['nullable', 'array', 'max:'.SitePages::MAX_TEAM],
+            'team_photo.*' => ['file', 'max:8192'],
             'remove_gallery' => ['nullable', 'array'],
             'remove_gallery.*' => ['string', 'max:60'],
-        ], [], ['cover' => 'kapak fotoğrafı', 'gallery' => 'galeri', 'gallery.*' => 'galeri fotoğrafı']);
+        ], [], ['cover' => 'kapak fotoğrafı', 'story_images.*' => 'hikâye fotoğrafı', 'gallery' => 'galeri', 'gallery.*' => 'galeri fotoğrafı', 'team_photo.*' => 'ekip fotoğrafı']);
 
         try {
-            $this->pages->saveAbout($request->only(self::ABOUT_FIELDS), $request->file('cover'), $request->boolean('remove_cover'),
-                array_values($request->file('gallery', [])), (array) $request->input('remove_gallery', []));
+            $this->pages->saveAbout($request->only(self::ABOUT_FIELDS), [
+                'cover' => $request->file('cover'),
+                'story_images' => (array) $request->file('story_images', []),
+                'gallery' => array_values($request->file('gallery', [])),
+                'team' => (array) $request->file('team_photo', []),
+            ]);
         } catch (DomainException $e) {
             return back()->withErrors(['cover' => $e->getMessage()])->withInput();
         }

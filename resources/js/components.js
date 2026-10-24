@@ -535,3 +535,76 @@ export function passwordReveal() {
         },
     };
 }
+
+/**
+ * Sayıyı ekrana girince sıfırdan sayarak gösterir: x-data="countUp('5.000+')" x-text="shown".
+ * Önek/sonek korunur ("%99", "10.000+"); ondalıklı veya sayı olmayan değerler olduğu gibi kalır.
+ */
+export function countUp(text) {
+    return {
+        shown: text,
+        init() {
+            const m = String(text).match(/^(\D*)(\d{1,3}(?:\.\d{3})+|\d+)(\D*)$/);
+            if (!m || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+                return;
+            }
+            const [, pre, num, post] = m;
+            const target = parseInt(num.replace(/\./g, ''), 10);
+            // Yıl gibi görünen değerler (ör. 1998) saydırılmaz.
+            if (!pre && !post && target >= 1900 && target <= 2100) {
+                return;
+            }
+            const grouped = num.includes('.');
+            const format = (n) => pre + (grouped ? n.toLocaleString('tr-TR') : String(n)) + post;
+            this.shown = format(0);
+            const io = new IntersectionObserver((entries) => {
+                if (!entries[0].isIntersecting) {
+                    return;
+                }
+                io.disconnect();
+                const start = performance.now();
+                const step = (t) => {
+                    const p = Math.min(1, (t - start) / 1400);
+                    this.shown = format(Math.round(target * (1 - Math.pow(1 - p, 3))));
+                    if (p < 1) {
+                        requestAnimationFrame(step);
+                    }
+                };
+                requestAnimationFrame(step);
+            });
+            io.observe(this.$el);
+        },
+    };
+}
+
+/** Fotoğraf galerisi büyük görünümü: x-data="photoGallery([{src, caption}])", open(i) / close() / next() / prev(). */
+export function photoGallery(photos) {
+    return {
+        photos,
+        index: null,
+        get current() {
+            return this.index === null ? { src: '', caption: '' } : this.photos[this.index];
+        },
+        get counter() {
+            return this.index === null ? '' : (this.index + 1) + ' / ' + this.photos.length;
+        },
+        open(i) {
+            this.index = i;
+            document.documentElement.classList.add('overflow-hidden');
+        },
+        close() {
+            this.index = null;
+            document.documentElement.classList.remove('overflow-hidden');
+        },
+        next() {
+            if (this.index !== null) {
+                this.index = (this.index + 1) % this.photos.length;
+            }
+        },
+        prev() {
+            if (this.index !== null) {
+                this.index = (this.index - 1 + this.photos.length) % this.photos.length;
+            }
+        },
+    };
+}
