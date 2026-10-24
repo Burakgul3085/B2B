@@ -21,7 +21,7 @@ class StoreFooter
     public const ICONS = SitePages::ICONS + ['lock' => 'Kilit', 'refresh' => 'İade / değişim', 'cart' => 'Sepet', 'building' => 'Mağaza', 'message-circle' => 'Mesaj'];
 
     /** Kayan şerit: en fazla madde, renkler ve hızlar (madde başına saniye). */
-    public const MAX_MARQUEE = 8;
+    public const MAX_MARQUEE = 12;
 
     public const MAX_COLUMNS = 4;
 
@@ -97,20 +97,39 @@ class StoreFooter
      */
     public static function marquee(array $config): array
     {
-        if ($config['marquee_items']) {
-            return $config['marquee_items'];
-        }
+        return $config['marquee_items'] ?: self::marqueeSuggestions();
+    }
+
+    /**
+     * Yönetimde madde yazılmamışsa kullanılan ve formu ilk açılışta dolduran maddeler. Yalnızca ayarlardan doğrulanabilen
+     * bilgiler yazılır (ücretsiz kargo sınırı, taksit, Eskişehir teslimatı, aynı gün kargo saati, iade süresi, WhatsApp);
+     * kuruluş yılı, müşteri memnuniyeti gibi bilgileri mağaza sahibi kendisi ekler.
+     *
+     * @return list<array{icon: string, text: string, badge: ?string}>
+     */
+    public static function marqueeSuggestions(): array
+    {
+        $s = StoreSetting::values();
         $items = [];
-        if ($threshold = Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2)) {
+        if ($threshold = Decimal::parse($s['shipping_free_threshold'], 2)) {
             $items[] = ['icon' => 'truck', 'text' => Money::format($threshold).' üzeri alışverişlerde', 'badge' => 'Kargo bedava'];
         }
-        if (StoreSetting::flag('card_enabled')) {
-            $items[] = ['icon' => 'percent', 'text' => 'Kredi kartına', 'badge' => '9 aya varan taksit'];
+        $items[] = ['icon' => 'lock', 'text' => 'Güvenli alışveriş', 'badge' => '256 bit SSL'];
+        if ($s['card_enabled'] === '1') {
+            $items[] = ['icon' => 'percent', 'text' => 'Kredi kartına', 'badge' => 'Taksit imkânı'];
         }
-        if (StoreSetting::flag('local_delivery_enabled')) {
+        if ($s['local_delivery_enabled'] === '1') {
             $items[] = ['icon' => 'map-pin', 'text' => 'Eskişehir içi', 'badge' => 'Mağaza teslimatı'];
         }
-        $items[] = ['icon' => 'lock', 'text' => 'Güvenli alışveriş', 'badge' => '256 bit SSL'];
+        if ($s['cargo_cutoff']) {
+            $items[] = ['icon' => 'clock', 'text' => 'Hafta içi '.$s['cargo_cutoff'].' öncesi siparişlerde', 'badge' => 'Aynı gün kargo'];
+        }
+        $items[] = ['icon' => 'refresh', 'text' => ((int) $s['return_days'] ?: 14).' gün içinde', 'badge' => 'Kolay iade'];
+        $items[] = ['icon' => 'check-circle', 'text' => 'Her siparişte', 'badge' => 'Faturalı satış'];
+        if ($s['whatsapp']) {
+            $items[] = ['icon' => 'message-circle', 'text' => 'WhatsApp ile', 'badge' => 'Hızlı destek'];
+        }
+        $items[] = ['icon' => 'package', 'text' => 'Okul ve ofis ihtiyaçlarınız', 'badge' => 'Tek adreste'];
 
         return $items;
     }

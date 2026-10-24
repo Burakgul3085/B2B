@@ -7,7 +7,7 @@
         @csrf @method('PUT')
         <div class="grid gap-6 xl:grid-cols-3">
             <div class="space-y-6 xl:col-span-2">
-                <x-card title="Kayan şerit" description="Sayfanın en üstünde sağdan sola sürekli kayan renkli bant. Her madde: simge, metin ve isteğe bağlı vurgulu kutu (ör. “₺750 üzeri alışverişlerde” + “KARGO BEDAVA”). Hepsini boş bırakırsanız maddeler ayarlardan üretilir.">
+                <x-card title="Kayan şerit" description="Sayfanın en üstünde sağdan sola sürekli kayan renkli bant. Her madde: simge, metin ve isteğe bağlı vurgulu kutu (ör. “₺750 üzeri alışverişlerde” + “KARGO BEDAVA”). En fazla 12 madde. Form, ayarlarınızdan hazırlanmış önerilerle dolu gelir; düzenleyip kaydedin. Kuruluş yılı (ör. “1998’den beri” + “28 YIL GÜVENİ”) gibi size özel bilgileri boş satırlara ekleyebilirsiniz.">
                     <div class="mb-4 flex flex-wrap items-end gap-4">
                         <x-toggle name="marquee_enabled" label="Kayan şeridi göster" :checked="$footer['marquee_enabled']" />
                         <x-field name="marquee_color" label="Renk" :options="\App\Domain\Store\Content\StoreFooter::MARQUEE_COLORS" :value="$footer['marquee_color']" class="w-40" />
@@ -15,7 +15,7 @@
                     </div>
                     <div class="space-y-2">
                         @for ($i = 0; $i < \App\Domain\Store\Content\StoreFooter::MAX_MARQUEE; $i++)
-                            @php $row = $footer['marquee_items'][$i] ?? null; @endphp
+                            @php $row = ($footer['marquee_items'] ?: \App\Domain\Store\Content\StoreFooter::marqueeSuggestions())[$i] ?? null; @endphp
                             <div class="grid gap-3 rounded-lg bg-surface p-3 sm:grid-cols-[10rem_1fr_12rem]">
                                 <x-field :name="'marquee_items['.$i.'][icon]'" label="Simge" :options="$icons" :value="$row['icon'] ?? 'check-circle'" />
                                 <x-field :name="'marquee_items['.$i.'][text]'" :label="($i + 1).'. metin'" :value="$row['text'] ?? null" maxlength="60" placeholder="ör. 1989'dan beri" />

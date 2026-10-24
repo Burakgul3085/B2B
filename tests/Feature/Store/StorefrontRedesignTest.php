@@ -135,6 +135,8 @@ class StorefrontRedesignTest extends TestCase
             ->assertSee('aria-label="Bonus"', false)->assertSee('aria-label="CardFinans"', false);
 
         $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
+        // Form, ayarlardan hazırlanmış önerilerle dolu gelir (düzenlenip kaydedilir)
+        $this->get(route('store_admin.footer.edit'))->assertOk()->assertSee('value="Faturalı satış"', false)->assertSee('value="Kargo bedava"', false);
         $base = ['shop_title' => 'Alışveriş', 'category_count' => 6, 'info_title' => 'Bilgi', 'store_title' => 'Mağazamız'];
         $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '1', 'marquee_color' => 'mor'])->assertSessionHasErrors('marquee_color');
         $this->put(route('store_admin.footer.update'), $base + ['marquee_enabled' => '1', 'marquee_color' => 'navy', 'marquee_speed' => 'fast',
