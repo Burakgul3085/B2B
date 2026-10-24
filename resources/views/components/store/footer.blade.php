@@ -66,9 +66,6 @@
                     @endforeach
                 </div>
             @endif
-            @if (app(\App\Domain\Store\Newsletter\Subscriptions::class)->formAvailable())
-                @include('components.store._newsletter', ['title' => $settings['newsletter_title'], 'text' => $settings['newsletter_text'], 'consent' => $settings['newsletter_consent']])
-            @endif
         </div>
 
         {{-- Bağlantı sütunları (Vitrin → Üst ve Alt Bilgi → Sütunlar) --}}
@@ -78,8 +75,10 @@
                 ->filter(fn ($c) => $c['links'])->values();
             $colGrid = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-3', 4 => 'sm:grid-cols-2 xl:grid-cols-4'][max(1, $columns->count())];
         @endphp
-        @if ($columns->isNotEmpty())
-            <div class="grid gap-10 sm:col-span-2 lg:col-span-6 {{ $colGrid }}">
+        @php $newsletter = app(\App\Domain\Store\Newsletter\Subscriptions::class)->formAvailable(); @endphp
+        @if ($columns->isNotEmpty() || $newsletter)
+          <div class="sm:col-span-2 lg:col-span-6">
+            <div class="grid gap-10 {{ $colGrid }}">
                 @foreach ($columns as $column)
                     <div>
                         <p class="{{ $heading }}">{{ $column['title'] }}</p>
@@ -97,6 +96,11 @@
                     </div>
                 @endforeach
             </div>
+            {{-- E-bülten: sütunların altında, ortada --}}
+            @if ($newsletter)
+                @include('components.store._newsletter', ['title' => $settings['newsletter_title'], 'text' => $settings['newsletter_text'], 'consent' => $settings['newsletter_consent']])
+            @endif
+          </div>
         @endif
 
         {{-- Mağazamız --}}
