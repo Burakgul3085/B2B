@@ -36,10 +36,6 @@
         </div>
     @endif
 
-    @if (app(\App\Domain\Store\Newsletter\Subscriptions::class)->formAvailable())
-        @include('components.store._newsletter', ['title' => $settings['newsletter_title'], 'text' => $settings['newsletter_text'], 'consent' => $settings['newsletter_consent']])
-    @endif
-
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-12 lg:px-8">
         {{-- Marka ve iletişim --}}
         <div class="lg:col-span-3">
@@ -69,6 +65,9 @@
                             class="flex size-10 items-center justify-center rounded-xl text-white/80 ring-1 ring-white/15 transition hover:bg-white/10 hover:text-white"><x-icon :name="$icon" class="size-4.5" /></a>
                     @endforeach
                 </div>
+            @endif
+            @if (app(\App\Domain\Store\Newsletter\Subscriptions::class)->formAvailable())
+                @include('components.store._newsletter', ['title' => $settings['newsletter_title'], 'text' => $settings['newsletter_text'], 'consent' => $settings['newsletter_consent']])
             @endif
         </div>
 
