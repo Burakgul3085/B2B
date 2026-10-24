@@ -523,3 +523,15 @@ export function campaignProgress(url, initial) {
         },
     };
 }
+
+/** Parola alanında göster / gizle: kapsayıcıda x-data="passwordReveal", düğmede @click="toggle()". */
+export function passwordReveal() {
+    return {
+        shown: false,
+        toggle() {
+            const input = this.$root.querySelector('input');
+            this.shown = input.type === 'password';
+            input.type = this.shown ? 'text' : 'password';
+        },
+    };
+}
