@@ -40,22 +40,22 @@
         </form>
 
         {{-- Sağ: (üyeye) favoriler · hesap · sepet │ tema --}}
-        <div class="ml-auto flex items-center gap-1 md:ml-0 sm:gap-2">
+        <div class="ml-auto flex shrink-0 items-center gap-1 md:ml-0 sm:gap-2">
             @if ($customer)
                 <a href="{{ route('store.favorites') }}" class="hidden size-11 items-center justify-center rounded-xl text-ink/80 transition hover:bg-surface hover:text-puzzle-orange sm:flex" aria-label="Favorilerim" title="Favorilerim">
                     <x-icon name="heart" class="size-6" />
                 </a>
             @endif
-            <a href="{{ $customer ? route('store.account') : route('store.login') }}" class="flex h-11 items-center gap-2.5 rounded-xl px-2 transition hover:bg-surface sm:px-3"
+            <a href="{{ $customer ? route('store.account') : route('store.login') }}" class="flex h-10 items-center gap-2.5 rounded-xl px-0.5 transition hover:bg-surface sm:h-11 sm:px-3"
                 aria-label="{{ $customer ? 'Hesabım' : 'Giriş yap' }}">
-                <span class="flex size-9 items-center justify-center rounded-full bg-surface text-navy-ink ring-1 ring-line"><x-icon name="user" class="size-5" /></span>
+                <span class="flex size-9 items-center justify-center rounded-full bg-surface text-navy-ink ring-1 ring-line"><x-icon name="user" class="size-[18px]" /></span>
                 <span class="hidden text-left leading-tight lg:block">
                     <span class="block text-[11px] text-muted">{{ $customer ? 'Merhaba, '.$customer->first_name : 'Hoş geldiniz' }}</span>
                     <span class="block text-sm font-semibold">{{ $customer ? 'Hesabım' : 'Giriş yap' }}</span>
                 </span>
             </a>
             <a href="{{ route('store.cart') }}" x-data="cartBadge({{ $cartCount }})" @click.prevent="openCart"
-                class="relative flex h-11 items-center gap-2.5 rounded-xl bg-navy px-3 text-white shadow-md shadow-navy/20 transition hover:bg-puzzle-orange lg:px-4" aria-label="Sepet ({{ $cartCount }} ürün)">
+                class="relative flex h-10 items-center gap-2.5 rounded-xl bg-navy px-2.5 text-white sm:h-11 sm:px-3 shadow-md shadow-navy/20 transition hover:bg-puzzle-orange lg:px-4" aria-label="Sepet ({{ $cartCount }} ürün)">
                 <span class="relative">
                     <x-icon name="cart" class="size-5" />
                     <span x-show="count > 0" x-text="count" @if (! $cartCount) x-cloak @endif
@@ -64,7 +64,7 @@
                 <span class="hidden text-sm font-semibold lg:block">Sepetim</span>
             </a>
             <span class="mx-1 hidden h-8 w-px bg-line sm:block" aria-hidden="true"></span>
-            <button type="button" x-data="themeSwitch" @click="toggle" class="flex size-11 items-center justify-center rounded-xl text-ink/70 ring-1 ring-line transition hover:bg-surface hover:text-ink" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
+            <button type="button" x-data="themeSwitch" @click="toggle" class="flex size-10 items-center justify-center rounded-xl text-ink/70 ring-1 ring-line transition sm:size-11 hover:bg-surface hover:text-ink" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
                 <span x-show="! isDark"><x-icon name="moon" class="size-5" /></span>
                 <span x-show="isDark" x-cloak><x-icon name="sun" class="size-5" /></span>
             </button>

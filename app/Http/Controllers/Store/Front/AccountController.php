@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Store\Front;
 use App\Domain\Store\Customers\CustomerService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCustomer;
+use App\Models\Store\StoreFavorite;
 use App\Models\Store\StoreOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,11 @@ class AccountController extends Controller
             'customer' => $customer,
             'addresses' => $customer->addresses()->with(['province', 'district'])->get(),
             'orders' => StoreOrder::where('customer_id', $customer->id)->latest('id')->limit(3)->get(),
+            'stats' => [
+                'orders' => StoreOrder::where('customer_id', $customer->id)->count(),
+                'open' => StoreOrder::where('customer_id', $customer->id)->whereIn('status', StoreOrder::OPEN)->count(),
+                'favorites' => StoreFavorite::where('customer_id', $customer->id)->count(),
+            ],
         ]);
     }
 

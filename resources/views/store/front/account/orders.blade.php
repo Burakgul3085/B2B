@@ -1,29 +1,37 @@
 @php use App\Domain\Support\Money; @endphp
-<x-layouts.store title="Siparişlerim" :noindex="true">
-    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <a href="{{ route('store.account') }}" class="text-sm text-muted hover:text-primary">← Hesabım</a>
-        <h1 class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Siparişlerim</h1>
+<x-store.account-shell title="Siparişlerim" active="orders">
+    <p class="text-xs font-bold tracking-[0.18em] text-puzzle-orange uppercase">Hesabım</p>
+    <h1 class="mt-1 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Siparişlerim</h1>
+    <p class="mt-1 text-muted">Siparişlerinizin durumu, faturaları ve iade talepleri.</p>
 
-        @if ($orders->isEmpty())
-            <p class="mt-8 rounded-2xl border border-dashed border-line px-6 py-12 text-center text-sm text-muted">Henüz siparişiniz yok.</p>
-        @else
-            <ul class="mt-6 divide-y divide-line rounded-2xl border border-line">
-                @foreach ($orders as $order)
-                    <li>
-                        <a href="{{ route('store.orders.show', $order->order_no) }}" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50">
+    @if ($orders->isEmpty())
+        <div class="mt-8 flex flex-col items-center rounded-3xl border border-line bg-white px-6 py-14 text-center">
+            <span class="flex size-16 items-center justify-center rounded-2xl bg-puzzle-orange-soft text-puzzle-orange"><x-icon name="package" class="size-8" /></span>
+            <p class="mt-4 font-display text-lg font-extrabold">Henüz siparişiniz yok.</p>
+            <p class="mt-1 text-sm text-muted">Verdiğiniz siparişler burada listelenir.</p>
+            <a href="{{ route('store.products') }}" class="mt-6 inline-flex h-11 items-center rounded-xl bg-navy px-5 text-sm font-semibold text-white hover:bg-puzzle-orange">Alışverişe başla</a>
+        </div>
+    @else
+        <ul class="mt-8 space-y-3">
+            @foreach ($orders as $order)
+                <li>
+                    <a href="{{ route('store.orders.show', $order->order_no) }}" class="group flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-line bg-white px-5 py-4 transition hover:-translate-y-0.5 hover:border-transparent hover:shadow-xl hover:shadow-navy/10 sm:px-6">
+                        <span class="flex items-center gap-4">
+                            <span class="flex size-12 items-center justify-center rounded-2xl bg-surface text-navy-ink"><x-icon name="file" class="size-5" /></span>
                             <span>
-                                <span class="font-semibold">{{ $order->order_no }}</span>
+                                <span class="block font-display font-extrabold">{{ $order->order_no }}</span>
                                 <span class="block text-xs text-muted">{{ $order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $order->items_count }} kalem</span>
                             </span>
-                            <span class="flex items-center gap-4">
-                                <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
-                                <span class="font-semibold tabular-nums">{{ Money::format($order->total) }}</span>
-                            </span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-            <div class="mt-6">{{ $orders->links() }}</div>
-        @endif
-    </div>
-</x-layouts.store>
+                        </span>
+                        <span class="flex items-center gap-4">
+                            <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+                            <span class="font-display text-lg font-extrabold tabular-nums">{{ Money::format($order->total) }}</span>
+                            <x-icon name="arrow-right" class="size-4 text-muted transition group-hover:translate-x-1" />
+                        </span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+        <div class="mt-6">{{ $orders->links() }}</div>
+    @endif
+</x-store.account-shell>
