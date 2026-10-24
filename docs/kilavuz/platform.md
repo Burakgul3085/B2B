@@ -21,7 +21,7 @@ Kurtarma kodu yoktur. İki adımlı doğrulama sunucudan (SSH) sıfırlanır, so
 cd /var/www/yapboz/current && sudo -u www-data php artisan platform:reset-two-factor <e-posta>
 ```
 
-Mağaza yöneticisi (süper admin dahil) için komutun sonuna `--store-admin` eklenir. Sıfırlama işlem kaydına yazılır.
+Mağaza yöneticisi (süper admin dahil) için komutun sonuna `--store-admin` eklenir; onay sorusunu atlamak için `--force`. Sıfırlama işlem kaydına yazılır.
 
 ## Menüler
 

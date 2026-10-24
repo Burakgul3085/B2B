@@ -35,5 +35,10 @@ class ResetTwoFactorCommandTest extends TestCase
         $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local', '--store-admin' => true])
             ->expectsConfirmation('Süper (s@magaza.local) için iki adımlı doğrulama sıfırlansın mı?', 'yes')->assertSuccessful();
         $this->assertNull($admin->fresh()->two_factor_confirmed_at);
+
+        // --force: onay sormadan (SSH'de etkileşimsiz)
+        $admin->forceFill(['two_factor_secret' => 'SECRET', 'two_factor_confirmed_at' => now()])->save();
+        $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local', '--store-admin' => true, '--force' => true])->assertSuccessful();
+        $this->assertNull($admin->fresh()->two_factor_confirmed_at);
     }
 }

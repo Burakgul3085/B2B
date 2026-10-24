@@ -17,7 +17,7 @@ use function Laravel\Prompts\confirm;
  */
 class ResetTwoFactor extends Command
 {
-    protected $signature = 'platform:reset-two-factor {email : Yöneticinin giriş e-postası} {--store-admin : Mağaza yöneticisi (varsayılan: platform yöneticisi)}';
+    protected $signature = 'platform:reset-two-factor {email : Yöneticinin giriş e-postası} {--store-admin : Mağaza yöneticisi (varsayılan: platform yöneticisi)} {--force : Onay sormadan sıfırla (SSH ile tek komut)}';
 
     protected $description = 'Platform veya mağaza yöneticisinin iki adımlı doğrulamasını sıfırlar (yeni karekodla yeniden kurulur)';
 
@@ -30,7 +30,7 @@ class ResetTwoFactor extends Command
 
             return self::FAILURE;
         }
-        if (! confirm("{$admin->name} ({$admin->email}) için iki adımlı doğrulama sıfırlansın mı?", default: false)) {
+        if (! $this->option('force') && ! confirm("{$admin->name} ({$admin->email}) için iki adımlı doğrulama sıfırlansın mı?", default: false)) {
             return self::FAILURE;
         }
 
