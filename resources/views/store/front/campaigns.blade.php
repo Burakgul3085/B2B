@@ -34,13 +34,9 @@
                     @endphp
                     <article class="group flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-xs transition duration-300 hover:-translate-y-0.5 hover:shadow-lg" @if ($campaign->isCoupon()) x-data="copyCode(@alpine($campaign->code))" @endif>
                         @if ($campaign->image_path)
-                            @php $image = route('store.media.discount', ['storeDiscount' => $campaign, 'w' => 960]); @endphp
-                            {{-- Görsel hiçbir oranda kırpılmaz: tamamı ortada durur, kalan boşluğu aynı görselin bulanık hâli doldurur. --}}
-                            <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
-                                <img src="{{ $image }}" alt="" aria-hidden="true" loading="lazy" class="absolute inset-0 size-full scale-125 object-cover opacity-70 blur-2xl saturate-150">
-                                <img src="{{ $image }}" alt="{{ $campaign->name }}" loading="lazy" class="relative size-full object-contain p-2 drop-shadow-sm transition duration-500 group-hover:scale-[1.02]">
-                                <span class="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1 font-display text-sm font-extrabold text-ink shadow-md ring-1 ring-black/5 backdrop-blur">{{ HomeFeed::percentLabel($campaign) }}{{ $campaign->type === 'free_shipping' ? '' : ' indirim' }}</span>
-                            </div>
+                            {{-- Görsel yüklendiği oranda, kırpılmadan ve dolgu eklenmeden gösterilir; kartın boyu görsele göre değişir. --}}
+                            <img src="{{ route('store.media.discount', ['storeDiscount' => $campaign, 'w' => 960]) }}" alt="{{ $campaign->name }}" loading="lazy" class="block h-auto w-full">
+
                         @else
                             <div class="relative flex aspect-[3/2] items-center overflow-hidden px-7 text-white {{ $tone['solid'] }}">
                                 <span class="absolute -right-8 -bottom-10 size-40 rounded-full bg-white/15" aria-hidden="true"></span>
@@ -54,6 +50,7 @@
 
                         <div class="flex flex-1 flex-col gap-3 p-5 sm:p-6">
                             <div class="flex flex-wrap gap-1.5">
+                                @if ($campaign->image_path)<span class="rounded-md bg-puzzle-orange px-2 py-0.5 text-[11px] font-bold text-white">{{ HomeFeed::percentLabel($campaign) }}{{ $campaign->type === 'free_shipping' ? '' : ' indirim' }}</span>@endif
                                 @if ($campaign->audience === 'new_members')<span class="rounded-md bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-800">Yeni üyelere özel</span>
                                 @elseif ($campaign->audience === 'members')<span class="rounded-md bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800">Üyelere özel</span>@endif
                                 @if ($campaign->first_order_only)<span class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">İlk siparişe</span>@endif
