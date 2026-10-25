@@ -111,7 +111,6 @@ class HomeFeed
             'tagline' => $content['tagline'],
             'excerpt' => $content['story'] && $on('story') ? Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) SitePages::markdown($content['story'])))), 260) : null,
             'stats' => $on('stats') ? $content['stats'] : [],
-            'features' => $on('features') ? $content['features'] : [],
             'badge_value' => $content['badge_value'] ?? null,
             'badge_label' => $content['badge_label'] ?? null,
             'photo' => $photo ? ['src' => route('store.media.page', ['file' => basename($photo), 'w' => 1200]), 'ratio' => ImageVariants::ratio($photo)] : null,

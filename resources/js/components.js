@@ -176,7 +176,7 @@ export function bannerRotator(count) {
         timer: null,
         start() {
             clearInterval(this.timer);
-            if (this.n > 1) this.timer = setInterval(() => (this.i = (this.i + 1) % this.n), 6000);
+            if (this.n > 1) this.timer = setInterval(() => (this.i = (this.i + 1) % this.n), 2000);
         },
         stop() {
             clearInterval(this.timer);

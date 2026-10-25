@@ -1,5 +1,5 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Banner'lar">
-    <x-page-header title="Banner'lar" subtitle="Mağaza ana sayfasının en üstünde, ekranın iki yanına kadar uzanan kayan görseller ve altındaki kampanya kutuları." />
+    <x-page-header title="Banner'lar" subtitle="Mağaza ana sayfasının en üstündeki kayan görseller (2 saniyede bir geçer) ve altındaki kampanya kutuları." />
 
     {{-- Ölçü rehberi: görseller vitrinde sabit oranlı çerçevelere tam oturur; oranı farklı görsel kabul edilmez. --}}
     @php [$hw, $hh] = \App\Models\Store\StoreBanner::SIZES['hero']; [$mw, $mh] = \App\Models\Store\StoreBanner::SIZES['mobile']; [$sw, $sh] = \App\Models\Store\StoreBanner::SIZES['side']; @endphp
@@ -7,8 +7,8 @@
         <p class="font-semibold">Görsel ölçüleri — bu ölçülerde hazırlanan görsel vitrinde kırpılmadan, boşluksuz ve tam oturur</p>
         <div class="mt-4 grid gap-4 sm:grid-cols-3">
             <div class="flex items-center gap-3">
-                <span class="flex h-8 w-24 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">3 : 1</span>
-                <span><b>Büyük alan:</b> {{ $hw }}×{{ $hh }} px<br><span class="text-sky-800">Masaüstünde tam genişlik</span></span>
+                <span class="flex h-8 w-20 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">5 : 2</span>
+                <span><b>Büyük alan:</b> {{ $hw }}×{{ $hh }} px<br><span class="text-sky-800">Ana sayfanın en üstünde, 2 saniyede bir geçer</span></span>
             </div>
             <div class="flex items-center gap-3">
                 <span class="flex h-14 w-11 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">4 : 5</span>
@@ -20,7 +20,7 @@
             </div>
         </div>
         <ul class="mt-4 list-disc space-y-1 pl-5 text-sky-900">
-            <li>Aynı oranda daha büyük görsel de olur (ör. 2880×960). Oranı farklı görsel yüklenmez; sistem nedenini yazar.</li>
+            <li>Aynı oranda daha büyük görsel de olur (ör. 2000×800). Oranı farklı görsel yüklenmez; sistem nedenini yazar.</li>
             <li>Yazı ve logoları kenarlardan biraz içeride tutun. Başlık girerseniz görselin sol tarafında koyu bir geçişin üzerinde gösterilir.</li>
             <li>Telefonlarda dikey mobil görsel, yalnızca tüm büyük alan banner'larında mobil görsel varsa kullanılır; yoksa masaüstü görseli telefonda da bütün hâliyle gösterilir.</li>
             <li>JPG, PNG veya WEBP; en fazla 8 MB.</li>

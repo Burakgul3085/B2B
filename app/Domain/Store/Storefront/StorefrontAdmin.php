@@ -179,7 +179,7 @@ class StorefrontAdmin
     }
 
     /**
-     * Banner görseli vitrindeki çerçevenin oranında olmalı (ör. büyük alan 3:1): böylece hiçbir ekranda kırpılmaz,
+     * Banner görseli vitrindeki çerçevenin oranında olmalı (ör. büyük alan 5:2): böylece hiçbir ekranda kırpılmaz,
      * kenarında boşluk kalmaz. Boyut, en az önerilen genişliğin üçte ikisi olmalı (bulanık görünmesin).
      *
      * @throws ValidationException

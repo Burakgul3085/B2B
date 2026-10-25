@@ -64,12 +64,15 @@
             </a>
             <a href="{{ route('store.cart') }}" x-data="cartBadge({{ $cartCount }})" @click.prevent="openCart"
                 class="relative flex h-10 items-center gap-2.5 rounded-xl bg-navy px-2.5 text-white sm:h-11 sm:px-3 shadow-md shadow-navy/20 transition hover:bg-puzzle-orange lg:px-4" aria-label="Sepet ({{ $cartCount }} ürün)">
+                {{-- Ürün sayısı: dar ekranda simgenin köşesinde, geniş ekranda "Sepetim" yazısının yanında (yazıyla çakışmaz). --}}
                 <span class="relative">
                     <x-icon name="cart" class="size-5" />
                     <span x-show="count > 0" x-text="count" @if (! $cartCount) x-cloak @endif
-                        class="absolute -top-2.5 -right-3 min-w-5 rounded-full bg-puzzle-orange px-1 text-center text-[11px] leading-5 font-bold text-white tabular-nums ring-2 ring-white">{{ $cartCount }}</span>
+                        class="absolute -top-2 -right-2.5 min-w-[18px] rounded-full bg-puzzle-orange px-1 text-center text-[10px] leading-[18px] font-bold text-white tabular-nums ring-2 ring-navy lg:hidden">{{ $cartCount }}</span>
                 </span>
                 <span class="hidden text-sm font-semibold lg:block">Sepetim</span>
+                <span x-show="count > 0" x-text="count" @if (! $cartCount) x-cloak @endif
+                    class="hidden min-w-6 rounded-full bg-puzzle-orange px-1.5 text-center text-xs leading-6 font-bold text-white tabular-nums lg:inline-block">{{ $cartCount }}</span>
             </a>
             <span class="mx-1 hidden h-8 w-px bg-line sm:block" aria-hidden="true"></span>
             <button type="button" x-data="themeSwitch" @click="toggle" class="flex size-10 items-center justify-center rounded-xl text-ink/70 ring-1 ring-line transition sm:size-11 hover:bg-surface hover:text-ink" :aria-label="isDark ? 'Açık temaya geç' : 'Koyu temaya geç'" aria-label="Temayı değiştir">
