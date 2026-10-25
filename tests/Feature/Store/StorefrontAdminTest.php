@@ -22,7 +22,7 @@ class StorefrontAdminTest extends TestCase
         $this->actingAs(StoreAdmin::create(['name' => 'Vitrin Yöneticisi', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
     }
 
-    private function image(int $w = 1600, int $h = 640): UploadedFile
+    private function image(int $w = 1920, int $h = 520): UploadedFile
     {
         $file = tempnam(sys_get_temp_dir(), 'bnr');
         $gd = imagecreatetruecolor($w, $h);
@@ -44,8 +44,8 @@ class StorefrontAdminTest extends TestCase
 
         // Görsel vitrindeki çerçevenin oranında olmalı (kırpılmadan oturması için); küçük görsel kabul edilmez.
         $this->post(route('store_admin.banners.store'), ['image' => $this->image(2100, 800)])->assertSessionHasErrors('image');
-        $this->post(route('store_admin.banners.store'), ['image' => $this->image(800, 320)])->assertSessionHasErrors('image');
-        $this->post(route('store_admin.banners.store'), ['image' => $this->image(2000, 800), 'mobile_image' => $this->image(1080, 1080)])->assertSessionHasErrors('mobile_image');
+        $this->post(route('store_admin.banners.store'), ['image' => $this->image(960, 260)])->assertSessionHasErrors('image');
+        $this->post(route('store_admin.banners.store'), ['image' => $this->image(2880, 780), 'mobile_image' => $this->image(1080, 1080)])->assertSessionHasErrors('mobile_image');
         $this->post(route('store_admin.banners.store'), ['placement' => 'side', 'image' => $this->image()])->assertSessionHasErrors('image');
         $this->assertSame(2, StoreBanner::count());
 

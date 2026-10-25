@@ -16,7 +16,7 @@ class StoreBanner extends Model
      * Görsel ölçüleri [genişlik, yükseklik]. Vitrin bu oranlarda sabit çerçeve kullanır; görsel tam bu orandaysa
      * kırpılmadan ve boşluk kalmadan çerçeveyi doldurur. Bu yüzden yüklemede oran denetlenir (bkz. StorefrontAdmin).
      */
-    public const SIZES = ['hero' => [1600, 640], 'mobile' => [1080, 1350], 'side' => [900, 600]];
+    public const SIZES = ['hero' => [1920, 520], 'mobile' => [1080, 1350], 'side' => [900, 600]];
 
     /** Oran toleransı (%1): yüklenen görselin oranı bu kadar sapabilir; gözle görülmez. */
     public const RATIO_TOLERANCE = 0.01;

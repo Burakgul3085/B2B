@@ -7,8 +7,8 @@
         <p class="font-semibold">Görsel ölçüleri — bu ölçülerde hazırlanan görsel vitrinde kırpılmadan, boşluksuz ve tam oturur</p>
         <div class="mt-4 grid gap-4 sm:grid-cols-3">
             <div class="flex items-center gap-3">
-                <span class="flex h-8 w-20 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">5 : 2</span>
-                <span><b>Büyük alan:</b> {{ $hw }}×{{ $hh }} px<br><span class="text-sky-800">Ana sayfanın en üstünde, 2 saniyede bir geçer</span></span>
+                <span class="flex h-[26px] w-24 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">Geniş</span>
+                <span><b>Büyük alan:</b> {{ $hw }}×{{ $hh }} px<br><span class="text-sky-800">Ekranın iki yanına uzanır, 2 saniyede bir geçer</span></span>
             </div>
             <div class="flex items-center gap-3">
                 <span class="flex h-14 w-11 shrink-0 items-center justify-center rounded bg-sky-200 text-[10px] font-bold text-sky-900">4 : 5</span>
@@ -20,7 +20,7 @@
             </div>
         </div>
         <ul class="mt-4 list-disc space-y-1 pl-5 text-sky-900">
-            <li>Aynı oranda daha büyük görsel de olur (ör. 2000×800). Oranı farklı görsel yüklenmez; sistem nedenini yazar.</li>
+            <li>Aynı oranda daha büyük görsel de olur (ör. 2880×780). Oranı farklı görsel yüklenmez; sistem nedenini yazar.</li>
             <li>Yazı ve logoları kenarlardan biraz içeride tutun. Başlık girerseniz görselin sol tarafında koyu bir geçişin üzerinde gösterilir.</li>
             <li>Telefonlarda dikey mobil görsel, yalnızca tüm büyük alan banner'larında mobil görsel varsa kullanılır; yoksa masaüstü görseli telefonda da bütün hâliyle gösterilir.</li>
             <li>JPG, PNG veya WEBP; en fazla 8 MB.</li>

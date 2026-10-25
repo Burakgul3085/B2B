@@ -1,5 +1,5 @@
 {{--
-    Kampanya alanı: sayfa hizasında kayan banner (5:2, 2 saniyede bir geçer) ve altında kampanya kutuları (3:2).
+    Kampanya alanı: ekranın iki yanına kadar uzanan, alçak kayan banner (1920×520, 2 saniyede bir geçer) ve altında kampanya kutuları (3:2).
     Çerçeveler yükleme ölçüsüyle aynı orandadır (StoreBanner::SIZES; yüklemede denetlenir): görsel kırpılmaz,
     kenarında boşluk kalmaz. Telefonda dikey (4:5) görsel yalnızca tüm banner'larda mobil görsel varsa kullanılır;
     yoksa masaüstü görseli bütün hâliyle gösterilir. Banner yoksa marka tanıtımlı açılış alanı.
@@ -13,9 +13,8 @@
 @endphp
 <section aria-label="Kampanyalar">
     @if ($main->isNotEmpty())
-        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-        <div class="group/hero relative overflow-hidden rounded-2xl bg-navy shadow-sm sm:rounded-3xl" x-data="bannerRotator({{ $main->count() }})" x-init="start()" @mouseenter="stop()" @mouseleave="start()">
-            <div @class(['relative w-full overflow-hidden', 'aspect-[4/5] sm:aspect-[5/2]' => $mobileAll, 'aspect-[5/2]' => ! $mobileAll])>
+        <div class="group/hero relative overflow-hidden bg-navy" x-data="bannerRotator({{ $main->count() }})" x-init="start()" @mouseenter="stop()" @mouseleave="start()">
+            <div @class(['relative w-full overflow-hidden', 'aspect-[4/5] sm:aspect-[1920/520]' => $mobileAll, 'aspect-[1920/520]' => ! $mobileAll])>
                 @foreach ($main as $index => $banner)
                     @php $tag = $banner->link_url ? 'a' : 'div'; @endphp
                     <{{ $tag }} @if ($banner->link_url) href="{{ $banner->link_url }}" @endif x-show="i === {{ $index }}" @if ($index) x-cloak @endif
@@ -29,9 +28,9 @@
                         @if ($banner->title || $banner->subtitle)
                             <span @class(['absolute inset-0 items-end bg-linear-to-t from-navy/85 via-navy/25 to-transparent sm:items-center sm:bg-linear-to-r sm:from-navy/85 sm:via-navy/40',
                                 'flex' => $mobileAll, 'hidden sm:flex' => ! $mobileAll])>
-                                <span class="w-full px-6 pb-14 sm:px-10 sm:pb-0 lg:px-14">
+                                <span class="mx-auto w-full max-w-7xl px-6 pb-14 sm:px-16 sm:pb-0 lg:px-20">
                                     <span class="block max-w-xl text-white">
-                                        @if ($banner->title)<span class="block font-display text-3xl leading-[1.08] font-extrabold tracking-tight sm:text-4xl lg:text-6xl">{{ $banner->title }}</span>@endif
+                                        @if ($banner->title)<span class="block font-display text-3xl leading-[1.08] font-extrabold tracking-tight sm:text-4xl lg:text-5xl xl:text-6xl">{{ $banner->title }}</span>@endif
                                         @if ($banner->subtitle)<span class="mt-3 block text-sm text-white/85 sm:text-lg">{{ $banner->subtitle }}</span>@endif
                                         @if ($banner->button_text && $banner->link_url)
                                             <span class="mt-6 inline-flex items-center gap-2 rounded-xl bg-puzzle-sun px-6 py-3 text-sm font-bold text-navy shadow-lg shadow-black/20 transition hover:brightness-105">{{ $banner->button_text }} <x-icon name="arrow-right" class="size-4" /></span>
@@ -53,13 +52,11 @@
                 </div>
             @endif
         </div>
-        </div>
     @else
-        {{-- Banner yokken: marka tanıtımlı açılış (sayfa hizasında, slider ile aynı ölçüde) --}}
-        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-        <div class="relative isolate overflow-hidden rounded-2xl bg-navy text-white sm:rounded-3xl lg:aspect-[5/2]">
+        {{-- Banner yokken: marka tanıtımlı açılış (tam genişlik, slider ile aynı yükseklikte) --}}
+        <div class="relative isolate overflow-hidden bg-navy text-white lg:h-[clamp(420px,27.1vw,560px)]">
             <div class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(250,204,21,0.12),transparent_55%)]" aria-hidden="true"></div>
-            <div class="grid h-full items-center gap-10 px-6 py-12 sm:px-12 sm:py-14 lg:grid-cols-[1.3fr_0.7fr] lg:px-16 lg:py-0">
+            <div class="mx-auto grid h-full max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-14 lg:grid-cols-[1.3fr_0.7fr] lg:px-8 lg:py-0">
                 <div class="max-w-2xl">
                     <p class="flex items-center gap-2 text-xs font-bold tracking-[0.25em] text-puzzle-sun uppercase">
                         <span class="inline-flex gap-0.5" aria-hidden="true"><span class="size-2 rounded-[3px] bg-puzzle-orange"></span><span class="size-2 rounded-[3px] bg-puzzle-green"></span><span class="size-2 rounded-[3px] bg-puzzle-blue"></span><span class="size-2 rounded-[3px] bg-puzzle-yellow"></span></span>
@@ -79,7 +76,6 @@
                     </div>
                 </div>
             </div>
-        </div>
         </div>
     @endif
 
