@@ -25,6 +25,8 @@ class StorefrontAdmin
     public function createBanner(array $input, UploadedFile $image, ?UploadedFile $mobile): StoreBanner
     {
         $data = $this->validateBanner($input);
+        $this->checkBannerImage($image, $data['placement'] ?? 'hero', 'image');
+        $this->checkBannerImage($mobile, 'mobile', 'mobile_image');
         $banner = new StoreBanner($data + ['sort' => (int) StoreBanner::max('sort') + 1]);
         $banner->image_path = $this->images->store($image, 'store/banners', 2560, self::BANNER_MAX_BYTES, 88);
         $banner->mobile_image_path = $mobile ? $this->images->store($mobile, 'store/banners', 1200, self::BANNER_MAX_BYTES, 88) : null;
@@ -38,6 +40,13 @@ class StorefrontAdmin
     public function updateBanner(StoreBanner $banner, array $input, ?UploadedFile $image, ?UploadedFile $mobile, bool $removeMobile): void
     {
         $data = $this->validateBanner($input);
+        $placement = $data['placement'] ?? $banner->placement ?? 'hero';
+        $this->checkBannerImage($image, $placement, 'image');
+        $this->checkBannerImage($mobile, 'mobile', 'mobile_image');
+        // Yerleşim değişip yeni görsel seçilmediyse mevcut görsel yeni yerin oranına uymalı.
+        if (! $image && $placement !== ($banner->placement ?? 'hero')) {
+            $this->checkRatio(ImageVariants::ratio($banner->image_path), $placement, 'image', 'Mevcut görsel');
+        }
         $old = $banner->only(array_keys($data));
         $banner->fill($data);
 
@@ -167,6 +176,39 @@ class StorefrontAdmin
         }
         StoreSetting::put(['is_open' => $open ? '1' : '0']);
         $this->audit->log($open ? 'store.opened' : 'store.closed');
+    }
+
+    /**
+     * Banner görseli vitrindeki çerçevenin oranında olmalı (ör. büyük alan 3:1): böylece hiçbir ekranda kırpılmaz,
+     * kenarında boşluk kalmaz. Boyut, en az önerilen genişliğin üçte ikisi olmalı (bulanık görünmesin).
+     *
+     * @throws ValidationException
+     */
+    private function checkBannerImage(?UploadedFile $file, string $kind, string $field): void
+    {
+        if (! $file || ! $file->isValid() || ! ($info = @getimagesize($file->getRealPath()))) {
+            return; // tür ve bozukluk denetimi ImageUploader'da
+        }
+        [$width, $height] = [$info[0], $info[1]];
+        // Telefon fotoğrafı yan çekilmişse (EXIF 5-8) yüklemede döndürülür; oran döndürülmüş hâline göre denetlenir.
+        $orientation = $info['mime'] === 'image/jpeg' && function_exists('exif_read_data') ? (int) (@exif_read_data($file->getRealPath())['Orientation'] ?? 1) : 1;
+        if ($orientation >= 5 && $orientation <= 8) {
+            [$width, $height] = [$height, $width];
+        }
+        [$w, $h] = StoreBanner::SIZES[$kind];
+        if ($width < intdiv($w * 2, 3)) {
+            throw ValidationException::withMessages([$field => "Görsel çok küçük ({$width}×{$height}). Önerilen boyut {$w}×{$h} piksel; en az ".intdiv($w * 2, 3).' piksel genişlik gerekir.']);
+        }
+        $this->checkRatio($height > 0 ? $width / $height : null, $kind, $field, "Görsel ({$width}×{$height})");
+    }
+
+    /** @throws ValidationException */
+    private function checkRatio(?float $ratio, string $kind, string $field, string $what): void
+    {
+        [$w, $h] = StoreBanner::SIZES[$kind];
+        if ($ratio !== null && abs($ratio - $w / $h) / ($w / $h) > StoreBanner::RATIO_TOLERANCE) {
+            throw ValidationException::withMessages([$field => "{$what} bu alanın ölçüsüne uymuyor. {$w}×{$h} piksel (veya aynı oranda, ör. ".intdiv($w * 3, 4).'×'.intdiv($h * 3, 4).') hazırlayın; böylece vitrinde kırpılmadan, tam oturur.']);
+        }
     }
 
     /** @throws ValidationException */

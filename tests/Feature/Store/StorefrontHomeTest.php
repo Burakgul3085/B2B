@@ -93,7 +93,9 @@ class StorefrontHomeTest extends TestCase
         $banner = new StoreBanner(['title' => 'Yan kutu', 'placement' => 'side']);
         $banner->image_path = 'store/banners/x.webp';
         $banner->save();
-        $this->get(self::HOST.'/')->assertSee('Yan kutu')->assertDontSee('her parça');
+        // Büyük alan banner'ı yokken açılış alanı gösterilir; kampanya kutusu altında yer alır.
+        $html = $this->get(self::HOST.'/')->assertSee('Yan kutu')->assertSee('her parça')->getContent();
+        $this->assertLessThan(strpos($html, 'Yan kutu'), strpos($html, 'her parça'));
         $this->assertSame('side', StoreBanner::sole()->placement);
     }
 

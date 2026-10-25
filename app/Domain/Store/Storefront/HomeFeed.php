@@ -12,6 +12,7 @@ use App\Models\Store\StoreDiscount;
 use App\Models\Store\StoreOrderItem;
 use App\Models\Store\StorePage;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Ana sayfa bloklarının verisi. Her şey gerçek veriden gelir: "çok satanlar" son 90 günün satışlarından,
@@ -28,7 +29,7 @@ class HomeFeed
     {
         $all = StoreBanner::visible()->get();
 
-        return ['main' => $all->where('placement', '!=', 'side')->values(), 'side' => $all->where('placement', 'side')->take(2)->values()];
+        return ['main' => $all->where('placement', '!=', 'side')->values(), 'side' => $all->where('placement', 'side')->take(4)->values()];
     }
 
     /** Ana kategoriler (renkleriyle) ve her birinin ürün sayısı. */
@@ -89,7 +90,7 @@ class HomeFeed
     {
         return StoreBrand::where('is_active', true)
             ->whereHas('products', fn ($q) => $q->where('is_published', true))
-            ->orderByRaw('logo_path IS NULL')->orderBy('name')->limit(12)->get(['id', 'name', 'slug', 'logo_path', 'updated_at']);
+            ->orderByRaw('logo_path IS NULL')->orderBy('name')->limit(24)->get(['id', 'name', 'slug', 'logo_path', 'updated_at']);
     }
 
     /** Hakkımızda özeti: yayındaysa başlık, slogan ve rakamlar. */
@@ -101,7 +102,21 @@ class HomeFeed
         }
         $content = array_replace(SitePages::defaults('about'), $page->content ?? []);
 
-        return ['headline' => $content['headline'], 'tagline' => $content['tagline'], 'stats' => $content['stats'], 'features' => $content['features'], 'url' => route('store.about')];
+        // Fotoğraf: hikâyenin ilk fotoğrafı, yoksa kapak. Oranı kırpmadan yerleşim için birlikte verilir.
+        $photo = ($content['story_images'][0] ?? null) ?: ($content['cover'] ?? null);
+        $on = fn (string $section) => SitePages::sectionOn($content, $section);
+
+        return [
+            'headline' => $content['headline'],
+            'tagline' => $content['tagline'],
+            'excerpt' => $content['story'] && $on('story') ? Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) SitePages::markdown($content['story'])))), 260) : null,
+            'stats' => $on('stats') ? $content['stats'] : [],
+            'features' => $on('features') ? $content['features'] : [],
+            'badge_value' => $content['badge_value'] ?? null,
+            'badge_label' => $content['badge_label'] ?? null,
+            'photo' => $photo ? ['src' => route('store.media.page', ['file' => basename($photo), 'w' => 1200]), 'ratio' => ImageVariants::ratio($photo)] : null,
+            'url' => route('store.about'),
+        ];
     }
 
     /** Avantaj şeridi: Üst ve Alt Bilgi'deki güven şeridi maddeleri (tek yerden yönetilir). */

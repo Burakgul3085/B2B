@@ -175,10 +175,20 @@ export function bannerRotator(count) {
         n: count,
         timer: null,
         start() {
+            clearInterval(this.timer);
             if (this.n > 1) this.timer = setInterval(() => (this.i = (this.i + 1) % this.n), 6000);
         },
         stop() {
             clearInterval(this.timer);
+        },
+        go(index) {
+            this.i = index;
+        },
+        next() {
+            this.i = (this.i + 1) % this.n;
+        },
+        prev() {
+            this.i = (this.i - 1 + this.n) % this.n;
         },
     };
 }

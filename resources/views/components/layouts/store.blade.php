@@ -40,7 +40,7 @@
         <script type="application/ld+json">{!! json_encode($block, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}</script>
     @endforeach
 </head>
-<body class="flex min-h-screen flex-col bg-white pb-16 text-ink lg:pb-0" x-data="{ menu: false }" @keydown.escape.window="menu = false">
+<body class="flex min-h-screen flex-col bg-white pb-16 text-ink [--container-7xl:88rem] lg:pb-0" x-data="{ menu: false }" @keydown.escape.window="menu = false">
     @if ($preview)
         <div class="bg-amber-400 px-4 py-2 text-center text-sm font-medium text-slate-900">
             Önizleme modu: mağaza ziyaretçilere kapalı, bu sayfayı yalnızca siz görüyorsunuz.
