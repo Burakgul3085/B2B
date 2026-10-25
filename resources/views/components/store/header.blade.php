@@ -24,7 +24,8 @@
     if (\App\Models\Store\StoreBlogPost::anyLive()) {
         $links[] = ['Blog', route('store.blog'), request()->routeIs('store.blog*'), null];
     }
-    $navLink = 'relative inline-flex h-12 shrink-0 items-center gap-2 whitespace-nowrap px-3 text-sm font-semibold transition hover:text-ink';
+    $navLink = 'relative z-10 inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 text-sm font-semibold transition-colors duration-200 hover:text-navy-ink xl:px-3.5';
+    $phones = \App\Domain\Store\Storefront\StorePhones::list($settings);
 @endphp
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
@@ -92,19 +93,38 @@
 
     {{-- Geniş kategori menüsü (masaüstü) --}}
     <nav class="relative hidden border-t border-line lg:block" aria-label="Kategoriler" x-data="megaMenu" @click.outside="close" @keydown.escape.window="close">
-        <div class="mx-auto flex max-w-7xl items-center gap-1 overflow-hidden px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
             @if ($menu->isNotEmpty())
                 <button type="button" @click="toggle" :aria-expanded="open" aria-expanded="false"
-                    class="mr-2 inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-navy px-4 text-sm font-semibold text-white transition hover:bg-navy-2">
-                    <x-icon name="grid" class="size-4" /> Tüm kategoriler <x-icon name="chevron-down" class="size-4 transition" ::class="open && 'rotate-180'" />
+                    class="group inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-md shadow-navy/20 transition duration-200 hover:-translate-y-px hover:bg-navy-2 hover:shadow-lg">
+                    <x-icon name="grid" class="size-4 transition duration-300 group-hover:rotate-90" /> Tüm kategoriler <x-icon name="chevron-down" class="size-4 transition duration-300" ::class="open && 'rotate-180'" />
                 </button>
             @endif
-            @foreach ($links as [$label, $url, $active, $icon])
-                <a href="{{ $url }}" @class([$navLink, 'group', 'text-ink' => $active, 'text-ink/80' => ! $active]) @if ($active) aria-current="page" @endif>
-                    @if ($icon)<x-icon :name="$icon[0]" class="size-4 {{ $icon[1] }}" />@endif{{ $label }}
-                    <span @class(['absolute inset-x-3 bottom-0 h-0.5 origin-left rounded-full bg-puzzle-orange transition group-hover:scale-x-100', 'scale-x-0' => ! $active])></span>
+
+            {{-- Sekmeler satırın kalanına eşit aralıkla yayılır; vurgu fareyle gezilen sekmeye kayar. --}}
+            <div class="relative flex min-w-0 flex-1 items-center justify-between" x-data="navIndicator" @mouseleave="reset">
+                <span class="pointer-events-none absolute inset-y-2 left-0 rounded-xl bg-puzzle-orange/10" :class="[shown ? 'opacity-100' : 'opacity-0', ready ? 'transition-all duration-300 ease-out' : '']" :style="style" aria-hidden="true"></span>
+                <span class="pointer-events-none absolute bottom-0 left-0 h-[3px] rounded-full bg-puzzle-orange" :class="[shown ? 'opacity-100' : 'opacity-0', ready ? 'transition-all duration-300 ease-out' : '']" :style="style" aria-hidden="true"></span>
+                @foreach ($links as [$label, $url, $active, $icon])
+                    <a href="{{ $url }}" @mouseenter="move" @focus="move" @class([$navLink, 'group', 'text-navy-ink' => $active, 'text-ink/75' => ! $active]) @if ($active) aria-current="page" @endif>
+                        @if ($icon)<x-icon :name="$icon[0]" class="size-4 transition duration-300 group-hover:-translate-y-0.5 group-hover:scale-125 {{ $icon[1] }}" />@endif{{ $label }}
+                    </a>
+                @endforeach
+            </div>
+
+            @if ($phones || $whatsapp)
+                <a href="{{ $whatsapp ? 'https://wa.me/'.$whatsapp : $phones[0]['tel'] }}" @if ($whatsapp) target="_blank" rel="noopener" @endif
+                    class="group hidden h-10 shrink-0 items-center gap-2.5 rounded-xl border border-line pr-3.5 pl-3 text-sm transition duration-200 hover:-translate-y-px hover:border-puzzle-green hover:shadow-md xl:inline-flex">
+                    <span class="relative flex size-2.5" aria-hidden="true">
+                        <span class="absolute inline-flex size-full animate-ping rounded-full bg-puzzle-green opacity-60"></span>
+                        <span class="relative inline-flex size-2.5 rounded-full bg-puzzle-green"></span>
+                    </span>
+                    <span class="leading-tight">
+                        <span class="block text-[10px] font-medium tracking-wide text-muted uppercase">Hızlı destek</span>
+                        <span class="block font-semibold text-ink group-hover:text-puzzle-green">{{ $whatsapp ? 'WhatsApp' : $phones[0]['number'] }}</span>
+                    </span>
                 </a>
-            @endforeach
+            @endif
         </div>
 
         @if ($menu->isNotEmpty())
@@ -215,7 +235,6 @@
                 <a href="{{ $url }}" @class(['block py-2', 'text-puzzle-orange' => $active])>{{ $label }}</a>
             @endforeach
         </div>
-        @php $phones = \App\Domain\Store\Storefront\StorePhones::list($settings); @endphp
         @if ($phones || $whatsapp)
             <div class="mt-auto space-y-2 bg-surface px-4 py-4 text-sm">
                 @foreach ($phones as $phone)<a href="{{ $phone['tel'] }}" class="flex items-center gap-2 font-semibold"><x-icon name="phone" class="size-4 text-puzzle-orange" /> {{ $phone['number'] }}@if (count($phones) > 1) <span class="font-normal text-muted">· {{ $phone['label'] }}</span>@endif</a>@endforeach

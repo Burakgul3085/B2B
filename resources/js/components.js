@@ -415,6 +415,48 @@ export function megaMenu() {
 }
 
 /**
+ * Menü sekmelerinin altındaki kayan vurgu: fareyle gezilen sekmeye kayar, çıkınca etkin sekmeye döner.
+ * Etkin sekme yoksa vurgu gizlenir. Sekmeler @mouseenter/@focus="move" ile bağlanır.
+ */
+export function navIndicator() {
+    return {
+        x: 0,
+        w: 0,
+        shown: false,
+        ready: false,
+        init() {
+            this.reset();
+            window.addEventListener('resize', () => this.reset());
+            if (document.fonts) {
+                document.fonts.ready.then(() => this.reset());
+            }
+            requestAnimationFrame(() => {
+                this.ready = true;
+            });
+        },
+        move(e) {
+            this.place(e.currentTarget);
+        },
+        reset() {
+            const active = this.$root.querySelector('[aria-current="page"]');
+            if (active) {
+                this.place(active);
+            } else {
+                this.shown = false;
+            }
+        },
+        place(el) {
+            this.x = el.offsetLeft;
+            this.w = el.offsetWidth;
+            this.shown = true;
+        },
+        get style() {
+            return 'transform: translateX(' + this.x + 'px); width: ' + this.w + 'px';
+        },
+    };
+}
+
+/**
  * Sepete ekleme formu: sayfa yenilenmeden eklenir, mini sepet açılır. JavaScript yoksa form normal gönderilir.
  * Olaylar: cart-updated (sayı), cart-error (mesaj).
  */
