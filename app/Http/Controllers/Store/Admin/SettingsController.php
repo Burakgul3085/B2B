@@ -15,7 +15,7 @@ use Illuminate\View\View;
 /** Mağaza ayarları: iletişim, duyuru, ana sayfa SEO'su, mağazayı açma/kapama ve önizleme bağlantısı. */
 class SettingsController extends Controller
 {
-    private const FIELDS = ['announcement', 'meta_title', 'meta_description', 'new_product_days', 'phone', 'whatsapp', 'email', 'address', 'instagram', 'facebook', 'x', 'youtube', 'tiktok', 'linkedin', 'pinterest',
+    private const FIELDS = ['announcement', 'meta_title', 'meta_description', 'new_product_days', 'phone', 'phone_label', 'phone2', 'phone2_label', 'whatsapp', 'email', 'address', 'instagram', 'facebook', 'x', 'youtube', 'tiktok', 'linkedin', 'pinterest',
         'mail_host', 'mail_port', 'mail_encryption', 'mail_username', 'mail_password', 'remove_mail_password', 'mail_from_address', 'mail_from_name',
         'company_title', 'company_tax_office', 'company_tax_number', 'company_mersis', 'notify_emails', 'notify_orders', 'notify_returns', 'notify_low_stock', 'notify_messages'];
 

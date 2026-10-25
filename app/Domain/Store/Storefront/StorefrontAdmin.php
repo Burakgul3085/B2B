@@ -95,7 +95,10 @@ class StorefrontAdmin
             'meta_description' => ['nullable', 'string', 'max:320'],
             'new_product_days' => ['nullable', 'integer', 'between:1,365'],
             'footer_about' => ['nullable', 'string', 'max:600'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9 +()-]+$/'],
+            'phone_label' => ['nullable', 'string', 'max:30'],
+            'phone2' => ['nullable', 'string', 'max:30', 'regex:/^[0-9 +()-]+$/'],
+            'phone2_label' => ['nullable', 'string', 'max:30'],
             'whatsapp' => ['nullable', 'string', 'max:30', 'regex:/^[0-9 +()-]+$/'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],
@@ -120,7 +123,7 @@ class StorefrontAdmin
         ], ['company_tax_number.regex' => 'Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalıdır.', 'company_mersis.regex' => 'MERSİS numarası 16 haneli olmalıdır.'], [
             'company_title' => 'ticari unvan', 'company_tax_office' => 'vergi dairesi',
             'announcement' => 'duyuru', 'meta_title' => 'SEO başlığı', 'meta_description' => 'SEO açıklaması', 'new_product_days' => 'yeni ürün süresi', 'footer_about' => 'kısa tanıtım',
-            'phone' => 'telefon', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
+            'phone' => 'telefon', 'phone_label' => 'telefon etiketi', 'phone2' => 'ikinci telefon', 'phone2_label' => 'ikinci telefon etiketi', 'whatsapp' => 'WhatsApp numarası', 'email' => 'e-posta', 'address' => 'adres',
             'notify_emails' => 'bildirim adresleri', 'mail_host' => 'SMTP sunucusu', 'mail_port' => 'port', 'mail_username' => 'e-posta adresi',
             'mail_from_address' => 'gönderen adresi', 'mail_from_name' => 'gönderen adı',
         ])->validate();

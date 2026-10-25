@@ -3,7 +3,7 @@
 
     $c = $page->content;
     $info = [
-        'Telefon' => $settings['phone'], 'WhatsApp' => $settings['whatsapp'], 'E-posta' => $settings['email'], 'Adres' => $settings['address'],
+        'Telefon' => $settings['phone'], 'İkinci telefon' => $settings['phone2'], 'WhatsApp' => $settings['whatsapp'], 'E-posta' => $settings['email'], 'Adres' => $settings['address'],
         'Instagram' => $settings['instagram'], 'Facebook' => $settings['facebook'], 'Ticari unvan' => $settings['company_title'],
     ];
 @endphp

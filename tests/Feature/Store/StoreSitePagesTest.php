@@ -261,6 +261,22 @@ class StoreSitePagesTest extends TestCase
         $this->post(self::HOST.'/iletisim', ['name' => 'X', 'email' => 'x@ornek.com', 'subject' => 'Diğer', 'message' => 'Merhaba dünya'])->assertNotFound();
     }
 
+    public function test_second_phone_is_shown_in_footer_and_contact_page(): void
+    {
+        StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => ['hours' => OpeningHours::defaults()]]);
+        $this->put(route('store_admin.settings.update'), ['phone' => 'ara beni'])->assertSessionHasErrors('phone');
+        $this->put(route('store_admin.settings.update'), ['phone' => '0222 111 22 33', 'phone_label' => 'Dükkân', 'phone2' => '0532 765 43 21', 'phone2_label' => 'Cep'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('0532 765 43 21', StoreSetting::get('phone2'));
+
+        $this->get(self::HOST.'/')->assertOk()->assertSeeInOrder(['Dükkân:', '0222 111 22 33', 'Cep:', '0532 765 43 21'])->assertSee('tel:05327654321', false);
+        $this->get(self::HOST.'/iletisim')->assertOk()->assertSeeInOrder(['Dükkân', '0222 111 22 33', 'Cep', '0532 765 43 21']);
+
+        // Tek numara varsa etiket yazılmaz
+        $this->put(route('store_admin.settings.update'), ['phone' => '0222 111 22 33', 'phone_label' => 'Dükkân', 'phone2' => '', 'phone2_label' => ''])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/')->assertSee('0222 111 22 33')->assertDontSee('0532 765 43 21')->assertDontSee('Dükkân:');
+    }
+
     public function test_footer_is_configurable_and_uses_store_data(): void
     {
         StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => ['hours' => OpeningHours::defaults()]]);

@@ -213,9 +213,10 @@
                 <a href="{{ $url }}" @class(['block py-2', 'text-puzzle-orange' => $active])>{{ $label }}</a>
             @endforeach
         </div>
-        @if ($settings['phone'] || $whatsapp)
+        @php $phones = \App\Domain\Store\Storefront\StorePhones::list($settings); @endphp
+        @if ($phones || $whatsapp)
             <div class="mt-auto space-y-2 bg-surface px-4 py-4 text-sm">
-                @if ($settings['phone'])<a href="tel:{{ preg_replace('/[^\d+]/', '', $settings['phone']) }}" class="flex items-center gap-2 font-semibold"><x-icon name="phone" class="size-4 text-puzzle-orange" /> {{ $settings['phone'] }}</a>@endif
+                @foreach ($phones as $phone)<a href="{{ $phone['tel'] }}" class="flex items-center gap-2 font-semibold"><x-icon name="phone" class="size-4 text-puzzle-orange" /> {{ $phone['number'] }}@if (count($phones) > 1) <span class="font-normal text-muted">· {{ $phone['label'] }}</span>@endif</a>@endforeach
                 @if ($whatsapp)<a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="flex items-center gap-2 font-semibold"><x-icon name="message-circle" class="size-4 text-puzzle-green" /> WhatsApp destek</a>@endif
             </div>
         @endif

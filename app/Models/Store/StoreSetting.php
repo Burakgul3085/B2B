@@ -23,6 +23,9 @@ class StoreSetting extends Model
         'home' => null,              // ana sayfa blokları (JSON, App\Domain\Store\Storefront\HomeLayout)
         'new_product_days' => '30',  // "Yeni gelenler" ve "Yeni" rozeti: son kaç günde yayınlanan ürünler
         'phone' => null,
+        'phone_label' => null,       // ör. "Dükkân"; boşsa "Telefon"
+        'phone2' => null,            // ikinci telefon (isteğe bağlı)
+        'phone2_label' => null,      // ör. "Cep"; boşsa "Telefon 2"
         'whatsapp' => null,
         'email' => null,
         'address' => null,

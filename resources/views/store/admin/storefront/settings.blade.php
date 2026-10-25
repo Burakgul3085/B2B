@@ -8,6 +8,9 @@
             <x-card title="İletişim" description="Mağazanın alt bilgisinde ve iletişim alanlarında görünür.">
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-field name="phone" label="Telefon" :value="$settings['phone']" maxlength="30" placeholder="0222 000 00 00" />
+                    <x-field name="phone_label" label="Telefon etiketi (isteğe bağlı)" :value="$settings['phone_label']" maxlength="30" placeholder="Dükkân" hint="Numaranın yanında görünür; boşsa “Telefon” yazar." />
+                    <x-field name="phone2" label="İkinci telefon (isteğe bağlı)" :value="$settings['phone2']" maxlength="30" placeholder="0532 000 00 00" />
+                    <x-field name="phone2_label" label="İkinci telefon etiketi (isteğe bağlı)" :value="$settings['phone2_label']" maxlength="30" placeholder="Cep" hint="Boşsa “Telefon 2” yazar." />
                     <x-field name="whatsapp" label="WhatsApp numarası" :value="$settings['whatsapp']" maxlength="30" placeholder="90 5xx xxx xx xx" />
                     <x-field name="email" label="E-posta" type="email" :value="$settings['email']" />
                     <x-field name="address" label="Adres" :value="$settings['address']" maxlength="500" />

@@ -189,4 +189,4 @@ Rakam, yıl gibi bilgileri gerçek değerlerle doldurun; örnekler yalnızca ala
 - "Haritada gör" kartı, çalışma saatleri, "Bayi girişi" bağlantısı ve sağ alttaki WhatsApp düğmesinin gösterilip gösterilmeyeceği
 - en alttaki not
 
-Telefon, e-posta, adres ve sosyal medya Mağaza Ayarları'ndan, çalışma saatleri İletişim sayfasından, sayfa bağlantıları yayındaki sayfalardan gelir. Ödeme logo bandı Mağaza Ayarları'nda yüklenir.
+Telefon, e-posta, adres ve sosyal medya Mağaza Ayarları'ndan (iki telefon girilebilir: ör. "Dükkân" ve "Cep" etiketleriyle; ikisi de alt bilgide, İletişim ve Yardım sayfalarında görünür), çalışma saatleri İletişim sayfasından, sayfa bağlantıları yayındaki sayfalardan gelir. Ödeme logo bandı Mağaza Ayarları'nda yüklenir.

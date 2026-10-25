@@ -49,7 +49,8 @@
                 <p class="font-display font-extrabold">Yardıma mı ihtiyacınız var?</p>
                 <p class="mt-1 text-sm text-muted">Bize ulaşın, hemen yardımcı olalım.</p>
                 <ul class="mt-4 space-y-2.5 text-sm font-semibold">
-                    @if ($settings['phone'])<li><a href="tel:{{ preg_replace('/[^\d+]/', '', $settings['phone']) }}" class="flex items-center gap-2 hover:text-navy-ink"><x-icon name="phone" class="size-4 text-puzzle-orange" /> {{ $settings['phone'] }}</a></li>@endif
+                    @php $phones = \App\Domain\Store\Storefront\StorePhones::list($settings); @endphp
+                    @foreach ($phones as $phone)<li><a href="{{ $phone['tel'] }}" class="flex items-center gap-2 hover:text-navy-ink"><x-icon name="phone" class="size-4 text-puzzle-orange" /> {{ $phone['number'] }}@if (count($phones) > 1) <span class="font-normal text-muted">· {{ $phone['label'] }}</span>@endif</a></li>@endforeach
                     @if ($whatsapp)<li><a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-navy-ink"><x-icon name="message-circle" class="size-4 text-puzzle-green" /> WhatsApp</a></li>@endif
                     @if ($settings['email'])<li><a href="mailto:{{ $settings['email'] }}" class="flex items-center gap-2 break-all hover:text-navy-ink"><x-icon name="mail" class="size-4 text-puzzle-blue" /> {{ $settings['email'] }}</a></li>@endif
                 </ul>

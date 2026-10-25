@@ -6,9 +6,9 @@
     $c = $content;
     $s = $settings;
     $whatsapp = ProductPage::whatsapp($s['whatsapp']);
-    $phoneUrl = $s['phone'] ? 'tel:'.preg_replace('/[^\d+]/', '', $s['phone']) : null;
+    $phoneCards = array_map(fn ($p) => ['icon' => 'phone', 'label' => $p['label'], 'value' => $p['number'], 'url' => $p['tel'], 'note' => 'Hemen arayın'], \App\Domain\Store\Storefront\StorePhones::list($s));
     $cards = array_values(array_filter([
-        $s['phone'] ? ['icon' => 'phone', 'label' => 'Telefon', 'value' => $s['phone'], 'url' => $phoneUrl, 'note' => 'Hemen arayın'] : null,
+        ...$phoneCards,
         $whatsapp ? ['icon' => 'message-circle', 'label' => 'WhatsApp', 'value' => 'Mesaj gönderin', 'url' => 'https://wa.me/'.$whatsapp, 'note' => 'Hızlı yanıt'] : null,
         $s['email'] ? ['icon' => 'mail', 'label' => 'E-posta', 'value' => $s['email'], 'url' => 'mailto:'.$s['email'], 'note' => 'Bize yazın'] : null,
     ]));
@@ -45,7 +45,7 @@
     <div class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
         {{-- Hızlı iletişim kartları (başlık alanının üzerine biner) --}}
         @if ($cards)
-            <div @class(['relative -mt-14 grid gap-4', 'sm:grid-cols-2 lg:grid-cols-3' => count($cards) >= 3, 'sm:grid-cols-2' => count($cards) === 2])>
+            <div @class(['relative -mt-14 grid gap-4', 'sm:grid-cols-2 lg:grid-cols-3' => count($cards) === 3, 'sm:grid-cols-2 lg:grid-cols-4' => count($cards) >= 4, 'sm:grid-cols-2' => count($cards) === 2])>
                 @foreach ($cards as $i => $item)
                     @php $tone = Palette::classes(Palette::CYCLE[$i % 4]); @endphp
                     <a href="{{ $item['url'] }}" @if (str_starts_with($item['url'], 'http')) target="_blank" rel="noopener" @endif

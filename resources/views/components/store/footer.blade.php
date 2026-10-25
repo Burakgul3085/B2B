@@ -48,9 +48,10 @@
             </a>
             @if ($settings['footer_about'])<p class="mt-5 max-w-sm leading-relaxed text-white/70">{{ $settings['footer_about'] }}</p>@endif
             <ul class="mt-6 space-y-3 text-sm">
-                @if ($settings['phone'])
-                    <li class="flex gap-3"><x-icon name="phone" class="mt-0.5 size-4 shrink-0 text-amber-400" /><a href="tel:{{ preg_replace('/[^\d+]/', '', $settings['phone']) }}" class="{{ $link }}">{{ $settings['phone'] }}</a></li>
-                @endif
+                @php $phones = \App\Domain\Store\Storefront\StorePhones::list($settings); @endphp
+                @foreach ($phones as $phone)
+                    <li class="flex gap-3"><x-icon name="phone" class="mt-0.5 size-4 shrink-0 text-amber-400" /><span>@if (count($phones) > 1)<span class="mr-1.5 text-white/50">{{ $phone['label'] }}:</span>@endif<a href="{{ $phone['tel'] }}" class="{{ $link }}">{{ $phone['number'] }}</a></span></li>
+                @endforeach
                 @if ($settings['email'])
                     <li class="flex gap-3"><x-icon name="mail" class="mt-0.5 size-4 shrink-0 text-amber-400" /><a href="mailto:{{ $settings['email'] }}" class="break-all {{ $link }}">{{ $settings['email'] }}</a></li>
                 @endif

@@ -82,7 +82,7 @@ class SitePageController extends Controller
             '@type' => 'Store',
             'name' => config('store.name'),
             'url' => route('store.home'),
-            'telephone' => $settings['phone'] ?: null,
+            'telephone' => $settings['phone'] ?: ($settings['phone2'] ?: null),
             'email' => $settings['email'] ?: null,
             'address' => $settings['address'] ? ['@type' => 'PostalAddress', 'streetAddress' => $settings['address'], 'addressCountry' => 'TR'] : null,
             'openingHoursSpecification' => OpeningHours::schema($content['hours']) ?: null,
