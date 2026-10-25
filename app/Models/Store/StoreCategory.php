@@ -5,15 +5,26 @@ namespace App\Models\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 /** Mağaza kategorisi. En fazla üç seviye (ana › alt › alt). */
 class StoreCategory extends Model
 {
     public const MAX_DEPTH = 3;
 
+    /** Vitrin menüsünün önbellek anahtarı (Catalog::menu). */
+    public const MENU_CACHE = 'store.menu';
+
     protected $attributes = ['is_active' => true, 'sort' => 0];
 
     protected $fillable = ['parent_id', 'name', 'slug', 'description', 'color', 'tagline', 'seo_title', 'seo_description', 'sort', 'is_active'];
+
+    protected static function booted(): void
+    {
+        $forget = fn () => Cache::forget(self::MENU_CACHE);
+        static::saved($forget);
+        static::deleted($forget);
+    }
 
     protected function casts(): array
     {

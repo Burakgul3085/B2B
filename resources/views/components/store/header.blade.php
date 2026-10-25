@@ -1,6 +1,6 @@
 {{--
     Vitrin üst bilgisi: üst şerit (lacivert), logo + canlı arama + hesap/sepet/tema, menü çubuğu, mobil çekmece.
-    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › Kampanyalar (yayında varsa) › yayındaki
+    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye; içeriği store.front._menu-desktop / _menu-mobile, ilk açılışta yüklenir) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › Kampanyalar (yayında varsa) › yayındaki
     sabit sayfalar (Hakkımızda, İletişim) › Blog (yazı varsa). Kategori renkleri: Catalog::menu() her ana kategoriye bir yapboz rengi verir.
 --}}
 @props(['storeName', 'settings', 'menu', 'footer', 'pages', 'customer', 'cartCount'])
@@ -26,6 +26,9 @@
     }
     $navLink = 'relative z-10 inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 text-sm font-semibold transition-colors duration-200 hover:text-navy-ink xl:px-3.5';
     $phones = \App\Domain\Store\Storefront\StorePhones::list($settings);
+    // Kategori menüsünün içeriği ilk açılışta yüklenir; adres kategori sürümünü taşır, tarayıcı önbellekte tutar.
+    $menuVersion = $menu->isNotEmpty() ? app(\App\Domain\Store\Storefront\Catalog::class)->menuVersion() : null;
+    $menuUrl = fn (string $part) => route('store.category-menu', ['part' => $part, 'v' => $menuVersion]);
 @endphp
 
 @include('components.store._marquee', ['items' => $footer['marquee'], 'color' => $footer['marquee_color'], 'speed' => $footer['marquee_speed']])
@@ -92,10 +95,10 @@
     </form>
 
     {{-- Geniş kategori menüsü (masaüstü) --}}
-    <nav class="relative hidden border-t border-line lg:block" aria-label="Kategoriler" x-data="megaMenu" @click.outside="close" @keydown.escape.window="close">
+    <nav class="relative hidden border-t border-line lg:block" aria-label="Kategoriler" x-data="megaMenu(@alpine($menuUrl('masaustu')))" @click.outside="close" @keydown.escape.window="close">
         <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
             @if ($menu->isNotEmpty())
-                <button type="button" @click="toggle" :aria-expanded="open" aria-expanded="false"
+                <button type="button" @click="toggle" @mouseenter="load" @focus="load" :aria-expanded="open" aria-expanded="false"
                     class="group inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-md shadow-navy/20 transition duration-200 hover:-translate-y-px hover:bg-navy-2 hover:shadow-lg">
                     <x-icon name="grid" class="size-4 transition duration-300 group-hover:rotate-90" /> Tüm kategoriler <x-icon name="chevron-down" class="size-4 transition duration-300" ::class="open && 'rotate-180'" />
                 </button>
@@ -128,63 +131,16 @@
         </div>
 
         @if ($menu->isNotEmpty())
-            <div x-show="open" x-cloak x-transition.opacity.duration.150ms class="absolute inset-x-0 top-full z-40 border-t border-line bg-white shadow-2xl shadow-navy/10">
-                <div class="mx-auto grid max-w-7xl grid-cols-12 px-4 sm:px-6 lg:px-8">
-                    <ul class="col-span-3 border-r border-line py-4 pr-4">
-                        @foreach ($menu as $i => $root)
-                            @php $c = Palette::classes($root->palette); @endphp
-                            <li>
-                                <a href="{{ route('store.category', $root->slug) }}" @mouseenter="show({{ $i }})" @focus="show({{ $i }})"
-                                    :class="isActive({{ $i }}) ? '{{ $c['soft'] }} text-ink' : 'text-ink/75'"
-                                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition">
-                                    <span class="flex size-8 items-center justify-center rounded-lg font-display text-sm font-extrabold text-white {{ $c['solid'] }}">{{ mb_substr($root->name, 0, 1) }}</span>
-                                    <span class="flex-1">{{ $root->name }}</span>
-                                    <x-icon name="chevron-down" class="size-4 -rotate-90 text-muted" />
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                    @foreach ($menu as $i => $root)
-                        @php $c = Palette::classes($root->palette); @endphp
-                        <div x-show="isActive({{ $i }})" @if ($i) x-cloak @endif class="col-span-9 grid grid-cols-3 gap-6 py-6 pl-8">
-                            <div class="col-span-2">
-                                <div class="flex items-end justify-between gap-4 border-b border-line pb-3">
-                                    <div>
-                                        <p class="font-display text-xl font-extrabold">{{ $root->name }}</p>
-                                        @if ($root->tagline)<p class="text-sm text-muted">{{ $root->tagline }}</p>@endif
-                                    </div>
-                                    <a href="{{ route('store.category', $root->slug) }}" class="shrink-0 text-sm font-semibold {{ $c['text'] }} hover:underline">Tümünü gör →</a>
-                                </div>
-                                @if ($root->children->isNotEmpty())
-                                    {{-- Alt kategoriler başlık, onların alt kategorileri (3. seviye) altında liste --}}
-                                    <ul class="filter-scroll mt-4 grid max-h-[60vh] grid-cols-2 gap-x-6 gap-y-4 overflow-y-auto pr-1">
-                                        @foreach ($root->children as $child)
-                                            <li>
-                                                <a href="{{ route('store.category', $child->slug) }}" class="block rounded-lg px-2 py-1.5 text-sm font-semibold hover:bg-surface {{ $c['text'] }}">{{ $child->name }}</a>
-                                                @if ($child->children->isNotEmpty())
-                                                    <ul class="mt-0.5 ml-2 border-l-2 pl-2 {{ $c['border'] }}">
-                                                        @foreach ($child->children as $grandchild)
-                                                            <li><a href="{{ route('store.category', $grandchild->slug) }}" class="block rounded-lg px-2 py-1 text-sm text-ink/75 hover:bg-surface hover:text-ink">{{ $grandchild->name }}</a></li>
-                                                        @endforeach
-                                                    </ul>
-                                                @endif
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @else
-                                    <p class="mt-4 text-sm text-muted">Bu kategorideki tüm ürünleri görmek için tıklayın.</p>
-                                @endif
-                            </div>
-                            <a href="{{ route('store.category', $root->slug) }}" class="group relative flex min-h-56 flex-col justify-end overflow-hidden rounded-2xl p-5 {{ $c['soft'] }}">
-                                @if ($root->image_path)
-                                    <x-store.fit-image :src="route('store.media.category', ['storeCategory' => $root->id, 'w' => 640])" fill />
-                                    <span class="absolute inset-0 bg-gradient-to-t from-navy/80 via-navy/10 to-transparent"></span>
-                                @endif
-                                <span @class(['relative font-display text-lg font-extrabold', 'text-white' => $root->image_path])>{{ $root->name }}</span>
-                                <span @class(['relative mt-1 inline-flex items-center gap-1 text-sm font-semibold', 'text-white/85' => $root->image_path, $c['text'] => ! $root->image_path])>Alışverişe başla <x-icon name="arrow-right" class="size-4" /></span>
-                            </a>
-                        </div>
-                    @endforeach
+            {{-- Açılır menü sabit yükseklikte: sol liste ve sağ panel kendi içinde kayar; yüzlerce kategoride de ekrandan taşmaz. --}}
+            <div x-show="open" x-cloak
+                x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="-translate-y-1 opacity-0" x-transition:enter-end="translate-y-0 opacity-100"
+                x-transition:leave="transition duration-150 ease-in" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                class="absolute inset-x-0 top-full z-40 border-t border-line bg-white shadow-2xl shadow-navy/15">
+                <div x-ref="menuBody"></div>
+                <div x-show="! loaded" class="mx-auto flex h-[min(72vh,600px)] max-w-7xl items-center justify-center gap-3 text-sm text-muted">
+                    <span x-show="! failed" class="size-5 animate-spin rounded-full border-2 border-line border-t-puzzle-orange" aria-hidden="true"></span>
+                    <span x-show="! failed">Kategoriler yükleniyor…</span>
+                    <a x-show="failed" x-cloak href="{{ route('store.products') }}" class="font-semibold text-primary hover:underline">Kategoriler yüklenemedi; tüm ürünlere göz atın →</a>
                 </div>
             </div>
         @endif
@@ -200,37 +156,16 @@
             <span class="flex items-center gap-2.5"><x-puzzle-logo :animated="false" class="size-9" /><span class="font-display text-lg font-extrabold">{{ $storeName }}</span></span>
             <button type="button" class="rounded-lg p-2 hover:bg-white/10" @click="menu = false" aria-label="Menüyü kapat"><x-icon name="x" /></button>
         </div>
-        <p class="px-4 pt-5 pb-2 text-[11px] font-bold tracking-[0.2em] text-muted uppercase">Kategoriler</p>
-        <ul class="px-2">
-            @foreach ($menu as $root)
-                @php $c = Palette::classes($root->palette); @endphp
-                <li x-data="{ open: false }">
-                    <div class="flex items-center">
-                        <a href="{{ route('store.category', $root->slug) }}" class="flex flex-1 items-center gap-3 rounded-xl px-2 py-2.5 text-sm font-semibold">
-                            <span class="flex size-8 items-center justify-center rounded-lg font-display text-sm font-extrabold text-white {{ $c['solid'] }}">{{ mb_substr($root->name, 0, 1) }}</span>{{ $root->name }}
-                        </a>
-                        @if ($root->children->isNotEmpty())
-                            <button type="button" class="rounded-lg p-3 text-muted" @click="open = ! open" :aria-expanded="open" aria-label="{{ $root->name }} alt kategorileri">
-                                <x-icon name="chevron-down" class="size-4 transition" ::class="open && 'rotate-180'" />
-                            </button>
-                        @endif
-                    </div>
-                    @if ($root->children->isNotEmpty())
-                        <ul x-show="open" x-cloak class="mb-2 ml-6 border-l-2 pl-3 {{ $c['border'] }}">
-                            @foreach ($root->children as $child)
-                                <li>
-                                    <a href="{{ route('store.category', $child->slug) }}" class="block py-2 text-sm text-ink/80">{{ $child->name }}</a>
-                                    @foreach ($child->children as $grandchild)
-                                        <a href="{{ route('store.category', $grandchild->slug) }}" class="block py-1.5 pl-3 text-[13px] text-muted">{{ $grandchild->name }}</a>
-                                    @endforeach
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </li>
-            @endforeach
-        </ul>
-        <div class="mt-4 space-y-1 border-t border-line px-4 py-4 text-sm font-medium">
+        {{-- Kategoriler adım adım: ana kategoriye dokununca alt kategorileri, onlara dokununca 3. seviye açılır. --}}
+        <div x-data="drillMenu(@alpine($menuVersion ? $menuUrl('mobil') : null))" class="flex flex-1 flex-col">
+            <div x-ref="menuBody"></div>
+            <div x-show="! loaded && url" class="flex items-center gap-3 px-4 py-6 text-sm text-muted">
+                <span x-show="! failed" class="size-5 animate-spin rounded-full border-2 border-line border-t-puzzle-orange" aria-hidden="true"></span>
+                <span x-show="! failed">Kategoriler yükleniyor…</span>
+                <a x-show="failed" x-cloak href="{{ route('store.products') }}" class="font-semibold text-primary">Kategoriler yüklenemedi; tüm ürünler →</a>
+            </div>
+
+        <div x-show="isScreen('')" class="mt-4 space-y-1 border-t border-line px-4 py-4 text-sm font-medium">
             @foreach ($links as [$label, $url, $active])
                 <a href="{{ $url }}" @class(['block py-2', 'text-puzzle-orange' => $active])>{{ $label }}</a>
             @endforeach
@@ -241,5 +176,6 @@
                 @if ($whatsapp)<a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="flex items-center gap-2 font-semibold"><x-icon name="message-circle" class="size-4 text-puzzle-green" /> WhatsApp destek</a>@endif
             </div>
         @endif
+        </div>
     </nav>
 </div>

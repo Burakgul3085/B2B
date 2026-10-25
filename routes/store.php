@@ -234,6 +234,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('bulten/ayril/{token}', [Front\NewsletterController::class, 'showUnsubscribe'])->middleware('throttle:30,1,newsletter.leave')->name('newsletter.unsubscribe');
     Route::post('bulten/ayril/{token}', [Front\NewsletterController::class, 'unsubscribe'])->middleware('throttle:30,1,newsletter.leave.store')->name('newsletter.unsubscribe.store');
     Route::get('gorsel/bulten/{storeNewsletterCampaign}', [Front\MediaController::class, 'newsletter'])->name('media.newsletter');
+    // Tüm kategoriler menüsü ilk açılışta yüklenir (yüzlerce kategori her sayfaya gömülmez); ziyaret sayılmaz.
+    Route::get('menu/kategoriler/{part}', Front\CategoryMenuController::class)->whereIn('part', ['masaustu', 'mobil'])
+        ->middleware('throttle:60,1,category.menu')->name('category-menu');
 
     // Mağaza kapalıyken ziyaretçi "yakında" sayfasını görür
     Route::middleware(['store.open', 'store.visit'])->group(function () {

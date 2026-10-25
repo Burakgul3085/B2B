@@ -61,8 +61,9 @@ class StorefrontNavigationTest extends TestCase
         sort($sorted);
         $this->assertSame($sorted, $positions);
 
-        // Torun kategoriler de geniş menüde görünür.
-        $this->assertStringContainsString('Mavi Jel', $html);
+        // Torun kategoriler de geniş menüde görünür (menü içeriği ilk açılışta ayrı adresten yüklenir).
+        $this->get(self::HOST.'/menu/kategoriler/masaustu')->assertOk()->assertSee('Mavi Jel');
+        $this->get(self::HOST.'/menu/kategoriler/mobil')->assertOk()->assertSee('Mavi Jel');
     }
 
     public function test_category_filter_includes_subcategories(): void

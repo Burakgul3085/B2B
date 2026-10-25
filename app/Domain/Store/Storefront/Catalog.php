@@ -10,6 +10,7 @@ use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreSetting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Vitrinde ziyaretçiye görünen katalog. Yalnızca yayındaki ve en az bir etkin varyantı olan ürünler listelenir;
@@ -122,7 +123,7 @@ class Catalog
     /** @return Collection<int, StoreCategory> menü ağacı: görünür kök kategoriler, görünür alt kategorileri yüklü */
     public function menu(): Collection
     {
-        $all = StoreCategory::where('is_active', true)->orderBy('sort')->orderBy('name')->get(['id', 'parent_id', 'name', 'slug', 'color', 'tagline', 'image_path']);
+        $all = StoreCategory::hydrate($this->menuRows());
         $byParent = $all->groupBy(fn ($c) => $c->parent_id ?? 0);
         foreach ($all as $category) {
             $category->setRelation('children', $byParent->get($category->id, collect())->values());
@@ -137,6 +138,38 @@ class Catalog
         }
 
         return $roots;
+    }
+
+    /**
+     * Görünür kategorilerin satırları (her sayfada menü için okunur; yüzlerce kategoride önbellekten gelir).
+     * Kategori kaydedilince/silinince önbellek silinir; olay tetiklemeyen toplu güncellemeler için anahtar
+     * tablonun parmak iziyle değişir.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function menuRows(): array
+    {
+        $key = $this->menuVersion();
+        $cached = Cache::get(StoreCategory::MENU_CACHE);
+        if (is_array($cached) && ($cached['key'] ?? null) === $key) {
+            return $cached['rows'];
+        }
+
+        $rows = StoreCategory::where('is_active', true)->orderBy('sort')->orderBy('name')
+            ->toBase()->get(['id', 'parent_id', 'name', 'slug', 'color', 'tagline', 'image_path'])
+            ->map(fn ($row) => (array) $row)->all();
+        Cache::put(StoreCategory::MENU_CACHE, ['key' => $key, 'rows' => $rows], now()->addDay());
+
+        return $rows;
+    }
+
+    /** Kategori tablosunun parmak izi: herhangi bir kategori eklenince, değişince veya silinince değişir. */
+    public function menuVersion(): string
+    {
+        $print = StoreCategory::query()->toBase()
+            ->selectRaw('COUNT(*) AS n, MAX(id) AS m, MAX(updated_at) AS u, SUM(is_active) AS a')->first();
+
+        return substr(md5(json_encode($print)), 0, 12);
     }
 
     /** Kategori ve tüm görünür alt kategorilerindeki ürünler. */

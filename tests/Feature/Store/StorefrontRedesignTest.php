@@ -49,9 +49,11 @@ class StorefrontRedesignTest extends TestCase
 
     public function test_header_mega_menu_and_category_colours(): void
     {
+        $this->get(self::HOST.'/menu/kategoriler/masaustu')->assertOk()
+            ->assertSee('Tükenmez ve jel kalemler')->assertSee('Jel Kalemler')
+            ->assertSee('bg-puzzle-green', false);  // seçilen renk
         $this->get(self::HOST.'/')->assertOk()
-            ->assertSee('Tüm kategoriler')->assertSee('Tükenmez ve jel kalemler')->assertSee('Jel Kalemler')
-            ->assertSee('bg-puzzle-green', false)   // seçilen renk
+            ->assertSee('Tüm kategoriler')
             ->assertSee('https://wa.me/905321234567', false)   // mobil çekmecede WhatsApp
             ->assertDontSee('Sipariş takibi')                   // lacivert üst şerit kaldırıldı
             ->assertSee('Hızlı menü');                          // mobil alt menü

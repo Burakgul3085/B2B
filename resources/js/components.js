@@ -395,23 +395,132 @@ export function liveSearch(url, initial) {
 }
 
 /** Geniş kategori menüsü: "Tüm kategoriler" düğmesiyle açılır; soldaki ana kategorinin üzerine gelince sağ taraf değişir. */
-export function megaMenu() {
+/**
+ * Tüm kategoriler açılır menüsü. İçerik (store.front._menu-desktop) düğmenin üzerine gelince veya açılınca bir kez yüklenir;
+ * yüklenen parça setNames() ile arama için kategori adlarını bildirir.
+ */
+export function megaMenu(url) {
     return {
+        ...lazyMenu(url),
         open: false,
         active: 0,
+        query: '',
+        names: [],
+        timer: null,
+        init() {
+            this.$watch('query', () => {
+                if (! this.matches(this.active)) {
+                    const first = this.names.findIndex((name, i) => this.matches(i));
+                    if (first >= 0) {
+                        this.active = first;
+                    }
+                }
+            });
+        },
         toggle() {
             this.open = ! this.open;
+            this.load();
         },
+        // Fareyle çapraz geçerken üzerinden geçilen kategoriler açılmasın diye kısa bekleme; sağ panele girilince iptal.
         show(index) {
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => {
+                this.active = index;
+            }, 90);
+        },
+        pick(index) {
+            clearTimeout(this.timer);
             this.active = index;
+        },
+        hold() {
+            clearTimeout(this.timer);
         },
         isActive(index) {
             return this.active === index;
+        },
+        matches(index) {
+            return nameMatches(this.names[index], this.query);
+        },
+        get noMatch() {
+            return this.query.trim() !== '' && ! this.names.some((name, i) => this.matches(i));
         },
         close() {
             this.open = false;
         },
     };
+}
+
+/**
+ * Mobil kategori menüsü: ana kategori › alt kategori › alt kategori ekranları arasında ileri/geri geçilir.
+ * İçerik (store.front._menu-mobile) çekmece ilk açıldığında yüklenir.
+ */
+export function drillMenu(url) {
+    return {
+        ...lazyMenu(url),
+        stack: [],
+        query: '',
+        names: [],
+        init() {
+            this.$watch('menu', (value) => {
+                if (value) {
+                    this.load();
+                }
+            });
+        },
+        go(screen) {
+            this.stack.push(screen);
+        },
+        back() {
+            this.stack.pop();
+        },
+        isScreen(screen) {
+            return (this.stack.length ? this.stack[this.stack.length - 1] : '') === screen;
+        },
+        matches(index) {
+            return nameMatches(this.names[index], this.query);
+        },
+        get noMatch() {
+            return this.query.trim() !== '' && ! this.names.some((name, i) => this.matches(i));
+        },
+    };
+}
+
+function lazyMenu(url) {
+    return {
+        url: url,
+        loaded: false,
+        loading: false,
+        failed: false,
+        load() {
+            if (! this.url || this.loaded || this.loading) {
+                return;
+            }
+            this.loading = true;
+            this.failed = false;
+            fetch(this.url, { headers: { Accept: 'text/html' } })
+                .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
+                .then((html) => {
+                    // Alpine eklenen parçayı kendiliğinden başlatır; parça bu bileşenin kapsamını kullanır.
+                    this.$refs.menuBody.innerHTML = html;
+                    this.loaded = true;
+                })
+                .catch(() => {
+                    this.failed = true;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        setNames(names) {
+            this.names = (names || []).map((name) => String(name).toLocaleLowerCase('tr'));
+        },
+    };
+}
+
+function nameMatches(name, query) {
+    const q = String(query || '').trim().toLocaleLowerCase('tr');
+
+    return q === '' || (name || '').indexOf(q) !== -1;
 }
 
 /**
