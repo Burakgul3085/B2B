@@ -35,10 +35,8 @@
         <button type="button" class="-ml-1 rounded-lg p-2 text-ink hover:bg-slate-100 lg:hidden" @click="menu = true" aria-label="Menüyü aç"><x-icon name="menu" /></button>
         <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="{{ $storeName }} ana sayfa">
             <x-puzzle-logo :animated="false" class="size-10 sm:size-12" />
-            <span class="leading-tight">
-                <span class="block font-display text-lg font-extrabold tracking-tight text-navy-ink sm:text-[22px] dark:text-white">{{ $storeName }}</span>
-                @if ($footer['tagline'])<span class="hidden text-[10px] font-bold tracking-[0.28em] text-puzzle-orange uppercase sm:block">{{ $footer['tagline'] }}</span>@endif
-            </span>
+            <x-store.wordmark :name="$storeName" :tagline="$footer['tagline']" nameClass="font-display text-lg font-extrabold tracking-tight text-navy-ink sm:text-[22px] dark:text-white"
+                taglineClass="hidden text-puzzle-orange sm:block" :taglineSize="10" :nameSize="22" />
         </a>
 
         {{-- Canlı arama (masaüstü) --}}

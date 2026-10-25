@@ -41,10 +41,7 @@
         <div class="lg:col-span-3">
             <a href="{{ route('store.home') }}" class="inline-flex items-center gap-3">
                 <x-puzzle-logo :animated="false" class="size-12" />
-                <span>
-                    <span class="block text-2xl font-extrabold tracking-tight">{{ $storeName }}</span>
-                    @if ($footer['tagline'])<span class="block text-[11px] font-semibold tracking-[0.3em] text-amber-400 uppercase">{{ $footer['tagline'] }}</span>@endif
-                </span>
+                <x-store.wordmark :name="$storeName" :tagline="$footer['tagline']" nameClass="text-2xl font-extrabold tracking-tight" taglineClass="text-amber-400" :taglineSize="11" :nameSize="24" />
             </a>
             @if ($settings['footer_about'])<p class="mt-5 max-w-sm leading-relaxed text-white/70">{{ $settings['footer_about'] }}</p>@endif
             <ul class="mt-6 space-y-3 text-sm">
