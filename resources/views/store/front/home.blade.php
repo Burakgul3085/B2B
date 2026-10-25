@@ -6,7 +6,12 @@
 @endphp
 {{-- Ana sayfa: bloklar Vitrin → Ana Sayfa'daki sırayla; içeriği olmayan blok kendini göstermez. --}}
 <x-layouts.store :canonical="route('store.home')" :json-ld="[$orgJson, $siteJson]">
-    <div class="space-y-16 pb-16 sm:space-y-20">
+    @php
+        // Son blok tam genişlik zeminli bir bantsa (Hakkımızda) alt bilgiye bitişik durur: alttaki boşluklar kaldırılır.
+        $lastBlock = collect($blocks)->where('enabled', true)->last()['key'] ?? null;
+        $flushBottom = $lastBlock === 'about' && $about;
+    @endphp
+    <div @class(['space-y-16 sm:space-y-20', 'pb-16' => ! $flushBottom, '-mb-16' => $flushBottom])>
         @foreach ($blocks as $block)
             @if ($block['enabled'])
                 @include('store.front.home.'.$block['key'], ['block' => $block])

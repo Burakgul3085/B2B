@@ -9,7 +9,7 @@
         $photo = $about['photo'];
         $statCols = [1 => 'grid-cols-1', 2 => 'grid-cols-2', 3 => 'grid-cols-3', 4 => 'grid-cols-2 sm:grid-cols-4'][max(1, count($stats))];
     @endphp
-    <section class="relative isolate overflow-hidden bg-linear-to-b from-surface via-surface/40 to-white py-20 sm:py-24" aria-labelledby="ana-hakkimizda">
+    <section class="relative isolate overflow-hidden bg-linear-to-b from-white via-surface/60 to-surface pt-20 pb-16 sm:pt-24 sm:pb-20" aria-labelledby="ana-hakkimizda">
         <div class="pointer-events-none absolute -top-24 -right-24 -z-10 size-96 rounded-full bg-puzzle-sun/10 blur-3xl" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -bottom-24 -left-24 -z-10 size-96 rounded-full bg-sky-400/10 blur-3xl" aria-hidden="true"></div>
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
