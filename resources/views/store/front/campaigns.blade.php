@@ -24,7 +24,7 @@
                 <a href="{{ route('store.products') }}" class="mt-5 inline-flex rounded-xl bg-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-puzzle-orange">Ürünlere göz atın</a>
             </div>
         @else
-            <div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div class="mx-auto mt-6 grid max-w-sm gap-5 sm:max-w-none sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($campaigns as $i => $campaign)
                     @php
                         $tone = Palette::classes(Palette::CYCLE[$i % count(Palette::CYCLE)]);
@@ -48,7 +48,7 @@
                             </div>
                         @endif
 
-                        <div class="flex flex-1 flex-col gap-3 p-5 sm:p-6">
+                        <div class="flex flex-1 flex-col gap-2.5 p-4">
                             <div class="flex flex-wrap gap-1.5">
                                 @if ($campaign->image_path)<span class="rounded-md bg-puzzle-orange px-2 py-0.5 text-[11px] font-bold text-white">{{ HomeFeed::percentLabel($campaign) }}{{ $campaign->type === 'free_shipping' ? '' : ' indirim' }}</span>@endif
                                 @if ($campaign->audience === 'new_members')<span class="rounded-md bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-800">Yeni üyelere özel</span>
@@ -57,8 +57,8 @@
                                 @if ($daysLeft !== null && $daysLeft <= 7)<span class="rounded-md bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">Son {{ max(1, $daysLeft) }} gün</span>@endif
                             </div>
                             <div>
-                                <h2 class="font-display text-xl font-extrabold tracking-tight text-ink">{{ $campaign->name }}</h2>
-                                <p class="mt-1 text-[15px] font-semibold text-primary">{{ $campaign->headline() }}</p>
+                                <h2 class="font-display text-lg font-extrabold tracking-tight text-ink">{{ $campaign->name }}</h2>
+                                <p class="mt-0.5 text-sm font-semibold text-primary">{{ $campaign->headline() }}</p>
                                 @if ($campaign->description)<p class="mt-2 text-sm leading-relaxed text-muted">{{ $campaign->description }}</p>@endif
                             </div>
                             <p class="text-xs text-muted">
@@ -67,7 +67,7 @@
                                 @if ($campaign->audience === 'new_members' && $campaign->new_member_days) Üyelikten sonraki {{ $campaign->new_member_days }} gün içinde, ilk siparişte. @endif
                             </p>
 
-                            <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                            <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">
                                 @if ($campaign->isCoupon())
                                     <span class="rounded-lg border border-dashed border-navy/40 px-3 py-1.5 font-mono text-sm font-bold tracking-wider text-navy-ink">{{ $campaign->code }}</span>
                                     <button type="button" @click="copy" class="rounded-lg bg-navy px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-puzzle-orange">
