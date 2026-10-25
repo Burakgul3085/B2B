@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Discounts\CampaignPage;
 use App\Domain\Store\Storefront\Catalog;
 use App\Domain\Support\Money;
 use App\Http\Controllers\Controller;
@@ -21,6 +22,7 @@ class ListingController extends Controller
     public function index(Request $request): View
     {
         $title = match (true) {
+            $request->filled('kampanya') => 'Kampanyalı Ürünler',
             $request->boolean('yeni') => 'Yeni Gelenler',
             $request->boolean('indirim') => 'İndirimdeki Ürünler',
             default => 'Tüm Ürünler',
@@ -117,7 +119,14 @@ class ListingController extends Controller
             'yeni' => ['nullable', 'boolean'],
             'sirala' => ['nullable', Rule::in(array_keys(Catalog::SORTS))],
             'gorunum' => ['nullable', Rule::in(['izgara', 'liste'])],
+            'kampanya' => ['nullable', 'integer'],
         ]);
+        // Kampanyalar sayfasından gelinirse liste kampanyanın kapsadığı ürünlerle sınırlanır.
+        if ($campaignId = (int) ($filters['kampanya'] ?? 0)) {
+            $campaign = CampaignPage::find($campaignId);
+            $base = $campaign ? CampaignPage::products($base, $campaign) : $base->whereRaw('1 = 0');
+            $data['campaign'] = $campaign;
+        }
         // Arama sayfasında aranan kelime listenin kendisidir; filtre olarak ikinci kez uygulanmaz.
         if (isset($data['searchTerm'])) {
             unset($filters['q']);

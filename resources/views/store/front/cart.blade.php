@@ -78,6 +78,14 @@
                     </dl>
                     <div class="mt-4 flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums">{{ Money::format(bcsub($summary->subtotal(), $discount?->amount ?? '0.00', 2)) }}</span></div>
 
+                    @if ($next)
+                        <div class="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+                            <x-icon name="percent" class="mt-0.5 size-4 shrink-0" />
+                            <p><strong class="tabular-nums">{{ Money::format($next['missing']) }}</strong> daha {{ $next['discount']->isScoped() ? 'kampanyalı ürün' : 'ürün' }} ekleyin,
+                                <strong>{{ $next['discount']->name }}</strong> kampanyasından yararlanın: {{ $next['discount']->headline() }}.</p>
+                        </div>
+                    @endif
+
                     {{-- Kupon: tek indirim uygulanır; girilen kupon kampanyanın yerine geçer. --}}
                     <div class="mt-4 border-t border-line pt-4">
                         @if ($cart?->coupon_code)

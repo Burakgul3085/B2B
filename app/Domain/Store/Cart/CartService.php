@@ -116,7 +116,7 @@ class CartService
     {
         $code = DiscountService::normalizeCode($code);
         if ($code !== null) {
-            $error = $this->discounts->evaluate($this->summary($cart), $code)['couponError'];
+            $error = $this->discounts->evaluate($this->summary($cart), $code, null, null, $cart->customer)['couponError'];
             if ($error) {
                 throw new DomainException($error);
             }

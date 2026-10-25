@@ -31,6 +31,7 @@
             @endif
             @if (Catalog::isNew($product))<span class="rounded-md bg-navy px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif
             @if ($variant?->hasDiscount())<span class="rounded-md bg-puzzle-orange px-1.5 py-0.5 text-[11px] font-extrabold text-white">%{{ $variant->discountPercent() }} indirim</span>@endif
+            @if ($campaign = \App\Domain\Store\Discounts\CampaignBadges::for($product, $variant?->price))<span class="rounded-md bg-green-600 px-1.5 py-0.5 text-[11px] font-bold text-white">{{ $campaign }}</span>@endif
             @if (! $single)<span class="rounded-md border border-line px-1.5 py-0.5 text-[11px] font-semibold text-muted">{{ $product->activeVariants->count() }} seçenek</span>@endif
         </div>
     </div>

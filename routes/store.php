@@ -165,6 +165,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
             Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
             Route::get('kampanyalar/yeni', [Admin\DiscountController::class, 'create'])->name('discounts.create');
+            Route::get('kampanyalar/urun-ara', [Admin\DiscountController::class, 'lookup'])->middleware('throttle:120,1,store_admin.discounts.lookup')->name('discounts.lookup');
+            Route::get('kampanyalar/{storeDiscount}/gorsel', [Admin\DiscountController::class, 'image'])->name('discounts.image');
             Route::post('kampanyalar', [Admin\DiscountController::class, 'store'])->name('discounts.store');
             Route::get('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'edit'])->name('discounts.edit');
             Route::put('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'update'])->name('discounts.update');
@@ -241,6 +243,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('kategori/{slug}', [Front\ListingController::class, 'category'])->name('category');
         Route::get('marka/{slug}', [Front\ListingController::class, 'brand'])->name('brand');
         Route::get('markalar', [Front\PageController::class, 'brands'])->name('brands');
+        Route::get('kampanyalar', [Front\PageController::class, 'campaigns'])->name('campaigns');
         Route::get('ara', [Front\ListingController::class, 'search'])->middleware('throttle:60,1,search')->name('search');
         Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
@@ -328,6 +331,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
         Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
         Route::get('gorsel/secki/{storeCollection}', [Front\MediaController::class, 'collection'])->name('media.collection');
+        Route::get('gorsel/kampanya/{storeDiscount}', [Front\MediaController::class, 'discount'])->name('media.discount');
         Route::get('gorsel/blog/{storeBlogPost}', [Front\MediaController::class, 'blog'])->name('media.blog');
     });
 });

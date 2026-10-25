@@ -3,12 +3,16 @@
 namespace App\Domain\Store\Discounts;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Storefront\ImageVariants;
 use App\Domain\Support\Decimal;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreDiscount;
 use App\Models\Store\StoreDiscountCode;
+use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
 use DomainException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -43,11 +47,18 @@ class DiscountAdmin
             'per_customer_limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer'],
+            'product_ids' => ['nullable', 'array', 'max:500'],
+            'product_ids.*' => ['integer'],
             'product_skus' => ['nullable', 'string', 'max:5000'],
+            'audience' => ['nullable', Rule::in(array_keys(StoreDiscount::AUDIENCES))],
+            'new_member_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
+            'description' => ['nullable', 'string', 'max:500'],
         ], ['code.regex' => 'Kupon kodu yalnızca harf, rakam, - ve _ içerebilir (Türkçe karakter olmadan).'], [
             'name' => 'ad', 'code' => 'kupon kodu', 'type' => 'indirim türü', 'value' => 'indirim', 'min_subtotal' => 'en düşük sepet tutarı',
             'max_discount' => 'en fazla indirim', 'starts_at' => 'başlangıç', 'ends_at' => 'bitiş', 'usage_limit' => 'toplam kullanım', 'per_customer_limit' => 'kişi başı kullanım',
+            'audience' => 'kime', 'new_member_days' => 'yeni üye süresi', 'description' => 'açıklama',
         ])->validate();
+        $audience = $data['audience'] ?? 'all';
 
         $errors = [];
         $money = fn (string $key) => filled($data[$key] ?? null) ? Decimal::parse($data[$key], 2) : null;
@@ -65,7 +76,9 @@ class DiscountAdmin
         // Kapsam: kategoriler (alt kategorileriyle) ve SKU ile ürünler.
         $categoryIds = StoreCategory::whereIn('id', array_map('intval', $data['category_ids'] ?? []))->pluck('id')->all();
         $skus = array_values(array_unique(array_filter(array_map(fn ($v) => strtoupper(trim($v)), preg_split('/[\s,;]+/', (string) ($data['product_skus'] ?? ''))))));
-        $productIds = $skus ? StoreProductVariant::whereIn('sku', $skus)->pluck('product_id')->unique()->values()->all() : [];
+        $productIds = $skus ? StoreProductVariant::whereIn('sku', $skus)->pluck('product_id')->all() : [];
+        $picked = StoreProduct::whereIn('id', array_map('intval', $data['product_ids'] ?? []))->pluck('id')->all();
+        $productIds = array_values(array_unique(array_merge($picked, $productIds)));
         $unknown = $skus ? array_diff($skus, StoreProductVariant::whereIn('sku', $skus)->pluck('sku')->map(fn ($v) => strtoupper($v))->all()) : [];
         if ($unknown) {
             $errors['product_skus'] = 'Bulunamayan SKU: '.implode(', ', array_slice($unknown, 0, 10)).'.';
@@ -93,12 +106,17 @@ class DiscountAdmin
             'usage_limit' => $data['usage_limit'] ?? null,
             'per_customer_limit' => $data['per_customer_limit'] ?? null,
             'first_order_only' => filter_var($input['first_order_only'] ?? false, FILTER_VALIDATE_BOOL),
+            'audience' => $audience,
+            'new_member_days' => $audience === 'new_members' ? ($data['new_member_days'] ?? null) : null,
             'category_ids' => $categoryIds ?: null,
             'product_ids' => $productIds ?: null,
             'codes_only' => $codesOnly,
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
             // Ana sayfa kartı yalnızca herkesin kullanabileceği kodlu kuponlarda anlamlıdır.
             'show_on_home' => $isCoupon && ! $codesOnly && filter_var($input['show_on_home'] ?? false, FILTER_VALIDATE_BOOL),
+            // Toplu kodlu kuponun kodu herkese açık değildir; Kampanyalar sayfasında gösterilmez.
+            'show_on_page' => ! $codesOnly && filter_var($input['show_on_page'] ?? false, FILTER_VALIDATE_BOOL),
+            'description' => filled($data['description'] ?? null) ? trim($data['description']) : null,
         ];
 
         if ($discount) {
@@ -154,6 +172,23 @@ class DiscountAdmin
         return count($codes);
     }
 
+    /** Kampanyalar sayfasındaki kart görseli. null: kaldırır. */
+    public function setImage(StoreDiscount $discount, ?UploadedFile $image): void
+    {
+        $old = $discount->image_path;
+        $discount->forceFill(['image_path' => $image ? app(ImageUploader::class)->store($image, 'store/discounts', 1200, 6 * 1024 * 1024, 86) : null])->save();
+        if ($old) {
+            $this->forgetImage($old);
+        }
+        $this->audit->log($image ? 'store.discount_image_updated' : 'store.discount_image_removed', $discount, [], ['name' => $discount->name]);
+    }
+
+    private function forgetImage(string $path): void
+    {
+        app(ImageUploader::class)->delete($path);
+        app(ImageVariants::class)->forget($path);
+    }
+
     /** @throws DomainException */
     public function delete(StoreDiscount $discount): void
     {
@@ -161,6 +196,9 @@ class DiscountAdmin
             throw new DomainException('Bu indirim siparişlerde kullanıldığı için silinemez; pasife alabilirsiniz.');
         }
         $discount->delete();
+        if ($discount->image_path) {
+            $this->forgetImage($discount->image_path);
+        }
         $this->audit->log('store.discount_deleted', null, ['name' => $discount->name, 'code' => $discount->code], []);
     }
 }

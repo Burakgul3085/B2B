@@ -8,6 +8,7 @@
     $url = route('store.product', $product->slug);
     $stockLeft = (int) $product->activeVariants->sum('stock_quantity');
     $second = $product->relationLoaded('cardImages') ? $product->cardImages->get(1) : null;
+    $campaign = \App\Domain\Store\Discounts\CampaignBadges::for($product, $variant?->price);
 @endphp
 <article class="group relative flex flex-col rounded-2xl border border-line bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-transparent hover:shadow-xl hover:shadow-navy/10 sm:p-3">
     <a href="{{ $url }}" class="relative block aspect-square overflow-hidden rounded-xl bg-[#fff]">
@@ -24,6 +25,7 @@
         <span class="pointer-events-none absolute top-2 left-2 flex flex-col items-start gap-1.5">
             @if ($variant?->hasDiscount())<span class="rounded-lg bg-puzzle-orange px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">%{{ $variant->discountPercent() }}</span>@endif
             @if ($isNew)<span class="rounded-lg bg-navy px-2 py-1 text-[11px] font-bold text-white shadow-sm">Yeni</span>@endif
+            @if ($campaign)<span class="rounded-lg bg-green-600 px-2 py-1 text-[11px] font-bold text-white shadow-sm">{{ $campaign }}</span>@endif
         </span>
     </a>
     {{-- Favori: yalnızca giriş yapmış üyelere --}}

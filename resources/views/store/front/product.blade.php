@@ -104,6 +104,13 @@
                         <template x-if="v.discount"><span class="rounded-lg bg-puzzle-orange px-2.5 py-1 text-xs font-extrabold text-white" x-text="'%' + v.discount + ' indirim'"></span></template>
                     </div>
                     <p class="mt-1 text-xs text-muted">KDV dahil</p>
+                    @if ($campaign = \App\Domain\Store\Discounts\CampaignBadges::best($product, $product->cheapestVariant()?->price))
+                        @php $listed = \App\Domain\Store\Discounts\CampaignPage::find($campaign->id); @endphp
+                        <{{ $listed ? 'a' : 'p' }} @if ($listed) href="{{ route('store.products', ['kampanya' => $campaign->id]) }}" @endif
+                            class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-2.5 py-1 text-xs font-bold text-white" data-campaign-badge>
+                            <x-icon name="percent" class="size-3.5" /> {{ \App\Domain\Store\Discounts\CampaignBadges::label($campaign) }} · {{ $campaign->name }}
+                        </{{ $listed ? 'a' : 'p' }}>
+                    @endif
                 </div>
 
                 @if ($product->hasOptions())

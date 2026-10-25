@@ -23,9 +23,10 @@ class CartController extends Controller
         $cart = $this->current->find($request);
         $summary = $this->carts->summary($cart);
         $customer = $request->user('customer');
-        ['applied' => $discount, 'couponError' => $couponError] = $discounts->evaluate($summary, $cart?->coupon_code, $customer?->email, $customer?->phone);
+        ['applied' => $discount, 'couponError' => $couponError] = $discounts->evaluate($summary, $cart?->coupon_code, $customer?->email, $customer?->phone, $customer);
 
-        return view('store.front.cart', ['summary' => $summary, 'cart' => $cart, 'discount' => $discount, 'couponError' => $couponError]);
+        return view('store.front.cart', ['summary' => $summary, 'cart' => $cart, 'discount' => $discount, 'couponError' => $couponError,
+            'next' => $cart?->coupon_code ? null : $discounts->nextCampaign($summary, $discount, $customer)]);
     }
 
     public function applyCoupon(Request $request): RedirectResponse

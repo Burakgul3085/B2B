@@ -6,7 +6,8 @@
     $selectedCategories = array_map('intval', $filters['kategori'] ?? []);
     $term = $filters['q'] ?? null;
     $isOn = fn (string $key) => filter_var($filters[$key] ?? false, FILTER_VALIDATE_BOOL);
-    $hasFilters = $selectedBrands || $selectedCategories || filled($term) || filled($filters['min'] ?? null) || filled($filters['max'] ?? null) || $isOn('stokta') || $isOn('indirim') || $onlyNew;
+    $campaignId = (int) ($filters['kampanya'] ?? 0);
+    $hasFilters = $selectedBrands || $selectedCategories || filled($term) || filled($filters['min'] ?? null) || filled($filters['max'] ?? null) || $isOn('stokta') || $isOn('indirim') || $onlyNew || $campaignId;
 
     // Bu sayfanın adresi, verilen sorgu değerleriyle (sayfa numarası sıfırlanır).
     $urlWith = function (array $query) {
@@ -72,6 +73,18 @@
             @if (! empty($description))<p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">{{ $description }}</p>@endif
         @endif
 
+        @if (request()->filled('kampanya'))
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-green-50 px-5 py-4 ring-1 ring-green-200">
+                @if ($campaign ?? null)
+                    <p class="text-sm text-green-900"><x-icon name="percent" class="mr-1 inline size-4 align-[-3px]" /> <strong>{{ $campaign->name }}:</strong> {{ $campaign->headline() }}.
+                        @if ($campaign->isCoupon()) Sepette <span class="font-mono font-semibold">{{ $campaign->code }}</span> kodunu girin. @else İndirim sepette kendiliğinden uygulanır. @endif</p>
+                @else
+                    <p class="text-sm text-green-900">Bu kampanya sona erdi.</p>
+                @endif
+                <a href="{{ route('store.campaigns') }}" class="text-sm font-semibold text-green-900 hover:underline">Tüm kampanyalar →</a>
+            </div>
+        @endif
+
         @if (! empty($subcategories) && $subcategories->isNotEmpty())
             <nav class="mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Alt kategoriler">
                 @foreach ($subcategories as $sub)
@@ -94,6 +107,7 @@
                     @if (filled($filters['sirala'] ?? null))<input type="hidden" name="sirala" value="{{ $filters['sirala'] }}">@endif
                     @if (filled($filters['gorunum'] ?? null))<input type="hidden" name="gorunum" value="{{ $filters['gorunum'] }}">@endif
                     @if ($onlyNew)<input type="hidden" name="yeni" value="1">@endif
+                    @if ($campaignId)<input type="hidden" name="kampanya" value="{{ $campaignId }}">@endif
                     @if ($isOn('stokta'))<input type="hidden" name="stokta" value="1">@endif
 
                     <div class="flex items-center justify-between border-b border-line px-5 py-4">
@@ -190,6 +204,7 @@
                     @if ($hasFilters)
                         <div class="flex w-full flex-wrap items-center gap-2 border-t border-line pt-3">
                             @if ($onlyNew)<a href="{{ $without('yeni') }}" class="chip">Son {{ $newDays }} günde eklenenler <x-icon name="x" class="size-3" /></a>@endif
+                            @if ($campaignId)<a href="{{ $without('kampanya') }}" class="chip">Kampanya: {{ $campaign?->name ?? 'sona erdi' }} <x-icon name="x" class="size-3" /></a>@endif
                             @if (filled($term))<a href="{{ $without('q') }}" class="chip">“{{ $term }}” <x-icon name="x" class="size-3" /></a>@endif
                             @foreach ($selectedCategories as $id)
                                 <a href="{{ $without('kategori', $id) }}" class="chip">{{ $categoryNames[$id] ?? 'Kategori' }} <x-icon name="x" class="size-3" /></a>

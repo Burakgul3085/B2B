@@ -10,6 +10,7 @@ use App\Models\Store\StoreBlogPost;
 use App\Models\Store\StoreBrand;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreCollection;
+use App\Models\Store\StoreDiscount;
 use App\Models\Store\StoreNewsletterCampaign;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
@@ -60,6 +61,14 @@ class MediaController extends Controller
         abort_unless($storeCategory->is_active && $storeCategory->image_path, 404);
 
         return $this->serve($storeCategory->image_path, $request->integer('w') ?: null);
+    }
+
+    /** Kampanya kartı görseli (Kampanyalar sayfası). */
+    public function discount(Request $request, StoreDiscount $storeDiscount): StreamedResponse
+    {
+        abort_unless($storeDiscount->show_on_page && $storeDiscount->isLive() && $storeDiscount->image_path, 404);
+
+        return $this->serve($storeDiscount->image_path, $request->integer('w') ?: null);
     }
 
     /** Seçki görseli (ana sayfa kutusu, seçki sayfası). */

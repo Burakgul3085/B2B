@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Store\Front;
 
+use App\Domain\Store\Discounts\CampaignPage;
 use App\Domain\Store\Storefront\BrandDirectory;
 use App\Http\Controllers\Controller;
 use Illuminate\View\View;
 
-/** Markalar sayfası: öne çıkan markalar ve A–Z liste. (Hakkımızda ve İletişim: SitePageController) */
+/** Markalar ve Kampanyalar sayfaları. (Hakkımızda ve İletişim: SitePageController) */
 class PageController extends Controller
 {
     public function brands(BrandDirectory $directory): View
@@ -19,5 +20,10 @@ class PageController extends Controller
             'featured' => $directory->featured($brands),
             'letters' => BrandDirectory::LETTERS,
         ]);
+    }
+
+    public function campaigns(): View
+    {
+        return view('store.front.campaigns', ['campaigns' => CampaignPage::visible()]);
     }
 }

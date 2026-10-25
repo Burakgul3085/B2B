@@ -78,6 +78,97 @@ export function productPicker(lookupUrl, selected) {
     };
 }
 
+const DISCOUNT_TEMPLATES = {
+    cart: { kind: 'campaign', type: 'percent', audience: 'all', name: 'Sepette indirim' },
+    products: { kind: 'campaign', type: 'percent', audience: 'all', name: 'Seçili ürünlerde indirim' },
+    welcome: { kind: 'campaign', type: 'percent', audience: 'new_members', newDays: '30', name: 'Hoş geldin indirimi' },
+    shipping: { kind: 'campaign', type: 'free_shipping', audience: 'all', name: 'Kargo bizden' },
+    coupon: { kind: 'coupon', type: 'percent', audience: 'all', name: '' },
+};
+
+/**
+ * Mağaza yönetimi kampanya formu: hazır şablonlar, müşterinin göreceği canlı özet ve çoklu ürün seçici.
+ * Özet yalnızca yol göstericidir; kurallar ve tutarlar sunucuda (DiscountService) denetlenir.
+ */
+export function discountForm(state, lookupUrl) {
+    return {
+        template: null,
+        q: '',
+        results: [],
+        open: false,
+        loading: false,
+        ...state,
+        applyTemplate(key) {
+            const t = DISCOUNT_TEMPLATES[key];
+            this.template = key;
+            this.kind = t.kind;
+            this.type = t.type;
+            this.audience = t.audience;
+            if (t.newDays && !this.newDays) {
+                this.newDays = t.newDays;
+            }
+            if (t.name && !this.name.trim()) {
+                this.name = t.name;
+            }
+            this.$nextTick(() => {
+                const target = this.$refs['focus_' + key];
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    target.focus({ preventScroll: true });
+                }
+            });
+        },
+        isTemplate(key) {
+            return this.template === key;
+        },
+        countCategories() {
+            this.categoryCount = this.$root.querySelectorAll('input[name="category_ids[]"]:checked').length;
+        },
+        get scoped() {
+            return this.categoryCount > 0 || this.products.length > 0;
+        },
+        get headline() {
+            const value = String(this.value || '').trim() || '…';
+            const benefit = this.type === 'free_shipping' ? 'ücretsiz kargo' : this.type === 'percent' ? '%' + value + ' indirim' : value + ' ₺ indirim';
+            const min = String(this.minSubtotal || '').trim();
+            let where = this.scoped ? 'Seçili ürünlerde' : 'Tüm ürünlerde';
+            if (min) {
+                where = min + ' ₺ ve üzeri ' + (this.scoped ? 'kampanyalı ürün alışverişlerinde' : 'alışverişlerde');
+            }
+            const who = { members: ' · yalnızca üyelere', new_members: ' · yeni üyelerin ilk siparişinde' }[this.audience] || '';
+            const how = this.kind === 'coupon' ? ' · kupon koduyla' : ' · sepette kendiliğinden uygulanır';
+
+            return where + ' ' + benefit + who + how;
+        },
+        async search() {
+            if (this.q.trim().length < 2) {
+                this.results = [];
+                this.open = false;
+                return;
+            }
+            this.loading = true;
+            const res = await fetch(lookupUrl + '?q=' + encodeURIComponent(this.q.trim()), { headers: { Accept: 'application/json' } });
+            this.results = res.ok ? await res.json() : [];
+            this.loading = false;
+            this.open = true;
+        },
+        add(product) {
+            if (!this.products.some((p) => p.id === product.id)) {
+                this.products.push(product);
+            }
+            this.q = '';
+            this.results = [];
+            this.open = false;
+        },
+        remove(id) {
+            this.products = this.products.filter((p) => p.id !== id);
+        },
+        isPicked(id) {
+            return this.products.some((p) => p.id === id);
+        },
+    };
+}
+
 /** Liste içinde arama (marka listeleri). Aranan değerler sunucuda küçük harfe çevrilmiş gelir. */
 export function textFilter() {
     return {

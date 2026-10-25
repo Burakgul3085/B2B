@@ -87,8 +87,12 @@ Müşteri teslimden sonra iade süresi içinde sipariş sayfasından iade talebi
   - Türler: yüzde indirim, tutar indirimi, ücretsiz teslimat.
   - **Kupon:** Müşteri kodu sepette girer. Toplu tek kullanımlık kodlar üretilip CSV olarak indirilebilir.
   - **Kampanya:** Koşulları tutan sepete kendiliğinden uygulanır.
-  - Koşullar: tarih aralığı, en düşük sepet tutarı, en yüksek indirim, toplam ve kişi başı kullanım sınırı, yalnızca ilk sipariş, belirli kategoriler veya ürün kodları.
-  - Bir siparişte tek indirim geçerlidir.
+  - Koşullar: tarih aralığı, en düşük sepet tutarı, en yüksek indirim, toplam ve kişi başı kullanım sınırı, yalnızca ilk sipariş, belirli kategoriler veya ürünler (aramayla seçilir ya da ürün koduyla yazılır).
+  - **Kime:** herkes, yalnızca üyeler veya yeni üyeler. Yeni üye indirimi müşterinin ilk siparişinde bir kez uygulanır; isteğe bağlı olarak "son N gün içinde üye olanlar" sınırı konur.
+  - Yeni formda hazır şablonlar (sepet tutarına, seçili ürünlere, yeni üyeye hoş geldin, ücretsiz teslimat, kupon) alanları doldurur; sağdaki kutu müşterinin göreceği metni gösterir. Listedeki "Kopyala" mevcut kampanyadan pasif bir kopya açar.
+  - **Kampanyalar sayfasında göster** işaretli ve yayında olan kampanyalar mağazadaki Kampanyalar sayfasında açıklama ve görselle listelenir; en az biri varsa menüde "Kampanyalar" sekmesi çıkar. Toplu kodlu kuponlar bu sayfada gösterilmez.
+  - Kodsuz, sepet tutarı koşulu olmayan ve herkese açık kampanyalar ürün kartında "Sepette %10 indirim" rozetiyle görünür; fiyat değişmez, indirim sepette düşer. Sepette tutar koşuluna az kalan kampanya için "₺… daha ekleyin" uyarısı çıkar.
+  - Bir siparişte tek indirim geçerlidir; kupon girilmediyse en avantajlı kampanya uygulanır.
 - **Satış → Raporlar:** Tarih aralığına göre ciro, indirim, iade, günlük satış, ödeme ve teslimat yöntemine göre dağılım. Siparişler Excel olarak alınabilir.
 - **Genel Bakış:** Bugünün ve ayın özeti; onay bekleyen, havale bekleyen, hazırlanacak ve yoldaki siparişler; iade talepleri.
 

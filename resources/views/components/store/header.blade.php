@@ -1,6 +1,6 @@
 {{--
     Vitrin üst bilgisi: üst şerit (lacivert), logo + canlı arama + hesap/sepet/tema, menü çubuğu, mobil çekmece.
-    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › yayındaki
+    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › Kampanyalar (yayında varsa) › yayındaki
     sabit sayfalar (Hakkımızda, İletişim) › Blog (yazı varsa). Kategori renkleri: Catalog::menu() her ana kategoriye bir yapboz rengi verir.
 --}}
 @props(['storeName', 'settings', 'menu', 'footer', 'pages', 'customer', 'cartCount'])
@@ -10,13 +10,17 @@
     $whatsapp = \App\Domain\Store\Storefront\ProductPage::whatsapp($settings['whatsapp']);
     $q = request()->routeIs('store.search') ? (string) request('q') : '';
     $listing = request()->routeIs('store.products');
+    $campaignList = $listing && request()->filled('kampanya');
     $links = [
-        ['Tüm ürünler', route('store.products'), $listing && ! request()->boolean('yeni') && ! request()->boolean('indirim'), null],
+        ['Tüm ürünler', route('store.products'), $listing && ! $campaignList && ! request()->boolean('yeni') && ! request()->boolean('indirim'), null],
         ['Markalar', route('store.brands'), request()->routeIs('store.brands'), null],
-        ['Yeni gelenler', route('store.products', ['yeni' => 1]), $listing && request()->boolean('yeni'), ['star', 'text-puzzle-yellow']],
-        ['İndirimler', route('store.products', ['indirim' => 1]), $listing && request()->boolean('indirim') && ! request()->boolean('yeni'), ['percent', 'text-puzzle-orange']],
-        ...array_map(fn ($page) => [$page['title'], $page['url'], url()->current() === $page['url'], null], $pages),
+        ['Yeni gelenler', route('store.products', ['yeni' => 1]), $listing && ! $campaignList && request()->boolean('yeni'), ['star', 'text-puzzle-yellow']],
+        ['İndirimler', route('store.products', ['indirim' => 1]), $listing && ! $campaignList && request()->boolean('indirim') && ! request()->boolean('yeni'), ['percent', 'text-puzzle-orange']],
     ];
+    if (\App\Domain\Store\Discounts\CampaignPage::any()) {
+        $links[] = ['Kampanyalar', route('store.campaigns'), request()->routeIs('store.campaigns') || $campaignList, ['gift', 'text-green-600']];
+    }
+    array_push($links, ...array_map(fn ($page) => [$page['title'], $page['url'], url()->current() === $page['url'], null], $pages));
     if (\App\Models\Store\StoreBlogPost::anyLive()) {
         $links[] = ['Blog', route('store.blog'), request()->routeIs('store.blog*'), null];
     }

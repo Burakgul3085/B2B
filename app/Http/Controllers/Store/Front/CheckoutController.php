@@ -52,7 +52,7 @@ class CheckoutController extends Controller
         $customer = $request->user('customer');
         $threshold = Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2);
         // Önizleme: kişiye bağlı kupon koşulları (ilk sipariş, kişi başı kullanım) sipariş onayında denetlenir.
-        ['applied' => $discount, 'couponError' => $couponError] = $discounts->evaluate($summary, $cart?->coupon_code, $customer?->email, $customer?->phone);
+        ['applied' => $discount, 'couponError' => $couponError] = $discounts->evaluate($summary, $cart?->coupon_code, $customer?->email, $customer?->phone, $customer);
         $net = bcsub($summary->subtotal(), $discount?->amount ?? '0.00', 2);
 
         return view('store.front.checkout', [

@@ -128,7 +128,7 @@ class CheckoutService
         $subtotal = $summary->subtotal();
 
         // İndirim (kupon veya kampanya): kişiye bağlı koşullar burada, e-posta ve telefonla denetlenir.
-        ['applied' => $discount, 'couponError' => $couponError] = $this->discounts->evaluate($summary, $couponCode, $email, $shipping['phone']);
+        ['applied' => $discount, 'couponError' => $couponError] = $this->discounts->evaluate($summary, $couponCode, $email, $shipping['phone'], $customer);
         if ($couponError) {
             throw ValidationException::withMessages(['coupon' => $couponError.' Kuponu sepetinizden kaldırarak devam edebilirsiniz.']);
         }
@@ -342,7 +342,8 @@ class CheckoutService
             return null;
         }
         $discount = StoreDiscount::whereKey($draft['discount']['id'])->lockForUpdate()->first();
-        if (! $discount || $reason = $this->discounts->refusal($discount, $draft['discount']['base'] ?? $draft['subtotal'], $draft['email'], $draft['phone'], null, $draft['discount']['code'])) {
+        $customer = ($draft['customer_id'] ?? null) ? StoreCustomer::find($draft['customer_id']) : null;
+        if (! $discount || $reason = $this->discounts->refusal($discount, $draft['discount']['base'] ?? $draft['subtotal'], $draft['email'], $draft['phone'], null, $draft['discount']['code'], $customer)) {
             throw new DomainException(($reason ?? 'Kupon artık geçerli değil.').' Sepetinizi kontrol edip yeniden deneyin.');
         }
 
