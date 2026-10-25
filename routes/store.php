@@ -248,6 +248,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::post('stok-bildirimi', [Front\StockAlertController::class, 'store'])->middleware(['throttle:10,10,stock-alert.store', 'store.bot'])->name('stock-alert.store');
         Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
+        Route::get('hakkimizda/galeri', [Front\SitePageController::class, 'gallery'])->name('about.gallery');
         Route::get('blog', [Front\BlogController::class, 'index'])->name('blog');
         // Yardım sayfaları (Vitrin → Yardım Sayfaları)
         foreach (HelpPages::PAGES as $helpKey => [, $helpPath]) {

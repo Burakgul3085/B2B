@@ -160,6 +160,23 @@ class SitePages
     }
 
     /** Bölüm yayında mı (yönetimde kapatılmamış)? */
+    /**
+     * Hakkımızda galerisi: büyük görünüm ve küçük görsel adresi, en/boy oranı (kırpmadan yerleşim için) ve açıklama.
+     *
+     * @return list<array{src: string, thumb: string, ratio: ?float, caption: ?string}>
+     */
+    public static function galleryPhotos(array $content, string $imageRoute): array
+    {
+        $url = fn (string $path, int $w) => route($imageRoute, ['file' => basename($path), 'w' => $w]);
+
+        return array_map(fn (string $path) => [
+            'src' => $url($path, 1800),
+            'thumb' => $url($path, 900),
+            'ratio' => ImageVariants::ratio($path),
+            'caption' => $content['gallery_captions'][basename($path)] ?? null,
+        ], array_values($content['gallery'] ?? []));
+    }
+
     public static function sectionOn(array $content, string $section): bool
     {
         return ! in_array($section, $content['hidden_sections'] ?? [], true);

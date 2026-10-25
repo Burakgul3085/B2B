@@ -164,13 +164,13 @@ Vitrin → Hakkımızda ekranında sayfa 9 bölümden oluşur; her bölümün "B
 4. **Misyon, vizyon, değerler:** metni yazılan kartlar görünür.
 5. **Neden biz:** en fazla 6 kart.
 6. **Yolculuğumuz:** yıl + başlık + kısa açıklama, en fazla 10 adım.
-7. **Fotoğraf galerisi:** en fazla 24 fotoğraf; sıra numarası ve açıklama verilebilir, tıklayınca büyük görünür.
+7. **Fotoğraf galerisi:** en fazla 24 fotoğraf; sıra numarası ve açıklama verilebilir. Sayfada tek sıra hâlinde sağdan sola kendiliğinden kayan bir bant olarak görünür (üzerine gelince durur, tıklayınca büyür); "Tümünü gör" düğmesi tüm fotoğrafların bulunduğu ayrı galeri sayfasını (`/hakkimizda/galeri`) açar.
 8. **Ekibimiz:** fotoğraf, ad ve görev; en fazla 8 kişi.
 9. **Kapanış bandı:** başlık, metin, düğme yazısı ve adresi.
 
 Rakam, yıl gibi bilgileri gerçek değerlerle doldurun; örnekler yalnızca alanlarda gri ipucu olarak görünür.
 
-**Fotoğraflar hiçbir yerde kırpılmaz.** Mağazadaki tüm fotoğraflar (Hakkımızda, banner'lar, blog kapakları, seçkiler, kategori görselleri) kendi en/boy oranıyla, bütünüyle gösterilir. Dikey, yatay veya kare fotoğraf yükleyebilirsiniz: çerçeve fotoğrafın oranına uyar, oran çok farklıysa kalan boşluk aynı fotoğrafın bulanık hâliyle doldurulur. Galeri taş duvar düzenindedir (boşluk kalmaz). Telefonla çekilmiş fotoğrafların yönü otomatik düzeltilir. Yönetim ekranındaki önizlemeler de fotoğrafı bütün olarak gösterir.
+**Fotoğraflar hiçbir yerde kırpılmaz.** Mağazadaki tüm fotoğraflar (Hakkımızda, banner'lar, blog kapakları, seçkiler, kategori görselleri) kendi en/boy oranıyla, bütünüyle gösterilir. Dikey, yatay veya kare fotoğraf yükleyebilirsiniz: çerçeve fotoğrafın oranına uyar, oran çok farklıysa kalan boşluk aynı fotoğrafın bulanık hâliyle doldurulur. Galeri sayfası taş duvar düzenindedir (boşluk kalmaz). Telefonla çekilmiş fotoğrafların yönü otomatik düzeltilir. Yönetim ekranındaki önizlemeler de fotoğrafı bütün olarak gösterir.
 
 ## 10. Alt bilgi
 

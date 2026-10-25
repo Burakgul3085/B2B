@@ -149,7 +149,9 @@ class StoreSitePagesTest extends TestCase
             ->assertSee('10.000+')->assertSee('Mutlu müşteri')->assertSee('Nasıl başladık')->assertSee('yıldır hizmetinizde')
             ->assertSee('Her öğrenciye kaliteli kırtasiye.')->assertSee('Değerlerimiz')->assertDontSee('Vizyonumuz')
             ->assertSee('İlk dükkân')->assertSee('Online mağaza')->assertSee('Onur Birbilen')->assertSee('Mağaza yöneticisi')
-            ->assertSee('Okula hazır mısınız?')->assertSee('2 fotoğraf');
+            ->assertSee('Okula hazır mısınız?')->assertSee('hakkimizda/galeri', false);
+        // Galerinin tamamı ayrı sayfada
+        $this->get(self::HOST.'/hakkimizda/galeri')->assertOk()->assertSee('2 fotoğraf')->assertSee(basename($c['gallery'][1]), false);
         // Hikâye ve ekip fotoğrafları da sayfaya ait sayılır
         $this->get(self::HOST.'/gorsel/sayfa/'.basename($c['team'][0]['photo']))->assertOk();
         $this->get(self::HOST.'/gorsel/sayfa/'.basename($c['story_images'][1]))->assertOk();
@@ -166,6 +168,10 @@ class StoreSitePagesTest extends TestCase
         $this->assertSame([], $fresh['team']);
         Storage::disk('local')->assertMissing($c['team'][0]['photo']);
         $this->get(self::HOST.'/hakkimizda')->assertSee('Vitrinimiz')->assertDontSee('Mutlu müşteri')->assertDontSee('Okula hazır mısınız?');
+
+        // Galeri bölümü kapatılınca galeri sayfası da kapanır
+        $this->put(route('store_admin.site-pages.about.update'), $base + ['sections' => ['gallery' => '0'] + array_fill_keys(array_keys(SitePages::ABOUT_SECTIONS), '1')])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/hakkimizda/galeri')->assertNotFound();
     }
 
     public function test_contact_page_hours_map_and_details(): void

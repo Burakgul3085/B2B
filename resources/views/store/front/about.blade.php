@@ -21,8 +21,9 @@
     // kısım bulanık zeminle tamamlanır — x-store.fit-image).
     $ratio = fn (?string $path) => \App\Domain\Store\Storefront\ImageVariants::ratio($path);
     $clamp = fn (?float $r, float $min, float $max) => $r ? max($min, min($max, $r)) : null;
-    $gallery = collect($c['gallery'])->map(fn ($path) => ['src' => $image($path, 1800), 'thumb' => $image($path, 900), 'ratio' => $ratio($path), 'caption' => $c['gallery_captions'][basename($path)] ?? null])->values();
-    $galleryCols = match (true) { $gallery->count() === 1 => 'mx-auto max-w-2xl columns-1', $gallery->count() === 2 => 'columns-2', default => 'columns-2 md:columns-3' };
+    $gallery = collect(SitePages::galleryPhotos($c, $imageRoute));
+    // Kayan bant: ekranı dolduracak kadar fotoğraf yoksa liste tekrarlanır; bant iki kez yazılır, yarısı kayınca başa döner.
+    $reel = $gallery->isEmpty() ? collect() : collect(range(0, $gallery->count() * (int) ceil(8 / $gallery->count()) - 1))->map(fn ($n) => $n % $gallery->count());
     $coverRatio = $c['cover'] ? ($ratio($c['cover']) ?? 1.5) : null;
     $storyRatios = [$ratio($c['story_images'][0] ?? null), $ratio($c['story_images'][1] ?? null)];
     // Ekip kartları aynı çerçeveyi paylaşır: fotoğrafların ortanca oranı (yatay fotoğraflarda kart genişler).
@@ -186,41 +187,39 @@
             </section>
         @endif
 
-        {{-- 7. Galeri --}}
+        {{-- 7. Galeri: tek sıra, sağdan sola kendiliğinden kayan bant. Fotoğraflar aynı yükseklikte, genişlik
+             kendi oranından gelir (kırpılmaz). Üzerine gelince durur; tümü ayrı galeri sayfasında. --}}
         @if ($gallery->isNotEmpty() && $on('gallery'))
-            <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" x-data="photoGallery(@alpine($gallery->all()))" @keydown.window.escape="close()" @keydown.window.arrow-right="next()" @keydown.window.arrow-left="prev()">
-                <div class="flex flex-wrap items-end justify-between gap-4">
+            <section x-data="photoGallery(@alpine($gallery->all()))" @keydown.window.escape="close()" @keydown.window.arrow-right="next()" @keydown.window.arrow-left="prev()">
+                <div class="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4 px-4 sm:px-6 lg:px-8">
                     <div>
                         <p class="{{ $eyebrow }} text-puzzle-orange">Galeri</p>
                         <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $c['gallery_title'] }}</h2>
                     </div>
-                    <p class="text-sm text-muted">{{ $gallery->count() }} fotoğraf</p>
+                    @unless ($adminPreview)
+                        <a href="{{ route('store.about.gallery') }}" class="group inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-white px-5 text-sm font-semibold text-navy-ink transition hover:border-navy hover:bg-navy hover:text-white">
+                            Tümünü gör <span class="tabular-nums text-muted transition group-hover:text-white/70">({{ $gallery->count() }})</span> <x-icon name="arrow-right" class="size-4" />
+                        </a>
+                    @endunless
                 </div>
-                {{-- Taş duvar (masonry) dizilim: her fotoğraf kendi oranında, boşluksuz ve kırpılmadan --}}
-                <div class="mt-10 gap-3 md:gap-4 {{ $galleryCols }}">
-                    @foreach ($gallery as $i => $photo)
-                        <button type="button" @click="open({{ $i }})" class="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-surface focus:ring-4 focus:ring-amber-400/50 focus:outline-none md:mb-4"
-                            aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
-                            <x-store.fit-image :src="$photo['thumb']" :alt="$photo['caption'] ?? $name" :ratio="$photo['ratio']" :frame="$clamp($photo['ratio'], 0.5, 2.2)" />
-                            <span class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"></span>
-                            @if ($photo['caption'])<span class="absolute inset-x-0 bottom-0 translate-y-2 p-4 text-left text-sm font-semibold text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">{{ $photo['caption'] }}</span>@endif
-                        </button>
-                    @endforeach
+                <div class="marquee mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_5%,#000_95%,transparent)] motion-reduce:overflow-x-auto" role="region" aria-label="{{ $c['gallery_title'] }}">
+                    <div class="marquee-track flex" style="--marquee-duration: {{ $reel->count() * 6 }}s">
+                        @foreach ([false, true] as $copy)
+                            <div class="flex shrink-0 gap-4 pr-4" @if ($copy) aria-hidden="true" @endif>
+                                @foreach ($reel as $i)
+                                    @php $photo = $gallery[$i]; @endphp
+                                    <button type="button" @click="open({{ $i }})" @if ($copy || $loop->index >= $gallery->count()) tabindex="-1" @endif
+                                        class="group relative shrink-0 overflow-hidden rounded-2xl focus:ring-4 focus:ring-amber-400/50 focus:outline-none" aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
+                                        <x-store.fit-image :src="$photo['thumb']" :alt="$copy ? '' : ($photo['caption'] ?? $name)" :ratio="$photo['ratio']" :frame="$clamp($photo['ratio'], 0.5, 2.2)" class="h-56 sm:h-72" />
+                                        <span class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"></span>
+                                        @if ($photo['caption'])<span class="absolute inset-x-0 bottom-0 p-4 text-left text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100">{{ $photo['caption'] }}</span>@endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-
-                {{-- Büyük görünüm --}}
-                <div x-show="index !== null" x-cloak x-transition.opacity class="lightbox fixed inset-0 z-[70] flex items-center justify-center bg-[#0b1631]/95 p-4" @click.self="close()" role="dialog" aria-modal="true" aria-label="Fotoğraf">
-                    <button type="button" @click="close()" class="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Kapat"><x-icon name="x" class="size-6" /></button>
-                    <button type="button" @click="prev()" x-show="photos.length > 1" class="absolute left-3 flex size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:left-6" aria-label="Önceki"><x-icon name="arrow-right" class="size-6 rotate-180" /></button>
-                    <figure class="max-h-full max-w-5xl">
-                        <img :src="current.src" :alt="current.caption || ''" class="max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl">
-                        <figcaption class="mt-4 flex items-center justify-between gap-4 text-sm text-white/80">
-                            <span x-text="current.caption || ''"></span>
-                            <span class="tabular-nums text-white/50" x-text="counter"></span>
-                        </figcaption>
-                    </figure>
-                    <button type="button" @click="next()" x-show="photos.length > 1" class="absolute right-3 flex size-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:right-6" aria-label="Sonraki"><x-icon name="arrow-right" class="size-6" /></button>
-                </div>
+                @include('store.front._photo-lightbox')
             </section>
         @endif
 

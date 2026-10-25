@@ -21,6 +21,19 @@ class SitePageController extends Controller
         return $this->render('about', $this->published('about'), 'store.media.page');
     }
 
+    /** Hakkımızda galerisinin tüm fotoğrafları (ayrı sayfa). Galeri boşsa veya kapatıldıysa 404. */
+    public function gallery(): View
+    {
+        $page = $this->published('about');
+        abort_unless($page->content['gallery'] && SitePages::sectionOn($page->content, 'gallery'), 404);
+
+        return view('store.front.about-gallery', [
+            'page' => $page,
+            'content' => $page->content,
+            'photos' => SitePages::galleryPhotos($page->content, 'store.media.page'),
+        ]);
+    }
+
     public function contact(): View
     {
         return $this->render('contact', $this->published('contact'), 'store.media.page');
