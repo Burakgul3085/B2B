@@ -627,3 +627,55 @@ export function printPage() {
         },
     };
 }
+
+/**
+ * Mağaza adı + slogan (x-store.wordmark): iki satırın harf kenarları milimetrik hizalanır. Harflerin kendi iç
+ * boşlukları (ör. "Y"nin solu, "K"nin sağı) farklı olduğundan, mürekkep kenarları tuval üzerinde ölçülür ve slogan
+ * bunlara göre yerleştirilir (x ve textLength). Yazı tipi yüklenince ve pencere boyutu değişince yeniden hesaplanır.
+ * Şablon: x-data="wordmark" ve x-ref="name", x-ref="text" (SVG text).
+ */
+export function wordmark() {
+    return {
+        init() {
+            const fit = () => this.fit();
+            (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+            window.addEventListener('resize', fit, { passive: true });
+        },
+        fit() {
+            const name = this.$refs.name;
+            const text = this.$refs.text;
+            if (!name || !text || !text.getBBox || text.ownerSVGElement.getBoundingClientRect().width === 0) {
+                return;
+            }
+            const ctx = document.createElement('canvas').getContext('2d');
+            const measure = (str, style, spacing) => {
+                ctx.font = style;
+                if ('letterSpacing' in ctx) {
+                    ctx.letterSpacing = spacing || '0px';
+                }
+                return ctx.measureText(str);
+            };
+
+            const cs = getComputedStyle(name);
+            const nameText = name.textContent.trim();
+            const nm = measure(nameText, `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`, cs.letterSpacing);
+            const inkStart = -nm.actualBoundingBoxLeft;
+            const inkEnd = nm.actualBoundingBoxRight;
+
+            const ts = getComputedStyle(text);
+            const tagStyle = `${text.getAttribute('font-weight')} ${text.getAttribute('font-size')}px ${ts.fontFamily}`;
+            const tag = text.textContent.trim();
+            const first = measure(tag.charAt(0), tagStyle);
+            const last = measure(tag.charAt(tag.length - 1), tagStyle);
+            const leftBearing = -first.actualBoundingBoxLeft;
+            const rightBearing = last.width - last.actualBoundingBoxRight;
+
+            const x = inkStart - leftBearing;
+            const length = inkEnd + rightBearing - x;
+            if (length > 0) {
+                text.setAttribute('x', x.toFixed(2));
+                text.setAttribute('textLength', length.toFixed(2));
+            }
+        },
+    };
+}
