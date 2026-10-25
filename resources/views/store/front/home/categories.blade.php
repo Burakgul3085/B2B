@@ -12,8 +12,8 @@
                         {{ $category->product_count }} ürün <x-icon name="arrow-right" class="size-4 transition group-hover:translate-x-1" />
                     </span>
                     @if ($category->image_path)
-                        <img src="{{ route('store.media.category', ['storeCategory' => $category->id, 'w' => 480]) }}" alt="" loading="lazy"
-                            class="absolute -right-4 -bottom-4 size-32 rounded-2xl object-cover shadow-lg transition duration-500 group-hover:scale-105 group-hover:-rotate-3 sm:size-36">
+                        <x-store.fit-image :src="route('store.media.category', ['storeCategory' => $category->id, 'w' => 480])"
+                            class="!absolute -right-4 -bottom-4 size-32 rounded-2xl bg-white shadow-lg transition duration-500 group-hover:scale-105 group-hover:-rotate-3 sm:size-36" />
                     @else
                         <span class="absolute -right-5 -bottom-5 flex size-28 rotate-12 items-center justify-center rounded-3xl font-display text-5xl font-extrabold text-white/90 {{ $c['solid'] }}" aria-hidden="true">{{ mb_substr($category->name, 0, 1) }}</span>
                     @endif

@@ -51,6 +51,11 @@ class ImageUploader
             throw new DomainException('Görsel okunamadı; dosya bozuk olabilir.');
         }
 
+        if ($info['mime'] === 'image/jpeg') {
+            $source = $this->applyExifOrientation($source, $file->getRealPath());
+            [$width, $height] = [imagesx($source), imagesy($source)];
+        }
+
         if ($trimWhitespace && ($box = $this->contentBox($source)) !== null) {
             $source = imagecrop($source, $box) ?: $source;
             [$width, $height] = [imagesx($source), imagesy($source)];
@@ -75,6 +80,29 @@ class ImageUploader
         Storage::disk('local')->put($path, $binary);
 
         return $path;
+    }
+
+    /**
+     * Telefon fotoğrafları pikselleri sensör yönünde saklar ve doğru yönü EXIF "Orientation" etiketiyle bildirir.
+     * Yeniden kodlamada EXIF atıldığı için yön burada piksellere uygulanır; yoksa fotoğraf yan veya ters görünür.
+     */
+    private function applyExifOrientation(GdImage $image, string $path): GdImage
+    {
+        $orientation = function_exists('exif_read_data') ? (int) (@exif_read_data($path)['Orientation'] ?? 1) : 1;
+
+        // imagerotate saat yönünün tersine döndürür.
+        $rotated = match ($orientation) {
+            2 => imageflip($image, IMG_FLIP_HORIZONTAL) ? $image : $image,
+            3 => imagerotate($image, 180, 0),
+            4 => imageflip($image, IMG_FLIP_VERTICAL) ? $image : $image,
+            5 => imageflip($image, IMG_FLIP_HORIZONTAL) ? imagerotate($image, 90, 0) : $image,
+            6 => imagerotate($image, -90, 0),
+            7 => imageflip($image, IMG_FLIP_HORIZONTAL) ? imagerotate($image, -90, 0) : $image,
+            8 => imagerotate($image, 90, 0),
+            default => $image,
+        };
+
+        return $rotated instanceof GdImage ? $rotated : $image;
     }
 
     /**

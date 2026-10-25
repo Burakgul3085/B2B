@@ -6,8 +6,7 @@
 <article @class(['group flex flex-col overflow-hidden rounded-3xl border border-line bg-white transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-navy/10', 'lg:col-span-2 lg:flex-row' => $large])>
     <a href="{{ $url }}" @class(['relative block shrink-0 overflow-hidden bg-navy', 'aspect-[16/10]', 'lg:aspect-auto lg:w-1/2' => $large]) tabindex="-1" aria-hidden="true">
         @if ($post->cover_path)
-            <img src="{{ route('store.media.blog', ['storeBlogPost' => $post->id, 'w' => $large ? 1200 : 720]) }}?v={{ $post->updated_at?->timestamp }}" alt="" loading="lazy"
-                class="size-full object-cover transition duration-500 group-hover:scale-105">
+            <x-store.fit-image :src="route('store.media.blog', ['storeBlogPost' => $post->id, 'w' => $large ? 1200 : 720]).'?v='.$post->updated_at?->timestamp" fill />
         @else
             <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
                 <span class="grid grid-cols-2 gap-1.5"><span class="size-8 rounded-lg bg-puzzle-orange"></span><span class="size-8 rounded-lg bg-puzzle-green"></span><span class="size-8 rounded-lg bg-puzzle-blue"></span><span class="size-8 rounded-lg bg-puzzle-yellow"></span></span>

@@ -17,7 +17,17 @@
     $prose = 'space-y-4 text-[16px] leading-relaxed text-slate-700 [&_a]:font-semibold [&_a]:text-navy-ink [&_a]:underline [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:text-ink [&_h3]:mt-6 [&_h3]:font-bold [&_h3]:text-ink [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-ink [&_ul]:list-disc';
     $eyebrow = 'text-xs font-bold tracking-[0.2em] uppercase';
     $statCols = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-3', 4 => 'sm:grid-cols-2 lg:grid-cols-4', 5 => 'sm:grid-cols-3 lg:grid-cols-5', 6 => 'sm:grid-cols-3 lg:grid-cols-6'];
-    $gallery = collect($c['gallery'])->map(fn ($path) => ['src' => $image($path, 1800), 'thumb' => $image($path, 900), 'caption' => $c['gallery_captions'][basename($path)] ?? null])->values();
+    // Fotoğraflar kırpılmaz: çerçeve, fotoğrafın kendi en/boy oranından seçilir (aşırı uçlar sınırlanır, taşan
+    // kısım bulanık zeminle tamamlanır — x-store.fit-image).
+    $ratio = fn (?string $path) => \App\Domain\Store\Storefront\ImageVariants::ratio($path);
+    $clamp = fn (?float $r, float $min, float $max) => $r ? max($min, min($max, $r)) : null;
+    $gallery = collect($c['gallery'])->map(fn ($path) => ['src' => $image($path, 1800), 'thumb' => $image($path, 900), 'ratio' => $ratio($path), 'caption' => $c['gallery_captions'][basename($path)] ?? null])->values();
+    $galleryCols = match (true) { $gallery->count() === 1 => 'mx-auto max-w-2xl columns-1', $gallery->count() === 2 => 'columns-2', default => 'columns-2 md:columns-3' };
+    $coverRatio = $c['cover'] ? ($ratio($c['cover']) ?? 1.5) : null;
+    $storyRatios = [$ratio($c['story_images'][0] ?? null), $ratio($c['story_images'][1] ?? null)];
+    // Ekip kartları aynı çerçeveyi paylaşır: fotoğrafların ortanca oranı (yatay fotoğraflarda kart genişler).
+    $teamRatios = collect($c['team'])->map(fn ($m) => $ratio($m['photo'] ?? null))->filter()->sort()->values();
+    $teamFrame = $clamp($teamRatios->isNotEmpty() ? $teamRatios[intdiv($teamRatios->count(), 2)] : null, 0.75, 1.34) ?? 1.0;
 @endphp
 <x-layouts.store :title="$page->seo_title ?: $c['headline']" :description="$page->seo_description ?: ($c['tagline'] ?: $c['story'])"
     :canonical="route('store.about')" :noindex="$adminPreview" :ogImage="$c['cover'] ? $image($c['cover'], 1200) : null">
@@ -28,15 +38,17 @@
     {{-- 1. Kapak --}}
     <section class="relative isolate overflow-hidden bg-[#0b1631] text-white">
         @if ($c['cover'])
-            <img src="{{ $image($c['cover'], 2400) }}" alt="" class="absolute inset-0 -z-10 size-full object-cover" fetchpriority="high">
-            <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#0b1631] via-[#0b1631]/80 to-[#0b1631]/30"></div>
+            {{-- Kapak fotoğrafı kırpılmadan sağda bütün olarak durur; aynı fotoğrafın bulanık hâli zemine renk verir. --}}
+            <img src="{{ $image($c['cover'], 1200) }}" alt="" aria-hidden="true" class="absolute inset-0 -z-20 size-full scale-110 object-cover opacity-30 blur-3xl">
+            <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#0b1631] via-[#0b1631]/90 to-[#0b1631]/70"></div>
         @else
             <div class="pointer-events-none absolute -right-12 -bottom-16 -z-10 hidden rotate-12 grid-cols-2 gap-4 md:grid" aria-hidden="true">
                 <span class="size-32 rounded-[2rem] bg-puzzle-orange"></span><span class="size-32 rounded-[2rem] bg-puzzle-green"></span>
                 <span class="size-32 rounded-[2rem] bg-puzzle-blue"></span><span class="size-32 rounded-[2rem] bg-puzzle-yellow"></span>
             </div>
         @endif
-        <div @class(['mx-auto flex max-w-7xl flex-col justify-end px-4 sm:px-6 lg:px-8', 'min-h-[520px] pt-16 pb-28' => $c['cover'], 'pt-14 pb-24 sm:pt-20' => ! $c['cover']])>
+        <div @class(['mx-auto max-w-7xl px-4 sm:px-6 lg:px-8', 'grid items-center gap-12 pt-12 pb-28 lg:grid-cols-2 lg:gap-16 lg:pt-16' => $c['cover'], 'pt-14 pb-24 sm:pt-20' => ! $c['cover']])>
+            <div>
             <nav class="text-sm text-white/60" aria-label="Konum"><a href="{{ route('store.home') }}" class="hover:text-white">Ana sayfa</a> <span class="mx-1">›</span> Hakkımızda</nav>
             <p class="mt-8 flex items-center gap-2 {{ $eyebrow }} text-amber-400">
                 <span class="inline-flex gap-0.5" aria-hidden="true"><span class="size-2 rounded-[3px] bg-puzzle-orange"></span><span class="size-2 rounded-[3px] bg-puzzle-green"></span><span class="size-2 rounded-[3px] bg-puzzle-blue"></span><span class="size-2 rounded-[3px] bg-puzzle-yellow"></span></span>
@@ -48,6 +60,16 @@
                 <a href="{{ route('store.products') }}" class="inline-flex h-12 items-center gap-2 rounded-xl bg-puzzle-orange px-6 font-semibold text-white shadow-lg shadow-black/25 transition hover:brightness-110">Ürünleri keşfet <x-icon name="arrow-right" class="size-4" /></a>
                 @if ($contactLive)<a href="{{ route('store.contact') }}" class="inline-flex h-12 items-center gap-2 rounded-xl px-6 font-semibold text-white ring-1 ring-white/40 transition hover:bg-white/10">Bize ulaşın</a>@endif
             </div>
+            </div>
+            @if ($c['cover'])
+                <div class="relative mx-auto w-full max-w-xl lg:max-w-none">
+                    <div class="pointer-events-none absolute -top-5 -right-3 grid rotate-12 grid-cols-2 gap-1.5" aria-hidden="true">
+                        <span class="size-7 rounded-lg bg-puzzle-orange"></span><span class="size-7 rounded-lg bg-puzzle-green"></span><span class="size-7 rounded-lg bg-puzzle-blue"></span><span class="size-7 rounded-lg bg-puzzle-yellow"></span>
+                    </div>
+                    <x-store.fit-image :src="$image($c['cover'], 1600)" :alt="$name" :ratio="$coverRatio" :frame="$clamp($coverRatio, 0.66, 1.9)" loading="eager" :maxHeight="34"
+                        class="mx-auto rounded-[2rem] shadow-2xl ring-1 ring-white/15" />
+                </div>
+            @endif
         </div>
     </section>
 
@@ -79,14 +101,16 @@
                     @if ($c['story_images'] || $c['badge_value'])
                         <div class="relative mx-auto w-full max-w-lg pb-10 lg:max-w-none">
                             @if ($c['story_images'][0] ?? null)
-                                <img src="{{ $image($c['story_images'][0], 1200) }}" alt="{{ $name }}" loading="lazy" class="aspect-[4/5] w-full rounded-[2rem] object-cover shadow-2xl shadow-navy/20 sm:w-4/5 lg:ml-auto">
+                                <x-store.fit-image :src="$image($c['story_images'][0], 1200)" :alt="$name" :ratio="$storyRatios[0]" :frame="$clamp($storyRatios[0], 0.7, 1.5)"
+                                    class="w-full rounded-[2rem] shadow-2xl shadow-navy/20 sm:w-4/5 lg:ml-auto" />
                             @else
                                 <div class="grid aspect-[4/5] w-full grid-cols-2 gap-4 rounded-[2rem] bg-surface p-10 sm:w-4/5 lg:ml-auto" aria-hidden="true">
                                     <span class="rounded-3xl bg-puzzle-orange"></span><span class="rounded-3xl bg-puzzle-green"></span><span class="rounded-3xl bg-puzzle-blue"></span><span class="rounded-3xl bg-puzzle-yellow"></span>
                                 </div>
                             @endif
                             @if ($c['story_images'][1] ?? null)
-                                <img src="{{ $image($c['story_images'][1], 800) }}" alt="" loading="lazy" class="absolute bottom-0 left-0 hidden aspect-square w-2/5 rounded-3xl object-cover shadow-xl ring-8 ring-white sm:block">
+                                <x-store.fit-image :src="$image($c['story_images'][1], 800)" :ratio="$storyRatios[1]" :frame="$clamp($storyRatios[1], 0.75, 1.34)"
+                                    class="!absolute bottom-0 left-0 hidden w-2/5 rounded-3xl shadow-xl ring-8 ring-white sm:block" />
                             @endif
                             @if ($c['badge_value'])
                                 <div class="absolute top-8 -left-2 rounded-3xl bg-[#0b1631] px-6 py-5 text-white shadow-2xl shadow-navy/30 sm:left-6">
@@ -172,12 +196,12 @@
                     </div>
                     <p class="text-sm text-muted">{{ $gallery->count() }} fotoğraf</p>
                 </div>
-                <div class="mt-10 grid grid-flow-dense auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[200px] md:grid-cols-4 md:gap-4">
+                {{-- Taş duvar (masonry) dizilim: her fotoğraf kendi oranında, boşluksuz ve kırpılmadan --}}
+                <div class="mt-10 gap-3 md:gap-4 {{ $galleryCols }}">
                     @foreach ($gallery as $i => $photo)
-                        @php $big = $i % 6 === 0; $wide = $i % 6 === 4; @endphp
-                        <button type="button" @click="open({{ $i }})" @class(['group relative overflow-hidden rounded-2xl bg-surface focus:ring-4 focus:ring-amber-400/50 focus:outline-none',
-                            'col-span-2 row-span-2' => $big, 'md:col-span-2' => $wide]) aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
-                            <img src="{{ $photo['thumb'] }}" alt="{{ $photo['caption'] ?? $name }}" loading="lazy" class="size-full object-cover transition duration-700 group-hover:scale-105">
+                        <button type="button" @click="open({{ $i }})" class="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-surface focus:ring-4 focus:ring-amber-400/50 focus:outline-none md:mb-4"
+                            aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
+                            <x-store.fit-image :src="$photo['thumb']" :alt="$photo['caption'] ?? $name" :ratio="$photo['ratio']" :frame="$clamp($photo['ratio'], 0.5, 2.2)" />
                             <span class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"></span>
                             @if ($photo['caption'])<span class="absolute inset-x-0 bottom-0 translate-y-2 p-4 text-left text-sm font-semibold text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">{{ $photo['caption'] }}</span>@endif
                         </button>
@@ -209,11 +233,11 @@
                 </div>
                 <div class="mt-12 flex flex-wrap justify-center gap-6">
                     @foreach ($c['team'] as $i => $member)
-                        <article class="w-[calc(50%-0.75rem)] text-center sm:w-56">
+                        <article @class(['text-center', 'w-[calc(50%-0.75rem)] sm:w-56' => $teamFrame <= 1.05, 'w-full sm:w-72' => $teamFrame > 1.05])>
                             @if ($member['photo'])
-                                <img src="{{ $image($member['photo'], 600) }}" alt="{{ $member['name'] }}" loading="lazy" class="mx-auto aspect-square w-full rounded-3xl object-cover shadow-lg">
+                                <x-store.fit-image :src="$image($member['photo'], 800)" :alt="$member['name']" :ratio="$ratio($member['photo'])" :frame="$teamFrame" class="w-full rounded-3xl shadow-lg" />
                             @else
-                                <span class="mx-auto flex aspect-square w-full items-center justify-center rounded-3xl font-display text-5xl font-extrabold text-white {{ $tone($i)['solid'] }}">{{ mb_strtoupper(mb_substr($member['name'], 0, 1)) }}</span>
+                                <span class="mx-auto flex w-full items-center justify-center rounded-3xl font-display text-5xl font-extrabold text-white {{ $tone($i)['solid'] }}" style="aspect-ratio: {{ $teamFrame }}">{{ mb_strtoupper(mb_substr($member['name'], 0, 1)) }}</span>
                             @endif
                             <h3 class="mt-4 font-display text-lg font-extrabold">{{ $member['name'] }}</h3>
                             @if ($member['role'])<p class="text-sm text-muted">{{ $member['role'] }}</p>@endif

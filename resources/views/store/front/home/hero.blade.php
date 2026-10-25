@@ -3,6 +3,12 @@
     $main = $banners['main'];
     $side = $banners['side'];
     $storeName = config('store.name');
+    // Ana banner çerçevesi ilk banner'ın kendi oranını alır (aşırı uçlar sınırlanır): görsel kırpılmaz, bant kalmaz.
+    // Mobilde varsa mobil görselin oranı kullanılır. Oranı farklı diğer banner'lar çerçeveye bütünüyle sığdırılır.
+    $first = $main->first();
+    $ratio = fn (?string $path, float $fallback, float $min, float $max) => max($min, min($max, \App\Domain\Store\Storefront\ImageVariants::ratio($path) ?? $fallback));
+    $mainRatio = $first ? $ratio($first->image_path, $side->isNotEmpty() ? 16 / 9 : 21 / 8, $side->isNotEmpty() ? 1.4 : 1.8, 3.2) : null;
+    $mobileRatio = $first ? ($first->mobile_image_path ? $ratio($first->mobile_image_path, 0.8, 0.6, 1.5) : max(1.0, min(2.0, $mainRatio))) : null;
 @endphp
 <section class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8" aria-label="Kampanyalar">
     @if ($main->isNotEmpty() || $side->isNotEmpty())
@@ -14,11 +20,17 @@
                         @php $tag = $banner->link_url ? 'a' : 'div'; @endphp
                         <{{ $tag }} @if ($banner->link_url) href="{{ $banner->link_url }}" @endif x-show="i === {{ $index }}" @if ($index) x-cloak @endif
                             x-transition:enter="transition duration-500" x-transition:enter-start="opacity-0" class="relative block h-full">
-                            <picture>
-                                @if ($banner->mobile_image_path)<source media="(max-width: 640px)" srcset="{{ route('store.media.banner', ['storeBanner' => $banner, 'mobil' => 1]) }}">@endif
-                                <img src="{{ route('store.media.banner', $banner) }}" alt="{{ $banner->title ?? $storeName }}" @class(['w-full object-cover aspect-[4/5]', 'sm:aspect-[16/9]' => $side->isNotEmpty(), 'sm:aspect-[21/8]' => $side->isEmpty()])
-                                    @if ($index) loading="lazy" @else fetchpriority="high" @endif>
-                            </picture>
+                            {{-- Banner kırpılmaz: görsel bütünüyle sığdırılır, oranı alana uymazsa kenarları aynı görselin bulanık hâli doldurur. --}}
+                            <span class="relative block aspect-(--banner-m) w-full sm:aspect-(--banner)" style="--banner-m: {{ round($mobileRatio, 4) }}; --banner: {{ round($mainRatio, 4) }}">
+                                @foreach ([true, false] as $backdrop)
+                                    <picture class="absolute inset-0" @if ($backdrop) aria-hidden="true" @endif>
+                                        @if ($banner->mobile_image_path)<source media="(max-width: 640px)" srcset="{{ route('store.media.banner', ['storeBanner' => $banner, 'mobil' => 1]) }}">@endif
+                                        <img src="{{ route('store.media.banner', $banner) }}" alt="{{ $backdrop ? '' : ($banner->title ?? $storeName) }}"
+                                            @class(['size-full', 'scale-110 object-cover opacity-60 blur-xl' => $backdrop, 'object-contain' => ! $backdrop])
+                                            @if ($index) loading="lazy" @elseif (! $backdrop) fetchpriority="high" @endif>
+                                    </picture>
+                                @endforeach
+                            </span>
                             @if ($banner->title || $banner->subtitle)
                                 <span class="absolute inset-0 flex items-end bg-linear-to-t from-navy/80 via-navy/20 to-transparent p-6 sm:items-center sm:bg-linear-to-r sm:from-navy/85 sm:via-navy/35 sm:p-12">
                                     <span class="max-w-lg text-white">
@@ -46,8 +58,9 @@
                     @foreach ($side as $banner)
                         @php $tag = $banner->link_url ? 'a' : 'div'; @endphp
                         <{{ $tag }} @if ($banner->link_url) href="{{ $banner->link_url }}" @endif class="group relative block overflow-hidden rounded-3xl bg-navy">
-                            <img src="{{ route('store.media.banner', ['storeBanner' => $banner, 'w' => 900]) }}" alt="{{ $banner->title ?? $storeName }}" loading="lazy"
-                                class="aspect-[3/2] w-full object-cover transition duration-500 group-hover:scale-105 lg:aspect-auto lg:h-full">
+                            <span class="relative block aspect-[3/2] w-full lg:aspect-auto lg:h-full lg:min-h-44">
+                                <x-store.fit-image :src="route('store.media.banner', ['storeBanner' => $banner, 'w' => 900])" :alt="$banner->title ?? $storeName" fill />
+                            </span>
                             @if ($banner->title)
                                 <span class="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-navy/80 to-transparent p-5 text-white">
                                     <span class="font-display text-xl font-extrabold">{{ $banner->title }}</span>

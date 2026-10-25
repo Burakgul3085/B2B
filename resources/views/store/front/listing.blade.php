@@ -56,7 +56,8 @@
                     @if (! empty($description))<p class="mt-3 text-sm leading-relaxed text-ink/70">{{ $description }}</p>@endif
                 </div>
                 @if ($heroImage)
-                    <img src="{{ route('store.media.category', ['storeCategory' => $heroImage, 'w' => 480]) }}" alt="" class="absolute -right-6 -bottom-8 hidden size-48 rotate-6 rounded-3xl object-cover shadow-xl md:block lg:right-10 lg:size-56">
+                    <x-store.fit-image :src="route('store.media.category', ['storeCategory' => $heroImage, 'w' => 480])" loading="eager"
+                        class="!absolute -right-6 -bottom-8 hidden size-48 rotate-6 rounded-3xl bg-white shadow-xl md:block lg:right-10 lg:size-56" />
                 @else
                     <span class="absolute -right-6 -bottom-8 hidden size-44 rotate-12 items-center justify-center rounded-[2rem] font-display text-7xl font-extrabold text-white/90 md:flex lg:right-12 {{ $tone['solid'] }}" aria-hidden="true">{{ mb_substr($category->name, 0, 1) }}</span>
                 @endif

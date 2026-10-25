@@ -7,7 +7,7 @@
                 @php $c = \App\Domain\Store\Storefront\Palette::classes($collection->color ?: \App\Domain\Store\Storefront\Palette::CYCLE[$loop->index % 4]); @endphp
                 <a href="{{ route('store.collection', $collection->slug) }}" class="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-3xl p-6 text-white {{ $c['solid'] }}">
                     @if ($collection->image_path)
-                        <img src="{{ route('store.media.collection', ['storeCollection' => $collection->id, 'w' => 720]) }}" alt="" loading="lazy" class="absolute inset-0 size-full object-cover transition duration-700 group-hover:scale-105">
+                        <x-store.fit-image :src="route('store.media.collection', ['storeCollection' => $collection->id, 'w' => 720])" fill />
                         <span class="absolute inset-0 bg-linear-to-t from-navy/90 via-navy/30 to-transparent"></span>
                     @else
                         <span class="pointer-events-none absolute -top-10 -right-10 grid size-48 rotate-12 grid-cols-2 gap-2 opacity-25" aria-hidden="true">

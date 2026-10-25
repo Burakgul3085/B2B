@@ -152,7 +152,7 @@
                             </div>
                             <a href="{{ route('store.category', $root->slug) }}" class="group relative flex min-h-56 flex-col justify-end overflow-hidden rounded-2xl p-5 {{ $c['soft'] }}">
                                 @if ($root->image_path)
-                                    <img src="{{ route('store.media.category', ['storeCategory' => $root->id, 'w' => 640]) }}" alt="" loading="lazy" class="absolute inset-0 size-full object-cover transition duration-500 group-hover:scale-105">
+                                    <x-store.fit-image :src="route('store.media.category', ['storeCategory' => $root->id, 'w' => 640])" fill />
                                     <span class="absolute inset-0 bg-gradient-to-t from-navy/80 via-navy/10 to-transparent"></span>
                                 @endif
                                 <span @class(['relative font-display text-lg font-extrabold', 'text-white' => $root->image_path])>{{ $root->name }}</span>

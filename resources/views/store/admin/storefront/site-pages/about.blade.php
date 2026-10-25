@@ -27,7 +27,7 @@
                         <div>
                             <p class="mb-1.5 text-sm font-medium text-ink">Kapak fotoğrafı</p>
                             @if ($c['cover'])
-                                <img src="{{ $image($c['cover']) }}" alt="" class="mb-3 aspect-[3/1] w-full rounded-lg object-cover">
+                                <img src="{{ $image($c['cover']) }}" alt="" class="mb-3 aspect-[3/1] w-full rounded-lg bg-surface object-contain">
                                 <x-toggle name="remove_cover" label="Kapak fotoğrafını kaldır" class="mb-3" />
                             @endif
                             <input type="file" name="cover" accept="image/jpeg,image/png,image/webp" class="{{ $fileInput }}">
@@ -72,7 +72,7 @@
                                 <div class="rounded-lg bg-surface p-3">
                                     <p class="mb-1.5 text-sm font-medium">{{ $label }}</p>
                                     @if ($c['story_images'][$slot] ?? null)
-                                        <img src="{{ $image($c['story_images'][$slot]) }}" alt="" class="mb-2 aspect-[4/3] w-full rounded-lg object-cover">
+                                        <img src="{{ $image($c['story_images'][$slot]) }}" alt="" class="mb-2 aspect-[4/3] w-full rounded-lg bg-surface object-contain">
                                         <x-toggle :name="'remove_story_image['.$slot.']'" label="Kaldır" class="mb-2" />
                                     @endif
                                     <input type="file" name="story_images[{{ $slot }}]" accept="image/jpeg,image/png,image/webp" class="{{ $fileInput }}">
@@ -141,7 +141,7 @@
                             @foreach ($c['gallery'] as $n => $path)
                                 @php $file = basename($path); @endphp
                                 <div class="rounded-lg bg-surface p-2 text-sm">
-                                    <img src="{{ $image($path) }}" alt="" class="aspect-[4/3] w-full rounded-md object-cover">
+                                    <img src="{{ $image($path) }}" alt="" class="aspect-[4/3] w-full rounded-md bg-surface object-contain">
                                     <input name="gallery_captions[{{ $file }}]" value="{{ $c['gallery_captions'][$file] ?? '' }}" maxlength="120" placeholder="Açıklama (isteğe bağlı)" class="field-input mt-2 py-1.5 text-xs" aria-label="Fotoğraf açıklaması">
                                     <div class="mt-2 flex items-center justify-between gap-2">
                                         <label class="flex items-center gap-1.5 text-xs text-muted">Sıra <input name="gallery_order[{{ $file }}]" value="{{ $n + 1 }}" inputmode="numeric" class="field-input w-14 px-2 py-1 text-xs" aria-label="Sıra"></label>
@@ -166,7 +166,7 @@
                             <div class="space-y-3 rounded-lg bg-surface p-3" x-show="shown > {{ $i }}" @if ($i >= max(2, count($c['team']) + 1)) x-cloak @endif>
                                 <div class="flex items-center gap-3">
                                     @if ($member['photo'] ?? null)
-                                        <img src="{{ $image($member['photo']) }}" alt="" class="size-14 shrink-0 rounded-xl object-cover">
+                                        <img src="{{ $image($member['photo']) }}" alt="" class="size-14 shrink-0 rounded-xl bg-surface object-contain">
                                     @else
                                         <span class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-white text-muted"><x-icon name="user" class="size-6" /></span>
                                     @endif

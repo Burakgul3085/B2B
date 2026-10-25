@@ -158,7 +158,7 @@ Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı va
 
 Vitrin → Hakkımızda ekranında sayfa 9 bölümden oluşur; her bölümün "Bu bölüm sayfada görünsün" anahtarı vardır, boş bırakılan bölüm de görünmez:
 
-1. **Kapak:** başlık, slogan, geniş mağaza fotoğrafı (yoksa yapboz desenli lacivert zemin).
+1. **Kapak:** başlık, slogan ve mağaza fotoğrafı; fotoğraf metnin yanında bütün olarak görünür (yoksa yapboz desenli lacivert zemin).
 2. **Rakamlarla biz:** en fazla 6 rakam (simge + değer + açıklama); sayfa açılınca sayarak gelir (yıllar sayılmaz).
 3. **Hikâyemiz:** başlık, metin, iki fotoğraf ve isteğe bağlı rozet (ör. "28" + "yıldır hizmetinizde").
 4. **Misyon, vizyon, değerler:** metni yazılan kartlar görünür.
@@ -169,6 +169,8 @@ Vitrin → Hakkımızda ekranında sayfa 9 bölümden oluşur; her bölümün "B
 9. **Kapanış bandı:** başlık, metin, düğme yazısı ve adresi.
 
 Rakam, yıl gibi bilgileri gerçek değerlerle doldurun; örnekler yalnızca alanlarda gri ipucu olarak görünür.
+
+**Fotoğraflar hiçbir yerde kırpılmaz.** Mağazadaki tüm fotoğraflar (Hakkımızda, banner'lar, blog kapakları, seçkiler, kategori görselleri) kendi en/boy oranıyla, bütünüyle gösterilir. Dikey, yatay veya kare fotoğraf yükleyebilirsiniz: çerçeve fotoğrafın oranına uyar, oran çok farklıysa kalan boşluk aynı fotoğrafın bulanık hâliyle doldurulur. Galeri taş duvar düzenindedir (boşluk kalmaz). Telefonla çekilmiş fotoğrafların yönü otomatik düzeltilir. Yönetim ekranındaki önizlemeler de fotoğrafı bütün olarak gösterir.
 
 ## 10. Alt bilgi
 

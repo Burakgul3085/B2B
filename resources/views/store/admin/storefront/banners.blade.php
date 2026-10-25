@@ -6,7 +6,7 @@
             @forelse ($banners as $banner)
                 <x-card :padding="false" x-data="{ edit: {{ $errors->any() && old('banner_id') == $banner->id ? 'true' : 'false' }} }">
                     <div class="flex flex-wrap items-center gap-4 p-4">
-                        <img src="{{ route('store_admin.banners.image', $banner) }}?v={{ $banner->updated_at?->timestamp }}" alt="" class="h-20 w-48 rounded-lg border border-line object-cover">
+                        <img src="{{ route('store_admin.banners.image', $banner) }}?v={{ $banner->updated_at?->timestamp }}" alt="" class="h-20 w-48 rounded-lg border border-line bg-surface object-contain">
                         <div class="min-w-0 flex-1">
                             <p class="font-medium">{{ $banner->title ?: 'Başlıksız banner' }}</p>
                             <p class="truncate text-xs text-muted">{{ $banner->link_url ?: 'Bağlantı yok' }}</p>

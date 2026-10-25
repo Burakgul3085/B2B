@@ -14,6 +14,20 @@ class ImageVariants
     /** İzin verilen genişlikler; başka değer istenirse en yakın büyüğü kullanılır. */
     public const WIDTHS = [320, 640, 1000, 2000];
 
+    /**
+     * Kayıtlı görselin en/boy oranı (genişlik / yükseklik); okunamazsa null. Vitrin, görseli kırpmadan
+     * yerleştirmek için çerçeveyi bu orana göre seçer (x-store.fit-image). Yalnızca dosya başlığı okunur.
+     */
+    public static function ratio(?string $path): ?float
+    {
+        if (! $path || ! Storage::disk('local')->exists($path)) {
+            return null;
+        }
+        $info = @getimagesize(Storage::disk('local')->path($path));
+
+        return $info && $info[1] > 0 ? round($info[0] / $info[1], 4) : null;
+    }
+
     /** Sunulacak dosyanın yolu (yoksa üretir). Kaynak yoksa null. */
     public function path(string $source, ?int $width): ?string
     {

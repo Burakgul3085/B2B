@@ -23,7 +23,7 @@
                     <div>
                         <p class="mb-1.5 text-sm font-medium">Görsel</p>
                         @if ($collection->image_path)
-                            <img src="{{ route('store_admin.collections.image', $collection) }}" alt="" class="mb-2 aspect-[4/3] w-full rounded-lg object-cover">
+                            <img src="{{ route('store_admin.collections.image', $collection) }}" alt="" class="mb-2 aspect-[4/3] w-full rounded-lg bg-surface object-contain">
                             <x-toggle name="remove_image" label="Görseli kaldır" class="mb-2" />
                         @endif
                         <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="field-input">

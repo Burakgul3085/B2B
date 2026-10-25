@@ -46,6 +46,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 - **Kargo firmalarının takip bağlantıları boş.** `Ayarlar → Kargo Firmaları` ekranından her firmanın gönderi sorgulama adresi `{takip}` ile girilmeli.
 - **Mağaza ziyaretçilere kapalı.** "Yakında" sayfası gösteriliyor; görmek için önizleme bağlantısı gerekir.
 - **Geliştirme veritabanında mağaza verisi yok.** Mağaza yöneticisi, ürün ve stok bulunmuyor. Süper admin `Platform → Mağaza Yöneticileri` ekranından açılır, ürünler mağaza panelinden eklenir.
+- **Önceden yüklenmiş telefon fotoğrafları.** EXIF yön düzeltmesi 25.10.2026'dan sonraki yüklemelerde uygulanır; daha önce yüklenip yan görünen bir fotoğraf varsa yeniden yüklenmelidir (canlıdaki mevcut Hakkımızda fotoğraflarının yönü doğru).
 - **İki adımlı doğrulama zorunlu.** Süper admin ilk girişte iki adımlı doğrulamayı kurmak zorundadır.
 
 ## 4. B2B: bekleyenler

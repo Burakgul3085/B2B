@@ -5,7 +5,7 @@
         @include('store.front._breadcrumbs', ['items' => [['Seçkiler', null], [$collection->title, null]]])
         <section class="relative mt-4 overflow-hidden rounded-3xl p-8 text-white sm:p-12 {{ $palette['solid'] }}">
             @if ($collection->image_path)
-                <img src="{{ route('store.media.collection', ['storeCollection' => $collection->id, 'w' => 1600]) }}" alt="" class="absolute inset-0 size-full object-cover">
+                <x-store.fit-image :src="route('store.media.collection', ['storeCollection' => $collection->id, 'w' => 1600])" fill loading="eager" />
                 <span class="absolute inset-0 bg-linear-to-r from-navy/90 via-navy/50 to-transparent"></span>
             @endif
             <div class="relative max-w-xl">

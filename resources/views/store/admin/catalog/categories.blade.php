@@ -29,7 +29,7 @@
                         <div>
                             <p class="mb-1.5 text-sm font-medium text-ink">Kategori görseli</p>
                             @if ($editing->image_path)
-                                <img src="{{ route('store_admin.categories.image', $editing) }}" alt="" class="mb-2 h-24 w-auto rounded-lg object-cover">
+                                <img src="{{ route('store_admin.categories.image', $editing) }}" alt="" class="mb-2 h-24 w-auto rounded-lg bg-surface object-contain">
                                 <x-toggle name="remove_image" label="Görseli kaldır" class="mb-2" />
                             @endif
                             <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="field-input">

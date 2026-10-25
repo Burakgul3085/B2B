@@ -43,7 +43,8 @@
 
         @if ($cover)
             <div class="mx-auto mt-8 max-w-5xl px-4 sm:px-6 lg:px-8">
-                <img src="{{ $cover }}" alt="{{ $post->title }}" class="aspect-[16/9] w-full rounded-3xl object-cover" fetchpriority="high">
+                @php $coverRatio = \App\Domain\Store\Storefront\ImageVariants::ratio($post->cover_path); @endphp
+                <x-store.fit-image :src="$cover" :alt="$post->title" :ratio="$coverRatio" :frame="$coverRatio ? max(0.75, min(2.4, $coverRatio)) : 16 / 9" :maxHeight="40" loading="eager" class="mx-auto rounded-3xl" />
             </div>
         @endif
 

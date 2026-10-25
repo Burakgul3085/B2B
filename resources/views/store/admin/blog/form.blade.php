@@ -54,7 +54,7 @@
             </x-card>
             <x-card title="Kapak fotoğrafı">
                 @if ($post->cover_path)
-                    <img src="{{ route('store_admin.blog.cover', $post) }}" alt="" class="mb-2 aspect-[16/10] w-full rounded-lg object-cover">
+                    <img src="{{ route('store_admin.blog.cover', $post) }}" alt="" class="mb-2 aspect-[16/10] w-full rounded-lg bg-surface object-contain">
                     <x-toggle name="remove_cover" label="Kapağı kaldır" class="mb-2" />
                 @endif
                 <input type="file" name="cover" accept="image/jpeg,image/png,image/webp" class="field-input">
