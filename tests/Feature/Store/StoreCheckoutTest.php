@@ -323,8 +323,8 @@ class StoreCheckoutTest extends TestCase
         $order = StoreOrder::firstOrFail();
         $this->assertSame([$customer->id, 'uye@ornek.com', 'preparing'], [$order->customer_id, $order->email, $order->status]);
         $this->assertSame(1, $customer->addresses()->count(), 'adres kaydedildi');
-        $this->assertSame(2, $order->consents()->where('document_key', 'mesafeli-satis')->value('version'));
-        $this->assertSame(2, StoreLegalDocument::where('key', 'mesafeli-satis')->max('version'));
+        $this->assertSame(3, $order->consents()->where('document_key', 'mesafeli-satis')->value('version'));
+        $this->assertSame(3, StoreLegalDocument::where('key', 'mesafeli-satis')->max('version'));
 
         $this->get(self::HOST.'/hesabim/siparisler')->assertOk()->assertSee($order->order_no);
         $this->get(self::HOST."/hesabim/siparisler/{$order->order_no}")->assertOk();

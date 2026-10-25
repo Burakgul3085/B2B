@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 class LegalDocuments
 {
     public const PLACEHOLDERS = [
-        'SATICI_UNVAN', 'SATICI_ADRES', 'SATICI_TELEFON', 'SATICI_EPOSTA', 'SATICI_VERGI', 'SATICI_MERSIS',
+        'SATICI_UNVAN', 'SATICI_ADRES', 'SATICI_TELEFON', 'SATICI_EPOSTA', 'SATICI_VERGI', 'SATICI_MERSIS', 'SATICI_WEB',
         'ALICI_AD', 'ALICI_ADRES', 'ALICI_TELEFON', 'ALICI_EPOSTA',
         'URUNLER', 'TESLIMAT_UCRETI', 'KAPIDA_ODEME_BEDELI', 'TOPLAM', 'ODEME_YONTEMI', 'TESLIMAT_YONTEMI', 'TARIH',
         'IADE_SURESI', 'IADE_ADRESI',
@@ -46,6 +46,7 @@ class LegalDocuments
             'SATICI_EPOSTA' => $s['email'] ?: '—',
             'SATICI_VERGI' => trim(($s['company_tax_office'] ?? '').' '.($s['company_tax_number'] ?? '')) ?: '—',
             'SATICI_MERSIS' => $s['company_mersis'] ?: '—',
+            'SATICI_WEB' => config('store.domain'),
             'ALICI_AD' => $order['name'],
             'ALICI_ADRES' => $order['address'],
             'ALICI_TELEFON' => $order['phone'],

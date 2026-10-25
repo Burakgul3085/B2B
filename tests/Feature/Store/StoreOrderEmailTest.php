@@ -53,14 +53,16 @@ class StoreOrderEmailTest extends TestCase
         $mail = collect($this->mails)->firstWhere('to', 'ayse@ornek.com');
         $this->assertNotNull($mail, 'sipariş e-postası gönderildi');
         $titles = array_column($mail['content']['documents'], 'title');
-        $this->assertSame(['Ön Bilgilendirme Formu (sürüm 1)', 'Mesafeli Satış Sözleşmesi (sürüm 1)'], $titles);
+        $this->assertSame(['Ön Bilgilendirme Formu (sürüm 2)', 'Mesafeli Satış Sözleşmesi (sürüm 2)'], $titles);
         // Siparişte saklanan doldurulmuş metin gönderilir (alıcı adı, ürün, satıcı unvanı yerleşmiş).
         $this->assertStringContainsString('Ayşe Yılmaz', $mail['content']['documents'][1]['html']);
         $this->assertStringContainsString('Jel Kalem', $mail['content']['documents'][1]['html']);
         $this->assertStringContainsString('Yapboz Kırtasiye Ltd. Şti.', $mail['content']['documents'][1]['html']);
+        $this->assertStringContainsString(config('store.domain'), $mail['content']['documents'][1]['html']);
+        $this->assertStringNotContainsString('{SATICI_', $mail['content']['documents'][0]['html'].$mail['content']['documents'][1]['html']);
 
         $html = view('emails.system', $mail['content'] + ['subject' => $mail['subject']])->render();
-        $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 1)', $html);
+        $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 2)', $html);
         $this->assertStringContainsString('<h2', $html);
         $this->assertStringContainsString($order->order_no, $html);
     }

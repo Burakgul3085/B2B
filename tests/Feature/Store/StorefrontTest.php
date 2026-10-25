@@ -199,7 +199,7 @@ class StorefrontTest extends TestCase
         $this->withUnencryptedCookie('tema', '"><script>')->get(self::HOST.'/')->assertSee('<html lang="tr" class="">', false);
 
         // Çerez politikası tema tercih çerezini listeler
-        $this->get(self::HOST.'/yasal/gizlilik-cerez')->assertOk()->assertSee('Seçtiğiniz görünümün (açık/koyu) hatırlanması');
+        $this->get(self::HOST.'/yasal/gizlilik-cerez')->assertOk()->assertSee('Koyu veya açık tema tercihinizin hatırlanması');
 
         StoreSetting::put(['is_open' => '0']);
         $this->withUnencryptedCookie('tema', 'dark')->get(self::HOST.'/')->assertStatus(503)->assertSee('<html lang="tr" class="dark">', false);

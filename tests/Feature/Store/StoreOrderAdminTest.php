@@ -180,9 +180,9 @@ class StoreOrderAdminTest extends TestCase
         $this->put(route('store_admin.legal.update', 'on-bilgilendirme'), ['title' => 'Ön Bilgilendirme Formu', 'body' => str_repeat('Yeni metin {ALICI_AD}. ', 20)])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(2, StoreLegalDocument::current('on-bilgilendirme')->version);
-        $this->assertSame(1, StoreLegalDocument::where('key', 'on-bilgilendirme')->where('version', 1)->count(), 'eski sürüm korunur');
-        $this->get(route('store_admin.legal.index'))->assertSee('Güncel sürüm 2');
+        $this->assertSame(3, StoreLegalDocument::current('on-bilgilendirme')->version);
+        $this->assertSame(1, StoreLegalDocument::where('key', 'on-bilgilendirme')->where('version', 2)->count(), 'eski sürüm korunur');
+        $this->get(route('store_admin.legal.index'))->assertSee('Güncel sürüm 3');
         $this->assertDatabaseHas('audit_logs', ['action' => 'store.legal_published']);
     }
 
