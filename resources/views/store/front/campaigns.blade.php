@@ -32,11 +32,17 @@
                         $productsUrl = route('store.products', ['kampanya' => $campaign->id]);
                         $needsAccount = $campaign->audience !== 'all' && ! $member;
                     @endphp
-                    <article class="flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-xs" @if ($campaign->isCoupon()) x-data="copyCode(@alpine($campaign->code))" @endif>
+                    <article class="group flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-xs transition duration-300 hover:-translate-y-0.5 hover:shadow-lg" @if ($campaign->isCoupon()) x-data="copyCode(@alpine($campaign->code))" @endif>
                         @if ($campaign->image_path)
-                            <img src="{{ route('store.media.discount', ['storeDiscount' => $campaign, 'w' => 960]) }}" alt="" loading="lazy" class="aspect-[2/1] w-full object-cover">
+                            @php $image = route('store.media.discount', ['storeDiscount' => $campaign, 'w' => 960]); @endphp
+                            {{-- Görsel hiçbir oranda kırpılmaz: tamamı ortada durur, kalan boşluğu aynı görselin bulanık hâli doldurur. --}}
+                            <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
+                                <img src="{{ $image }}" alt="" aria-hidden="true" loading="lazy" class="absolute inset-0 size-full scale-125 object-cover opacity-70 blur-2xl saturate-150">
+                                <img src="{{ $image }}" alt="{{ $campaign->name }}" loading="lazy" class="relative size-full object-contain p-2 drop-shadow-sm transition duration-500 group-hover:scale-[1.02]">
+                                <span class="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1 font-display text-sm font-extrabold text-ink shadow-md ring-1 ring-black/5 backdrop-blur">{{ HomeFeed::percentLabel($campaign) }}{{ $campaign->type === 'free_shipping' ? '' : ' indirim' }}</span>
+                            </div>
                         @else
-                            <div class="relative flex aspect-[2/1] items-center overflow-hidden px-7 text-white {{ $tone['solid'] }}">
+                            <div class="relative flex aspect-[3/2] items-center overflow-hidden px-7 text-white {{ $tone['solid'] }}">
                                 <span class="absolute -right-8 -bottom-10 size-40 rounded-full bg-white/15" aria-hidden="true"></span>
                                 <span class="absolute top-6 right-16 size-14 rounded-full bg-white/10" aria-hidden="true"></span>
                                 <div class="relative">
@@ -46,7 +52,7 @@
                             </div>
                         @endif
 
-                        <div class="flex flex-1 flex-col gap-3 p-5">
+                        <div class="flex flex-1 flex-col gap-3 p-5 sm:p-6">
                             <div class="flex flex-wrap gap-1.5">
                                 @if ($campaign->audience === 'new_members')<span class="rounded-md bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-800">Yeni üyelere özel</span>
                                 @elseif ($campaign->audience === 'members')<span class="rounded-md bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800">Üyelere özel</span>@endif
@@ -54,8 +60,8 @@
                                 @if ($daysLeft !== null && $daysLeft <= 7)<span class="rounded-md bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">Son {{ max(1, $daysLeft) }} gün</span>@endif
                             </div>
                             <div>
-                                <h2 class="font-display text-lg font-bold text-ink">{{ $campaign->name }}</h2>
-                                <p class="mt-0.5 text-sm font-medium text-ink/80">{{ $campaign->headline() }}</p>
+                                <h2 class="font-display text-xl font-extrabold tracking-tight text-ink">{{ $campaign->name }}</h2>
+                                <p class="mt-1 text-[15px] font-semibold text-primary">{{ $campaign->headline() }}</p>
                                 @if ($campaign->description)<p class="mt-2 text-sm leading-relaxed text-muted">{{ $campaign->description }}</p>@endif
                             </div>
                             <p class="text-xs text-muted">
@@ -64,7 +70,7 @@
                                 @if ($campaign->audience === 'new_members' && $campaign->new_member_days) Üyelikten sonraki {{ $campaign->new_member_days }} gün içinde, ilk siparişte. @endif
                             </p>
 
-                            <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">
+                            <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-4">
                                 @if ($campaign->isCoupon())
                                     <span class="rounded-lg border border-dashed border-navy/40 px-3 py-1.5 font-mono text-sm font-bold tracking-wider text-navy-ink">{{ $campaign->code }}</span>
                                     <button type="button" @click="copy" class="rounded-lg bg-navy px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-puzzle-orange">

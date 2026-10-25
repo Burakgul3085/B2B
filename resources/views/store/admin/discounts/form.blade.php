@@ -169,10 +169,10 @@
                     </div>
                     <x-field name="description" label="Açıklama" textarea maxlength="500" :value="$d->description" hint="Kampanyalar sayfasındaki kartta görünür (en fazla 500 karakter)." />
                     <div>
-                        <x-field name="image" label="Kart görseli" type="file" accept="image/*" hint="İsteğe bağlı. Yatay görsel önerilir; en fazla 6 MB." />
+                        <x-field name="image" label="Kart görseli" type="file" accept="image/*" hint="İsteğe bağlı, en fazla 6 MB. En iyi görünüm için 1200×800 piksel (3:2) yatay görsel; farklı oranlar kırpılmadan bütünüyle gösterilir." />
                         @if ($d->image_path)
                             <div class="mt-3 flex items-center gap-4">
-                                <img src="{{ route('store_admin.discounts.image', $d) }}" alt="" class="h-20 w-32 rounded-lg border border-line object-cover">
+                                <img src="{{ route('store_admin.discounts.image', $d) }}" alt="" class="aspect-[3/2] w-36 rounded-lg border border-line bg-slate-50 object-contain">
                                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remove_image" value="1" class="size-4 rounded text-primary"> Görseli kaldır</label>
                             </div>
                         @endif
