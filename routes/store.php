@@ -222,6 +222,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     // Kapalıyken de çalışanlar: arama motoru dosyaları ve önizleme
     Route::get('robots.txt', [Front\SeoController::class, 'robots'])->name('robots');
     Route::get('sitemap.xml', [Front\SeoController::class, 'sitemap'])->name('sitemap');
+    // Akılda kalan kısa adres (kartvizit, sosyal medya): yapbozkırtasiye.com/b2b → bayi girişi
+    Route::redirect('b2b', rtrim((string) config('app.url'), '/').'/bayi/login', 301)->name('b2b');
     Route::get('onizleme', [Front\PreviewController::class, 'start'])->middleware('signed')->name('preview');
     Route::get('onizleme/kapat', [Front\PreviewController::class, 'end'])->name('preview.end');
     // iyzico geri dönüşü: mağaza kapalıyken (önizlemede) de sonuçlanabilmeli

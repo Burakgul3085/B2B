@@ -1,4 +1,5 @@
-@props(['area', 'title', 'subtitle' => null])
+{{-- $seo: yalnızca arama motorlarına açık giriş sayfalarında (bayi, toptancı) ['title', 'description']; diğerleri noindex. --}}
+@props(['area', 'title', 'subtitle' => null, 'seo' => null])
 @php
     use App\Domain\Auth\Area;
 
@@ -74,6 +75,14 @@
         $tagline = 'Mağaza yönetim paneli';
     }
 
+    // Arama motorlarına açık giriş sayfası: sayfanın kime ait olduğunu (mağaza işletmesi) söyleyen yapılandırılmış veri.
+    $seoJson = $seo ? json_encode([
+        '@context' => 'https://schema.org', '@type' => 'WebPage', 'name' => $seo['title'], 'description' => $seo['description'], 'url' => url()->current(),
+        'inLanguage' => 'tr-TR',
+        'isPartOf' => ['@type' => 'WebSite', 'name' => $brand, 'url' => url('/')],
+        'publisher' => ['@type' => 'Organization', 'name' => config('store.name'), 'url' => 'https://'.config('store.domain'), 'logo' => asset('favicon.svg')],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) : null;
+
     // İsteğe bağlı arka plan fotoğrafı: önce alana özel, sonra ortak dosya.
     $photo = collect([$area->prefix(), null])
         ->flatMap(fn ($suffix) => collect(['jpg', 'jpeg', 'webp', 'png'])->map(fn ($ext) => 'images/giris'.($suffix ? "-{$suffix}" : '').".{$ext}"))
@@ -84,8 +93,22 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
-    <title>{{ $theme['badge'] }} · {{ $brand }}</title>
+    @if ($seo)
+        <meta name="robots" content="index, follow">
+        <title>{{ $seo['title'] }}</title>
+        <meta name="description" content="{{ $seo['description'] }}">
+        <link rel="canonical" href="{{ url()->current() }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ $brand }}">
+        <meta property="og:locale" content="tr_TR">
+        <meta property="og:title" content="{{ $seo['title'] }}">
+        <meta property="og:description" content="{{ $seo['description'] }}">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <script type="application/ld+json">{!! $seoJson !!}</script>
+    @else
+        <meta name="robots" content="noindex, nofollow">
+        <title>{{ $theme['badge'] }} · {{ $brand }}</title>
+    @endif
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

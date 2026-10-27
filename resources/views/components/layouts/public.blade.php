@@ -1,10 +1,18 @@
-@props(['business', 'title'])
+{{-- $description verilen sayfa (bayilik başvuru formu) arama motorlarında görünür; diğerleri (teşekkür, ek bilgi) noindex. --}}
+@props(['business', 'title', 'description' => null])
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} · {{ $business->display_name }}</title>
+    @if ($description)
+        <meta name="robots" content="index, follow">
+        <meta name="description" content="{{ $description }}">
+        <link rel="canonical" href="{{ url()->current() }}">
+    @else
+        <meta name="robots" content="noindex, follow">
+    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-surface">

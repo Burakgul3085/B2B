@@ -182,13 +182,45 @@ class StorefrontTest extends TestCase
         $this->product('Jel Kalem Mavi', '24.90');
         $this->product('Taslak', '1.00', attrs: ['is_published' => false]);
 
-        $this->get(self::HOST.'/robots.txt')->assertOk()->assertSee('Allow: /')->assertSee('Sitemap: http://magaza.localhost/sitemap.xml');
+        $this->get(self::HOST.'/robots.txt')->assertOk()->assertSee('Allow: /')->assertSee('Sitemap: http://magaza.localhost/sitemap.xml')
+            ->assertSee("Disallow: /sepet\n", false)->assertSee("Disallow: /odeme$\n", false)->assertSee("Disallow: /siparis/\n", false)->assertSee("Disallow: /hesabim\n", false)
+            ->assertDontSee("Disallow: /odeme\n", false)->assertDontSee("Disallow: /siparis\n", false); // yardım sayfaları açık kalır
         $this->get(self::HOST.'/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
-            ->assertSee('http://magaza.localhost/urun/jel-kalem-mavi')->assertSee('http://magaza.localhost/kategori/jel-kalem')->assertDontSee('/urun/taslak');
+            ->assertSee('http://magaza.localhost/urun/jel-kalem-mavi')->assertSee('http://magaza.localhost/kategori/jel-kalem')->assertDontSee('/urun/taslak')
+            ->assertSee('http://magaza.localhost/kampanyalar')->assertSee('http://magaza.localhost/yardim')->assertSee('http://magaza.localhost/sss')
+            ->assertSee('http://magaza.localhost/siparis-ve-teslimat')->assertSee('http://magaza.localhost/odeme-secenekleri')
+            ->assertSee('http://magaza.localhost/yasal/kvkk')->assertSee('http://magaza.localhost/yasal/mesafeli-satis');
 
-        // B2B ve mağaza yönetimi her zaman kapalı
-        $this->get('http://localhost/robots.txt')->assertOk()->assertSee('Disallow: /');
+        // Mağaza yönetimi her zaman kapalı
         $this->get('http://yonetim.localhost/robots.txt')->assertOk()->assertSee('Disallow: /');
+
+        // Kısa adres: mağaza/b2b → bayi girişi
+        $this->get(self::HOST.'/b2b')->assertRedirect(rtrim(config('app.url'), '/').'/bayi/login')->assertStatus(301);
+    }
+
+    public function test_b2b_dealer_and_wholesaler_logins_are_open_to_search_engines_only(): void
+    {
+        $business = $this->makeBusiness();
+        $robots = $this->get('http://localhost/robots.txt')->assertOk()->getContent();
+        foreach (['Allow: /bayi/login$', 'Allow: /toptanci/login$', 'Allow: /basvuru/', "Disallow: /\n", 'Sitemap: http://localhost/sitemap.xml'] as $rule) {
+            $this->assertStringContainsString($rule, $robots);
+        }
+        $this->assertStringNotContainsString('platform', $robots);
+
+        $this->get('http://localhost/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
+            ->assertSee(route('dealer.login'))->assertSee(route('business.login'))->assertSee(route('public.application', $business->slug))
+            ->assertDontSee('/platform');
+
+        $store = config('store.name');
+        $this->get(route('dealer.login'))->assertOk()->assertSee('<meta name="robots" content="index, follow">', false)
+            ->assertSee("<title>{$store} B2B Bayi Girişi</title>", false)->assertSee('<meta name="description"', false)->assertSee('"@type":"WebPage"', false);
+        $this->get(route('business.login'))->assertOk()->assertSee('<meta name="robots" content="index, follow">', false)->assertSee("<title>{$store} Toptancı Girişi</title>", false);
+        // Platform girişi ve parola sayfaları arama motorlarına kapalı kalır.
+        $this->get(route('platform.login'))->assertOk()->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+        $this->get(route('dealer.password.request'))->assertSee('noindex', false);
+        // Bayilik başvuru formu açık, teşekkür sayfası kapalı
+        $this->get(route('public.application', $business->slug))->assertOk()->assertSee('<meta name="robots" content="index, follow">', false)->assertSee('bayisi olun');
+        $this->get(route('public.application.thanks', $business->slug))->assertSee('noindex', false);
     }
 
     public function test_storefront_follows_the_theme_cookie(): void

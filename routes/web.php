@@ -48,8 +48,9 @@ $accountRoutes = function () {
 // Mağaza ve mağaza yönetimi kendi alan adlarında; aynı adresli B2B rotalarından önce eşleşsinler diye önce kaydedilir.
 require __DIR__.'/store.php';
 
-// B2B arama motorlarına kapalıdır.
-Route::get('robots.txt', RobotsController::class)->name('robots');
+// Arama motorları: B2B'de yalnızca bayi ve toptancı girişi ile bayilik başvurusu açıktır.
+Route::get('robots.txt', [RobotsController::class, 'b2b'])->name('robots');
+Route::get('sitemap.xml', [RobotsController::class, 'sitemap'])->name('sitemap');
 
 // Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
 Route::redirect('/', '/bayi/login')->name('home');

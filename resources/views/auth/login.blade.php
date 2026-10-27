@@ -1,4 +1,5 @@
 @php use App\Domain\Auth\Area; @endphp
+{{-- Yalnızca bayi ve toptancı girişi arama motorlarında görünür ("yapboz kırtasiye b2b", "yapboz kırtasiye toptancı"); $seo. --}}
 <x-layouts.auth :area="$area" :title="match ($area) {
     Area::Dealer => 'Bayi hesabınıza giriş yapın',
     Area::Business => 'Toptancı paneline giriş yapın',
@@ -9,6 +10,10 @@
     Area::Business => 'Ürün, stok, bayi ve sipariş yönetimi için giriş yapın.',
     Area::Platform => 'Bu alan yalnızca platform yöneticileri içindir.',
     Area::StoreAdmin => 'Bu alan yalnızca mağaza yöneticileri içindir.',
+}" :seo="match ($area) {
+    Area::Dealer => ['title' => config('store.name').' B2B Bayi Girişi', 'description' => config('store.name').' B2B bayi paneli: size özel toptan fiyatlarla sipariş verin, siparişlerinizi ve cari hesabınızı takip edin. Bayi değil misiniz? Bayilik başvurusu yapın.'],
+    Area::Business => ['title' => config('store.name').' Toptancı Girişi', 'description' => config('store.name').' toptancı paneli: ürün, stok, bayi, fiyat ve sipariş yönetimi için giriş yapın.'],
+    default => null,
 }">
     <form method="POST" action="{{ route($area->value.'.login.store') }}" class="space-y-5" novalidate>
         @csrf

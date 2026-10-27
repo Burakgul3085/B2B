@@ -1,4 +1,5 @@
-<x-layouts.public :business="$business" title="Bayilik başvurusu">
+<x-layouts.public :business="$business" title="Bayilik başvurusu"
+    :description="$business->display_name.' bayisi olun: başvuru formunu doldurun, toptan fiyatlarla sipariş vermek için bayi hesabınız açılsın.'">
     <h1 class="text-2xl font-semibold tracking-tight">Bayilik başvurusu</h1>
     <p class="mt-2 text-sm text-muted">{{ $business->display_name }} bayisi olmak için formu doldurun. Başvurunuz değerlendirildikten sonra size e-posta ile dönüş yapılır; onaylanırsa hesabınızı etkinleştirme bağlantısı gönderilir.</p>
 
