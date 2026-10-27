@@ -7,7 +7,9 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\OrderService;
-use App\Domain\Store\Reports\OrderExport;
+use App\Domain\Store\Reports\ReportCell;
+use App\Domain\Store\Reports\StoreReportRegistry;
+use App\Domain\Store\Reports\StoreReportRunner;
 use App\Domain\Store\Reports\StoreReports;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
@@ -19,10 +21,12 @@ use App\Models\Store\StoreDiscountRedemption;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
+use App\Models\Store\StoreSavedReport;
 use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -279,12 +283,35 @@ class StoreDiscountTest extends TestCase
         $this->get(route('store_admin.reports.index'))->assertOk()->assertSee('₺313,33', false)->assertSee('Kupon (HOSGELDIN10)');
         $this->get(route('store_admin.dashboard'))->assertOk()->assertSee('Bekleyen işler')->assertSee('Bu ay net satış');
 
-        $response = $this->get(route('store_admin.reports.export', ['from' => $today, 'to' => $today]))->assertOk();
+        $response = $this->get(route('store_admin.reports.export', ['siparisler', 'xlsx', 'from' => $today, 'to' => $today, 'status' => 'all']))->assertOk();
         $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
-        $this->assertSame("'=HYPERLINK(\"x\")", OrderExport::text('=HYPERLINK("x")'));
-        $path = tempnam(sys_get_temp_dir(), 't').'.xlsx';
-        $this->assertSame(3, app(OrderExport::class)->write($path, $today, $today));
-        @unlink($path);
+        $this->assertSame("'=HYPERLINK(\"x\")", ReportCell::safeText('=HYPERLINK("x")'));
+        $runner = app(StoreReportRunner::class);
+        $report = StoreReportRegistry::find('siparisler');
+        $this->assertSame(3, $runner->count($report, $runner->prepare($report, ['from' => $today, 'to' => $today, 'status' => 'all'])));
+        $this->assertSame(2, $runner->count($report, $runner->prepare($report, ['from' => $today, 'to' => $today])), 'varsayılan: satış sayılanlar');
+
+        // Rapor merkezi: her rapor ekranda açılır, Excel ve PDF olarak iner; filtre adıyla kaydedilir.
+        foreach (StoreReportRegistry::all() as $key => $any) {
+            Cache::flush(); // indirme hız sınırı (20/dk) her raporda sıfırlansın
+            $this->get(route('store_admin.reports.show', $key))->assertOk()->assertSee($any->title());
+            $this->get(route('store_admin.reports.show', [$key, 'sort' => array_key_last($any->columns()), 'dir' => 'desc']))->assertOk();
+            $xlsx = $this->get(route('store_admin.reports.export', [$key, 'xlsx']))->assertOk();
+            $this->assertStringContainsString('spreadsheetml', $xlsx->headers->get('content-type'));
+            $this->assertStringStartsWith('PK', $xlsx->streamedContent(), $key); // dosya gerçekten üretilir
+            $this->assertStringStartsWith('%PDF', $this->get(route('store_admin.reports.export', [$key, 'pdf']))->assertOk()->streamedContent(), $key);
+        }
+        $this->get(route('store_admin.reports.show', ['urun-satislari', 'from' => $today, 'to' => $today]))->assertOk()->assertSee('JEL-1')->assertSee('₺280,00', false);
+        $this->get(route('store_admin.reports.show', ['kampanya-kuponlar']))->assertOk()->assertSee('HOSGELDIN10');
+        $this->get(route('store_admin.reports.show', ['siparisler', 'sort' => 'yok']))->assertSessionHasErrors('sort');
+
+        $query = json_encode(['status' => 'all', 'payment' => 'card', 'zararli' => 'x']);
+        $this->post(route('store_admin.reports.save', 'siparisler'), ['name' => 'Kartlı siparişler', 'query' => $query])->assertSessionHasNoErrors();
+        $saved = StoreSavedReport::sole();
+        $this->assertSame(['status' => 'all', 'payment' => 'card'], $saved->filters);
+        $this->get(route('store_admin.reports.index'))->assertSee('Kartlı siparişler');
+        $this->delete(route('store_admin.reports.saved.destroy', $saved->id))->assertSessionHasNoErrors();
+        $this->assertSame(0, StoreSavedReport::count());
     }
 
     public function test_admin_notifications_for_orders_returns_and_low_stock(): void

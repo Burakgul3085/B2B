@@ -163,7 +163,10 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('pazarlama/toplu-eposta/{storeNewsletterCampaign}/gonder', [Admin\CampaignController::class, 'send'])->name('campaigns.send');
             Route::post('pazarlama/toplu-eposta/{storeNewsletterCampaign}/durdur', [Admin\CampaignController::class, 'cancel'])->name('campaigns.cancel');
             Route::get('raporlar', [Admin\ReportController::class, 'index'])->name('reports.index');
-            Route::get('raporlar/siparisler.xlsx', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
+            Route::get('raporlar/{key}', [Admin\ReportController::class, 'show'])->name('reports.show');
+            Route::get('raporlar/{key}/indir/{format}', [Admin\ReportController::class, 'export'])->middleware('throttle:20,1,store_admin.reports.export')->name('reports.export');
+            Route::post('raporlar/{key}/kaydet', [Admin\ReportController::class, 'save'])->name('reports.save');
+            Route::delete('raporlar/kayitli/{saved}', [Admin\ReportController::class, 'destroySaved'])->whereNumber('saved')->name('reports.saved.destroy');
             Route::get('kampanyalar', [Admin\DiscountController::class, 'index'])->name('discounts.index');
             Route::get('kampanyalar/yeni', [Admin\DiscountController::class, 'create'])->name('discounts.create');
             Route::get('kampanyalar/urun-ara', [Admin\DiscountController::class, 'lookup'])->middleware('throttle:120,1,store_admin.discounts.lookup')->name('discounts.lookup');
