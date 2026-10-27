@@ -6,8 +6,10 @@ use App\Domain\Store\Content\MapLink;
 use App\Domain\Store\Content\OpeningHours;
 use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Mail\StoreMailer;
+use App\Domain\Store\Orders\LegalDocuments;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
+use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StorePage;
 use App\Models\Store\StoreSetting;
 use DomainException;
@@ -358,5 +360,19 @@ class StoreSitePagesTest extends TestCase
         StorePage::create(['key' => 'about', 'is_published' => true]);
         StorePage::create(['key' => 'contact', 'is_published' => true]);
         $this->get(route('store_admin.launch'))->assertOk()->assertDontSee('Yayında olmayan sayfa');
+    }
+
+    public function test_sole_proprietor_shows_tradesmen_registry_number_instead_of_mersis(): void
+    {
+        $this->put(route('store_admin.site-pages.contact.update'), ['hours' => $this->hours(), 'is_published' => '1'])->assertSessionHasNoErrors();
+        StoreSetting::put(['company_mersis' => null, 'company_esnaf_no' => '76076', 'company_title' => 'Yapboz Kırtasiye']);
+
+        $legal = app(LegalDocuments::class)->fill(StoreLegalDocument::current('mesafeli-satis'), [
+            'name' => 'Ayşe', 'address' => 'Adres', 'phone' => '0532', 'email' => 'a@b.c', 'lines' => [], 'shipping_fee' => '0', 'cod_fee' => '0',
+            'total' => '0', 'payment' => 'Kart', 'delivery' => 'Kargo',
+        ]);
+        $this->assertStringContainsString('Esnaf ve Sanatkârlar Sicil No:** 76076', $legal);
+        $this->assertStringNotContainsString('MERSİS', $legal);
+        $this->get(route('store.contact'))->assertOk()->assertSee('Esnaf ve Sanatkârlar Sicil No:')->assertSee('76076')->assertDontSee('MERSİS:');
     }
 }

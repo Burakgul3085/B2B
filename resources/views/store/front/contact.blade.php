@@ -145,7 +145,8 @@
                         <dl class="mt-3 space-y-1.5 text-slate-700">
                             <div><dt class="inline text-muted">Unvan:</dt> <dd class="inline">{{ $s['company_title'] }}</dd></div>
                             @if ($s['company_tax_office'] || $s['company_tax_number'])<div><dt class="inline text-muted">Vergi dairesi / no:</dt> <dd class="inline">{{ $s['company_tax_office'] }} / {{ $s['company_tax_number'] }}</dd></div>@endif
-                            @if ($s['company_mersis'])<div><dt class="inline text-muted">MERSİS:</dt> <dd class="inline">{{ $s['company_mersis'] }}</dd></div>@endif
+                            @if ($s['company_mersis'])<div><dt class="inline text-muted">MERSİS:</dt> <dd class="inline">{{ $s['company_mersis'] }}</dd></div>
+                            @elseif ($s['company_esnaf_no'])<div><dt class="inline text-muted">Esnaf ve Sanatkârlar Sicil No:</dt> <dd class="inline">{{ $s['company_esnaf_no'] }}</dd></div>@endif
                         </dl>
                     </section>
                 @endif

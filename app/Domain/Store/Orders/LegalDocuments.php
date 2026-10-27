@@ -45,7 +45,7 @@ class LegalDocuments
             'SATICI_TELEFON' => $s['phone'] ?: '—',
             'SATICI_EPOSTA' => $s['email'] ?: '—',
             'SATICI_VERGI' => trim(($s['company_tax_office'] ?? '').' '.($s['company_tax_number'] ?? '')) ?: '—',
-            'SATICI_MERSIS' => $s['company_mersis'] ?: '—',
+            'SATICI_MERSIS' => $s['company_mersis'] ?: ($s['company_esnaf_no'] ?: '—'),
             'SATICI_WEB' => config('store.domain'),
             'ALICI_AD' => $order['name'],
             'ALICI_ADRES' => $order['address'],
@@ -65,7 +65,13 @@ class LegalDocuments
         // Kullanıcı girdisi Markdown biçimlendirmesini bozmasın.
         $values = array_map(fn ($v) => $v === $lines ? $v : str_replace(['*', '_', '#', '[', ']', '<', '>'], ' ', (string) $v), $values);
 
-        return strtr($document->body, array_combine(array_map(fn ($k) => '{'.$k.'}', array_keys($values)), $values));
+        // Şahıs işletmesinde MERSİS yoktur: sicil no girildiyse şablondaki "MERSİS" etiketi Esnaf ve Sanatkârlar sicil no olur.
+        $body = $document->body;
+        if (blank($s['company_mersis']) && filled($s['company_esnaf_no'])) {
+            $body = strtr($body, ['MERSİS no:' => 'Esnaf ve Sanatkârlar Sicil No:', 'MERSİS:' => 'Esnaf Sicil No:']);
+        }
+
+        return strtr($body, array_combine(array_map(fn ($k) => '{'.$k.'}', array_keys($values)), $values));
     }
 
     public static function html(string $markdown): HtmlString

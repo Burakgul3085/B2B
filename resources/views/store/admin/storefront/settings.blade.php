@@ -62,7 +62,9 @@
                     <x-field name="company_title" label="Ticari unvan" :value="$settings['company_title']" maxlength="200" class="sm:col-span-2" placeholder="ör. Yapboz Kırtasiye Ltd. Şti." />
                     <x-field name="company_tax_office" label="Vergi dairesi" :value="$settings['company_tax_office']" maxlength="80" />
                     <x-field name="company_tax_number" label="Vergi numarası" :value="$settings['company_tax_number']" inputmode="numeric" maxlength="11" />
-                    <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" />
+                    <x-field name="company_esnaf_no" label="Esnaf ve Sanatkârlar sicil no" :value="$settings['company_esnaf_no']" maxlength="30"
+                        hint="Şahıs işletmesi için. Girilirse sözleşmelerde ve iletişim sayfasında MERSİS yerine gösterilir." />
+                    <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" hint="Şirketler (Ltd., A.Ş.) için; şahıs işletmesiyse boş bırakın." />
                 </div>
             </x-card>
             <x-card title="Ödeme logo bandı" description="iyzico, sitenin alt bilgisinde “iyzico ile Öde” ve kart logolarının bulunmasını ister. Görseli iyzico üye işyeri panelinden indirip yükleyin.">

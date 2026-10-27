@@ -58,6 +58,7 @@ class StoreSetting extends Model
         'company_tax_office' => null,
         'company_tax_number' => null,
         'company_mersis' => null,
+        'company_esnaf_no' => null,         // şahıs işletmesi: Esnaf ve Sanatkârlar sicil no (girilirse MERSİS yerine gösterilir)
 
         // Teslimat (KDV dahil ücretler)
         'shipping_cargo_fee' => '0.00',

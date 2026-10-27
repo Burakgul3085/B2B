@@ -20,6 +20,7 @@
     <strong style="color:#64748b;">{{ $settings['company_title'] ?: $storeName }}</strong>
     @if ($settings['address'])<br>{{ $settings['address'] }}@endif
     @if ($settings['company_tax_office'] && $settings['company_tax_number'])<br>{{ $settings['company_tax_office'] }} V.D. · {{ $settings['company_tax_number'] }}@endif
+    @if ($settings['company_mersis'])<br>MERSİS: {{ $settings['company_mersis'] }}@elseif ($settings['company_esnaf_no'] ?? null)<br>Esnaf ve Sanatkârlar Sicil No: {{ $settings['company_esnaf_no'] }}@endif
     @if ($socials)
         <br>@foreach ($socials as $social)<a href="{{ $social['url'] }}" style="color:#64748b;text-decoration:none;font-weight:600;">{{ $social['label'] }}</a>@if (! $loop->last) · @endif @endforeach
     @endif

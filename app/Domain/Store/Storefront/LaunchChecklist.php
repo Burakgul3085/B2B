@@ -40,7 +40,8 @@ class LaunchChecklist
             ['group' => 'iyzico başvurusu', 'items' => [
                 $this->item('Satıcı bilgileri', $missingSeller ? 'todo' : 'ok',
                     $missingSeller ? 'Eksik: '.implode(', ', $missingSeller).'.' : 'Unvan, vergi bilgileri ve iletişim bilgileri alt bilgide ve sözleşmelerde görünüyor.', 'store_admin.settings.edit'),
-                $this->item('MERSİS numarası', blank($s['company_mersis']) ? 'warn' : 'ok', 'Şirketler için sözleşmelerde gösterilmesi beklenir; şahıs işletmesiyse boş kalabilir.', 'store_admin.settings.edit'),
+                $this->item('MERSİS / Esnaf sicil numarası', blank($s['company_mersis']) && blank($s['company_esnaf_no']) ? 'warn' : 'ok',
+                    'Şirketlerde MERSİS, şahıs işletmelerinde Esnaf ve Sanatkârlar sicil numarası sözleşmelerde ve iletişim sayfasında gösterilir.', 'store_admin.settings.edit'),
                 $this->item('Yasal metinler gözden geçirildi', $unreviewed->isEmpty() ? 'ok' : 'todo',
                     $unreviewed->isEmpty() ? 'Tüm metinlerin mağaza yönetiminden kaydedilmiş bir sürümü var.' : 'Hukukçu kontrolünden sonra kaydedin: '.$unreviewed->implode(', ').'.', 'store_admin.legal.index'),
                 $this->item('Hakkımızda ve İletişim sayfaları', $missingPages ? 'todo' : 'ok',
