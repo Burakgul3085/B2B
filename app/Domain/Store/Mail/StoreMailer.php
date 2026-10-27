@@ -10,6 +10,7 @@ use App\Models\Store\StoreSetting;
  * (uygulama) şifresi girildiyse onunla, değilse sistem e-posta hesabıyla gönderilir. Sunucu, port ve şifreleme
  * e-posta adresinin alan adından bulunur (Gmail, Outlook, Yandex…); kendi alan adlı adreslerde Hostinger e-postası
  * varsayılır. Gelişmiş ayarlarda sunucu elle de yazılabilir. Parola şifreli saklanır.
+ * Gövde B2B e-postalarıyla aynı kurumsal düzendedir (emails.store, gömülü logo).
  */
 class StoreMailer extends SystemMailer
 {
@@ -47,6 +48,16 @@ class StoreMailer extends SystemMailer
         $s = StoreSetting::values();
 
         return filled($s['mail_username']) && filled($s['mail_password']);
+    }
+
+    /**
+     * @param  array{title: string, intro: string, rows?: list<array{0: string, 1: string}>, action_url?: string, action_label?: string, outro?: string, eyebrow?: string, tagline?: string, documents?: list<array{title: string, html: string}>}  $content
+     */
+    public function send(string $to, string $subject, array $content): bool
+    {
+        $mail = app(StoreEmailRenderer::class)->render($subject, $content);
+
+        return $this->sendHtml($to, $subject, $mail['html'], $mail['text'], [], $content['action_url'] ?? null, $mail['inline']);
     }
 
     protected function smtp(): ?array

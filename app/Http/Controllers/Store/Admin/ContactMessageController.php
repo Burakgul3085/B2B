@@ -30,7 +30,15 @@ class ContactMessageController extends Controller
     {
         $this->messages->markRead($storeContactMessage);
 
-        return view('store.admin.messages.show', ['message' => $storeContactMessage]);
+        return view('store.admin.messages.show', ['message' => $storeContactMessage, 'replies' => $storeContactMessage->replies()->get()]);
+    }
+
+    /** Müşteriye e-postayla yanıt. */
+    public function reply(Request $request, StoreContactMessage $storeContactMessage): RedirectResponse
+    {
+        $this->messages->reply($storeContactMessage, $request->user('store_admin'), $request->only('body'));
+
+        return back()->with('status', "Yanıtınız {$storeContactMessage->email} adresine e-postayla gönderildi.");
     }
 
     public function replied(StoreContactMessage $storeContactMessage): RedirectResponse

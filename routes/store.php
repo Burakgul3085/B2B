@@ -138,6 +138,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             // İletişim formu mesajları
             Route::get('mesajlar', [Admin\ContactMessageController::class, 'index'])->name('messages.index');
             Route::get('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'show'])->name('messages.show');
+            Route::post('mesajlar/{storeContactMessage}/yanit', [Admin\ContactMessageController::class, 'reply'])->middleware('throttle:20,1')->name('messages.reply');
             Route::post('mesajlar/{storeContactMessage}/yanitlandi', [Admin\ContactMessageController::class, 'replied'])->name('messages.replied');
             Route::delete('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
             Route::get('yorumlar', [Admin\ReviewController::class, 'index'])->name('reviews.index');

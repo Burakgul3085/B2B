@@ -45,6 +45,13 @@ class StoreSitePagesTest extends TestCase
 
                 return true;
             }
+
+            public function sendHtml(string $to, string $subject, string $html, string $text, array $headers = [], ?string $logUrl = null, array $inline = []): bool
+            {
+                $this->test->mails[] = compact('to', 'subject', 'html', 'headers');
+
+                return true;
+            }
         });
         $this->actingAs(StoreAdmin::create(['name' => 'Vitrin', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
     }
@@ -259,6 +266,47 @@ class StoreSitePagesTest extends TestCase
         // Form kapalıyken gönderim kabul edilmez.
         StorePage::where('key', 'contact')->update(['content' => json_encode(['form_enabled' => false])]);
         $this->post(self::HOST.'/iletisim', ['name' => 'X', 'email' => 'x@ornek.com', 'subject' => 'Diğer', 'message' => 'Merhaba dünya'])->assertNotFound();
+    }
+
+    public function test_contact_form_sends_acknowledgement_and_admin_replies_by_email(): void
+    {
+        StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => ['form_enabled' => true]]);
+        $this->flushSession();
+
+        $this->post(self::HOST.'/iletisim', ['name' => 'Ayşe Yılmaz', 'email' => 'Ayse@Ornek.com', 'subject' => 'Ürün', 'message' => 'Defterlerin stoğu ne zaman gelir?'])
+            ->assertRedirect(self::HOST.'/iletisim#form');
+        $this->app->terminate();
+        $message = StoreContactMessage::sole();
+
+        // Müşteriye otomatik "mesajınız ulaştı" e-postası; ad ve mesaj metni e-postaya konmaz. Yöneticiye bildirim de gider.
+        $ack = collect($this->mails)->firstWhere('to', 'ayse@ornek.com');
+        $this->assertNotNull($ack);
+        $this->assertStringStartsWith('Mesajınızı aldık', $ack['subject']);
+        $this->assertStringContainsString('Mesajınız bize ulaştı', $ack['html']);
+        $this->assertStringNotContainsString('Defterlerin stoğu', $ack['html']);
+        $this->assertSame(['Reply-To' => 'info@yapboz.test'], $ack['headers']);
+        $this->assertNotEmpty(array_filter($this->mails, fn ($m) => str_starts_with($m['subject'], 'Yeni iletişim mesajı')));
+
+        // Yönetici Mesajlar ekranından e-postayla yanıtlar.
+        $this->mails = [];
+        $this->actingAs(StoreAdmin::sole(), 'store_admin');
+        $this->get(route('store_admin.messages.show', $message))->assertOk()->assertSee('E-postayla yanıtla');
+        $this->post(route('store_admin.messages.reply', $message), ['body' => ''])->assertSessionHasErrors('body');
+        $this->post(route('store_admin.messages.reply', $message), ['body' => "Merhaba,\nDefterler cuma günü stokta olacak."])
+            ->assertSessionHasNoErrors()->assertSessionHas('status');
+
+        $this->assertSame('ayse@ornek.com', $this->mails[0]['to']);
+        $this->assertStringContainsString('Defterler cuma günü stokta olacak.', $this->mails[0]['html']);
+        $this->assertSame('replied', $message->fresh()->status);
+        $this->assertSame(['Vitrin', "Merhaba,\nDefterler cuma günü stokta olacak."], [$message->replies()->sole()->admin_name, $message->replies()->sole()->body]);
+        $this->get(route('store_admin.messages.show', $message))->assertSee('Defterler cuma günü stokta olacak.')->assertSee('Yanıtınız · Vitrin');
+
+        // E-postası olmayan mesaja e-postayla yanıt verilemez; mesaj silinince yanıtları da silinir.
+        $phoneOnly = StoreContactMessage::create(['name' => 'Ali', 'phone' => '05321112233', 'subject' => 'Diğer', 'message' => 'Beni arar mısınız?']);
+        $this->get(route('store_admin.messages.show', $phoneOnly))->assertDontSee('E-postayla yanıtla');
+        $this->post(route('store_admin.messages.reply', $phoneOnly), ['body' => 'Merhaba'])->assertSessionHasErrors('body');
+        $this->delete(route('store_admin.messages.destroy', $message));
+        $this->assertDatabaseCount('store_contact_replies', 0);
     }
 
     public function test_second_phone_is_shown_in_footer_and_contact_page(): void

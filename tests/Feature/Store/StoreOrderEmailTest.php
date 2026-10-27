@@ -4,6 +4,7 @@ namespace Tests\Feature\Store;
 
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Mail\StoreEmailRenderer;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Models\Store\District;
@@ -61,7 +62,7 @@ class StoreOrderEmailTest extends TestCase
         $this->assertStringContainsString(config('store.domain'), $mail['content']['documents'][1]['html']);
         $this->assertStringNotContainsString('{SATICI_', $mail['content']['documents'][0]['html'].$mail['content']['documents'][1]['html']);
 
-        $html = view('emails.system', $mail['content'] + ['subject' => $mail['subject']])->render();
+        $html = app(StoreEmailRenderer::class)->render($mail['subject'], $mail['content'])['html'];
         $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 2)', $html);
         $this->assertStringContainsString('<h2', $html);
         $this->assertStringContainsString($order->order_no, $html);

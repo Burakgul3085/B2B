@@ -3,6 +3,7 @@
 namespace App\Models\Store;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** İletişim sayfasındaki formdan gelen mesaj. Durum: new (yeni) → read (okundu) → replied (yanıtlandı). */
 class StoreContactMessage extends Model
@@ -24,6 +25,12 @@ class StoreContactMessage extends Model
     protected function casts(): array
     {
         return ['read_at' => 'datetime', 'replied_at' => 'datetime'];
+    }
+
+    /** Yönetimden e-postayla gönderilen yanıtlar */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(StoreContactReply::class, 'contact_message_id')->orderBy('id');
     }
 
     public function statusLabel(): string

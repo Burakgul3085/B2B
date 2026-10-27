@@ -45,11 +45,12 @@ class SystemMailer
     }
 
     /**
-     * Hazır HTML gövdeyle gönderir. $headers: ek başlıklar (ör. List-Unsubscribe).
+     * Hazır HTML gövdeyle gönderir. $headers: ek başlıklar (ör. List-Unsubscribe); $inline: HTML'de cid: ile kullanılan gömülü görseller.
      *
      * @param  array<string, string>  $headers
+     * @param  list<array{cid: string, data: string, name: string, mime: string}>  $inline
      */
-    public function sendHtml(string $to, string $subject, string $html, string $text, array $headers = [], ?string $logUrl = null): bool
+    public function sendHtml(string $to, string $subject, string $html, string $text, array $headers = [], ?string $logUrl = null, array $inline = []): bool
     {
         $c = $this->smtp();
         if ($c === null) {
@@ -85,6 +86,9 @@ class SystemMailer
             $mail->Subject = $subject;
             $mail->Body = $html;
             $mail->AltBody = $text;
+            foreach ($inline as $image) {
+                $mail->addStringEmbeddedImage($image['data'], $image['cid'], $image['name'], PHPMailer::ENCODING_BASE64, $image['mime']);
+            }
 
             return $mail->send();
         } catch (MailerException) {

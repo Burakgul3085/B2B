@@ -4,11 +4,11 @@ namespace App\Domain\Store\Newsletter;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Mail\StoreEmailRenderer;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Storefront\ImageVariants;
 use App\Models\Store\StoreNewsletterCampaign;
 use App\Models\Store\StoreNewsletterSubscriber;
-use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -141,14 +141,14 @@ class Campaigns
     }
 
     /** Kampanyanın e-posta HTML'i (önizleme ve gönderim). */
-    public function render(StoreNewsletterCampaign $campaign, ?StoreNewsletterSubscriber $subscriber): string
+    /** $embedded: gönderimde logo cid ile gömülür; önizlemede data: adresi kullanılır. */
+    public function render(StoreNewsletterCampaign $campaign, ?StoreNewsletterSubscriber $subscriber, bool $embedded = false): string
     {
-        return view('emails.newsletter', [
+        return view('emails.newsletter', app(StoreEmailRenderer::class)->logoView($embedded) + [
             'campaign' => $campaign,
             'body' => Str::markdown((string) $campaign->body, ['html_input' => 'strip', 'allow_unsafe_links' => false]),
             'imageUrl' => $campaign->image_path ? route('store.media.newsletter', ['storeNewsletterCampaign' => $campaign->id, 'w' => 1200]) : null,
             'unsubscribeUrl' => $subscriber ? route('store.newsletter.unsubscribe', $subscriber->token) : route('store.home'),
-            'settings' => StoreSetting::values(),
         ])->render();
     }
 
@@ -157,6 +157,7 @@ class Campaigns
         $headers = $subscriber ? ['List-Unsubscribe' => '<'.route('store.newsletter.unsubscribe', $subscriber->token).'>'] : [];
         $text = strip_tags(Str::markdown((string) $campaign->body))."\n\n".($subscriber ? 'Abonelikten çıkmak için: '.route('store.newsletter.unsubscribe', $subscriber->token) : '');
 
-        return $this->mailer->sendHtml($to, $prefix.$campaign->subject, $this->render($campaign, $subscriber), $text, $headers);
+        return $this->mailer->sendHtml($to, $prefix.$campaign->subject, $this->render($campaign, $subscriber, true), $text, $headers,
+            null, [app(StoreEmailRenderer::class)->inlineLogo()]);
     }
 }
