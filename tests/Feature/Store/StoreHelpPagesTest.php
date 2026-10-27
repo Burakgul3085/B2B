@@ -34,7 +34,7 @@ class StoreHelpPagesTest extends TestCase
         $this->get(self::HOST.'/yardim')->assertOk()->assertSee('Yardım Merkezi')->assertSee('Sıkça sorulan sorular')->assertSee('/sss"', false);
         $this->get(self::HOST.'/sss')->assertOk()->assertSee('Siparişimi nasıl takip edebilirim?')->assertSee('"FAQPage"', false);
         $this->get(self::HOST.'/siparis-ve-teslimat')->assertOk()->assertSee('₺59,90')->assertSee('₺750,00 ve üzeri');
-        $this->get(self::HOST.'/odeme-secenekleri')->assertOk()->assertSee('Havale / EFT')->assertSee('aria-label="Troy"', false)->assertDontSee('Kapıda ödeme</p>', false);
+        $this->get(self::HOST.'/odeme-secenekleri')->assertOk()->assertSee('Havale / EFT')->assertSee('images/payments/iyzico-logo-band-colored.svg', false)->assertDontSee('Kapıda ödeme</p>', false);
         $this->get(self::HOST.'/yasal-haklar')->assertOk()->assertSee('Mesafeli Satış Sözleşmesi')->assertSee('KVKK Aydınlatma Metni');
         $this->get(self::HOST.'/kargo-takip')->assertOk()->assertSee('Siparişimi bul');
 

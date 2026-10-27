@@ -67,7 +67,7 @@
                     <x-field name="company_mersis" label="MERSİS numarası" :value="$settings['company_mersis']" inputmode="numeric" maxlength="16" hint="Şirketler (Ltd., A.Ş.) için; şahıs işletmesiyse boş bırakın." />
                 </div>
             </x-card>
-            <x-card title="Ödeme logo bandı" description="iyzico, sitenin alt bilgisinde “iyzico ile Öde” ve kart logolarının bulunmasını ister. Görseli iyzico üye işyeri panelinden indirip yükleyin.">
+            <x-card title="Ödeme logo bandı" description="Alt bilgide iyzico'nun resmî logo bandı (iyzico ile Öde ve kart logoları) hazır gösterilir. iyzico yeni bir bant verirse buradan yükleyin; yerleşik bandın yerine geçer. Koyu zemin için beyaz sürümü seçin.">
                 @if ($settings['payment_logos_path'])
                     <img src="{{ route('store.media.payment-logos') }}" alt="Ödeme logoları" class="mb-4 h-8 w-auto">
                     <label class="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" name="remove_payment_logos" value="1" class="size-4 rounded border-line"> Görseli kaldır</label>

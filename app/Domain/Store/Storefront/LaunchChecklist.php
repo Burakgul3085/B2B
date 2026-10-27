@@ -47,7 +47,9 @@ class LaunchChecklist
                 $this->item('Hakkımızda ve İletişim sayfaları', $missingPages ? 'todo' : 'ok',
                     $missingPages ? 'Yayında olmayan sayfa: '.implode(', ', $missingPages).'. Vitrin menüsünden düzenleyip "Yayında" işaretleyin.' : 'Sayfalar yayında.',
                     in_array('Hakkımızda', $missingPages, true) ? 'store_admin.site-pages.about' : 'store_admin.site-pages.contact'),
-                $this->item('Ödeme logo bandı', blank($s['payment_logos_path']) ? 'todo' : 'ok', 'iyzico "iyzico ile Öde" ve kart logolarının alt bilgide bulunmasını ister.', 'store_admin.settings.edit'),
+                $this->item('Ödeme logo bandı', 'ok', blank($s['payment_logos_path'])
+                    ? "Alt bilgide iyzico'nun resmî logo bandı (iyzico ile Öde, Mastercard, Visa, American Express, Troy) gösteriliyor."
+                    : 'Alt bilgide mağaza ayarlarından yüklenen logo bandı gösteriliyor.', 'store_admin.settings.edit'),
                 $this->item('Çerez ve KVKK bilgilendirmesi', 'ok', 'Çerez bandı, KVKK Aydınlatma Metni ve Gizlilik ve Çerez Politikası alt bilgide; üyelikte aydınlatma onayı alınıyor.', null),
                 $this->item('Ürünler', $published === 0 ? 'todo' : ($withoutImage ? 'warn' : 'ok'),
                     $published === 0 ? 'Yayında ürün yok.' : "{$published} ürün yayında".($withoutImage ? ", {$withoutImage} ürünün görseli yok." : '.'), 'store_admin.products.index'),

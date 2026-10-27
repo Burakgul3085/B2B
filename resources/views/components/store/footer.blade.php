@@ -146,14 +146,12 @@
         @endif
     </div>
 
-    {{-- Ödeme logoları: koyu zeminde tek sıra, canlı tonlarla (iyzico, kartlar, taksit kartları, güvenlik işareti) --}}
+    {{-- Ödeme logoları: iyzico'nun resmî beyaz bandı (koyu zemin); yönetimden yüklenen bant varsa onun yerine geçer --}}
     <div class="border-t border-white/10 bg-[#0e1c3d]">
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <x-store.payment-marks dark :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
+            <x-store.payment-marks dark :src="$settings['payment_logos_path'] ? route('store.media.payment-logos') : null"
+                :transfer="$settings['transfer_enabled'] === '1'" :cod="$settings['cod_enabled'] === '1'" />
             <p class="mt-4 text-center text-xs text-white/60">Kart bilgileriniz iyzico güvencesiyle işlenir; mağazamızda saklanmaz. Uygun kartlarla taksitli ödeme yapabilirsiniz.</p>
-            @if ($settings['payment_logos_path'])
-                <div class="mt-4 flex justify-center"><img src="{{ route('store.media.payment-logos') }}" alt="iyzico ile öde, kabul edilen kartlar" class="h-7 w-auto" loading="lazy"></div>
-            @endif
         </div>
     </div>
 

@@ -126,9 +126,9 @@ class StorefrontRedesignTest extends TestCase
     public function test_footer_shows_payment_marks_and_credits(): void
     {
         $this->get(self::HOST.'/')->assertOk()
-            ->assertSee('aria-label="Ödeme yöntemleri"', false)
-            ->assertSee('iyzico ile öde')->assertSee('aria-label="Visa"', false)->assertSee('aria-label="Mastercard"', false)
-            ->assertSee('aria-label="American Express"', false)->assertSee('aria-label="Troy"', false)
+            // iyzico'nun resmî beyaz logo bandı (koyu zemin); elle çizilmiş taksit kartı işaretleri yok
+            ->assertSee('images/payments/iyzico-logo-band-white.svg', false)
+            ->assertSee('alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"', false)->assertDontSee('aria-label="Bonus"', false)
             ->assertDontSee('Havale / EFT</li>', false)
             ->assertDontSee('Fiyatlara KDV dahildir')
             ->assertSee('Sayfa yöneticisi')->assertSee('Onur Birbilen')
@@ -138,11 +138,10 @@ class StorefrontRedesignTest extends TestCase
         $this->get(self::HOST.'/')->assertSee('Havale / EFT</li>', false);
     }
 
-    public function test_marquee_is_managed_and_lists_installment_cards(): void
+    public function test_marquee_is_managed(): void
     {
         // Varsayılan maddeler ayarlardan: ücretsiz kargo sınırı (setUp: ₺750)
-        $this->get(self::HOST.'/')->assertSee('aria-label="Kayan duyurular"', false)->assertSee('₺750,00 üzeri alışverişlerde')->assertSee('Kargo bedava')
-            ->assertSee('aria-label="Bonus"', false)->assertSee('aria-label="CardFinans"', false);
+        $this->get(self::HOST.'/')->assertSee('aria-label="Kayan duyurular"', false)->assertSee('₺750,00 üzeri alışverişlerde')->assertSee('Kargo bedava');
 
         $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
         // Form, ayarlardan hazırlanmış önerilerle dolu gelir (düzenlenip kaydedilir)
