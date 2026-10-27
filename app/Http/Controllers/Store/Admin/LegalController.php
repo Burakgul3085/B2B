@@ -18,8 +18,18 @@ class LegalController extends Controller
             'documents' => collect(StoreLegalDocument::KEYS)->map(fn ($title, $key) => [
                 'current' => StoreLegalDocument::current($key),
                 'versions' => StoreLegalDocument::where('key', $key)->count(),
+                'reviewed' => LegalDocuments::isReviewed($key),
             ]),
         ]);
+    }
+
+    /** Hukukçu kontrolünden geçen metin değiştirilmeden onaylanır (Yayın hazırlığı listesinde tamamlanır). */
+    public function reviewed(string $key, LegalDocuments $legal): RedirectResponse
+    {
+        abort_unless(array_key_exists($key, StoreLegalDocument::KEYS), 404);
+        $legal->markReviewed($key);
+
+        return back()->with('status', StoreLegalDocument::KEYS[$key].' gözden geçirildi olarak işaretlendi.');
     }
 
     public function edit(string $key): View

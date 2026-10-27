@@ -98,6 +98,27 @@ class LegalDocuments
         return [new HtmlString($out), $toc];
     }
 
+    /**
+     * Metin hukukçu / müşavir kontrolünden geçti mi: yönetimde kaydedilmiş bir sürümü var ya da güncel sürüm
+     * (ör. sistemle gelen ayrıntılı sürüm) yönetimde "gözden geçirildi" olarak işaretlendi.
+     */
+    public static function isReviewed(string $key): bool
+    {
+        $marked = json_decode((string) StoreSetting::get('legal_reviewed'), true);
+
+        return isset($marked[$key]) || StoreLegalDocument::where('key', $key)->where('created_by_type', 'store_admin')->exists();
+    }
+
+    /** Güncel sürümü değiştirmeden "gözden geçirildi" olarak işaretler. */
+    public function markReviewed(string $key): void
+    {
+        $current = StoreLegalDocument::current($key);
+        $marked = json_decode((string) StoreSetting::get('legal_reviewed'), true) ?: [];
+        $marked[$key] = $current->version;
+        StoreSetting::put(['legal_reviewed' => json_encode($marked)]);
+        $this->audit->log('store.legal_reviewed', $current, [], ['key' => $key, 'version' => $current->version]);
+    }
+
     /** Yeni sürüm kaydeder (eski sürümler ve onlara verilmiş onaylar korunur). */
     public function publish(string $key, string $title, string $body): StoreLegalDocument
     {

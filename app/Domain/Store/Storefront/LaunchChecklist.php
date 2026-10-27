@@ -4,8 +4,10 @@ namespace App\Domain\Store\Storefront;
 
 use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Mail\StoreMailer;
+use App\Domain\Store\Orders\LegalDocuments;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Sms\SmsGateway;
+use App\Domain\Support\OpsStatus;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreProduct;
@@ -17,7 +19,7 @@ use App\Models\Store\StoreSetting;
  */
 class LaunchChecklist
 {
-    public function __construct(private IyzicoClient $iyzico, private SmsGateway $sms, private StoreMailer $mailer) {}
+    public function __construct(private IyzicoClient $iyzico, private SmsGateway $sms, private StoreMailer $mailer, private OpsStatus $ops) {}
 
     /** @return list<array{group: string, items: list<array{label: string, status: string, hint: string, route: ?string}>}> */
     public function groups(): array
@@ -27,12 +29,13 @@ class LaunchChecklist
             'ticari unvan' => blank($s['company_title']), 'vergi dairesi' => blank($s['company_tax_office']), 'vergi numarası' => blank($s['company_tax_number']),
             'adres' => blank($s['address']), 'telefon' => blank($s['phone']), 'e-posta' => blank($s['email']),
         ]));
-        $unreviewed = collect(StoreLegalDocument::KEYS)->filter(fn ($title, $key) => ! StoreLegalDocument::where('key', $key)->where('created_by_type', 'store_admin')->exists());
+        $unreviewed = collect(StoreLegalDocument::KEYS)->reject(fn ($title, $key) => LegalDocuments::isReviewed($key));
         $livePages = array_column(SitePages::published(), 'key');
         $missingPages = array_values(array_map(fn ($p) => $p['title'], array_diff_key(SitePages::PAGES, array_flip($livePages))));
         $published = StoreProduct::where('is_published', true)->count();
         $withoutImage = StoreProduct::where('is_published', true)->whereDoesntHave('images')->count();
         $cod = $s['cod_enabled'] === '1';
+        $local = str_ends_with((string) config('store.domain'), '.localhost');
 
         return [
             ['group' => 'iyzico başvurusu', 'items' => [
@@ -41,7 +44,7 @@ class LaunchChecklist
                 $this->item('MERSİS / Esnaf sicil numarası', blank($s['company_mersis']) && blank($s['company_esnaf_no']) ? 'warn' : 'ok',
                     'Şirketlerde MERSİS, şahıs işletmelerinde Esnaf ve Sanatkârlar sicil numarası sözleşmelerde ve iletişim sayfasında gösterilir.', 'store_admin.settings.edit'),
                 $this->item('Yasal metinler gözden geçirildi', $unreviewed->isEmpty() ? 'ok' : 'todo',
-                    $unreviewed->isEmpty() ? 'Tüm metinlerin mağaza yönetiminden kaydedilmiş bir sürümü var.' : 'Hukukçu kontrolünden sonra kaydedin: '.$unreviewed->implode(', ').'.', 'store_admin.legal.index'),
+                    $unreviewed->isEmpty() ? 'Tüm metinler gözden geçirildi (yönetimde düzenlendi veya onaylandı).' : 'Hukukçu kontrolünden sonra düzenleyip kaydedin ya da "Gözden geçirildi" olarak işaretleyin: '.$unreviewed->implode(', ').'.', 'store_admin.legal.index'),
                 $this->item('Hakkımızda ve İletişim sayfaları', $missingPages ? 'todo' : 'ok',
                     $missingPages ? 'Yayında olmayan sayfa: '.implode(', ', $missingPages).'. Vitrin menüsünden düzenleyip "Yayında" işaretleyin.' : 'Sayfalar yayında.',
                     in_array('Hakkımızda', $missingPages, true) ? 'store_admin.site-pages.about' : 'store_admin.site-pages.contact'),
@@ -68,11 +71,43 @@ class LaunchChecklist
                     ! config('b2b.login_code') ? 'Sunucuda kapatılmış (LOGIN_EMAIL_CODE=false); girişte yalnızca şifre isteniyor.'
                         : ($this->mailer->isConfigured() ? 'Her girişte yöneticinin e-postasına 4 haneli kod gidiyor.' : 'E-posta hesabı tanımlı değil; kod gönderilemediği için yöneticiler giriş yapamaz.'), 'store_admin.settings.edit'),
                 $this->item('Sistem e-postası', $this->mailer->isConfigured() ? 'ok' : 'later', 'Sipariş, bildirim ve e-bülten e-postaları için Mağaza Ayarları → E-posta gönderimi bölümüne SMTP hesabı girin.', null),
-                $this->item('Alan adı ve HTTPS', str_ends_with((string) config('store.domain'), '.localhost') ? 'later' : 'ok', 'yapbozkirtasiye.com ve alt alan adları sunucu kurulumunda bağlanacak.', null),
-                $this->item('Zamanlanmış görevler ve kuyruk', 'later', 'Süresi dolan kart ödemelerinin kapanması ve e-postalar için sunucuda schedule:run ve queue:work sürekli çalışmalı.', null),
-                $this->item('Yedekleme', 'later', 'Veritabanı ve yüklenen dosyaların günlük yedeği ve geri yükleme provası sunucu aşamasında.', null),
+                $this->item('Alan adı ve HTTPS', $local ? 'later' : 'ok', $local ? 'Alan adı ve alt alan adları sunucu kurulumunda bağlanır.' : 'Mağaza '.config('store.domain').', yönetim '.config('store.admin_domain').' adresinde yayında.', null),
+                $this->operations(),
+                $this->backups(),
             ]],
         ];
+    }
+
+    /** Zamanlayıcı (schedule:run, her dakika) ve kuyruk işçisi (queue:work) gerçekten çalışıyor mu: OpsStatus izlerine bakılır. */
+    private function operations(): array
+    {
+        $scheduler = $this->ops->schedulerSeenAt();
+        $queue = $this->ops->queueSeenAt();
+        $schedulerOk = $scheduler?->gt(now()->subMinutes(5));
+        $queueOk = $queue?->gt(now()->subMinutes(15));
+        $at = fn ($t) => $t ? $t->timezone('Europe/Istanbul')->format('d.m.Y H:i') : 'hiç';
+
+        $hint = match (true) {
+            $schedulerOk && $queueOk => 'Çalışıyor: zamanlayıcı son '.$at($scheduler).', kuyruk işçisi son '.$at($queue).'. Süresi dolan ödemeler, havale iptalleri, stok bildirimleri ve e-postalar işleniyor.',
+            ! $schedulerOk => 'Zamanlayıcı çalışmıyor (son iz: '.$at($scheduler).'). Sunucuda her dakika "php artisan schedule:run" çalışmalı (cron).',
+            default => 'Kuyruk işçisi çalışmıyor (son iz: '.$at($queue).'). Sunucuda "php artisan queue:work" sürekli çalışmalı (supervisor); e-postalar bekliyor olabilir.',
+        };
+
+        return $this->item('Zamanlanmış görevler ve kuyruk', $schedulerOk && $queueOk ? 'ok' : 'todo', $hint, null);
+    }
+
+    /** Gece 03:30 yedeği (veritabanı ve yüklenen dosyalar; Platform → Yedekler): son yedeğin tarihine bakılır. */
+    private function backups(): array
+    {
+        $last = $this->ops->lastBackupAt();
+        if (! $last) {
+            return $this->item('Yedekleme', 'todo', 'Henüz yedek yok. Yedek her gece 03:30\'da alınır; platform yöneticisi Platform → Yedekler\'den hemen de alabilir.', null);
+        }
+        $fresh = $last->gt(now()->subHours(36));
+
+        return $this->item('Yedekleme', $fresh ? 'ok' : 'warn', 'Son yedek: '.$last->timezone('Europe/Istanbul')->format('d.m.Y H:i').'. '.($fresh
+            ? 'Veritabanı ve yüklenen dosyalar her gece 03:30\'da yedekleniyor; yedekler Platform → Yedekler\'den indirilebilir.'
+            : 'Son yedek 36 saatten eski; gece yedeği çalışmıyor olabilir.'), null);
     }
 
     private function item(string $label, string $status, string $hint, ?string $route): array

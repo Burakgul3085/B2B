@@ -9,6 +9,7 @@ use App\Domain\Tenancy\TenantContext;
 use DomainException;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 /**
  * E-postayla giriş doğrulaması (toptancı, bayi, mağaza yönetimi; platformda doğrulama uygulaması kalır).
@@ -137,6 +138,10 @@ class LoginCode
     private function deliver(Area $area, Model $user, string $code): bool
     {
         if ($area === Area::StoreAdmin) {
+            if (app()->environment('local')) {
+                Log::channel('single')->info("[store-login-code] {$user->email}", ['code' => $code]); // yerel geliştirmede e-posta yerine
+            }
+
             return app(StoreMailer::class)->send($user->email, 'Mağaza yönetimi giriş doğrulama kodunuz', [
                 'tagline' => 'Mağaza yönetimi', 'eyebrow' => 'Giriş doğrulaması', 'title' => 'Giriş doğrulama kodunuz',
                 'intro' => "Merhaba {$user->name},\n\nMağaza yönetimine giriş yapılıyor. Girişi tamamlamak için aşağıdaki 4 haneli kodu giriş ekranına yazın.",

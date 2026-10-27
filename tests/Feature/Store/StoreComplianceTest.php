@@ -5,6 +5,8 @@ namespace Tests\Feature\Store;
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Orders\CheckoutService;
+use App\Domain\Support\OpsStatus;
+use App\Jobs\QueueHeartbeat;
 use App\Models\Store\District;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreCustomer;
@@ -14,6 +16,7 @@ use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -164,5 +167,45 @@ class StoreComplianceTest extends TestCase
         $policy()->first()->update(['body' => 'Kendi metnimiz']);
         $migration->up();
         $this->assertSame(1, $policy()->first()->version);
+    }
+
+    public function test_legal_documents_can_be_marked_reviewed_without_a_new_version(): void
+    {
+        $this->actingAs(StoreAdmin::create(['name' => 'Y', 'email' => 'y@m.local', 'password' => self::PASSWORD, 'is_super' => true]), 'store_admin');
+        StoreSetting::put(['legal_reviewed' => null]);
+        $this->get(route('store_admin.launch'))->assertSee('olarak işaretleyin: Ön Bilgilendirme Formu');
+        $this->get(route('store_admin.legal.index'))->assertSee('Gözden geçirilmedi');
+
+        $versions = StoreLegalDocument::count();
+        foreach (array_keys(StoreLegalDocument::KEYS) as $key) {
+            $this->post(route('store_admin.legal.reviewed', $key))->assertSessionHas('status');
+        }
+        $this->assertSame($versions, StoreLegalDocument::count()); // metin değişmez, yeni sürüm açılmaz
+        $this->assertDatabaseHas('audit_logs', ['action' => 'store.legal_reviewed']);
+        $this->get(route('store_admin.legal.index'))->assertDontSee('Gözden geçirilmedi');
+        $this->get(route('store_admin.launch'))->assertSee('Tüm metinler gözden geçirildi');
+
+        // Sistemle gelen sürümler (27.10.2026'da sahibince onaylanan) veri güncellemesiyle işaretlenir.
+        StoreSetting::put(['legal_reviewed' => null]);
+        (require database_path('migrations/2026_11_23_000100_mark_store_legal_documents_reviewed.php'))->up();
+        Cache::flush();
+        $this->get(route('store_admin.launch'))->assertSee('Tüm metinler gözden geçirildi');
+    }
+
+    public function test_launch_checklist_reads_scheduler_queue_and_backup_status(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(StoreAdmin::create(['name' => 'Y', 'email' => 'y@m.local', 'password' => self::PASSWORD]), 'store_admin');
+        $this->get(route('store_admin.launch'))->assertSee('Zamanlayıcı çalışmıyor (son iz: hiç)')->assertSee('Henüz yedek yok');
+
+        $this->artisan('schedule:run')->assertSuccessful(); // her dakikalık iz + kuyruğa atılan iz işi (testte senkron kuyruk)
+        app(QueueHeartbeat::class)->handle(app(OpsStatus::class));
+        Storage::disk('local')->put('backups/yedek-20261027-033000.zip', 'zip');
+        $this->get(route('store_admin.launch'))->assertSee('Çalışıyor: zamanlayıcı son')->assertSee('Son yedek:')->assertSee('her gece 03:30');
+
+        $this->travel(20)->minutes();
+        $this->get(route('store_admin.launch'))->assertSee('Zamanlayıcı çalışmıyor');
+        $this->travel(2)->days();
+        $this->get(route('store_admin.launch'))->assertSee('Son yedek 36 saatten eski');
     }
 }

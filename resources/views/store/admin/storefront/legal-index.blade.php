@@ -9,9 +9,16 @@
         @foreach ($documents as $key => $doc)
             <x-card :title="$doc['current']->title">
                 <p class="text-sm text-muted">Güncel sürüm {{ $doc['current']->version }} · {{ $doc['current']->created_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · toplam {{ $doc['versions'] }} sürüm</p>
-                <div class="mt-4 flex gap-3">
+                <p class="mt-2 text-sm">@if ($doc['reviewed'])<x-badge tone="success">Gözden geçirildi</x-badge>@else<x-badge tone="warning">Gözden geçirilmedi</x-badge>@endif</p>
+                <div class="mt-4 flex flex-wrap gap-3">
                     <x-button :href="route('store_admin.legal.edit', $key)" icon="pencil" size="sm">Düzenle</x-button>
                     <x-button :href="route('store.legal', $key)" variant="secondary" size="sm" target="_blank" rel="noopener">Mağazada gör</x-button>
+                    @unless ($doc['reviewed'])
+                        <form method="POST" action="{{ route('store_admin.legal.reviewed', $key) }}" data-confirm="Metin hukukçunuzca kontrol edildi ve değiştirilmeden kullanılacak mı?">
+                            @csrf
+                            <x-button variant="secondary" size="sm" icon="check">Gözden geçirildi olarak işaretle</x-button>
+                        </form>
+                    @endunless
                 </div>
             </x-card>
         @endforeach

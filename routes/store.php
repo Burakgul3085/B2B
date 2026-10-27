@@ -191,6 +191,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('ayarlar/yasal-metinler', [Admin\LegalController::class, 'index'])->name('legal.index');
             Route::get('ayarlar/yasal-metinler/{key}', [Admin\LegalController::class, 'edit'])->name('legal.edit');
             Route::put('ayarlar/yasal-metinler/{key}', [Admin\LegalController::class, 'update'])->name('legal.update');
+            Route::post('ayarlar/yasal-metinler/{key}/gozden-gecirildi', [Admin\LegalController::class, 'reviewed'])->name('legal.reviewed');
 
             // Stok (M3)
             Route::prefix('stok')->name('stock.')->group(function () {

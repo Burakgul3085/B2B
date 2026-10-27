@@ -4,6 +4,8 @@ use App\Domain\Platform\BackupService;
 use App\Domain\Store\Inventory\StockAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Payments\PaymentService;
+use App\Domain\Support\OpsStatus;
+use App\Jobs\QueueHeartbeat;
 use Database\Seeders\Support\DemoImages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -14,6 +16,10 @@ use Illuminate\Support\Facades\Schedule;
 | Zamanlanmış görevler. Sunucuda tek cron satırı yeterlidir:
 |   * * * * * cd /var/www/b2b && php artisan schedule:run >> /dev/null 2>&1
 */
+
+// Canlılık izleri (Mağaza → Yayın hazırlığı): zamanlayıcı her dakika, kuyruk işçisi beş dakikada bir iz bırakır.
+Schedule::call(fn () => app(OpsStatus::class)->recordScheduler())->everyMinute()->name('ops:scheduler-heartbeat');
+Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('ops:queue-heartbeat');
 
 // Haftalık vade hatırlatması (yalnızca hatırlatmayı açmış işletmeler).
 Schedule::command('ledger:send-reminders')->weeklyOn(1, '09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
