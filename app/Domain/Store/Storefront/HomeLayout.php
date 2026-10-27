@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 /**
  * Ana sayfa blokları (Vitrin → Ana Sayfa): sıra, açık/kapalı, başlık ve alt başlık. Ayar store_settings.home'da JSON.
  * Blokların içeriği her zaman canlı veriden gelir (banner, kategori, kupon, ürün, seçki, marka, Hakkımızda);
+ * bayilik çağrısı sabit içerikli bir davettir (B2B başvuru ve giriş adreslerine gider);
  * içeriği olmayan blok sayfada görünmez.
  */
 class HomeLayout
@@ -25,6 +26,8 @@ class HomeLayout
         'brands' => ['label' => 'Markalar', 'title' => 'Güvendiğiniz markalar', 'subtitle' => 'Orijinal ürünler, yetkili tedarikçilerden.'],
         'blog' => ['label' => 'Blogdan son yazılar', 'title' => 'Blogdan', 'subtitle' => 'Okul, ofis ve sanat üzerine öneriler.'],
         'about' => ['label' => 'Hakkımızda özeti', 'title' => null, 'subtitle' => null],
+        'dealer' => ['label' => 'Bayilik çağrısı (başvuru ve bayi girişi)', 'title' => 'Rafınızdaki eksik parça biz olalım',
+            'subtitle' => 'Kırtasiye, ofis ve oyuncak ürünlerinde toptan tedarik için bayi ağımıza katılın.'],
     ];
 
     public function __construct(private AuditLogger $audit) {}

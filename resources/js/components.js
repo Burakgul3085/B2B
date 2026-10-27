@@ -829,6 +829,29 @@ export function countUp(text) {
     };
 }
 
+/**
+ * Ana sayfa bayilik çağrısı: alan ekrana girince "is-in" eklenir, yapboz parçaları birleşir (stiller app.css → .dealer-*).
+ * Başlangıç durumu "is-armed" ile kurulur; JS yoksa ya da "hareketi azalt" açıksa alan olduğu gibi görünür.
+ */
+export function dealerJoin() {
+    return {
+        init() {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+                return;
+            }
+            const el = this.$el;
+            el.classList.add('is-armed');
+            const io = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    io.disconnect();
+                    el.classList.add('is-in');
+                }
+            }, { threshold: 0.3 });
+            io.observe(el);
+        },
+    };
+}
+
 /** Fotoğraf galerisi büyük görünümü: x-data="photoGallery([{src, caption}])", open(i) / close() / next() / prev(). */
 export function photoGallery(photos) {
     return {

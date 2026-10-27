@@ -79,6 +79,24 @@ class StorefrontHomeTest extends TestCase
         $this->get(self::HOST.'/secki/'.$collection->slug)->assertNotFound();
     }
 
+    public function test_dealer_invite_links_to_b2b_application_and_login_and_can_be_hidden(): void
+    {
+        $b2b = rtrim(config('app.url'), '/');
+        $html = $this->get(self::HOST.'/')->assertOk()
+            ->assertSee('id="ana-bayilik"', false)->assertSee('Bayimiz olmak ister misiniz?')->assertSee('Bayi paneline giriş')
+            ->assertSee('href="'.$b2b.'/basvuru"', false)->assertSee('href="'.$b2b.'/bayi/login"', false)
+            ->assertSee('class="dealer-mark"', false)
+            ->getContent();
+        // Varsayılan sırada son blok: alt bilginin hemen üstünde
+        $this->assertLessThan(strpos($html, '<footer'), strpos($html, 'id="ana-bayilik"'));
+
+        // Başlık değiştirilebilir (vurgu yalnızca varsayılan ifadede); blok kapatılabilir
+        $this->put(route('store_admin.home-layout.update'), ['blocks' => ['dealer' => ['enabled' => '1', 'title' => 'Bayimiz olun <b>']]])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/')->assertSee('Bayimiz olun &lt;b&gt;', false)->assertDontSee('class="dealer-mark"', false);
+        $this->put(route('store_admin.home-layout.update'), ['blocks' => ['dealer' => ['enabled' => '0']]])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/')->assertOk()->assertDontSee('id="ana-bayilik"', false);
+    }
+
     public function test_admin_orders_and_hides_blocks_and_places_side_banners(): void
     {
         $this->get(route('store_admin.home-layout.edit'))->assertOk()->assertSee('Kategori kutuları');

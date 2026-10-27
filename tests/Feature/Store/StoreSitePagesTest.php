@@ -347,11 +347,14 @@ class StoreSitePagesTest extends TestCase
         $this->assertSame("1998'den bu yana Eskişehir'in kırtasiyesi.", StoreSetting::get('footer_about'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'store.footer_updated']);
 
-        $this->get(self::HOST.'/')->assertOk()
+        $html = $this->get(self::HOST.'/')->assertOk()
             ->assertSee('Aynı gün teslimat')->assertSee('Kırtasiye &amp; Ofis', false)->assertSee("1998'den bu yana")
             ->assertSee('Kurumsal')->assertSee('Dükkânımız')->assertSee('Pazartesi – Cuma')->assertSee('Tepebaşı / Eskişehir')
             ->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=', false)->assertSee('https://wa.me/905321234567', false)
-            ->assertSee('EST. 1998 · Eskişehir')->assertDontSee('Bayi girişi')->assertSee('Koyu temaya geç')->assertSee('Sayfanın başına dön')->assertSee('/iletisim"', false);
+            ->assertSee('EST. 1998 · Eskişehir')->assertSee('Koyu temaya geç')->assertSee('Sayfanın başına dön')->assertSee('/iletisim"', false)
+            ->getContent();
+        // Alt bilgideki bayi girişi bağlantısı kapalı (ana sayfadaki bayilik çağrısı ayrı bir bloktur)
+        $this->assertStringNotContainsString('Bayi girişi', substr($html, strpos($html, '<footer')));
     }
 
     public function test_launch_checklist_follows_published_pages(): void
