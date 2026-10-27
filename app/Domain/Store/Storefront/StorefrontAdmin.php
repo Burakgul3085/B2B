@@ -148,7 +148,7 @@ class StorefrontAdmin
         if (array_key_exists('new_product_days', $data)) {
             $data['new_product_days'] = (string) ($data['new_product_days'] ?? StoreSetting::DEFAULTS['new_product_days']);
         }
-        foreach (['notify_orders', 'notify_returns', 'notify_low_stock', 'notify_messages'] as $flag) {
+        foreach (['notify_orders', 'notify_returns', 'notify_low_stock', 'notify_messages', 'order_alarm'] as $flag) {
             $data[$flag] = filter_var($input[$flag] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0';
         }
 

@@ -309,6 +309,9 @@
         </aside>
 
         <div class="flex min-w-0 flex-1 flex-col">
+            @if ($isStore)
+                <x-store.order-alarm :admin="$user" />
+            @endif
             <header class="relative flex h-16 print:hidden items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
                 <button type="button" class="rounded-md p-1.5 text-muted hover:bg-slate-100 lg:hidden" @click="nav = true" aria-label="Menüyü aç"><x-icon name="menu" /></button>
                 @if ($area === Area::Business)

@@ -120,6 +120,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
 
             // Siparişler (M6)
             Route::get('siparisler', [Admin\OrderController::class, 'index'])->name('orders.index');
+            Route::get('siparisler/alarm', [Admin\OrderController::class, 'alarm'])->name('orders.alarm');
             Route::get('siparisler/{storeOrder}', [Admin\OrderController::class, 'show'])->name('orders.show');
             Route::post('siparisler/{storeOrder}/onayla', [Admin\OrderController::class, 'approve'])->name('orders.approve');
             Route::post('siparisler/{storeOrder}/havale-alindi', [Admin\OrderController::class, 'transferReceived'])->name('orders.transfer-received');

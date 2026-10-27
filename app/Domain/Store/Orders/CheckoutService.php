@@ -53,6 +53,7 @@ class CheckoutService
         private AuditLogger $audit,
         private DiscountService $discounts,
         private AdminNotifier $notifier,
+        private NewOrderAlerts $alerts,
     ) {}
 
     public function cardAvailable(): bool
@@ -334,6 +335,7 @@ class CheckoutService
 
         if (in_array($order->payment_method, ['cod', 'transfer'], true)) {
             $this->mailer->placed($order);
+            $this->alerts->raise($order);
             $this->notifier->newOrder($order);
             $this->notifier->lowStock($sold);
         }

@@ -326,6 +326,23 @@
 .dark .field-input { background-color: #0d1424; }
 .dark .field-input:disabled { background-color: #172033; }
 
+/* Mağaza yönetimi sesli sipariş alarmı (components/store/order-alarm): şerit nabız gibi parlar, zil sallanır. */
+.order-alarm { background-size: 200% 100%; animation: order-alarm-glow 1.6s ease-in-out infinite; }
+.order-alarm-bell { animation: order-alarm-bell 1.2s ease-in-out infinite; transform-origin: 50% 10%; }
+@keyframes order-alarm-glow {
+    0%, 100% { background-position: 0% 50%; filter: brightness(1); }
+    50% { background-position: 100% 50%; filter: brightness(1.18); }
+}
+@keyframes order-alarm-bell {
+    0%, 50%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-18deg); }
+    20%, 40% { transform: rotate(18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .order-alarm,
+    .order-alarm-bell { animation: none; }
+}
+
 /*
 | Ana sayfa bayilik çağrısı (store/front/home/dealer): birbirine oturan iki yapboz parçası.
 | Turuncu parçanın çıkıntısı (::after) mavi parçanın oyuğuna (mask) oturur; çok geniş ekranda (xl) yan yana, daha darda alt alta.

@@ -76,6 +76,11 @@
             </x-card>
             <x-card title="Yönetici bildirimleri" description="Yeni sipariş, iade talebi ve kritik stok için e-posta. Sistem e-posta hesabıyla gönderilir.">
                 <div class="space-y-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-puzzle-orange-soft p-4 ring-1 ring-puzzle-orange/30">
+                        <x-toggle name="order_alarm" label="Panelde sesli sipariş alarmı" :checked="$settings['order_alarm'] === '1'"
+                            hint="Yeni sipariş gelince panelin her sayfasında kırmızı şerit çıkar ve alarm çalar; Siparişler sayfası açılınca susar. Ses için panele girişte sayfaya bir kez tıklamak yeterlidir." />
+                        <div x-data="alarmPreview"><x-button type="button" variant="secondary" @click="play()">🔊 Alarmı dene</x-button></div>
+                    </div>
                     <x-field name="notify_emails" label="Bildirim adresleri" :value="$settings['notify_emails']" maxlength="500" placeholder="siparis@ornek.com, depo@ornek.com"
                         hint="Virgülle ayırın. Boş bırakılırsa etkin tüm mağaza yöneticilerine gönderilir." />
                     <x-toggle name="notify_orders" label="Yeni sipariş" :checked="$settings['notify_orders'] === '1'" hint="Kartla ödemesi alınan veya kapıda ödemeli oluşturulan her sipariş." />

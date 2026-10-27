@@ -30,6 +30,7 @@ class StoreAdmin extends Authenticatable
             'password' => 'hashed',
             'is_super' => 'boolean',
             'is_active' => 'boolean',
+            'orders_seen_at' => 'datetime',
             'two_factor_secret' => 'encrypted',
             'two_factor_confirmed_at' => 'datetime',
             'last_login_at' => 'datetime',

@@ -33,6 +33,7 @@ class OrderService
         private OrderMailer $mailer,
         private RefundService $refunds,
         private AdminNotifier $notifier,
+        private NewOrderAlerts $alerts,
     ) {}
 
     /** Kart ödemesi doğrulandı: ayrılan stok satışa çevrilir. */
@@ -63,6 +64,7 @@ class OrderService
 
         if ($order->wasChanged('status')) {
             $this->mailer->placed($order);
+            $this->alerts->raise($order);
             $this->notifier->newOrder($order);
             $this->notifier->lowStock($sold);
         }

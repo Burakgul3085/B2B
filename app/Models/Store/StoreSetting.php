@@ -79,6 +79,7 @@ class StoreSetting extends Model
         // Yönetici bildirimleri (e-posta). Liste boşsa etkin tüm mağaza yöneticilerine gider.
         'notify_emails' => null,
         'notify_orders' => '1',
+        'order_alarm' => '1', // yönetim panelinde sesli yeni sipariş alarmı (NewOrderAlerts)
         'notify_returns' => '1',
         'notify_low_stock' => '1',
         'notify_messages' => '1',          // iletişim formu mesajları

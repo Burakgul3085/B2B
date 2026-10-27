@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Orders\CodPolicy;
 use App\Domain\Store\Orders\InvoiceService;
+use App\Domain\Store\Orders\NewOrderAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreOrder;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,8 +24,9 @@ class OrderController extends Controller
 {
     public function __construct(private OrderService $orders) {}
 
-    public function index(Request $request): View
+    public function index(Request $request, NewOrderAlerts $alerts): View
     {
+        $alerts->acknowledge($request->user('store_admin')); // sesli yeni sipariş alarmı susar
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(array_merge(array_keys(StoreOrder::STATUSES), ['new']))],
@@ -50,6 +53,12 @@ class OrderController extends Controller
             'filters' => $filters,
             'counts' => StoreOrder::selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status')->all(),
         ]);
+    }
+
+    /** Paneldeki sesli alarm için birkaç saniyede bir sorulur: görülmemiş yeni sipariş sayısı. */
+    public function alarm(Request $request, NewOrderAlerts $alerts): JsonResponse
+    {
+        return response()->json($alerts->pending($request->user('store_admin')));
     }
 
     public function show(StoreOrder $storeOrder, ReturnService $returns): View

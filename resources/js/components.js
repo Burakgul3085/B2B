@@ -852,6 +852,201 @@ export function dealerJoin() {
     };
 }
 
+/**
+ * Dikkat çekici alarm sesi (dosya yok, tarayıcı üretir): iki tonlu hızlı bip dizisi, ardından yükselen çağrı.
+ * Bir çalış yaklaşık 1,4 saniye sürer.
+ */
+function playAlarm(ctx) {
+    const t0 = ctx.currentTime + 0.02;
+    const master = ctx.createGain();
+    master.gain.value = 0.32;
+    master.connect(ctx.destination);
+    const tone = (freq, start, length, type, toFreq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        if (toFreq) {
+            osc.frequency.exponentialRampToValueAtTime(toFreq, start + length);
+        }
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(1, start + 0.01);
+        gain.gain.setValueAtTime(1, start + length - 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(start);
+        osc.stop(start + length + 0.02);
+    };
+    for (let i = 0; i < 6; i++) {
+        tone(i % 2 ? 1318 : 988, t0 + i * 0.13, 0.11, 'square');
+    }
+    tone(660, t0 + 0.85, 0.5, 'sawtooth', 1320);
+}
+
+function audioContext() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    return AC ? new AC() : null;
+}
+
+/**
+ * Mağaza yönetimi sesli yeni sipariş alarmı: x-data="orderAlarm({url, ordersUrl, state: {count, latest}})".
+ * 15 saniyede bir görülmemiş sipariş sayısını sorar; varken alarm 3 saniyede bir çalar, sekme başlığı yanıp söner,
+ * sekme arkadaysa (izin verildiyse) masaüstü bildirimi çıkar. Siparişler sayfası açılınca sunucu sayacı sıfırlar.
+ * Tarayıcı sesi ancak sayfaya bir kez tıklanınca çaldırır: ilk tıklamada ses açılır, o zamana kadar "Sesi aç" görünür.
+ */
+export function orderAlarm(config) {
+    return {
+        count: config.state.count,
+        latest: config.state.latest,
+        blocked: false,
+        ctx: null,
+        poller: null,
+        ringer: null,
+        flasher: null,
+        title: document.title,
+        get active() {
+            return this.count > 0;
+        },
+        get heading() {
+            return this.count === 1 ? 'Yeni sipariş geldi!' : this.count + ' yeni sipariş geldi!';
+        },
+        init() {
+            this.unlock = () => this.resume();
+            document.addEventListener('pointerdown', this.unlock);
+            document.addEventListener('keydown', this.unlock);
+            this.onVisible = () => {
+                if (!document.hidden) {
+                    this.poll();
+                }
+            };
+            document.addEventListener('visibilitychange', this.onVisible);
+            this.poller = setInterval(() => this.poll(), 15000);
+            this.update();
+        },
+        destroy() {
+            clearInterval(this.poller);
+            this.stop();
+            document.removeEventListener('pointerdown', this.unlock);
+            document.removeEventListener('keydown', this.unlock);
+            document.removeEventListener('visibilitychange', this.onVisible);
+        },
+        async poll() {
+            let res;
+            try {
+                res = await window.fetch(config.url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            } catch (e) {
+                return; // bağlantı koptu: sonraki denemede yeniden sorulur
+            }
+            if (!res.ok || !(res.headers.get('content-type') || '').includes('json')) {
+                if ([401, 403, 419].includes(res.status) || res.redirected) {
+                    clearInterval(this.poller); // oturum kapandı
+                }
+                return;
+            }
+            const state = await res.json();
+            const grew = state.count > this.count;
+            this.count = state.count;
+            this.latest = state.latest;
+            if (grew) {
+                this.notifyDesktop();
+            }
+            this.update();
+        },
+        update() {
+            if (this.active) {
+                this.start();
+            } else {
+                this.stop();
+            }
+        },
+        start() {
+            if (this.ringer) {
+                return;
+            }
+            this.ring();
+            this.ringer = setInterval(() => this.ring(), 3000);
+            let on = false;
+            this.flasher = setInterval(() => {
+                on = !on;
+                document.title = on ? '🔔 (' + this.count + ') Yeni sipariş!' : this.title;
+            }, 1000);
+        },
+        stop() {
+            clearInterval(this.ringer);
+            clearInterval(this.flasher);
+            this.ringer = null;
+            this.flasher = null;
+            document.title = this.title;
+        },
+        ring() {
+            if (!this.ctx) {
+                this.ctx = audioContext();
+            }
+            if (!this.ctx) {
+                return;
+            }
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume().catch(() => {});
+            }
+            this.blocked = this.ctx.state !== 'running';
+            if (!this.blocked) {
+                playAlarm(this.ctx);
+            }
+        },
+        resume() {
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume().then(() => {
+                    this.blocked = false;
+                }).catch(() => {});
+            }
+        },
+        enableSound() {
+            if (!this.ctx) {
+                this.ctx = audioContext();
+            }
+            if (this.ctx) {
+                this.ctx.resume().then(() => {
+                    this.blocked = false;
+                    playAlarm(this.ctx);
+                }).catch(() => {});
+            }
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        },
+        notifyDesktop() {
+            if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') {
+                return;
+            }
+            const n = new Notification('Yeni sipariş geldi', { body: this.latest || '', tag: 'magaza-siparis', requireInteraction: true });
+            n.onclick = () => {
+                window.focus();
+                window.location.href = config.ordersUrl;
+            };
+        },
+    };
+}
+
+/** Mağaza Ayarları'ndaki "Alarmı dene" düğmesi: alarm sesini iki kez çalar ve masaüstü bildirimi izni ister. */
+export function alarmPreview() {
+    return {
+        play() {
+            const ctx = audioContext();
+            if (!ctx) {
+                return;
+            }
+            ctx.resume().then(() => {
+                playAlarm(ctx);
+                setTimeout(() => playAlarm(ctx), 1600);
+            });
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        },
+    };
+}
+
 /** Fotoğraf galerisi büyük görünümü: x-data="photoGallery([{src, caption}])", open(i) / close() / next() / prev(). */
 export function photoGallery(photos) {
     return {

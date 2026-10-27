@@ -58,7 +58,7 @@ class StoreOrder extends Model
     {
         return [
             'paid_at' => 'datetime', 'approved_at' => 'datetime', 'shipped_at' => 'datetime',
-            'delivered_at' => 'datetime', 'cancelled_at' => 'datetime',
+            'delivered_at' => 'datetime', 'cancelled_at' => 'datetime', 'alerted_at' => 'datetime',
         ];
     }
 
