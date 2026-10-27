@@ -36,7 +36,11 @@ class PaymentSettings
             'cod_max_open' => ['required', 'integer', 'min:1', 'max:10'],
             'return_days' => ['required', 'integer', 'min:14', 'max:90'],
             'return_address' => ['nullable', 'string', 'max:300'],
-            'transfer_accounts' => ['nullable', 'string', 'max:1500'],
+            'transfer_accounts' => ['nullable', 'array', 'max:20'],
+            'transfer_accounts.*' => ['array'],
+            'transfer_accounts.*.bank' => ['nullable', 'string', 'max:60'],
+            'transfer_accounts.*.holder' => ['nullable', 'string', 'max:120'],
+            'transfer_accounts.*.iban' => ['nullable', 'string', 'max:40'],
             'transfer_days' => ['nullable', 'integer', 'min:1', 'max:7'],
             'iyzico_mode' => ['required', 'in:sandbox,live'],
             'iyzico_api_key' => ['nullable', 'string', 'max:200'],
@@ -78,10 +82,11 @@ class PaymentSettings
             $errors['local_districts'] = 'Mağaza teslimatı için en az bir ilçe seçin.';
         }
 
-        // Havale hesapları "Banka | Hesap sahibi | IBAN" satırlarıdır; IBAN doğrulanır, boşluksuz saklanır.
-        $transfer = BankTransfer::parse((string) ($data['transfer_accounts'] ?? ''));
+        // Havale hesapları formda satır satır gelir (hesap sahibi, IBAN, gerekirse banka adı); IBAN doğrulanır, banka
+        // IBAN'dan tanınır. "Banka | Hesap sahibi | IBAN" satırları olarak boşluksuz saklanır.
+        $transfer = BankTransfer::fromRows($data['transfer_accounts'] ?? []);
         if ($transfer['errors']) {
-            $errors['transfer_accounts'] = implode(' ', $transfer['errors']);
+            $errors += $transfer['errors'];
         } elseif ($flags['transfer_enabled'] === '1' && $transfer['accounts'] === []) {
             $errors['transfer_accounts'] = 'Havale / EFT için en az bir banka hesabı girin.';
         }

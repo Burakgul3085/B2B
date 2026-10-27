@@ -921,3 +921,69 @@ export function wordmark() {
         },
     };
 }
+
+/**
+ * Havale / EFT banka hesapları (mağaza yönetimi): satır ekle/sil; IBAN'ın banka kodundan banka adı ve logosu
+ * canlı gösterilir (liste sunucudan gelir: TurkishBanks). Tanınmayan bankada ad elle yazılır. Doğrulama sunucuda.
+ */
+export function bankAccounts(rows, banks, errors, max) {
+    const blank = () => ({ bank: '', holder: '', iban: '' });
+    return {
+        rows: rows.length ? rows : [blank()],
+        errors,
+        max,
+        add() {
+            if (this.rows.length < this.max) this.rows.push(blank());
+        },
+        remove(index) {
+            this.rows.splice(index, 1);
+            this.errors = {};
+            if (!this.rows.length) this.rows.push(blank());
+        },
+        canAdd() {
+            return this.rows.length < this.max;
+        },
+        digits(row) {
+            return String(row.iban || '').replace(/\s+/g, '').toUpperCase();
+        },
+        bank(row) {
+            const iban = this.digits(row);
+            return /^TR\d{7}/.test(iban) ? banks[iban.substring(4, 9)] || null : null;
+        },
+        known(row) {
+            return this.bank(row) !== null;
+        },
+        // Banka kodu yazıldı ama listede yok: ad elle istenir.
+        unknown(row) {
+            return /^TR\d{7}/.test(this.digits(row)) && !this.known(row);
+        },
+        bankName(row) {
+            const b = this.bank(row);
+            return b ? b.name : row.bank || 'Banka';
+        },
+        bankLogo(row) {
+            const b = this.bank(row);
+            return b ? b.logo : '';
+        },
+        title(row) {
+            if (this.known(row)) return this.bankName(row);
+            return this.unknown(row) ? 'Banka tanınmadı' : 'Yeni hesap';
+        },
+        status(row) {
+            if (this.known(row)) return "IBAN'dan tanındı";
+            return this.unknown(row) ? 'Banka adını aşağıya yazın' : 'IBAN yazınca banka tanınır';
+        },
+        initials(row) {
+            const name = String(row.bank || '').trim();
+            return name ? name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr') : '?';
+        },
+        // Yazarken IBAN'ı TR00 0000 ... diye dörtlü gruplar.
+        tidy(row) {
+            const iban = this.digits(row).replace(/[^A-Z0-9]/g, '').substring(0, 26);
+            row.iban = iban.replace(/(.{4})/g, '$1 ').trim();
+        },
+        error(index, field) {
+            return this.errors[index + '.' + field] || '';
+        },
+    };
+}

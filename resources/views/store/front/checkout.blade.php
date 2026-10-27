@@ -139,7 +139,16 @@
                             <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="payment === 'transfer' ? 'border-primary ring-1 ring-primary' : 'border-line'">
                                 <input type="radio" name="payment_method" value="transfer" x-model="payment" class="mt-0.5 size-4 text-primary">
                                 <span><span class="font-semibold">Havale / EFT</span>
-                                    <span class="block text-muted">Hesap bilgileri sipariş sonrası gösterilir; ödeme {{ \App\Domain\Store\Payments\BankTransfer::days() }} gün içinde yapılır</span></span>
+                                    <span class="block text-muted">Hesap bilgileri sipariş sonrası gösterilir; ödeme {{ \App\Domain\Store\Payments\BankTransfer::days() }} gün içinde yapılır</span>
+                                    <span class="mt-2 flex flex-wrap items-center gap-2">
+                                        @foreach (\App\Domain\Store\Payments\BankTransfer::accounts() as $account)
+                                            @if ($account['logo'])
+                                                <span class="flex h-8 items-center rounded-md bg-[#fff] px-2 ring-1 ring-line" title="{{ $account['bank'] }}"><img src="{{ $account['logo'] }}" alt="{{ $account['bank'] }}" class="max-h-5 w-auto" loading="lazy"></span>
+                                            @else
+                                                <span class="rounded-md bg-surface px-2 py-1 text-xs font-medium text-muted">{{ $account['bank'] }}</span>
+                                            @endif
+                                        @endforeach
+                                    </span></span>
                             </label>
                         @endif
                     </div>

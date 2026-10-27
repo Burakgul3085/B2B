@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Store\Admin;
 
+use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Payments\PaymentSettings;
+use App\Domain\Store\Payments\TurkishBanks;
 use App\Domain\Store\Sms\SmsGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Store\District;
@@ -27,6 +29,8 @@ class PaymentSettingsController extends Controller
             'districts' => District::where('province_id', Province::ESKISEHIR)->orderBy('name')->pluck('name', 'id'),
             'selectedDistricts' => $selected ?: District::where('province_id', Province::ESKISEHIR)->pluck('id')->all(),
             'secrets' => collect(StoreSetting::SECRETS)->mapWithKeys(fn ($k) => [$k => filled(StoreSetting::get($k))])->all(),
+            'bankRows' => array_map(fn ($a) => ['bank' => $a['bank'], 'holder' => $a['holder'], 'iban' => BankTransfer::formatIban($a['iban'])], BankTransfer::accounts()),
+            'banks' => TurkishBanks::forBrowser(),
             'iyzicoReady' => $iyzico->isConfigured(),
             'smsLive' => $sms->isLive(),
             'blocklist' => StoreCodBlock::latest('id')->limit(50)->get(),

@@ -43,10 +43,9 @@
                 <p class="mt-1">Lütfen <span class="font-semibold">{{ Money::format($order->total) }}</span> tutarını aşağıdaki hesaplardan birine, açıklamaya
                     <span class="font-semibold">{{ $order->order_no }}</span> yazarak <span class="font-semibold">{{ BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span> tarihine kadar gönderin.
                     Ödemeniz hesabımıza geçince siparişinizi hazırlamaya başlarız; bu süre içinde ödeme gelmezse sipariş iptal edilir.</p>
-                <ul class="mt-3 space-y-2">
+                <ul class="mt-4 space-y-2.5">
                     @foreach (BankTransfer::accounts() as $account)
-                        <li class="rounded-xl bg-white/70 px-4 py-3 text-ink"><span class="font-medium">{{ $account['bank'] }}</span> · {{ $account['holder'] }}
-                            <span class="mt-0.5 block font-mono text-sm tracking-wide">{{ BankTransfer::formatIban($account['iban']) }}</span></li>
+                        <x-store.bank-account :account="$account" />
                     @endforeach
                 </ul>
             </section>

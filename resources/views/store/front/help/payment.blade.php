@@ -16,9 +16,9 @@
                     <p class="flex items-center gap-2 font-display text-lg font-extrabold"><x-icon name="building" class="size-5 text-puzzle-blue" /> Havale / EFT</p>
                     <p class="mt-1 text-sm text-muted">Siparişten sonra {{ $settings['transfer_days'] }} gün içinde, açıklamaya sipariş numaranızı yazarak ödeyin. Ödeme hesabımıza geçince siparişiniz hazırlanır.</p>
                     @if ($banks)
-                        <ul class="mt-4 divide-y divide-line rounded-2xl border border-line text-sm">
+                        <ul class="mt-4 space-y-2.5">
                             @foreach ($banks as $bank)
-                                <li class="flex flex-wrap justify-between gap-2 px-4 py-3"><span class="font-semibold">{{ $bank['bank'] }} — {{ $bank['holder'] }}</span><span class="font-mono tabular-nums">{{ BankTransfer::formatIban($bank['iban']) }}</span></li>
+                                <x-store.bank-account :account="$bank" class="bg-surface/60!" />
                             @endforeach
                         </ul>
                     @endif

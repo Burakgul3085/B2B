@@ -6,6 +6,8 @@ use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\OrderService;
+use App\Domain\Store\Payments\BankTransfer;
+use App\Domain\Store\Payments\TurkishBanks;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
@@ -199,15 +201,39 @@ class StoreTransferTest extends TestCase
     {
         $this->actAsAdmin();
         $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox', 'sms_driver' => 'log', 'transfer_days' => 2];
+        $put = fn (array $rows, array $extra = []) => $this->put(route('store_admin.payments.update'), $base + $extra + ['transfer_accounts' => $rows]);
 
-        $this->put(route('store_admin.payments.update'), $base + ['transfer_enabled' => '1', 'transfer_accounts' => ''])->assertSessionHasErrors('transfer_accounts');
-        $this->put(route('store_admin.payments.update'), $base + ['transfer_accounts' => 'Ziraat | Yapboz | TR000000000000000000000000'])->assertSessionHasErrors('transfer_accounts');
-        $this->put(route('store_admin.payments.update'), $base + ['transfer_accounts' => 'sadece metin'])->assertSessionHasErrors('transfer_accounts');
+        $put([], ['transfer_enabled' => '1'])->assertSessionHasErrors('transfer_accounts');
+        $put([['holder' => 'Yapboz', 'iban' => 'TR000000000000000000000000']])->assertSessionHasErrors('transfer_accounts.0.iban');
+        $put([['holder' => '', 'iban' => 'TR71 0006 7012 3456 7890 1234 56']])->assertSessionHasErrors('transfer_accounts.0.holder');
+        // Banka kodu listede yoksa banka adı istenir.
+        $put([['holder' => 'Yapboz', 'iban' => 'TR600099901111222233334444']])->assertSessionHasErrors('transfer_accounts.0.bank');
+        $put(array_fill(0, 6, ['holder' => 'Yapboz', 'iban' => 'TR710006701234567890123456']))->assertSessionHasErrors('transfer_accounts');
 
-        $this->put(route('store_admin.payments.update'), $base + ['transfer_enabled' => '1', 'transfer_accounts' => ' Ziraat Bankası | Yapboz Kırtasiye | tr33 0006 1005 1978 6457 8413 26 '.chr(10).chr(10)])
-            ->assertSessionHasNoErrors();
-        $this->assertSame('Ziraat Bankası | Yapboz Kırtasiye | '.self::IBAN, StoreSetting::get('transfer_accounts'));
+        // Banka IBAN'dan tanınır (yazılan ad yok sayılır); tanınmayan bankada yazılan ad kullanılır; boş satır atlanır.
+        $put([
+            ['holder' => ' Yapboz Kırtasiye ', 'iban' => 'tr71 0006 7012 3456 7890 1234 56 ', 'bank' => 'yanlış ad'],
+            ['holder' => '', 'iban' => '', 'bank' => ''],
+            ['holder' => 'Yapboz', 'iban' => 'TR600099901111222233334444', 'bank' => 'Örnek Bank'],
+        ], ['transfer_enabled' => '1'])->assertSessionHasNoErrors();
+        $this->assertSame("Yapı Kredi | Yapboz Kırtasiye | TR710006701234567890123456\nÖrnek Bank | Yapboz | TR600099901111222233334444", StoreSetting::get('transfer_accounts'));
         $this->assertSame(['1', '2'], [StoreSetting::get('transfer_enabled'), StoreSetting::get('transfer_days')]);
-        $this->get(route('store_admin.payments.edit'))->assertOk()->assertSee('Havale / EFT');
+
+        $accounts = BankTransfer::accounts();
+        $this->assertStringEndsWith('/images/banks/yapikredi.png', $accounts[0]['logo']);
+        $this->assertFileExists(public_path('images/banks/yapikredi.png'));
+        $this->assertNull($accounts[1]['logo']);
+        $this->get(route('store_admin.payments.edit'))->assertOk()->assertSee('Havale / EFT')->assertSee('TR71 0006 7012 3456 7890 1234 56');
+    }
+
+    public function test_every_known_bank_has_a_logo_and_is_found_from_the_iban(): void
+    {
+        foreach (TurkishBanks::BANKS as $code => [$name, $file]) {
+            $this->assertFileExists(public_path("images/banks/{$file}.png"), $name);
+        }
+        $this->assertSame('Akbank', TurkishBanks::fromIban('TR28 0004 6098 7654 3210 9876 54')['name']);
+        $this->assertSame('VakıfBank', TurkishBanks::fromIban('TR210001500158007306244816')['name']);
+        $this->assertNull(TurkishBanks::fromIban('TR600099901111222233334444'));
+        $this->assertNull(TurkishBanks::fromIban('DE89370400440532013000'));
     }
 }
