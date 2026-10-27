@@ -66,7 +66,6 @@ class StockAlerts
             $name = $variant->product->name.($variant->option_value ? " ({$variant->option_value})" : '');
             foreach (StoreStockAlert::where('variant_id', $variant->id)->get() as $alert) {
                 $ok = $this->mailer->send($alert->email, "Stoğa geldi: {$name}", [
-                    'brand' => config('store.name'),
                     'title' => 'Beklediğiniz ürün stokta',
                     'intro' => 'Haber vermemizi istediğiniz ürün yeniden stoğa girdi. Stoklar sınırlı olabilir; dilerseniz hemen sipariş verebilirsiniz.',
                     'rows' => [['Ürün', $name], ['Fiyat', Money::format($variant->price)]],

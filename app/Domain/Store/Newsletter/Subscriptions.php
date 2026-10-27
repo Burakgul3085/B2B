@@ -62,7 +62,6 @@ class Subscriptions
         $name = config('store.name');
 
         return $this->mailer->send($subscriber->email, "E-bülten aboneliğinizi onaylayın — {$name}", [
-            'brand' => $name,
             'title' => 'Aboneliğinizi onaylayın',
             'intro' => "{$name} e-bültenine abone olmak için aşağıdaki düğmeye tıklayın. Bu isteği siz yapmadıysanız e-postayı yok sayabilirsiniz; onaylamadığınız sürece size kampanya e-postası gönderilmez.",
             'action_url' => route('store.newsletter.confirm', $subscriber->token),

@@ -51,7 +51,6 @@ class SettingsController extends Controller
     {
         $to = $request->user('store_admin')->email;
         $ok = $mailer->send($to, 'Deneme e-postası — '.config('store.name'), [
-            'brand' => config('store.name'),
             'title' => 'E-posta ayarları çalışıyor',
             'intro' => 'Bu deneme e-postası mağazanızın e-posta hesabıyla gönderildi. Sipariş, bildirim ve e-bülten e-postaları bu hesapla gidecek.',
         ]);

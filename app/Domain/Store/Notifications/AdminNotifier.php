@@ -107,7 +107,7 @@ class AdminNotifier
     private function send(string $subject, string $title, string $intro, array $rows, string $url, string $label): void
     {
         $recipients = $this->recipients();
-        $content = ['brand' => config('store.name').' · Mağaza yönetimi', 'title' => $title, 'intro' => $intro, 'rows' => $rows,
+        $content = ['tagline' => 'Mağaza yönetimi', 'eyebrow' => 'Yönetici bildirimi', 'title' => $title, 'intro' => $intro, 'rows' => $rows,
             'action_url' => $url, 'action_label' => $label, 'outro' => 'Bu bildirimleri Mağaza Ayarları → Yönetici bildirimleri bölümünden değiştirebilirsiniz.'];
         dispatch(function () use ($recipients, $subject, $content) {
             foreach ($recipients as $to) {

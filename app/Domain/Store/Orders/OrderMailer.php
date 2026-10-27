@@ -121,13 +121,13 @@ class OrderMailer
         array_push($rows, ...$extraRows);
 
         $content = [
-            'brand' => config('store.name'),
+            'eyebrow' => "Sipariş {$order->order_no}",
             'title' => $title,
             'intro' => $intro,
             'rows' => $rows,
             'action_url' => $action[0] ?? route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]),
             'action_label' => $action[1] ?? 'Siparişi görüntüle',
-            'outro' => "Sipariş no: {$order->order_no}",
+            'outro' => "Sipariş numaranız {$order->order_no}. Bize ulaşırken bu numarayı belirtmeniz işlemlerinizi hızlandırır.",
             'documents' => $documents,
         ];
         $email = $order->email;
