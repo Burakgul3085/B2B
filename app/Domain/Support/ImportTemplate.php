@@ -25,7 +25,7 @@ use OpenSpout\Writer\XLSX\Writer;
  * Toplu ürün yükleme şablonu (mağaza ve B2B ortak). İçe aktarıcılar yalnızca İLK sayfanın İLK satırını başlık
  * olarak okur; bu yüzden düzen buna göre kurulur:
  *
- *  1. "Ürünler"            başlık satırı (zorunlu sütunlar turuncu, diğerleri lacivert; dondurulmuş), altında
+ *  1. "Ürünler"            başlık satırı (zorunlu sütunlar turuncu, diğerleri lacivert), altında
  *                          doldurulmaya hazır çizgili satırlar. Hücre seçilince sütunun açıklaması balonla çıkar;
  *                          Evet/Hayır, KDV gibi sütunlarda açılır liste vardır.
  *  2. "Nasıl doldurulur"   antet, kısa kurallar ve sütun sütun açıklama tablosu (zorunlu mu, ne yazılır, örnek).
@@ -98,7 +98,8 @@ final class ImportTemplate
     {
         $sheet = $writer->getCurrentSheet();
         $sheet->setName('Ürünler');
-        $sheet->setSheetView(new SheetView(showGridLines: false, tabSelected: true, freezeRow: 2));
+        // Başlık dondurulmaz: OpenSpout'un yazdığı donmuş bölme Excel'de kaydırırken başlığı bir süre çift çiziyor.
+        $sheet->setSheetView(new SheetView(showGridLines: false, tabSelected: true));
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }
@@ -161,7 +162,7 @@ final class ImportTemplate
     {
         $sheet = $writer->addNewSheetAndMakeItCurrent();
         $sheet->setName('Örnekler');
-        $sheet->setSheetView(new SheetView(showGridLines: false, freezeRow: 2));
+        $sheet->setSheetView(new SheetView(showGridLines: false));
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }
