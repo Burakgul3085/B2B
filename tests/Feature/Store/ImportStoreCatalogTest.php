@@ -68,6 +68,32 @@ class ImportStoreCatalogTest extends TestCase
             ->assertSee('Faber-Castell Dust-Free Sınav Silgisi 3&#039;lü', false);
     }
 
+    public function test_second_batch_adds_new_categories_products_brands_and_logos(): void
+    {
+        Storage::fake('local');
+        Http::fake(['*' => Http::response($this->png(), 200, ['Content-Type' => 'image/png'])]);
+        $this->artisan('store:import-catalog')->assertSuccessful();
+        $this->artisan('store:import-catalog', ['--file' => 'database/data/store-catalog-2026-10c.php'])->assertSuccessful()
+            ->expectsOutputToContain('Eklenen ürün: 26 · logo: 4');
+
+        $this->assertSame(61, StoreProduct::count());
+        $this->assertSame(7, StoreCategory::whereNull('parent_id')->count());
+        $this->assertSame(28, StoreCategory::whereNotNull('parent_id')->count());
+        foreach (StoreCategory::whereNotNull('parent_id')->get() as $sub) {
+            $this->assertGreaterThanOrEqual(2, StoreProduct::where('category_id', $sub->id)->count(), $sub->name);
+        }
+        $this->assertSame(10, StoreBrand::count());
+        $this->assertSame(4, StoreBrand::whereNotNull('logo_path')->count());
+        foreach (StoreBrand::whereNotNull('logo_path')->get() as $brand) {
+            Storage::disk('local')->assertExists($brand->logo_path);
+        }
+        $this->assertNull(StoreProductVariant::where('sku', 'YB-EZO-01')->value('barcode')); // geçersiz barkod yazılmadı
+
+        // Tekrar: ürün de logo da çoğalmaz.
+        $this->artisan('store:import-catalog', ['--file' => 'database/data/store-catalog-2026-10c.php'])->assertSuccessful()
+            ->expectsOutputToContain('Eklenen ürün: 0 · logo: 0');
+    }
+
     public function test_images_blocked_by_the_source_are_filled_from_a_local_folder_on_a_second_run(): void
     {
         Storage::fake('local');

@@ -1,0 +1,108 @@
+<?php
+
+/*
+| Mağaza kataloğu, 2. parti (28.10.2026): yeni alt kategoriler, ürünler ve markalar; marka logoları.
+| Kaynaklar 1. partiyle aynı (yalnızca markaların resmî kanalları): Faber-Castell resmî mağazası (Faber-Castell, Adel) ve
+| Keskin Color resmî mağazası (Keskin Color, Pelikan, Hisli Şeyler, Capy, Lûgat365, Ezo Sunal, Cemre Arslan). Açıklamalar
+| mağaza için yazıldı; geçersiz barkodlar (sağlama basamağı tutmayan veya mağaza iç kodu) yazılmadı.
+| Logolar: database/data/brand-logos/ (kaynakları aşağıda ve KAYNAKLAR.md içinde). Logosu olmayan markalar adıyla görünür.
+| Yükleme: php artisan store:import-catalog --file=database/data/store-catalog-2026-10c.php --image-dir=...
+*/
+
+return [
+    'categories' => [
+        'Kalemler' => ['Dolma Kalemler', 'Kartuş ve Mürekkepler', 'Markör ve Tahta Kalemleri'],
+        'Defterler' => ['Tasarım Defterler'],
+        'Ajanda ve Planlayıcılar' => ['Ajandalar', 'Takvim ve Sümenler'],
+        'Boyalar' => ['Pastel Boyalar'],
+        'Sanat Malzemeleri' => ['Kaligrafi ve Markör Setleri'],
+        'Okul Gereçleri' => ['Yapıştırıcılar'],
+        'Hediyelik' => ['Tebrik Kartları', 'Anahtarlıklar'],
+    ],
+    'logos' => [
+        'Faber-Castell' => 'faber-castell.png', // https://www.faber-castell.com.tr/assets/img/sprite-svg/logo.svg · Faber-Castell'in kendi sitesindeki logo (beyaz logo, sitedeki koyu yeşil zeminiyle)
+        'Adel' => 'adel.png', // https://commons.wikimedia.org/wiki/File:Adel-kalemcilik-logo.svg · Wikimedia Commons, CC BY-SA 4.0
+        'Pelikan' => 'pelikan.png', // https://www.pelikan.com/images/logos/b_logo_r.png · Pelikan'ın kendi sitesi
+        'Keskin Color' => 'keskin-color.jpg', // https://www.keskincolor.com/ · Keskin Color'ın kendi mağazasının logosu
+    ],
+    'products' => [
+        ['Kalemler', 'Dolma Kalemler', 'Pelikan', 'Pelikan Jazz Noble Dolma Kalem Antrasit', 'YB-P-826617', '1499.90', '20', 10,
+            'Metal gövdeli, klipsli dolma kalem. Standart kartuşla kullanılır. Renk: Antrasit.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-jazz-noble-dolma-kalem-antrasi-eb075e.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-jazz-noble-dolma-kalem-antrasi-2-2739.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-jazz-noble-dolma-kalem-antrasi--730f-.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-jazz-noble-dolma-kalem-antrasi-824f17.jpg'], '4012700826619', 'https://www.keskincolor.com/pelikan-jazz-noble-dolma-kalem-antrasit-3887'],
+        ['Kalemler', 'Dolma Kalemler', 'Pelikan', 'Pelikan Twist P457 Dolma Kalem Metalik Buz Mavisi', 'YB-P-811255', '1399.90', '20', 10,
+            'Ergonomik Twist gövdeli, sağ ve sol el için uygun dolma kalem. Renk: Metalik buz mavisi.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-twist-p457-dolma-kalem-metalik-7-4038.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-twist-p457-dolma-kalem-metalik-08a-08.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-twist-p457-dolma-kalem-metalik-1ef0ae.jpg'], '4012700811257', 'https://www.keskincolor.com/pelikan-twist-p457-dolma-kalem-tekli-kutu-metalik-buz-mavisi-2850'],
+        ['Kalemler', 'Kartuş ve Mürekkepler', 'Pelikan', 'Pelikan Dolma Kalem Kartuşu 6\'lı Koyu Yeşil', 'YB-P-300087', '129.90', '20', 10,
+            'Standart dolma kalemlerle uyumlu, 6\'lı mürekkep kartuşu. Renk: Koyu yeşil.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-dolma-kalem-kartusu-6li-koyu-y-b2616-.jpg'], null, 'https://www.keskincolor.com/pelikan-dolma-kalem-kartusu-6li-koyu-yesil--2785'],
+        ['Kalemler', 'Kartuş ve Mürekkepler', 'Pelikan', 'Pelikan 4001 Yazı Mürekkebi 30 ml Kırmızı', 'YB-P-301036', '299.90', '20', 10,
+            'Dolma kalemler için 30 ml şişe yazı mürekkebi. Renk: Kırmızı.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/pelikan-4001-yazi-murekkebi-30ml-kirmi-9-6a06.jpg'], null, 'https://www.keskincolor.com/pelikan-4001-yazi-murekkebi-30ml-kirmizi-2795'],
+        ['Kalemler', 'Markör ve Tahta Kalemleri', 'Faber-Castell', 'Faber-Castell W153 Beyaz Tahta Kalemi 2\'li Mavi-Kırmızı', 'YB-FC-W153-2', '199.90', '20', 10,
+            'Mavi ve kırmızı renkte, kolay silinen beyaz tahta kalemi; 2\'li set.',
+            ['https://cdn.dsmcdn.com/ty1692/prod/QC_PREP/20250614/10/085a665e-1405-3663-82c2-d61b81d8c6af/1_org_zoom.jpg'], '8681241169576', 'https://www.trendyol.com/faber-castell/w153-beyaz-tahta-kalemi-2-li-set-mavi-ve-kirmizi-renk-kolay-silinir-ergonomik-tasarim-p-945045271'],
+        ['Kalemler', 'Markör ve Tahta Kalemleri', 'Faber-Castell', 'Faber-Castell Permanent Asetat Kalemi M 6\'lı Mavi', 'YB-FC-ASTM6', '529.85', '20', 10,
+            'Orta (M) uçlu, solmayan kalıcı mürekkepli asetat ve CD kalemi; 6\'lı mavi.',
+            ['https://cdn.dsmcdn.com/ty1670/prod/QC/20250428/15/b970e5eb-25a5-36da-9e93-5f5b43d89447/1_org_zoom.jpg'], null, 'https://www.trendyol.com/faber-castell/6-li-mavi-permanent-asetat-cd-kalemi-solmayan-kalici-yazim-m-seti-p-930445604'],
+        ['Kalemler', 'Markör ve Tahta Kalemleri', 'Adel', 'Adel Akrilik Markör 5\'li Klasik Renkler', 'YB-ADL-AKR5', '328.68', '20', 10,
+            '2 mm uçlu, yoğun pigmentli akrilik markör; 5 klasik renk. Kağıt, ahşap ve taş üzerinde kullanılabilir.',
+            ['https://cdn.dsmcdn.com/ty1664/prod/QC/20250416/10/9a2d3b20-8a4a-3f9e-89bd-c7d1a79dedd1/1_org_zoom.jpg'], '8681241394848', 'https://www.trendyol.com/adel/akrilik-markor-5-li-klasik-yogun-pigmentli-canli-renkler-2-mm-uc-kalinligi-p-865218810'],
+        ['Defterler', 'Tasarım Defterler', 'Lûgat365', 'Lûgat365 x Karatis 13x19 Çizgili Defter Şakak Lalesi', 'YB-LG-SAKAK', '649.90', '20', 10,
+            '13x19 cm, 64 yaprak çizgili defter. Lûgat365 eski kelimeler serisi.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/lugat365-x-karatis-1319-64-yp-6d-4a4.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/lugat365-x-karatis-1319-64-yp-087f58.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/lugat365-x-karatis-1319-64-yp-7a0-81.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/lugat365-x-karatis-1319-64-yp-c4f579.jpg'], '8693043189157', 'https://www.keskincolor.com/lugat365-x-karatis-1319-64-yp.cizgili-defter-sakak-lalesi-3589'],
+        ['Defterler', 'Tasarım Defterler', 'Ezo Sunal', 'Ezo Sunal 17x24 Spiralli Sert Kapak Defter No:01', 'YB-EZO-01', '559.90', '20', 10,
+            'Ezo Sunal tasarımlı, 17x24 cm spiralli sert kapaklı defter.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/ezo-sunal-17x24-spiralli-sert-kapak-de-47e-86.jpg'], null, 'https://www.keskincolor.com/ezo-sunal-17x24-spiralli-sert-kapak-defter-no01'],
+        ['Defterler', 'Tasarım Defterler', 'Capy', 'Capy A4 Spiralli Karton Kapak Çizgili Defter Sarı', 'YB-CAPY-A4S', '279.90', '20', 10,
+            'A4, 80 yaprak çizgili, karton kapaklı spiralli defter. Capy karakterli, sarı kapak.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/capy-a4-spiralli-karton-kapak-cizgili---4be3-.jpg'], null, 'https://www.keskincolor.com/capy-a4-80-yp-cizgili-spr.karton-kapak-defter-sari-4611'],
+        ['Defterler', 'Tasarım Defterler', 'Hisli Şeyler', 'Hisli Şeyler A4 Kareli Stickerli Burçlar Serisi Defter', 'YB-HS-BURC-KRL', '379.90', '20', 10,
+            'A4, kareli, karton kapaklı spiralli defter; sticker sayfalarıyla. Burçlar serisi.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/hisli-seyler-a4-spiralli-karton-kapak--d8-17a.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/hisli-seyler-a4-spiralli-karton-kapak--57e8bf.jpg'], null, 'https://www.keskincolor.com/hisli-seyler-a4-spiralli-karton-kapak-kareli-stickerli-burclar-serisi-defter-inatci-demeyelim-de-kararli-diyelim-5204'],
+        ['Ajanda ve Planlayıcılar', 'Ajandalar', 'Keskin Color', 'Keskin Color 17x24 Spiralli Akademik Ajanda Teddy', 'YB-KC-600208', '579.90', '20', 10,
+            '17x24 cm, sert kapaklı spiralli akademik ajanda. Okul yılına göre planlama.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/17x24-spiralli-sert-kapak-akademik-aja--4b02-.png', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/17x24-spiralli-sert-kapak-akademik-aja-8b3c1b.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/17x24-spiralli-sert-kapak-akademik-aja-4b2-80.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/17x24-spiralli-sert-kapak-akademik-aja-a26-da.jpg'], '8693043211209', 'https://www.keskincolor.com/keskin-1724-spiralli-akademik-ajanda-teddy-4759'],
+        ['Ajanda ve Planlayıcılar', 'Ajandalar', 'Keskin Color', 'Keskin Color 2027 A5 Spiralli Haftalık Ajanda Kuşlar', 'YB-KC-600298', '590.00', '20', 10,
+            '2027 yılı, A5 boyutunda, sert kapaklı spiralli haftalık ajanda.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-a5-spr.sert-kp-7be7bb.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-a5-spr.sert-kp-b-ada9.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-a5-spr.sert-kp--48c2-.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-a5-spr.sert-kp-a729-6.jpg'], '8693043212862', 'https://www.keskincolor.com/keskin-2027-a5-spr.sert-kp.haftalik-ajanda-kuslar-5767'],
+        ['Ajanda ve Planlayıcılar', 'Ajandalar', 'Cemre Arslan', 'Cemre Arslan 17x24 Spiralli Sınırsız Ajanda No:03', 'YB-CA-SNR03', '829.90', '20', 10,
+            'Cemre Arslan tasarımlı, 17x24 cm, tarihsiz (sınırsız) spiralli ajanda.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/cemre-aslan-17x24-spiralli-sert-kapak--35d51-.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/cemre-aslan-17x24-spiralli-sert-kapak---46db-.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/cemre-aslan-17x24-spiralli-sert-kapak--7fc308.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/cemre-aslan-17x24-spiralli-sert-kapak--8ce24b.jpg'], null, 'https://www.keskincolor.com/keskin-1724-sert-kapak-spiralli-sinirsiz-ajanda-no3-4342'],
+        ['Ajanda ve Planlayıcılar', 'Takvim ve Sümenler', 'Keskin Color', 'Keskin Color 2027 Kare Masa Takvimi Kediler', 'YB-KC-600265', '265.00', '20', 10,
+            '2027 yılı kare masa takvimi, kedi temalı.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-kare-masa-takvimi-kediler-65-476.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-kare-masa-takvimi-kediler-57-b70.jpg'], '8693043212169', 'https://www.keskincolor.com/keskin-2027-kare-masa-takvimi-kediler-5722'],
+        ['Ajanda ve Planlayıcılar', 'Takvim ve Sümenler', 'Keskin Color', 'Keskin Color 2027 AJ-68 28x40 Haftalık Masa Sümeni', 'YB-KC-600251', '419.00', '20', 10,
+            '28x40 cm, 2027 yılı haftalık masa sümeni (masa üstü planlayıcı).',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-2027-aj-68-2840-haftalik-masa-s-7ed14a.jpg'], '8693043212015', 'https://www.keskincolor.com/keskin-2027-aj-68-2840-haftalik-masa-sumeni-5718'],
+        ['Boyalar', 'Pastel Boyalar', 'Faber-Castell', 'Faber-Castell Pastel Boya 12 Renk', 'YB-FC-PST12', '299.00', '20', 10,
+            '12 renk, yumuşak dokulu, yoğun pigmentli ve örtücü pastel boya.',
+            ['https://cdn.dsmcdn.com/ty1000422/product/media/images/prod/PIM/20260804/12/3b0bddfe-1240-49ce-9fc5-c2a30ee9509e/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1000317/product/media/images/prod/PIM/20260220/06/8d777b06-8b23-4456-8e24-82f8cafbfc55/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1000324/product/media/images/prod/PIM/20260220/06/23d05aef-b195-4620-aa81-87821559be8d/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1000313/product/media/images/prod/PIM/20260220/06/b17d2074-7165-425a-8d73-a72cafc8a732/1_org_zoom.jpg'], '8690826125340', 'https://www.trendyol.com/faber-castell/pastel-boya-12-renk-canli-parlak-ve-ortucu-renkler-yumusak-kullanim-yogun-pigmentli-p-1293586'],
+        ['Boyalar', 'Pastel Boyalar', 'Faber-Castell', 'Faber-Castell Çantalı Pastel Boya 18 Renk', 'YB-FC-PST18C', '442.80', '20', 10,
+            '18 renk pastel boya, taşınabilir plastik çantasında.',
+            ['https://cdn.dsmcdn.com/ty1814/prod/QC_ENRICHMENT/20260119/19/d4d08a2f-342c-30c8-bc79-9dc3000d29b3/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1814/prod/QC_ENRICHMENT/20260119/19/d7efe8c5-8bf7-374f-854b-9293d7262cc3/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1812/prod/QC_ENRICHMENT/20260119/19/5fd8056d-45d5-374b-9a97-cc49ed1aa8cb/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1812/prod/QC_ENRICHMENT/20260119/19/0ff766ff-012c-331c-8313-3408d210f804/1_org_zoom.jpg'], '8690826126095', 'https://www.trendyol.com/faber-castell/cantali-pastel-boya-18-renk-yumusak-ve-canli-renkler-etkili-uygulama-tasinabilir-plastik-canta-p-2082268'],
+        ['Sanat Malzemeleri', 'Kaligrafi ve Markör Setleri', 'Faber-Castell', 'Faber-Castell Goldfaber Aqua Çift Uçlu Kaligrafi Markör 6\'lı Boho', 'YB-FC-GFA-BOHO6', '977.76', '20', 10,
+            'Bir ucu fırça, bir ucu fineliner olan su bazlı çift uçlu markör; 6\'lı Boho renkleri. Kaligrafi ve el yazısı için.',
+            ['https://cdn.dsmcdn.com/ty1661/prod/QC/20250410/13/20e4f87d-1285-349e-a0e4-e785f5e18f25/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1659/prod/QC/20250410/13/dae5dc11-df4f-33c8-b03e-d5cfdb4f10bd/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1661/prod/QC/20250410/13/5a8f6d18-3d9d-31a5-b310-90da38e6e4e7/1_org_zoom.jpg'], '4005401645184', 'https://www.trendyol.com/faber-castell/goldfaber-aqua-cift-uclu-markor-6-li-kaligrafi-boho-firca-ve-fineliner-uc-kalici-murekkep-p-926259124'],
+        ['Sanat Malzemeleri', 'Kaligrafi ve Markör Setleri', 'Faber-Castell', 'Faber-Castell Goldfaber Aqua Sketch Markör 6\'lı', 'YB-FC-GFA-SKT6', '977.76', '20', 10,
+            'Çift uçlu (fırça ve 0.4 mm fineliner) sketch markör seti, 6\'lı. Geri dönüştürülmüş gövde.',
+            ['https://cdn.dsmcdn.com/ty1711/prod/QC_PREP/20250716/18/877c3010-ca7e-3342-bc16-bd84288f1c2e/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1710/prod/QC_PREP/20250716/18/f661afe6-cf4b-32de-ada4-aabc4230125c/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1712/prod/QC_PREP/20250716/18/266c71af-3504-34b3-b833-046180e808e6/1_org_zoom.jpg'], '4005401645245', 'https://www.trendyol.com/faber-castell/goldfaber-aqua-sketch-markor-seti-6-li-cift-uclu-0-4-mm-fineliner-uc-geri-donusturulmus-govde-p-746401058'],
+        ['Okul Gereçleri', 'Yapıştırıcılar', 'Faber-Castell', 'Faber-Castell Stick Yapıştırıcı 40 gr', 'YB-FC-STK40', '322.80', '20', 10,
+            '40 gram stick yapıştırıcı. Kağıt ve karton gibi yüzeylerde pürüzsüz yapıştırma.',
+            ['https://cdn.dsmcdn.com/ty1660/prod/QC/20250406/10/13804c21-9a16-3f3c-8964-16696b88a2cb/1_org_zoom.jpg', 'https://cdn.dsmcdn.com/ty1659/prod/QC/20250406/10/e2bb4865-ee25-3259-b026-0691a8e93569/1_org_zoom.jpg'], '8690826189540', 'https://www.trendyol.com/faber-castell/stick-yapistirici-40-gr-kolay-ve-puruzsuz-kullanim-kagit-karton-gibi-yuzeyler-icin-uygun-p-121425656'],
+        ['Okul Gereçleri', 'Yapıştırıcılar', 'Faber-Castell', 'Faber-Castell Stick Yapıştırıcı 40 gr 3\'lü', 'YB-FC-STK40-3', '299.00', '20', 10,
+            '40 gram stick yapıştırıcı, 3 adet. Okul ve ofis için.',
+            ['https://cdn.dsmcdn.com/ty1714/prod/QC_PREP/20250724/17/5aae7120-3fa9-3bb4-928b-980c9b122668/1_org_zoom.jpg'], null, 'https://www.trendyol.com/faber-castell/stick-yapistirici-40-gr-3-adet-p-960388631'],
+        ['Hediyelik', 'Tebrik Kartları', 'Keskin Color', 'Keskin Color Yaldızlı Zarflı Tebrik Kartı No:1', 'YB-KC-900216-01', '34.90', '20', 10,
+            'Yaldız baskılı, zarflı tebrik kartı. Özel günler için.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-color-yaldizli-dogum-gunu-karti-4af-17.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-color-yaldizli-dogum-gunu-karti-cdf-55.jpg'], null, 'https://www.keskincolor.com/yaldizli-tebrik-karti-zarfli-no1'],
+        ['Hediyelik', 'Tebrik Kartları', 'Keskin Color', 'Keskin Color Yaldızlı Zarflı Tebrik Kartı No:2', 'YB-KC-900216-02', '34.90', '20', 10,
+            'Yaldız baskılı, zarflı tebrik kartı. Özel günler için.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-color-yaldizli-dogum-gunu-karti-20c-9b.jpg', 'https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/keskin-color-yaldizli-dogum-gunu-karti--82fa-.jpg'], null, 'https://www.keskincolor.com/yaldizli-tebrik-karti-zarfli-no2'],
+        ['Hediyelik', 'Anahtarlıklar', 'Hisli Şeyler', 'Hisli Şeyler Anahtarlık Hallederiz', 'YB-HS-ANH-468', '169.90', '20', 10,
+            '"Hallederiz" yazılı Hisli Şeyler anahtarlık.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/hisli-seyler-anahtarlik-hallederiz--9c9e-.jpg'], '8693043179264', 'https://www.keskincolor.com/hisli-seyler-anahtarlik-hallederiz-3168'],
+        ['Hediyelik', 'Anahtarlıklar', 'Hisli Şeyler', 'Hisli Şeyler Anahtarlık Bir Derdim Var', 'YB-HS-ANH-467', '169.90', '20', 10,
+            '"Bir derdim var" yazılı Hisli Şeyler anahtarlık.',
+            ['https://static.ticimax.cloud/32987/uploads/urunresimleri/buyuk/hisli-seyler-anahtarlik-bir-derdim-var-e499d9.jpg'], '8693043179257', 'https://www.keskincolor.com/hisli-seyler-anahtarlik-bir-derdim-var-3165'],
+    ],
+];

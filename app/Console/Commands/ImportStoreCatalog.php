@@ -66,7 +66,18 @@ class ImportStoreCatalog extends Command
             $this->line("✓ {$name}");
         }
 
-        $this->info("Eklenen ürün: {$added}".($skipped ? ' · zaten var: '.implode(', ', $skipped) : ''));
+        // Marka logoları (database/data/brand-logos): logosu olmayan markaya eklenir; var olan logoya dokunulmaz.
+        $logos = 0;
+        foreach ($data['logos'] ?? [] as $brandName => $file) {
+            $brand = StoreBrand::where('name', $brandName)->first();
+            $path = database_path('data/brand-logos/'.$file);
+            if ($brand && ! $brand->logo_path && is_file($path)) {
+                $brands->setLogo($brand, new UploadedFile($path, $file, null, null, true));
+                $logos++;
+            }
+        }
+
+        $this->info("Eklenen ürün: {$added} · logo: {$logos}".($skipped ? ' · zaten var: '.implode(', ', $skipped) : ''));
 
         return self::SUCCESS;
     }
