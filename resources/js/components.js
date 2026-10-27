@@ -987,3 +987,39 @@ export function bankAccounts(rows, banks, errors, max) {
         },
     };
 }
+
+/**
+ * Ürün listesi (mağaza yönetimi): seçim kutuları ve görsel önizleme. Küçük görselin üzerine gelince yanında büyük
+ * önizleme çıkar (ekrana sığacak yöne yerleşir); tıklayınca tam ekran açılır. Escape ile kapanır.
+ */
+export function productList() {
+    const CARD = 300; // önizleme kartının genişliği/yüksekliği (px)
+    return {
+        selected: [],
+        all: false,
+        hover: null,
+        preview: null,
+        x: 0,
+        y: 0,
+        show(event, data) {
+            const r = event.currentTarget.getBoundingClientRect();
+            const right = r.right + 14 + CARD <= window.innerWidth;
+            this.x = right ? r.right + 14 : Math.max(8, r.left - 14 - CARD);
+            this.y = Math.min(Math.max(8, r.top + r.height / 2 - CARD / 2), window.innerHeight - CARD - 64);
+            this.hover = data;
+        },
+        hide() {
+            this.hover = null;
+        },
+        open(data) {
+            this.hover = null;
+            this.preview = data;
+        },
+        close() {
+            this.preview = null;
+        },
+        get hoverStyle() {
+            return 'left: ' + this.x + 'px; top: ' + this.y + 'px; width: ' + CARD + 'px';
+        },
+    };
+}
