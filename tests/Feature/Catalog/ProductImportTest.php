@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use OpenSpout\Reader\XLSX\Reader;
 use Tests\Concerns\CreatesCatalog;
 use Tests\TestCase;
 
@@ -120,7 +121,31 @@ class ProductImportTest extends TestCase
     {
         $business = $this->makeBusiness();
 
-        $this->actingAs($business->user, 'business')->get(route('business.products.import.template'))
-            ->assertOk()->assertDownload('urun-ice-aktarma-sablonu.xlsx');
+        $content = $this->actingAs($business->user, 'business')->get(route('business.products.import.template'))
+            ->assertOk()->assertDownload('urun-ice-aktarma-sablonu.xlsx')->streamedContent();
+        $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
+        file_put_contents($path, $content);
+
+        $names = [];
+        $reader = new Reader;
+        $reader->open($path);
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $names[] = $sheet->getName();
+            if ($sheet->getIndex() === 0) {
+                foreach ($sheet->getRowIterator() as $row) {
+                    $this->assertSame(['Ürün Kodu *', 'Barkod', 'Ürün Adı *'], array_slice($row->toArray(), 0, 3));
+                    break;
+                }
+            }
+        }
+        $reader->close();
+        $this->assertSame(['Ürünler', 'Nasıl doldurulur', 'Örnekler'], $names);
+
+        // Boş şablon olduğu gibi yüklenince dosya hatası vermez, satır işlenmez.
+        $this->post(route('business.products.import.store'), ['file' => new UploadedFile($path, 'sablon.xlsx', null, null, true)]);
+        $job = ImportJob::latest('id')->firstOrFail();
+        $this->assertNotSame('failed', $job->status);
+        $this->assertSame([0, 0, 0], [$job->created_rows, $job->updated_rows, $job->failed_rows]);
+        @unlink($path);
     }
 }

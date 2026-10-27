@@ -12,6 +12,7 @@ use App\Models\Store\StoreStockMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Writer\XLSX\Writer;
 use Tests\TestCase;
 
@@ -116,7 +117,29 @@ class StoreProductImportTest extends TestCase
 
     public function test_template_downloads_and_wrong_files_are_rejected(): void
     {
-        $this->get(route('store_admin.products.import.template'))->assertOk()->assertDownload('magaza-urun-sablonu.xlsx');
+        $content = $this->get(route('store_admin.products.import.template'))->assertOk()->assertDownload('magaza-urun-sablonu.xlsx')->streamedContent();
+        $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
+        file_put_contents($path, $content);
+
+        // Şablon: Ürünler (başlık + boş biçimli satırlar), Nasıl doldurulur, Örnekler.
+        $sheets = [];
+        $reader = new Reader;
+        $reader->open($path);
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $sheets[$sheet->getName()] = array_map(fn ($r) => $r->toArray(), iterator_to_array($sheet->getRowIterator(), false));
+        }
+        $reader->close();
+        $this->assertSame(['Ürünler', 'Nasıl doldurulur', 'Örnekler'], array_keys($sheets));
+        $this->assertSame('Stok Kodu *', $sheets['Ürünler'][0][0]);
+
+        // Boş şablon olduğu gibi yüklenince hata vermez; örnek satırlar ilk sayfaya taşınınca ürün olarak eklenir.
+        $this->post(route('store_admin.products.import.store'), ['file' => new UploadedFile($path, 'sablon.xlsx', null, null, true)])->assertSessionHasNoErrors();
+        $this->assertSame(0, session('import_result')['total']);
+        $examples = array_values(array_filter(array_slice($sheets['Örnekler'], 1), fn ($r) => count(array_filter($r, fn ($v) => $v !== '' && $v !== null)) > 3));
+        $this->post(route('store_admin.products.import.store'), ['file' => $this->xlsx($examples, $sheets['Örnekler'][0]), 'create_missing' => '1'])->assertSessionHasNoErrors();
+        $this->assertSame(['total' => 3, 'created' => 3, 'failed' => 0], array_intersect_key(session('import_result'), array_flip(['total', 'created', 'failed'])));
+        $this->assertSame(2, StoreProduct::count(), 'jel kalemin iki rengi tek ürün');
+        @unlink($path);
 
         $this->post(route('store_admin.products.import.store'), ['file' => UploadedFile::fake()->createWithContent('a.txt', 'x')])->assertSessionHasErrors('file');
         $this->post(route('store_admin.products.import.store'), ['file' => $this->xlsx([], ['Ad', 'Fiyat'])])->assertSessionHasErrors('file');
