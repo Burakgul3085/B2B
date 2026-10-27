@@ -27,6 +27,12 @@ class RobotsController extends Controller
             ."Allow: /basvuru$\n"
             ."Allow: /basvuru/\n"
             ."Allow: /logo/\n"
+            // Site haritası, doğrulama dosyası ve sayfanın görünümü için gereken stil, betik ve görseller de okunabilmeli.
+            ."Allow: /sitemap.xml$\n"
+            ."Allow: /google*.html$\n"
+            ."Allow: /build/\n"
+            ."Allow: /images/\n"
+            ."Allow: /favicon\n"
             ."Disallow: /\n"
             ."\nSitemap: ".route('sitemap')."\n";
 

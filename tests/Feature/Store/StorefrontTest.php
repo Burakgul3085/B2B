@@ -202,7 +202,7 @@ class StorefrontTest extends TestCase
     {
         $business = $this->makeBusiness();
         $robots = $this->get('http://localhost/robots.txt')->assertOk()->getContent();
-        foreach (['Allow: /bayi/login$', 'Allow: /toptanci/login$', 'Allow: /basvuru/', "Disallow: /\n", 'Sitemap: http://localhost/sitemap.xml'] as $rule) {
+        foreach (['Allow: /bayi/login$', 'Allow: /toptanci/login$', 'Allow: /basvuru/', 'Allow: /sitemap.xml$', 'Allow: /build/', "Disallow: /\n", 'Sitemap: http://localhost/sitemap.xml'] as $rule) {
             $this->assertStringContainsString($rule, $robots);
         }
         $this->assertStringNotContainsString('platform', $robots);
