@@ -32,6 +32,12 @@ return [
     // Acil durumda (ör. e-posta gönderimi bozulduysa) sunucuda LOGIN_EMAIL_CODE=false ile kapatılır.
     'login_code' => (bool) env('LOGIN_EMAIL_CODE', true),
 
+    // Kısa adı (adres) değiştirilen toptancılar: eski => yeni. Başvuru formu, teşekkür sayfası ve logo adresleri
+    // eski addan yenisine 301 ile yönlenir; paylaşılmış bağlantılar ve arama motoru kayıtları kırılmaz.
+    'renamed_slugs' => [
+        'perilikaya-mah-98140-no-cd-26c' => 'yapboz-kirtasiye', // 28.10.2026: işletme açılırken kısa ada adres yazılmıştı
+    ],
+
     'login_limits' => [
         'per_email' => 5,   // e-posta + IP başına
         'per_ip' => 30,     // IP başına

@@ -38,8 +38,11 @@ class DealerApplicationFormController extends Controller
         return view('public.apply-choose', ['businesses' => $businesses]);
     }
 
-    public function show(string $slug): View
+    public function show(string $slug): View|RedirectResponse
     {
+        if ($moved = $this->renamed('public.application', $slug)) {
+            return $moved;
+        }
         $business = $this->business($slug);
 
         return view('public.application', ['business' => $business, 'types' => DealerApplication::BUSINESS_TYPES]);
@@ -88,20 +91,35 @@ class DealerApplicationFormController extends Controller
         return redirect()->route('public.application.thanks', $business->slug);
     }
 
-    public function thanks(string $slug): View
+    public function thanks(string $slug): View|RedirectResponse
     {
+        if ($moved = $this->renamed('public.application.thanks', $slug)) {
+            return $moved;
+        }
+
         return view('public.application-thanks', ['business' => $this->business($slug)]);
     }
 
     /** İşletme logosu herkese açıktır (başvuru sayfası ve e-postalarda kullanılır). */
     public function logo(string $slug): Response
     {
+        if ($moved = $this->renamed('public.logo', $slug)) {
+            return $moved;
+        }
         $business = Business::where('slug', $slug)->where('status', 'active')->firstOrFail();
         abort_unless($business->logo_path && Storage::disk('local')->exists($business->logo_path), 404);
 
         return Storage::disk('local')->response($business->logo_path, null, [
             'Content-Type' => 'image/webp', 'Cache-Control' => 'public, max-age=86400', 'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /** Kısa adı değiştirilen toptancının eski adresleri kalıcı olarak yenisine yönlenir (config b2b.renamed_slugs). */
+    private function renamed(string $route, string $slug): ?RedirectResponse
+    {
+        $new = config('b2b.renamed_slugs')[$slug] ?? null;
+
+        return $new ? redirect()->route($route, $new, 301) : null;
     }
 
     private function business(string $slug): Business
