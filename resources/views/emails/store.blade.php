@@ -57,7 +57,7 @@
                         @foreach ($rows as [$label, $value])
                             <tr>
                                 <td style="padding:12px 18px;font-size:14px;color:#64748b;@unless ($loop->last) border-bottom:1px solid #f1f5f9; @endunless">{{ $label }}</td>
-                                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#0f172a;text-align:right;white-space:nowrap;@unless ($loop->last) border-bottom:1px solid #f1f5f9; @endunless">{{ $value }}</td>
+                                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#0f172a;text-align:right;@unless ($loop->last) border-bottom:1px solid #f1f5f9; @endunless">{{ $value }}</td>
                             </tr>
                         @endforeach
                     </table>

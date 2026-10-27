@@ -12,12 +12,35 @@
     </x-page-header>
 
     <div class="grid gap-6 xl:grid-cols-3">
-        <x-card title="Mesaj" class="xl:col-span-2">
-            <p class="whitespace-pre-line text-sm leading-relaxed">{{ $message->message }}</p>
-        </x-card>
+        <div class="space-y-6 xl:col-span-2">
+            <x-card title="Mesaj">
+                <p class="whitespace-pre-line text-sm leading-relaxed">{{ $message->message }}</p>
+            </x-card>
+
+            @foreach ($replies as $reply)
+                <x-card>
+                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                        <span class="flex items-center gap-1.5 font-medium text-ink"><x-icon name="mail" class="size-4" /> Yanıtınız · {{ $reply->admin_name }}</span>
+                        <span>{{ $reply->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $message->email }} adresine gönderildi</span>
+                    </div>
+                    <p class="whitespace-pre-line text-sm leading-relaxed">{{ $reply->body }}</p>
+                </x-card>
+            @endforeach
+
+            @if ($message->email)
+                <x-card title="E-postayla yanıtla">
+                    <form method="POST" action="{{ route('store_admin.messages.reply', $message) }}" class="space-y-3">
+                        @csrf
+                        <x-field name="body" label="Yanıtınız" textarea rows="7" required maxlength="5000"
+                            hint="Mağaza e-posta düzeninde {{ $message->email }} adresine gönderilir. Müşteri e-postayı yanıtlarsa mağazanın iletişim e-postasına düşer." />
+                        <div class="flex justify-end"><x-button icon="mail">Yanıtı gönder</x-button></div>
+                    </form>
+                </x-card>
+            @endif
+        </div>
 
         <div class="space-y-6">
-            <x-card title="Yanıtla">
+            <x-card title="İletişim bilgileri">
                 <div class="space-y-3 text-sm">
                     @if ($message->email)
                         <a href="mailto:{{ $message->email }}?subject={{ rawurlencode('Re: '.$subject) }}" class="flex items-center gap-2 font-medium text-primary hover:underline"><x-icon name="mail" class="size-4" /> {{ $message->email }}</a>

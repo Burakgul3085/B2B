@@ -154,7 +154,9 @@ Serbest sayfa oluşturma yoktur. Her sabit sayfanın kendi düzenleme ekranı va
 - **Harita:** Google Haritalar'da dükkânı açın, **Paylaş → Bağlantıyı kopyala** deyip bağlantıyı yapıştırın. Sistem konumu bulur, haritayı ve "Yol tarifi al" düğmesini oluşturur. Konum bulunamazsa **Paylaş → Harita yerleştir → HTML'yi kopyala** kodunu yapıştırın. Harita, Gizlilik ve Çerez Politikası'nda belirtildiği gibi Google'dan yüklenir.
 - **Satış → Mesajlar:** İletişim formundan gelen mesajlar burada toplanır; menüdeki rakam yeni mesaj sayısıdır.
     - Mesaj açılınca "Okundu" olur.
-    - Yanıtı e-posta, telefon veya WhatsApp ile verdikten sonra **Yanıtlandı olarak işaretle** deyin.
+    - Ziyaretçi e-posta adresini yazdıysa ona otomatik olarak "Mesajınız bize ulaştı, en kısa sürede dönüş yapacağız" e-postası gider.
+    - Mesaj ekranındaki **E-postayla yanıtla** kutusuna yazdığınız yanıt müşteriye mağaza e-posta düzeninde gider, mesajın altında saklanır ve mesaj "Yanıtlandı" olur. Müşteri bu e-postayı yanıtlarsa cevabı mağazanın iletişim e-postasına (Mağaza Ayarları → E-posta) düşer.
+    - Telefon veya WhatsApp ile yanıt verdiyseniz **Yanıtlandı olarak işaretle** deyin.
     - Kişi verilerinin silinmesini isterse mesajı silebilirsiniz.
     - Yeni mesaj bildirimi, Mağaza Ayarları → Yönetici bildirimleri bölümünden açılıp kapatılır; bildirimin gitmesi için sistem e-postası tanımlı olmalıdır.
 
