@@ -83,12 +83,6 @@ class AdminController extends Controller
             $active ? 'Hesap yeniden kullanıma açıldı.' : 'Hesap pasife alındı; açık oturumu kapandı.');
     }
 
-    public function resetTwoFactor(Request $request, StoreAdmin $storeAdmin): RedirectResponse
-    {
-        return $this->attempt(fn () => $this->admins->resetTwoFactor($storeAdmin, $request->user('store_admin')),
-            'İki adımlı doğrulama sıfırlandı.');
-    }
-
     private function attempt(callable $action, string $message): RedirectResponse
     {
         try {

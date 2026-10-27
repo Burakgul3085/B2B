@@ -122,7 +122,7 @@ class AccountEmailService
     }
 
     /** Toptancı kullanıcısı için kendi işletmesi; bayi için Gmail ayarı olan ilk etkin toptancısı. */
-    private function mailingBusinessFor(Model $user): ?int
+    public function mailingBusinessFor(Model $user): ?int
     {
         if ($user instanceof BusinessUser) {
             return $user->business_id;

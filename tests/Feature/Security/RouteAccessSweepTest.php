@@ -145,7 +145,7 @@ class RouteAccessSweepTest extends TestCase
         $business = $this->makeBusiness();
         $world = $this->buildWorld($business);
         $ids = $world['ids'] + ['business' => $business->id];
-        $public = ['login', 'login.store', 'password.request', 'password.email', 'password.reset', 'password.update'];
+        $public = ['login', 'login.store', 'login.code', 'login.code.verify', 'login.code.resend', 'password.request', 'password.email', 'password.reset', 'password.update'];
 
         $cases = [
             'platform.' => ['/platform/login', null],

@@ -26,19 +26,10 @@ class ResetTwoFactorCommandTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'auth.two_factor_reset_by_server', 'entity_id' => $admin->id]);
     }
 
-    public function test_store_admin_option_and_unknown_email(): void
+    public function test_store_admin_is_not_a_platform_admin(): void
     {
-        $admin = StoreAdmin::create(['name' => 'Süper', 'email' => 's@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
-        $admin->forceFill(['two_factor_secret' => 'SECRET', 'two_factor_confirmed_at' => now()])->save();
-
-        $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local'])->assertFailed(); // platform yöneticisi değil
-        $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local', '--store-admin' => true])
-            ->expectsConfirmation('Süper (s@magaza.local) için iki adımlı doğrulama sıfırlansın mı?', 'yes')->assertSuccessful();
-        $this->assertNull($admin->fresh()->two_factor_confirmed_at);
-
-        // --force: onay sormadan (SSH'de etkileşimsiz)
-        $admin->forceFill(['two_factor_secret' => 'SECRET', 'two_factor_confirmed_at' => now()])->save();
-        $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local', '--store-admin' => true, '--force' => true])->assertSuccessful();
-        $this->assertNull($admin->fresh()->two_factor_confirmed_at);
+        // Mağaza yönetiminde doğrulama uygulaması yoktur (giriş e-posta koduyla); komut yalnızca platform yöneticisi içindir.
+        StoreAdmin::create(['name' => 'Süper', 'email' => 's@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
+        $this->artisan('platform:reset-two-factor', ['email' => 's@magaza.local', '--force' => true])->assertFailed();
     }
 }

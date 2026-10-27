@@ -28,6 +28,10 @@ return [
     'activation_ttl_hours' => 72,
     'password_reset_ttl_minutes' => 60,
 
+    // Toptancı, bayi ve mağaza yönetimi girişinde e-postaya 4 haneli kod (App\Domain\Auth\LoginCode).
+    // Acil durumda (ör. e-posta gönderimi bozulduysa) sunucuda LOGIN_EMAIL_CODE=false ile kapatılır.
+    'login_code' => (bool) env('LOGIN_EMAIL_CODE', true),
+
     'login_limits' => [
         'per_email' => 5,   // e-posta + IP başına
         'per_ip' => 30,     // IP başına

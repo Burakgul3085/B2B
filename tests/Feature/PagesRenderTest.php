@@ -6,7 +6,6 @@ use App\Domain\Inventory\StockService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Middleware\RequirePlatformTwoFactor;
-use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DealerApplication;
@@ -64,9 +63,8 @@ class PagesRenderTest extends TestCase
     public function test_store_admin_pages_render(): void
     {
         $super = StoreAdmin::create(['name' => 'Mağaza Süper', 'email' => 'super@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
-        $super->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
         $admin = StoreAdmin::create(['name' => 'Ayşe Yönetici', 'email' => 'ayse@magaza.local', 'password' => self::PASSWORD]);
-        $this->actingAs($super, 'store_admin')->withSession([RequireStoreTwoFactor::SESSION_KEY => true]);
+        $this->actingAs($super, 'store_admin');
 
         foreach (['store_admin.dashboard', 'store_admin.activity', 'store_admin.account', 'store_admin.admins.index', 'store_admin.admins.create'] as $name) {
             $this->get(route($name))->assertOk()->assertSee(config('store.name'))->assertDontSee('B2B Platform');

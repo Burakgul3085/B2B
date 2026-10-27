@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\Area;
+use App\Domain\Auth\LoginCode;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\RequirePlatformTwoFactor;
-use App\Http\Middleware\RequireStoreTwoFactor;
+use DomainException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,10 +18,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-/** Giriş alanlarının giriş/çıkış işlemleri. Alan, isteğin URL önekinden (mağaza yönetiminde alan adından) belirlenir. */
+/**
+ * Giriş alanlarının giriş/çıkış işlemleri. Alan, isteğin URL önekinden (mağaza yönetiminde alan adından) belirlenir.
+ * Toptancı, bayi ve mağaza yönetiminde paroladan sonra e-postaya giden kod istenir (LoginCode); platformda doğrulama uygulaması.
+ */
 class LoginController extends Controller
 {
-    public function __construct(private AuditLogger $audit) {}
+    public function __construct(private AuditLogger $audit, private LoginCode $codes) {}
 
     public function show(Request $request): View
     {
@@ -60,6 +65,78 @@ class LoginController extends Controller
 
         RateLimiter::clear($this->emailKey($area, $email, $request));
 
+        // Toptancı, bayi ve mağaza yönetimi: oturum, e-postaya giden 4 haneli kod girilince açılır.
+        if (LoginCode::appliesTo($area)) {
+            try {
+                $this->codes->start($area, $user, $request->session());
+            } catch (DomainException $e) {
+                throw ValidationException::withMessages(['email' => $e->getMessage()]);
+            }
+
+            return redirect()->route($area->value.'.login.code');
+        }
+
+        return $this->complete($request, $area, $user);
+    }
+
+    /** Kod ekranı: e-postaya giden kodun girildiği yer. Bekleyen giriş yoksa giriş sayfasına döner. */
+    public function code(Request $request): View|RedirectResponse
+    {
+        $area = $this->area($request);
+        $pending = LoginCode::appliesTo($area) ? $this->codes->pending($area, $request->session()) : null;
+        if (! $pending) {
+            return redirect()->route($area->loginRoute());
+        }
+
+        return view('auth.login-code', ['area' => $area, 'email' => $pending['email'], 'resendIn' => max(0, $pending['sent_at'] + 60 - now()->timestamp)]);
+    }
+
+    public function verifyCode(Request $request): RedirectResponse
+    {
+        $area = $this->area($request);
+        $data = $request->validate(['code' => ['required', 'digits:4']], ['code.digits' => 'Kod 4 rakamdan oluşur.'], ['code' => 'doğrulama kodu']);
+
+        try {
+            $userId = $this->codes->verify($area, $data['code'], $request->session());
+        } catch (DomainException $e) {
+            return $this->codes->pending($area, $request->session())
+                ? back()->withErrors(['code' => $e->getMessage()])
+                : redirect()->route($area->loginRoute())->withErrors(['email' => $e->getMessage()]);
+        }
+
+        $model = $area->model();
+        $user = $model::find($userId);
+        if (! $user || ! $user->canSignIn()) {
+            return redirect()->route($area->loginRoute())->withErrors(['email' => 'Hesabınız şu anda kullanıma kapalı. Lütfen yöneticinizle iletişime geçin.']);
+        }
+
+        return $this->complete($request, $area, $user);
+    }
+
+    public function resendCode(Request $request): RedirectResponse
+    {
+        $area = $this->area($request);
+        $pending = $this->codes->pending($area, $request->session());
+        $model = $area->model();
+        $user = $pending ? $model::find($pending['user_id']) : null;
+        if (! $user) {
+            return redirect()->route($area->loginRoute());
+        }
+
+        try {
+            $this->codes->resend($area, $user, $request->session());
+        } catch (DomainException $e) {
+            return $this->codes->pending($area, $request->session())
+                ? back()->withErrors(['code' => $e->getMessage()])
+                : redirect()->route($area->loginRoute())->withErrors(['email' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Yeni kod e-postanıza gönderildi.');
+    }
+
+    /** Oturumu açar (parola ve gerekiyorsa e-posta kodu doğrulandıktan sonra). */
+    private function complete(Request $request, Area $area, Model $user): RedirectResponse
+    {
         Auth::guard($area->guard())->login($user);
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
@@ -71,12 +148,6 @@ class LoginController extends Controller
             $request->session()->forget(RequirePlatformTwoFactor::SESSION_KEY);
 
             return redirect()->route($user->hasTwoFactorEnabled() ? 'platform.two-factor.challenge' : 'platform.two-factor.setup');
-        }
-
-        if ($area === Area::StoreAdmin && $user->requiresTwoFactor()) {
-            $request->session()->forget(RequireStoreTwoFactor::SESSION_KEY);
-
-            return redirect()->route($user->hasTwoFactorEnabled() ? 'store_admin.two-factor.challenge' : 'store_admin.two-factor.setup');
         }
 
         return $this->redirectIntended($request, $area);

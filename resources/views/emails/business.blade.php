@@ -80,6 +80,7 @@
                 @endif
                 <h1 class="h1" style="margin:0 0 16px;font-size:25px;line-height:1.3;font-weight:700;color:#0f172a;letter-spacing:-0.3px;">{{ $subject }}</h1>
                 <div style="font-size:15px;line-height:1.75;color:#334155;white-space:pre-line;">{{ $intro }}</div>
+                @if (! empty($code))@include('emails.partials.code', ['code' => $code, 'accent' => $accent])@endif
 
                 @if (! empty($details))
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 4px;border:1px solid #e2e8f0;border-radius:12px;border-collapse:separate;overflow:hidden;">

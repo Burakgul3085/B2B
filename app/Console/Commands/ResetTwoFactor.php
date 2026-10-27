@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Domain\Audit\AuditLogger;
 use App\Models\PlatformAdmin;
-use App\Models\Store\StoreAdmin;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -12,21 +11,20 @@ use Illuminate\Support\Str;
 use function Laravel\Prompts\confirm;
 
 /**
- * Doğrulama uygulamasını kaybeden yöneticinin iki adımlı doğrulamasını sıfırlar (yalnızca sunucudan, SSH ile).
+ * Doğrulama uygulamasını kaybeden platform yöneticisinin iki adımlı doğrulamasını sıfırlar (yalnızca sunucudan, SSH ile).
  * Kurtarma kodu yoktur; hesabın sahibi bir sonraki girişte yeni karekodla yeniden kurar. Açık oturumları kapatılır.
  */
 class ResetTwoFactor extends Command
 {
-    protected $signature = 'platform:reset-two-factor {email : Yöneticinin giriş e-postası} {--store-admin : Mağaza yöneticisi (varsayılan: platform yöneticisi)} {--force : Onay sormadan sıfırla (SSH ile tek komut)}';
+    protected $signature = 'platform:reset-two-factor {email : Yöneticinin giriş e-postası} {--force : Onay sormadan sıfırla (SSH ile tek komut)}';
 
-    protected $description = 'Platform veya mağaza yöneticisinin iki adımlı doğrulamasını sıfırlar (yeni karekodla yeniden kurulur)';
+    protected $description = 'Platform yöneticisinin iki adımlı doğrulamasını sıfırlar (yeni karekodla yeniden kurulur)';
 
     public function handle(AuditLogger $audit): int
     {
-        $model = $this->option('store-admin') ? StoreAdmin::class : PlatformAdmin::class;
-        $admin = $model::where('email', Str::lower(trim($this->argument('email'))))->first();
+        $admin = PlatformAdmin::where('email', Str::lower(trim($this->argument('email'))))->first();
         if (! $admin) {
-            $this->error('Bu e-postayla bir '.($this->option('store-admin') ? 'mağaza' : 'platform').' yöneticisi bulunamadı.');
+            $this->error('Bu e-postayla bir platform yöneticisi bulunamadı.');
 
             return self::FAILURE;
         }

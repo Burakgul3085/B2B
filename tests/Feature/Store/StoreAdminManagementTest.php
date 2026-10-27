@@ -2,12 +2,10 @@
 
 namespace Tests\Feature\Store;
 
-use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Models\AuditLog;
 use App\Models\Store\StoreAdmin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /**
@@ -26,16 +24,13 @@ class StoreAdminManagementTest extends TestCase
             'name' => ($super ? 'Süper ' : 'Yönetici ').Str::random(4), 'email' => Str::lower(Str::random(8)).'@magaza.local',
             'password' => self::PASSWORD, 'is_super' => $super, 'is_active' => $active,
         ]);
-        if ($super) {
-            $admin->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
-        }
 
         return $admin;
     }
 
     private function actingAsStore(StoreAdmin $admin): void
     {
-        $this->actingAs($admin, 'store_admin')->withSession([RequireStoreTwoFactor::SESSION_KEY => true]);
+        $this->actingAs($admin, 'store_admin');
     }
 
     public function test_platform_creates_super_admin_who_can_then_sign_in(): void
@@ -100,12 +95,10 @@ class StoreAdminManagementTest extends TestCase
             $this->put(route('store_admin.admins.password', $target), ['password' => 'BaskaSifre2026', 'password_confirmation' => 'BaskaSifre2026'])
                 ->assertSessionHasErrors('admin');
             $this->put(route('store_admin.admins.update', $target), ['name' => 'X', 'email' => 'x@x.test'])->assertSessionHasErrors('admin');
-            $this->delete(route('store_admin.admins.two-factor', $target))->assertSessionHasErrors('admin');
         }
 
         $this->assertTrue($super->fresh()->is_active);
         $this->assertTrue($otherSuper->fresh()->is_active);
-        $this->assertTrue($otherSuper->fresh()->hasTwoFactorEnabled());
     }
 
     public function test_regular_admin_cannot_manage_anyone(): void
@@ -127,14 +120,12 @@ class StoreAdminManagementTest extends TestCase
         $this->get(route('store_admin.dashboard'))->assertOk()->assertDontSee(route('store_admin.admins.index'));
     }
 
-    public function test_platform_can_deactivate_super_admin_and_reset_two_factor(): void
+    public function test_platform_can_deactivate_super_admin(): void
     {
         $super = $this->admin(super: true);
         $this->actingAsPlatformAdmin();
 
         $this->get(route('platform.store-admins.show', $super))->assertOk();
-        $this->delete(route('platform.store-admins.two-factor', $super))->assertSessionHasNoErrors();
-        $this->assertFalse($super->fresh()->hasTwoFactorEnabled());
 
         $this->put(route('platform.store-admins.status', $super), ['active' => 0])->assertSessionHasNoErrors();
         $this->assertFalse($super->fresh()->is_active);

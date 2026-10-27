@@ -98,7 +98,7 @@ Her iş işlemi tek bir **Action** sınıfıdır (`ApproveOrder`, `CancelOrder`,
 | Kullanıcı tablosu | `platform_admins` | `business_users` | `dealer_users` |
 | Guard | `platform` | `business` | `dealer` |
 | Oturum çerezi | `b2b_platform` (path `/platform`) | `b2b_business` (path `/toptanci`) | `b2b_dealer` (path `/bayi`) |
-| 2FA | **Zorunlu** (TOTP) | İsteğe bağlı (önerilir) | İsteğe bağlı |
+| 2FA | **Zorunlu** (TOTP) | Her girişte e-postaya 4 haneli kod | Her girişte e-postaya 4 haneli kod |
 | Görsel ayrım | Koyu grafit tema, "PLATFORM" etiketi | Lacivert, işletme logosu | Lacivert, **bağlı olduğu toptancının** logosu/rengi |
 | Menü | Sol menü (işletmeler, lisans, sistem) | Sol menü, gruplu | Üst menü, katalog odaklı |
 

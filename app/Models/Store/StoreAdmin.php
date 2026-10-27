@@ -7,6 +7,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 /**
  * Mağaza yönetim paneli kullanıcısı. Tek ayrım süper admin bayrağıdır: yalnızca süper admin yönetici açar,
  * pasife alır ve şifresini sıfırlar. Süper admini yalnızca platform yönetir.
+ * Girişte şifreden sonra e-postaya kod gider (App\Domain\Auth\LoginCode); two_factor_* sütunları eski doğrulama
+ * uygulaması kurulumundan kalmadır ve kullanılmaz.
  */
 class StoreAdmin extends Authenticatable
 {
@@ -40,17 +42,6 @@ class StoreAdmin extends Authenticatable
     public function canSignIn(): bool
     {
         return $this->is_active;
-    }
-
-    public function hasTwoFactorEnabled(): bool
-    {
-        return $this->two_factor_confirmed_at !== null;
-    }
-
-    /** Süper admin için zorunlu; yönetici kendisi açtıysa her girişte istenir. */
-    public function requiresTwoFactor(): bool
-    {
-        return $this->is_super || $this->hasTwoFactorEnabled();
     }
 
     public function roleLabel(): string

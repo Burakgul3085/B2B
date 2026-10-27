@@ -2,13 +2,6 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Genel Bakış">
     <x-page-header :title="'Hoş geldiniz, '.$admin->name" :subtitle="$admin->roleLabel().' · '.config('store.name').' mağaza yönetimi'" />
 
-    @if (! $admin->hasTwoFactorEnabled())
-        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-warning-soft px-5 py-4 text-sm">
-            <p class="flex items-center gap-2 text-amber-900"><x-icon name="shield" class="size-4" /> Hesabınızı korumak için iki adımlı doğrulamayı açmanızı öneririz.</p>
-            <x-button :href="route('store_admin.two-factor.setup')" variant="secondary" size="sm">Şimdi kur</x-button>
-        </div>
-    @endif
-
     @php $n = fn (int $v) => number_format($v, 0, ',', '.'); $v = $visitors; @endphp
     <div class="mb-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <x-kpi label="Şu an sitede" :value="$n($v['online'])" :hint="'Son '.\App\Domain\Store\Visitors\VisitorCounter::ONLINE_MINUTES.' dakikada sayfa açan'" />

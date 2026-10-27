@@ -13,7 +13,7 @@ use Illuminate\View\View;
 
 /**
  * Platform → Mağaza yöneticileri. Süper admini yalnızca platform açar ve yönetir; gerektiğinde yöneticileri de
- * yönetebilir (pasife alma, şifre, iki adımlı doğrulamayı sıfırlama).
+ * yönetebilir (pasife alma, şifre).
  */
 class StoreAdminController extends Controller
 {
@@ -78,12 +78,6 @@ class StoreAdminController extends Controller
 
         return $this->attempt(fn () => $this->admins->setActive($storeAdmin, $active, null),
             $active ? 'Hesap yeniden kullanıma açıldı.' : 'Hesap pasife alındı.');
-    }
-
-    public function resetTwoFactor(StoreAdmin $storeAdmin): RedirectResponse
-    {
-        return $this->attempt(fn () => $this->admins->resetTwoFactor($storeAdmin, null),
-            'İki adımlı doğrulama sıfırlandı; bir sonraki girişte yeniden kurulacak.');
     }
 
     private function attempt(callable $action, string $message): RedirectResponse

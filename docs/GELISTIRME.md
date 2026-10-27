@@ -59,6 +59,8 @@ Geliştirme verisi (`database/seeders/DevelopmentSeeder.php`, yalnızca `APP_ENV
 
 Parolalar seeder dosyasındaki `DEV_PASSWORD` sabitindedir.
 
+Toptancı, bayi ve mağaza yönetimi girişinde şifreden sonra e-posta kodu istenir. Yerelde e-posta hesabı tanımlı değilse kod gönderilmez, `storage/logs/laravel.log` dosyasına yazılır (`[business-mail]` satırı; mağaza yöneticisi için sistem e-postası tanımlı değilse yine log). Kodu kapatmak için `.env`: `LOGIN_EMAIL_CODE=false`.
+
 ### Mağaza ve mağaza yönetimi (yerel adresler)
 
 Mağaza kendi alan adlarında çalışır (`.env`: `STORE_DOMAIN`, `STORE_ADMIN_DOMAIN`). `*.localhost` adresleri tarayıcıda ek ayar gerektirmez:

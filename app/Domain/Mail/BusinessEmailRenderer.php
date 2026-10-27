@@ -33,6 +33,7 @@ class BusinessEmailRenderer
             'subject' => $subject,
             'intro' => $content['intro'],
             'details' => $content['details'] ?? [],
+            'code' => $content['code'] ?? null,
             'action_url' => $content['action_url'] ?? null,
             'action_label' => $content['action_label'] ?? null,
             'logo_src' => 'cid:'.self::LOGO_CID,
@@ -88,6 +89,9 @@ class BusinessEmailRenderer
     private function text(Business $business, string $subject, array $content, ?string $note): string
     {
         $lines = [$business->display_name, str_repeat('=', mb_strlen($business->display_name)), '', $subject, '', $content['intro']];
+        if (! empty($content['code'])) {
+            array_push($lines, '', 'Doğrulama kodunuz: '.$content['code']);
+        }
 
         foreach ($content['details'] ?? [] as $label => $value) {
             $lines[] = "{$label}: {$value}";

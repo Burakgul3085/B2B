@@ -65,7 +65,7 @@ Mevcut çok işletmeli altyapı (`BelongsToBusiness`, `SetBusinessContext`, işl
 
 - Hesaplar silinmez, **pasife alınır.** Böylece işlem geçmişindeki "kim yaptı" bilgisi korunur.
 - Aktivasyon bağlantısı yoktur. Hesabı açan kişi e-postayı ve şifreyi belirler, hesap hemen etkindir (B2B ile aynı model). Parolamı unuttum vardır.
-- Süper admin için iki adımlı doğrulama (TOTP) zorunludur. Yöneticiler isteğe bağlı açar.
+- Her girişte şifreden sonra yöneticinin e-postasına 4 haneli kod gider (mağaza e-posta şablonu ve hesabıyla); kod girilince oturum açılır (`App\Domain\Auth\LoginCode`). Doğrulama uygulaması (TOTP) yalnızca platformdadır.
 - **İşlem geçmişi:** Fiyat, stok, sipariş durumu, ayarlar ve kullanıcı değişikliklerinin hepsi "kim, ne zaman, eski değer → yeni değer" olarak kaydedilir. Kayıtlar yalnızca eklenir.
 - Yönetici sayısı sınırsızdır. Rol sistemi yoktur; tek ayrım süper admin bayrağıdır (`is_super`).
 

@@ -109,15 +109,6 @@ class StoreAdminService
         });
     }
 
-    /** Kaybedilen doğrulama uygulaması: iki adımlı doğrulamayı sıfırlar; bir sonraki girişte yeniden kurulur. */
-    public function resetTwoFactor(StoreAdmin $target, ?StoreAdmin $actor): void
-    {
-        $this->assertCanManage($target, $actor);
-
-        $target->forceFill(['two_factor_secret' => null, 'two_factor_confirmed_at' => null])->save();
-        $this->audit->log('store.admin_two_factor_reset', $target);
-    }
-
     public function canManage(StoreAdmin $target, ?StoreAdmin $actor): bool
     {
         if ($actor === null) {

@@ -18,18 +18,6 @@
         </form>
     </x-card>
 
-    <x-card title="İki adımlı doğrulama">
-        @if ($target->hasTwoFactorEnabled())
-            <p class="mb-4 text-sm text-muted">Açık. Kişi doğrulama uygulamasını kaybettiyse sıfırlayın; bir sonraki girişte yeniden kurar.</p>
-            <form method="POST" action="{{ $routes['twoFactor'] }}" data-confirm="İki adımlı doğrulama sıfırlansın mı?">
-                @csrf @method('DELETE')
-                <x-button variant="secondary" icon="refresh">Sıfırla</x-button>
-            </form>
-        @else
-            <p class="text-sm text-muted">Kapalı{{ $target->is_super ? '; ilk girişte kurulması zorunludur.' : '.' }}</p>
-        @endif
-    </x-card>
-
     <x-card title="Hesap durumu" :description="$target->is_active ? 'Pasife alınan kişi panele giremez; açık oturumu hemen kapanır. İşlem geçmişi korunur.' : 'Hesap pasif; kişi panele giremez.'">
         <form method="POST" action="{{ $routes['status'] }}" @if ($target->is_active) data-confirm="{{ $target->name }} pasife alınsın mı?" @endif>
             @csrf @method('PUT')

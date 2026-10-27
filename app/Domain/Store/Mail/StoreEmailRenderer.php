@@ -49,6 +49,9 @@ class StoreEmailRenderer
     {
         $name = config('store.name');
         $lines = [$name, str_repeat('=', mb_strlen($name)), '', $content['title'] ?? $subject, '', strip_tags($content['intro'])];
+        if (! empty($content['code'])) {
+            array_push($lines, '', 'Doğrulama kodunuz: '.$content['code']);
+        }
 
         foreach ($content['rows'] ?? [] as [$label, $value]) {
             $lines[] = "{$label}: {$value}";

@@ -51,21 +51,9 @@
             </form>
         </x-card>
 
-        @if ($area === \App\Domain\Auth\Area::StoreAdmin)
-            <x-card title="İki adımlı doğrulama" :description="$user->is_super ? 'Süper admin hesabı için zorunludur.' : 'Girişte şifrenize ek olarak doğrulama uygulamasındaki kod istenir.'">
-                @if ($user->hasTwoFactorEnabled())
-                    <p class="mb-5 flex items-center gap-2 text-sm"><x-badge tone="success">Açık</x-badge> {{ $user->two_factor_confirmed_at->timezone('Europe/Istanbul')->format('d.m.Y') }} tarihinden beri</p>
-                    @unless ($user->is_super)
-                        <form method="POST" action="{{ route('store_admin.two-factor.disable') }}" class="space-y-5" data-confirm="İki adımlı doğrulama kapatılsın mı?">
-                            @csrf @method('DELETE')
-                            <x-field name="two_factor_password" label="Mevcut şifre" type="password" required autocomplete="current-password" />
-                            <x-button variant="secondary">Kapat</x-button>
-                        </form>
-                    @endunless
-                @else
-                    <p class="mb-5 flex items-center gap-2 text-sm"><x-badge tone="neutral">Kapalı</x-badge> Hesabınızı korumak için açmanızı öneririz.</p>
-                    <x-button :href="route('store_admin.two-factor.setup')" icon="shield">Kur</x-button>
-                @endif
+        @if (\App\Domain\Auth\LoginCode::appliesTo($area))
+            <x-card title="Giriş doğrulaması" description="Her girişte şifrenizden sonra giriş e-postanıza 4 haneli bir kod gönderilir; kod girilince panel açılır.">
+                <p class="flex items-center gap-2 text-sm"><x-badge tone="success">Açık</x-badge> Kodlar {{ $user->email }} adresine gider.</p>
             </x-card>
         @endif
 

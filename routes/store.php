@@ -23,16 +23,11 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
     $authRoutes('store_admin');
 
     Route::middleware(['auth:store_admin', 'auth.session'])->group(function () use ($accountRoutes) {
-        Route::get('iki-adimli-dogrulama/kurulum', [Admin\TwoFactorController::class, 'setup'])->name('two-factor.setup');
-        Route::post('iki-adimli-dogrulama/kurulum', [Admin\TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
-        Route::get('iki-adimli-dogrulama', [Admin\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
-        Route::post('iki-adimli-dogrulama', [Admin\TwoFactorController::class, 'verify'])->middleware('throttle:10,1,two-factor.verify')->name('two-factor.verify');
-
-        Route::middleware('store.2fa')->group(function () use ($accountRoutes) {
+        // Giriş doğrulaması oturum açılmadan önce e-posta koduyla yapılır (LoginController, LoginCode).
+        Route::middleware('store.active')->group(function () use ($accountRoutes) {
             Route::get('/', Admin\DashboardController::class)->name('dashboard');
             Route::get('islem-gecmisi', Admin\ActivityController::class)->name('activity');
 
-            Route::delete('iki-adimli-dogrulama', [Admin\TwoFactorController::class, 'disable'])->name('two-factor.disable');
             $accountRoutes();
 
             // Katalog (M2)
@@ -216,7 +211,6 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('yoneticiler/{storeAdmin}', [Admin\AdminController::class, 'update'])->name('admins.update');
                 Route::put('yoneticiler/{storeAdmin}/sifre', [Admin\AdminController::class, 'password'])->name('admins.password');
                 Route::put('yoneticiler/{storeAdmin}/durum', [Admin\AdminController::class, 'status'])->name('admins.status');
-                Route::delete('yoneticiler/{storeAdmin}/iki-adimli-dogrulama', [Admin\AdminController::class, 'resetTwoFactor'])->name('admins.two-factor');
             });
         });
     });

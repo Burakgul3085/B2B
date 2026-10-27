@@ -47,7 +47,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 - **Mağaza ziyaretçilere kapalı.** "Yakında" sayfası gösteriliyor; görmek için önizleme bağlantısı gerekir.
 - **Geliştirme veritabanında mağaza verisi yok.** Mağaza yöneticisi, ürün ve stok bulunmuyor. Süper admin `Platform → Mağaza Yöneticileri` ekranından açılır, ürünler mağaza panelinden eklenir.
 - **Önceden yüklenmiş telefon fotoğrafları.** EXIF yön düzeltmesi 25.10.2026'dan sonraki yüklemelerde uygulanır; daha önce yüklenip yan görünen bir fotoğraf varsa yeniden yüklenmelidir (canlıdaki mevcut Hakkımızda fotoğraflarının yönü doğru).
-- **İki adımlı doğrulama zorunlu.** Süper admin ilk girişte iki adımlı doğrulamayı kurmak zorundadır.
+- **Girişte e-posta kodu.** Toptancı, bayi ve mağaza yönetimi girişinde şifreden sonra kişinin e-postasına 4 haneli kod gider (toptancı ve bayiye toptancının Gmail ayarıyla, mağaza yöneticisine mağazanın e-posta hesabıyla). E-posta gönderilemezse giriş yapılamaz; acil durumda sunucuda `LOGIN_EMAIL_CODE=false` ile kapatılır. Platformda doğrulama uygulaması (TOTP) zorunludur.
 
 ## 4. B2B: bekleyenler
 

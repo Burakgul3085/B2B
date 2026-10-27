@@ -19,6 +19,13 @@ abstract class TestCase extends BaseTestCase
 {
     protected const PASSWORD = 'TestParola123';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Girişi akış olarak deneyen testler parolayla doğrudan girer; e-posta kodu Auth\LoginCodeTest'te ayrıca denenir.
+        config(['b2b.login_code' => false]);
+    }
+
     protected function makeBusiness(string $status = 'active', string $userStatus = 'active'): Business
     {
         $slug = 'isletme-'.Str::lower(Str::random(6));

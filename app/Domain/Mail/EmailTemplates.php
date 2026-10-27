@@ -53,6 +53,13 @@ final class EmailTemplates
             'intro' => "Hesabınız için parola sıfırlama talebi aldık.\n\nAşağıdaki düğmeye tıklayarak yeni parolanızı belirleyebilirsiniz. Güvenliğiniz için bağlantı 60 dakika boyunca ve yalnızca bir kez kullanılabilir.",
             'note' => 'Bu talebi siz yapmadıysanız bu e-postayı dikkate almayın; parolanız değişmez. Çalışanlarımız sizden asla parolanızı istemez.',
         ],
+        'login_code' => [
+            'label' => 'Giriş doğrulama kodu (hesap sahibine)',
+            'eyebrow' => 'Giriş doğrulaması',
+            'subject' => '{isletme} giriş doğrulama kodunuz',
+            'intro' => "Hesabınıza giriş yapılıyor. Girişi tamamlamak için aşağıdaki 4 haneli kodu giriş ekranına yazın.\n\nKod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir.",
+            'note' => 'Bu girişi siz yapmadıysanız kodu kimseyle paylaşmayın ve şifrenizi hemen değiştirin. Çalışanlarımız sizden asla bu kodu istemez.',
+        ],
         'application_rejected' => [
             'label' => 'Başvuru reddi (bayiye)',
             'eyebrow' => 'Başvuru sonucu',

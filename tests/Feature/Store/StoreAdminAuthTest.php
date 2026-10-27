@@ -2,16 +2,14 @@
 
 namespace Tests\Feature\Store;
 
-use App\Http\Middleware\RequireStoreTwoFactor;
 use App\Models\Store\StoreAdmin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /**
- * Mağaza yönetimi girişi (M1): kendi alan adı, kendi oturum çerezi, süper admin için zorunlu 2FA,
- * pasif hesap engeli ve B2B ile tam ayrım.
+ * Mağaza yönetimi girişi (M1): kendi alan adı, kendi oturum çerezi, pasif hesap engeli ve B2B ile tam ayrım.
+ * Girişteki e-posta kodu: tests/Feature/Auth/LoginCodeTest.
  */
 class StoreAdminAuthTest extends TestCase
 {
@@ -47,7 +45,7 @@ class StoreAdminAuthTest extends TestCase
         $this->get('http://magaza.localhost/')->assertStatus(503)->assertSee('Online mağazamız çok yakında açılıyor');
     }
 
-    public function test_admin_without_two_factor_logs_in_directly(): void
+    public function test_admin_logs_in_with_password(): void
     {
         $admin = $this->admin();
 
@@ -66,52 +64,6 @@ class StoreAdminAuthTest extends TestCase
         $dealer = $this->makeDealer();
         $this->post(route('store_admin.login.store'), ['email' => $dealer->email, 'password' => self::PASSWORD])->assertSessionHasErrors('email');
         $this->assertGuest('store_admin');
-    }
-
-    public function test_super_admin_must_set_up_two_factor(): void
-    {
-        $admin = $this->admin(super: true);
-
-        $this->post(route('store_admin.login.store'), ['email' => $admin->email, 'password' => self::PASSWORD])
-            ->assertRedirect(route('store_admin.two-factor.setup'));
-        $this->get(route('store_admin.dashboard'))->assertRedirect(route('store_admin.two-factor.setup'));
-
-        $this->get(route('store_admin.two-factor.setup'))->assertOk();
-        $secret = session('store_admin.two_factor_pending_secret');
-        $this->post(route('store_admin.two-factor.confirm'), ['code' => '000000'])->assertSessionHasErrors('code');
-        $this->post(route('store_admin.two-factor.confirm'), ['code' => (new Google2FA)->getCurrentOtp($secret)])
-            ->assertRedirect(route('store_admin.dashboard'));
-        $this->get(route('store_admin.dashboard'))->assertOk();
-
-        // Sonraki girişte kod sorulur.
-        $this->post(route('store_admin.logout'));
-        $this->post(route('store_admin.login.store'), ['email' => $admin->email, 'password' => self::PASSWORD])
-            ->assertRedirect(route('store_admin.two-factor.challenge'));
-        $this->get(route('store_admin.dashboard'))->assertRedirect(route('store_admin.two-factor.challenge'));
-    }
-
-    public function test_admin_can_enable_and_disable_own_two_factor(): void
-    {
-        $admin = $this->admin();
-        $this->actingAs($admin, 'store_admin');
-
-        $this->get(route('store_admin.two-factor.setup'))->assertOk();
-        $secret = session('store_admin.two_factor_pending_secret');
-        $this->post(route('store_admin.two-factor.confirm'), ['code' => (new Google2FA)->getCurrentOtp($secret)]);
-        $this->assertTrue($admin->fresh()->hasTwoFactorEnabled());
-
-        $this->delete(route('store_admin.two-factor.disable'), ['two_factor_password' => 'yanlis'])->assertSessionHasErrors('two_factor_password');
-        $this->delete(route('store_admin.two-factor.disable'), ['two_factor_password' => self::PASSWORD])->assertSessionHasNoErrors();
-        $this->assertFalse($admin->fresh()->hasTwoFactorEnabled());
-    }
-
-    public function test_super_admin_cannot_disable_two_factor(): void
-    {
-        $super = $this->admin(super: true);
-        $super->forceFill(['two_factor_secret' => (new Google2FA)->generateSecretKey(32), 'two_factor_confirmed_at' => now()])->save();
-        $this->actingAs($super, 'store_admin')->withSession([RequireStoreTwoFactor::SESSION_KEY => true])
-            ->delete(route('store_admin.two-factor.disable'), ['two_factor_password' => self::PASSWORD])->assertForbidden();
-        $this->assertTrue($super->fresh()->hasTwoFactorEnabled());
     }
 
     public function test_deactivated_admin_is_signed_out_and_cannot_log_in(): void
@@ -147,7 +99,7 @@ class StoreAdminAuthTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin, 'store_admin');
 
-        $this->get(route('store_admin.account'))->assertOk()->assertSee('İki adımlı doğrulama');
+        $this->get(route('store_admin.account'))->assertOk()->assertSee('Parola değiştir');
         $this->put(route('store_admin.account.password'), [
             'current_password' => self::PASSWORD, 'password' => 'YeniMagazaSifre2026', 'password_confirmation' => 'YeniMagazaSifre2026',
         ])->assertSessionHasNoErrors();

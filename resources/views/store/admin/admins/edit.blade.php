@@ -11,7 +11,6 @@
             'update' => route('store_admin.admins.update', $target),
             'password' => route('store_admin.admins.password', $target),
             'status' => route('store_admin.admins.status', $target),
-            'twoFactor' => route('store_admin.admins.two-factor', $target),
         ],
     ])
 </x-layouts.panel>

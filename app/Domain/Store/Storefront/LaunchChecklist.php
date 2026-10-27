@@ -6,7 +6,6 @@ use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Sms\SmsGateway;
-use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreProduct;
@@ -33,7 +32,6 @@ class LaunchChecklist
         $missingPages = array_values(array_map(fn ($p) => $p['title'], array_diff_key(SitePages::PAGES, array_flip($livePages))));
         $published = StoreProduct::where('is_published', true)->count();
         $withoutImage = StoreProduct::where('is_published', true)->whereDoesntHave('images')->count();
-        $without2fa = StoreAdmin::where('is_active', true)->get()->reject(fn (StoreAdmin $a) => $a->hasTwoFactorEnabled())->count();
         $cod = $s['cod_enabled'] === '1';
 
         return [
@@ -66,7 +64,9 @@ class LaunchChecklist
                 $this->item('İade adresi', blank($s['return_address']) && blank($s['address']) ? 'todo' : 'ok', 'Onaylanan iade e-postasında müşteriye gösterilir.', 'store_admin.payments.edit'),
             ]],
             ['group' => 'Güvenlik ve işletim', 'items' => [
-                $this->item('Yöneticilerde iki adımlı doğrulama', $without2fa ? 'warn' : 'ok', $without2fa ? "{$without2fa} etkin yönetici iki adımlı doğrulamayı açmadı." : 'Tüm etkin yöneticilerde açık.', null),
+                $this->item('Yönetici girişinde e-posta kodu', ! config('b2b.login_code') ? 'warn' : ($this->mailer->isConfigured() ? 'ok' : 'todo'),
+                    ! config('b2b.login_code') ? 'Sunucuda kapatılmış (LOGIN_EMAIL_CODE=false); girişte yalnızca şifre isteniyor.'
+                        : ($this->mailer->isConfigured() ? 'Her girişte yöneticinin e-postasına 4 haneli kod gidiyor.' : 'E-posta hesabı tanımlı değil; kod gönderilemediği için yöneticiler giriş yapamaz.'), 'store_admin.settings.edit'),
                 $this->item('Sistem e-postası', $this->mailer->isConfigured() ? 'ok' : 'later', 'Sipariş, bildirim ve e-bülten e-postaları için Mağaza Ayarları → E-posta gönderimi bölümüne SMTP hesabı girin.', null),
                 $this->item('Alan adı ve HTTPS', str_ends_with((string) config('store.domain'), '.localhost') ? 'later' : 'ok', 'yapbozkirtasiye.com ve alt alan adları sunucu kurulumunda bağlanacak.', null),
                 $this->item('Zamanlanmış görevler ve kuyruk', 'later', 'Süresi dolan kart ödemelerinin kapanması ve e-postalar için sunucuda schedule:run ve queue:work sürekli çalışmalı.', null),

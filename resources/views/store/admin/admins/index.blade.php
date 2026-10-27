@@ -6,14 +6,13 @@
     <x-card :padding="false">
         <div class="overflow-x-auto">
             <table class="table-base">
-                <thead><tr><th>Ad soyad</th><th>Giriş e-postası</th><th>Rol</th><th>İki adımlı doğrulama</th><th>Son giriş</th><th>Durum</th><th></th></tr></thead>
+                <thead><tr><th>Ad soyad</th><th>Giriş e-postası</th><th>Rol</th><th>Son giriş</th><th>Durum</th><th></th></tr></thead>
                 <tbody class="divide-y divide-line">
                     @foreach ($admins as $a)
                         <tr @class(['opacity-60' => ! $a->is_active])>
                             <td class="font-medium">{{ $a->name }}@if ($a->id === $me->id) <span class="text-xs font-normal text-muted">(siz)</span>@endif</td>
                             <td class="text-muted">{{ $a->email }}</td>
                             <td><x-badge :tone="$a->is_super ? 'primary' : 'neutral'">{{ $a->roleLabel() }}</x-badge></td>
-                            <td>@if ($a->hasTwoFactorEnabled())<x-badge tone="success">Açık</x-badge>@else<span class="text-sm text-muted">Kapalı</span>@endif</td>
                             <td class="text-sm text-muted tabular-nums">{{ $a->last_login_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') ?? '—' }}</td>
                             <td><x-badge :tone="$a->is_active ? 'success' : 'neutral'">{{ $a->is_active ? 'Etkin' : 'Pasif' }}</x-badge></td>
                             <td class="text-right">

@@ -26,6 +26,9 @@ $authRoutes = function (string $name) {
     Route::middleware("guest:{$name}")->group(function () {
         Route::get('login', [LoginController::class, 'show'])->name('login');
         Route::post('login', [LoginController::class, 'store'])->middleware('throttle:20,1,login.store')->name('login.store');
+        Route::get('login/dogrulama', [LoginController::class, 'code'])->name('login.code');
+        Route::post('login/dogrulama', [LoginController::class, 'verifyCode'])->middleware('throttle:20,1,login.code')->name('login.code.verify');
+        Route::post('login/dogrulama/yeni-kod', [LoginController::class, 'resendCode'])->middleware('throttle:6,10,login.code.resend')->name('login.code.resend');
         Route::get('parolami-unuttum', [PasswordResetController::class, 'request'])->name('password.request');
         Route::post('parolami-unuttum', [PasswordResetController::class, 'email'])->name('password.email');
         Route::get('parola-sifirla/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
@@ -108,7 +111,6 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::put('magaza-yoneticileri/{storeAdmin}', [Platform\StoreAdminController::class, 'update'])->name('store-admins.update');
             Route::put('magaza-yoneticileri/{storeAdmin}/sifre', [Platform\StoreAdminController::class, 'password'])->name('store-admins.password');
             Route::put('magaza-yoneticileri/{storeAdmin}/durum', [Platform\StoreAdminController::class, 'status'])->name('store-admins.status');
-            Route::delete('magaza-yoneticileri/{storeAdmin}/iki-adimli-dogrulama', [Platform\StoreAdminController::class, 'resetTwoFactor'])->name('store-admins.two-factor');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');

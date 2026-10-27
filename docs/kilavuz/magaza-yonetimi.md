@@ -5,11 +5,11 @@ Mağaza yönetimi, perakende sitenin (Yapboz Kırtasiye mağazası) yönetildiğ
 ## 1. Yöneticiler ve giriş
 
 - İlk **süper admin** hesabını platform yöneticisi açar (Platform → Mağaza Yöneticileri).
-- Süper admin ilk girişte **iki adımlı doğrulamayı** (Google Authenticator vb.) kurmak zorundadır.
+- Her girişte şifreden sonra e-postanıza **4 haneli doğrulama kodu** gelir; kodu yazınca panel açılır. Kod 10 dakika geçerlidir; gelmezse "Yeni kod gönder" ile tekrar istenir.
 - Süper admin **Yönetim → Yöneticiler**'den başka yöneticiler açar. Yönetici sayısı sınırsızdır.
 - Yöneticiler birbirini veya süper admini silemez; yöneticiyi yalnızca süper admin kaldırır.
 - **Yönetim → İşlem Geçmişi:** Kimin ne zaman ne yaptığı (sipariş işlemleri, ayar değişiklikleri, stok düzeltmeleri…).
-- **Profil ve Güvenlik:** Şifre ve iki adımlı doğrulama.
+- **Profil ve Güvenlik:** Şifre ve giriş e-postası (kodlar bu adrese gider).
 
 ## 2. Yayına hazırlık
 
