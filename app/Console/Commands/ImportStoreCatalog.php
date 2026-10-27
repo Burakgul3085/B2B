@@ -21,7 +21,7 @@ use Throwable;
  */
 class ImportStoreCatalog extends Command
 {
-    protected $signature = 'store:import-catalog {--file=database/data/store-catalog-2026-10.php : Veri dosyası} {--unpublished : Ürünleri taslak olarak ekle}';
+    protected $signature = 'store:import-catalog {--file=database/data/store-catalog-2026-10b.php : Veri dosyası} {--unpublished : Ürünleri taslak olarak ekle} {--image-dir= : Görselleri adresten indirmek yerine bu klasörden al (dosya adı: ImportStoreCatalog::localName)}';
 
     protected $description = 'Mağaza kataloğunu (kategori, marka, ürün, stok, görsel) veri dosyasından yükler';
 
@@ -39,8 +39,16 @@ class ImportStoreCatalog extends Command
 
         $added = 0;
         $skipped = [];
-        foreach ($data['products'] as [$parent, $child, $brandName, $name, $sku, $price, $vat, $qty, $description, $images]) {
-            if (StoreProductVariant::where('sku', $sku)->exists()) {
+        foreach ($data['products'] as $row) {
+            [$parent, $child, $brandName, $name, $sku, $price, $vat, $qty, $description, $images] = $row;
+            $barcode = $row[10] ?? null;
+            if ($existing = StoreProductVariant::where('sku', $sku)->first()) {
+                // Daha önce görselsiz eklendiyse (ör. kaynak site indirmeyi engelledi) görseller tamamlanır.
+                if (! $existing->product->images()->exists()) {
+                    foreach ($images as $url) {
+                        $this->attachImage($products, $existing->product, $url);
+                    }
+                }
                 $skipped[] = $sku;
 
                 continue;
@@ -48,7 +56,7 @@ class ImportStoreCatalog extends Command
             $brand = StoreBrand::where('name', $brandName)->first() ?? $brands->create(['name' => $brandName]);
             $product = $products->create(
                 ['name' => $name, 'category_id' => $ids[$parent][$child], 'brand_id' => $brand->id, 'description' => $description, 'is_published' => ! $this->option('unpublished')],
-                ['sku' => $sku, 'price' => $price, 'vat_rate' => $vat],
+                ['sku' => $sku, 'barcode' => $barcode, 'price' => $price, 'vat_rate' => $vat],
             );
             $stock->receive($product->variants()->first(), $qty, 'Açılış stoku');
             foreach ($images as $url) {
@@ -63,8 +71,31 @@ class ImportStoreCatalog extends Command
         return self::SUCCESS;
     }
 
+    /** Önceden indirilen görselin dosya adı: adresin özeti + uzantı (farklı ürünlerde aynı dosya adı olabilir). */
+    public static function localName(string $url): string
+    {
+        $ext = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
+
+        return md5($url).'.'.$ext;
+    }
+
     private function attachImage(ProductService $products, $product, string $url): void
     {
+        // --image-dir: görseller önceden indirilmişse (kaynak site sunucudan indirmeyi engelliyorsa) klasörden alınır.
+        $name = self::localName($url);
+        $dir = $this->option('image-dir');
+        if ($dir) {
+            $local = rtrim($dir, '/\\').DIRECTORY_SEPARATOR.$name;
+            if (! is_file($local)) {
+                $this->warn("  görsel klasörde yok: {$name}");
+
+                return;
+            }
+            $products->addImage($product, new UploadedFile($local, $name, null, null, true));
+
+            return;
+        }
+
         $tmp = tempnam(sys_get_temp_dir(), 'urun');
         try {
             $response = Http::timeout(30)->retry(2, 500)->get($url);
