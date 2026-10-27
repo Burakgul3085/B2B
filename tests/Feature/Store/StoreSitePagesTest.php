@@ -295,8 +295,12 @@ class StoreSitePagesTest extends TestCase
         $this->post(route('store_admin.messages.reply', $message), ['body' => "Merhaba,\nDefterler cuma günü stokta olacak."])
             ->assertSessionHasNoErrors()->assertSessionHas('status');
 
-        $this->assertSame('ayse@ornek.com', $this->mails[0]['to']);
-        $this->assertStringContainsString('Defterler cuma günü stokta olacak.', $this->mails[0]['html']);
+        // Testte her istek sonunda önceki afterResponse işleri yeniden çalışır; yanıt e-postası konusundan bulunur.
+        $replies = array_values(array_filter($this->mails, fn ($m) => str_starts_with($m['subject'], 'Mesajınıza yanıt')));
+        $this->assertCount(1, $replies);
+        $this->assertSame('ayse@ornek.com', $replies[0]['to']);
+        $this->assertStringContainsString('Defterler cuma günü stokta olacak.', $replies[0]['html']);
+        $this->assertSame(['Reply-To' => 'info@yapboz.test'], $replies[0]['headers']);
         $this->assertSame('replied', $message->fresh()->status);
         $this->assertSame(['Vitrin', "Merhaba,\nDefterler cuma günü stokta olacak."], [$message->replies()->sole()->admin_name, $message->replies()->sole()->body]);
         $this->get(route('store_admin.messages.show', $message))->assertSee('Defterler cuma günü stokta olacak.')->assertSee('Yanıtınız · Vitrin');
