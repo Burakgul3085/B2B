@@ -155,7 +155,8 @@ class StoreFulfillmentTest extends TestCase
     public function test_carriers_and_tracking_link_on_shipment(): void
     {
         $this->get(route('store_admin.carriers.index'))->assertOk()->assertSee('Yurtiçi Kargo');
-        $this->post(route('store_admin.carriers.store'), ['name' => 'Hızlı Kargo', 'tracking_url' => 'https://ornek.com/takip'])->assertSessionHasErrors('tracking_url');
+        // {takip} olmadan da girilebilir (numarayı adresten almayan firmalarda takip sayfası açılır); https zorunlu.
+        $this->post(route('store_admin.carriers.store'), ['name' => 'Hızlı Kargo', 'tracking_url' => 'ornek.com/takip'])->assertSessionHasErrors('tracking_url');
         $this->post(route('store_admin.carriers.store'), ['name' => 'Hızlı Kargo', 'tracking_url' => 'http://ornek.com/{takip}'])->assertSessionHasErrors('tracking_url');
         $this->post(route('store_admin.carriers.store'), ['name' => 'Aras Kargo'])->assertSessionHasErrors('name');
         $this->post(route('store_admin.carriers.store'), ['name' => 'Hızlı Kargo', 'tracking_url' => 'https://ornek.com/sorgu?no={takip}'])->assertSessionHasNoErrors();
@@ -172,7 +173,7 @@ class StoreFulfillmentTest extends TestCase
 
         $order->refresh();
         $this->assertSame(['shipped', 'Hızlı Kargo', 'https://ornek.com/sorgu?no=AB%2012%2F3'], [$order->status, $order->carrier, $order->tracking_url]);
-        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]))->assertOk()->assertSee('Kargoyu takip et')
+        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]))->assertOk()->assertSee('Kargom nerede')
             ->assertSee('https://ornek.com/sorgu?no=AB%2012%2F3', false);
 
         // Firma silinse de siparişteki kopya kalır.

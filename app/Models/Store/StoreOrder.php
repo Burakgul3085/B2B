@@ -2,6 +2,7 @@
 
 namespace App\Models\Store;
 
+use App\Domain\Store\Shipping\CarrierBrands;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -89,6 +90,18 @@ class StoreOrder extends Model
     public function carrierModel(): BelongsTo
     {
         return $this->belongsTo(StoreCarrier::class, 'carrier_id');
+    }
+
+    /** Kargo firmasının logosu (firma adından; firma sonradan silinse de çalışır). */
+    public function carrierLogo(): ?string
+    {
+        return CarrierBrands::match($this->carrier)['logo'] ?? null;
+    }
+
+    /** Takip bağlantısı numarayı içeriyorsa kargo sayfası gönderiyi doğrudan gösterir; değilse numara sayfada girilir. */
+    public function trackingIsDirect(): bool
+    {
+        return $this->tracking_url && $this->tracking_number && str_contains($this->tracking_url, rawurlencode($this->tracking_number));
     }
 
     public function returns(): HasMany

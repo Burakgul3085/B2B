@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Content\HelpPages;
+use App\Domain\Store\Orders\DeliveryRules;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Storefront\ProductPage;
 use App\Domain\Support\Decimal;
@@ -26,7 +27,7 @@ class HelpController extends Controller
         abort_unless($page['published'], 404);
 
         return view('store.front.help.'.$key, ['key' => $key, 'c' => $page['content']] + match ($key) {
-            'shipping' => ['info' => ProductPage::info(), 'cargoFee' => Decimal::parse(StoreSetting::get('shipping_cargo_fee'), 2),
+            'shipping' => ['info' => ProductPage::info(), 'cargoFee' => app(DeliveryRules::class)->startingCargoFee(), 'carriers' => app(DeliveryRules::class)->carrierChoices(),
                 'localFee' => Decimal::parse(StoreSetting::get('local_delivery_fee'), 2)],
             'payment' => ['settings' => StoreSetting::values(), 'banks' => StoreSetting::flag('transfer_enabled') ? BankTransfer::accounts() : []],
             'legal' => ['documents' => StoreLegalDocument::KEYS, 'contactLive' => StorePage::where('key', 'contact')->where('is_published', true)->exists()],

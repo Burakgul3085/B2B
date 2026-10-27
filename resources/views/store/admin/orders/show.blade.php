@@ -45,8 +45,8 @@
                         <form method="POST" action="{{ route('store_admin.orders.ship', $order) }}" class="flex flex-wrap items-end gap-3 rounded-xl bg-surface p-4">
                             @csrf
                             @if ($order->delivery_method === 'cargo')
-                                <x-field name="carrier_id" label="Kargo firması" :options="['' => 'Seçin'] + $carriers->all()" required class="w-48"
-                                    :hint="$carriers->isEmpty() ? 'Önce Ayarlar → Kargo Firmaları ekranından firma ekleyin.' : null" />
+                                <x-field name="carrier_id" label="Kargo firması" :options="['' => 'Seçin'] + $carriers->all()" required class="w-48" :value="$order->carrier_id"
+                                    :hint="$carriers->isEmpty() ? 'Önce Ayarlar → Kargo Firmaları ekranından firma ekleyin.' : ($order->carrier_id ? 'Müşterinin seçtiği firma.' : (bccomp((string) $order->shipping_fee, '0', 2) === 0 ? 'Ücretsiz kargo: firmayı siz seçin.' : null))" />
                                 <x-field name="tracking_number" label="Takip numarası" required maxlength="60" class="w-56" />
                                 <x-button icon="arrow-right">Kargoya verildi</x-button>
                             @else

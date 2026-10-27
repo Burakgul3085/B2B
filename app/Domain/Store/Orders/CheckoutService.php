@@ -135,9 +135,17 @@ class CheckoutService
         $discountTotal = $discount?->amount ?? '0.00';
         $net = bcsub($subtotal, $discountTotal, 2);
 
-        // Teslimat yöntemi (ücretsiz kargo sınırı indirimli tutara göre)
-        $options = $this->delivery->options($province->id, $district->id, $net);
+        // Teslimat yöntemi (ücretsiz kargo sınırı indirimli tutara göre). Kargoda müşteri, sınır aşılmadıysa ücreti
+        // girilmiş firmalardan birini seçer; ücret seçilen firmanın kayıtlı ücretidir (tarayıcıdan gelen tutar kullanılmaz).
         $deliveryMethod = (string) ($input['delivery_method'] ?? '');
+        $carrier = null;
+        if ($deliveryMethod === 'cargo' && ! $this->delivery->cargoIsFree($net) && ($choices = $this->delivery->carrierChoices())->isNotEmpty()) {
+            $carrier = $choices->firstWhere('id', (int) ($input['carrier_id'] ?? 0));
+            if (! $carrier) {
+                throw ValidationException::withMessages(['carrier_id' => 'Kargo firması seçin.']);
+            }
+        }
+        $options = $this->delivery->options($province->id, $district->id, $net, $carrier);
         if (! array_key_exists($deliveryMethod, $options)) {
             throw ValidationException::withMessages(['delivery_method' => 'Bu adres için geçerli bir teslimat yöntemi seçin.']);
         }
@@ -204,6 +212,7 @@ class CheckoutService
             'save_address' => $saveAddress,
             'billing' => $billing + ['name_fallback' => trim($shipping['first_name'].' '.$shipping['last_name'])],
             'delivery_method' => $deliveryMethod,
+            'carrier' => $carrier ? ['id' => $carrier->id, 'name' => $carrier->name] : null,
             'payment_method' => $paymentMethod,
             'note' => $note ?: null,
             'lines' => $lines,
@@ -218,7 +227,7 @@ class CheckoutService
             'total' => $total,
             'vat_total' => $vatTotal,
         ];
-        $draft['fingerprint'] = hash('sha256', json_encode([$draft['lines'], $draft['total'], $draft['shipping'], $paymentMethod, $deliveryMethod]));
+        $draft['fingerprint'] = hash('sha256', json_encode([$draft['lines'], $draft['total'], $draft['shipping'], $paymentMethod, $deliveryMethod, $carrier?->id]));
 
         return $draft;
     }
@@ -254,6 +263,8 @@ class CheckoutService
                 'payment_method' => $draft['payment_method'],
                 'payment_status' => $isCod ? 'cod_pending' : 'pending',
                 'delivery_method' => $draft['delivery_method'],
+                'carrier_id' => $draft['carrier']['id'] ?? null,
+                'carrier' => $draft['carrier']['name'] ?? null,
                 'shipping_name' => $draft['shipping']['name'],
                 'shipping_phone' => $draft['shipping']['phone'],
                 'shipping_province_id' => $draft['shipping']['province_id'],
@@ -412,7 +423,7 @@ class CheckoutService
             'discount' => ($draft['discount_total'] ?? '0.00') !== '0.00' ? ['name' => $draft['discount']['name'], 'amount' => $draft['discount_total']] : null,
             'total' => $draft['total'],
             'payment' => StoreOrder::PAYMENT_METHODS[$draft['payment_method']],
-            'delivery' => StoreOrder::DELIVERY_METHODS[$draft['delivery_method']],
+            'delivery' => StoreOrder::DELIVERY_METHODS[$draft['delivery_method']].(isset($draft['carrier']['name']) ? " ({$draft['carrier']['name']})" : ''),
         ];
     }
 

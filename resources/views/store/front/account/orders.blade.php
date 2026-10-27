@@ -29,6 +29,16 @@
                             <x-icon name="arrow-right" class="size-4 text-muted transition group-hover:translate-x-1" />
                         </span>
                     </a>
+                    @if ($order->tracking_number && $order->tracking_url && $order->status === 'shipped')
+                        <div class="mx-5 -mt-1 flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border border-t-0 border-line bg-surface/60 px-5 py-3 text-sm sm:mx-6">
+                            <span class="flex items-center gap-3">
+                                @if ($logo = $order->carrierLogo())<span class="flex h-8 w-20 items-center justify-center rounded-md bg-[#fff] px-1.5 ring-1 ring-line"><img src="{{ $logo }}" alt="" class="max-h-5 max-w-full object-contain" loading="lazy"></span>@endif
+                                <span>{{ $order->carrier }} · <span class="font-mono">{{ $order->tracking_number }}</span></span>
+                            </span>
+                            <a href="{{ $order->tracking_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-navy px-3.5 text-xs font-semibold text-white hover:bg-puzzle-orange">
+                                <x-icon name="truck" class="size-4" /> Kargom nerede</a>
+                        </div>
+                    @endif
                 </li>
             @endforeach
         </ul>

@@ -28,7 +28,22 @@ export function checkout(settings) {
         get isLocal() {
             return this.localEnabled && this.location.province === this.localProvince && this.localDistricts.includes(this.location.district);
         },
-        get shippingFee() { return this.delivery === 'local' ? this.localFee : this.cargoFee; },
+        // Kargo firması seçimi: ücretsiz kargo sınırı aşılmadıysa ve ücretli firma varsa müşteri seçer.
+        get needsCarrier() { return this.delivery === 'cargo' && !this.cargoFree && this.carriers.length > 0; },
+        get chosenCarrier() { return this.carriers.find((c) => c.id === Number(this.carrierId)) || null; },
+        get cargoPrice() {
+            if (this.cargoFree || this.shippingWaived) return 0;
+            if (this.carriers.length) return this.chosenCarrier ? this.chosenCarrier.fee : 0;
+            return this.cargoFee;
+        },
+        get cargoLabel() {
+            if (this.cargoFree) return 'Ücretsiz';
+            if (this.carriers.length) return this.chosenCarrier ? this.chosenCarrier.name : 'Firma seçin';
+            return this.positive(this.cargoFee) ? this.money(this.cargoFee) : 'Ücretsiz';
+        },
+        carrierPrice(c) { return this.shippingWaived || !this.positive(c.fee) ? 'Ücretsiz' : this.money(c.fee); },
+        isCarrier(c) { return Number(this.carrierId) === c.id; },
+        get shippingFee() { return this.delivery === 'local' ? this.localFee : this.cargoPrice; },
         get codTotal() { return Number(this.subtotal) + Number(this.shippingFee) + Number(this.codFee); },
         get codAllowed() {
             return this.codEnabled && this.delivery === 'local' && this.isLocal && (!this.codMax || this.codTotal <= Number(this.codMax));

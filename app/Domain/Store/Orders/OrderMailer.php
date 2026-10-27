@@ -60,12 +60,22 @@ class OrderMailer
 
     public function shipped(StoreOrder $order): void
     {
-        $intro = $order->delivery_method === 'cargo'
-            ? "Siparişiniz kargoya verildi. Kargo firması: {$order->carrier}, takip numarası: {$order->tracking_number}."
-            : 'Siparişiniz teslimat için yola çıktı.';
+        if ($order->delivery_method !== 'cargo') {
+            $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', 'Siparişiniz teslimat için yola çıktı.', false);
 
-        $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', $intro, false,
-            $order->tracking_url ? [$order->tracking_url, 'Kargoyu takip et'] : null);
+            return;
+        }
+
+        // Takip düğmesi kargo firmasının sayfasını açar; numarayı adresten almayan firmalarda numara sayfada yazılır.
+        $intro = "Siparişiniz {$order->carrier} ile kargoya verildi. ".match (true) {
+            $order->trackingIsDirect() => '"Kargonuz nerede?" düğmesine basarak gönderinizin nerede olduğunu görebilirsiniz.',
+            (bool) $order->tracking_url => '"Kargonuz nerede?" düğmesi kargo firmasının takip sayfasını açar; takip numaranızı oradaki kutuya yazın.',
+            default => 'Takip numaranızla kargo firmasından gönderinizi sorgulayabilirsiniz.',
+        };
+
+        $this->send($order, "Kargonuz yola çıktı — {$order->order_no}", 'Kargonuz yola çıktı', $intro, false,
+            $order->tracking_url ? [$order->tracking_url, 'Kargonuz nerede?'] : null, [],
+            [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]]);
     }
 
     public function cancelled(StoreOrder $order): void

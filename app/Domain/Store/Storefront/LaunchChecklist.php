@@ -56,8 +56,10 @@ class LaunchChecklist
                     ! $this->iyzico->isConfigured() ? 'API anahtarları girilmedi.' : ($s['iyzico_mode'] === 'live' ? 'Canlı anahtarlar kayıtlı.' : 'Deneme (sandbox) modunda; başvuru onayından sonra canlı anahtarlar girilmeli.'), 'store_admin.payments.edit'),
                 $this->item('Kapıda ödeme SMS doğrulaması', ! $cod ? 'warn' : ($this->sms->isLive() ? 'ok' : 'todo'),
                     ! $cod ? 'Kapıda ödeme kapalı.' : ($this->sms->isLive() ? 'Netgsm bağlı.' : 'Netgsm bilgileri girilmedi; canlıda kapıda ödeme açılamaz.'), 'store_admin.payments.edit'),
-                $this->item('Kargo takip bağlantıları', StoreCarrier::where('is_active', true)->whereNotNull('tracking_url')->exists() ? 'ok' : 'warn',
-                    'En az bir kargo firmasının takip bağlantısı girilmeli; müşteri kargosunu sipariş sayfasından izler.', 'store_admin.carriers.index'),
+                $this->item('Kargo takip bağlantıları', StoreCarrier::where('is_active', true)->get()->contains(fn ($c) => $c->trackingTemplate() !== null) ? 'ok' : 'warn',
+                    'En az bir kargo firmasının takip bağlantısı olmalı (bilinen firmalarda kendiliğinden gelir); müşteri kargosunu sipariş sayfasından izler.', 'store_admin.carriers.index'),
+                $this->item('Kargo firması ücretleri', StoreCarrier::where('is_active', true)->whereNotNull('fee')->exists() ? 'ok' : 'warn',
+                    'Anlaştığınız firmaların ücretini girin; müşteri ödeme sayfasında firmayı fiyatıyla seçer. Girilmezse yedek kargo ücreti uygulanır.', 'store_admin.carriers.index'),
                 $this->item('İade adresi', blank($s['return_address']) && blank($s['address']) ? 'todo' : 'ok', 'Onaylanan iade e-postasında müşteriye gösterilir.', 'store_admin.payments.edit'),
             ]],
             ['group' => 'Güvenlik ve işletim', 'items' => [

@@ -5,10 +5,10 @@
     <form method="POST" action="{{ route('store_admin.payments.update') }}" class="space-y-6">
         @csrf @method('PUT')
         <div class="grid gap-6 xl:grid-cols-2">
-            <x-card title="Kargo" description="Tüm Türkiye'ye kargo ile teslimat.">
+            <x-card title="Kargo" description="Tüm Türkiye'ye kargo ile teslimat. Firma ücretleri Ayarlar → Kargo Firmaları ekranından girilir; müşteri firmayı fiyatıyla seçer.">
                 <div class="grid gap-5 sm:grid-cols-2">
-                    <x-field name="shipping_cargo_fee" label="Kargo ücreti (₺)" :value="$money($s['shipping_cargo_fee'])" inputmode="decimal" />
-                    <x-field name="shipping_free_threshold" label="Ücretsiz kargo sınırı (₺)" :value="$money($s['shipping_free_threshold'])" inputmode="decimal" hint="Bu tutar ve üzeri siparişlerde kargo ücretsiz. Boşsa uygulanmaz." />
+                    <x-field name="shipping_cargo_fee" label="Yedek kargo ücreti (₺)" :value="$money($s['shipping_cargo_fee'])" inputmode="decimal" hint="Yalnızca hiçbir kargo firmasına ücret girilmemişse uygulanır." />
+                    <x-field name="shipping_free_threshold" label="Ücretsiz kargo sınırı (₺)" :value="$money($s['shipping_free_threshold'])" inputmode="decimal" hint="Bu tutar ve üzeri siparişlerde kargo ücretsiz; müşteri firma seçmez, gönderirken siz seçersiniz. Boşsa uygulanmaz." />
                     <x-field name="cargo_cutoff" type="time" label="Aynı gün kargo saati" :value="$s['cargo_cutoff']" hint="Hafta içi bu saatten önce verilen siparişler aynı gün kargoya verilir; ürün sayfasında yazılır. Boşsa gösterilmez." />
                 </div>
             </x-card>

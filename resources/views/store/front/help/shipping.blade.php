@@ -8,7 +8,13 @@
                 <p class="mt-4 font-display text-lg font-extrabold">Kargo ile teslimat</p>
                 <p class="mt-1 text-sm text-muted">Türkiye'nin her yerine.</p>
                 <dl class="mt-4 space-y-2 text-sm">
-                    <div class="flex justify-between gap-3"><dt class="text-muted">Kargo ücreti</dt><dd class="font-semibold tabular-nums">{{ $cargoFee && bccomp($cargoFee, '0', 2) > 0 ? Money::format($cargoFee) : 'Ücretsiz' }}</dd></div>
+                    @forelse ($carriers as $carrier)
+                        <div class="flex items-center justify-between gap-3"><dt class="flex items-center gap-2 text-muted">
+                            @if ($logo = $carrier->logoUrl())<span class="flex h-7 w-20 items-center justify-center rounded-md bg-[#fff] px-1.5 ring-1 ring-line"><img src="{{ $logo }}" alt="" class="max-h-4 max-w-full object-contain" loading="lazy"></span>@endif
+                            {{ $carrier->name }}</dt><dd class="font-semibold tabular-nums">{{ bccomp((string) $carrier->fee, '0', 2) > 0 ? Money::format($carrier->fee) : 'Ücretsiz' }}</dd></div>
+                    @empty
+                        <div class="flex justify-between gap-3"><dt class="text-muted">Kargo ücreti</dt><dd class="font-semibold tabular-nums">{{ $cargoFee && bccomp($cargoFee, '0', 2) > 0 ? Money::format($cargoFee) : 'Ücretsiz' }}</dd></div>
+                    @endforelse
                     @if ($info['free_threshold'])<div class="flex justify-between gap-3"><dt class="text-muted">Ücretsiz kargo</dt><dd class="font-semibold text-puzzle-green tabular-nums">{{ Money::format($info['free_threshold']) }} ve üzeri</dd></div>@endif
                     @if ($info['cutoff'])<div class="flex justify-between gap-3"><dt class="text-muted">Aynı gün kargo</dt><dd class="font-semibold">Hafta içi {{ $info['cutoff'] }} öncesi</dd></div>@endif
                 </dl>

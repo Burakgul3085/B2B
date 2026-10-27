@@ -193,8 +193,8 @@
                         <li class="flex gap-3 px-4 py-3"><x-icon name="clock" class="size-5 shrink-0 text-puzzle-blue" /><span>Hafta içi saat <strong>{{ $info['cutoff'] }}</strong> öncesi verilen siparişler aynı gün kargoya verilir.</span></li>
                     @endif
                     <li class="flex gap-3 px-4 py-3"><x-icon name="truck" class="size-5 shrink-0 text-puzzle-orange" /><span>
-                        @if ($info['free_threshold'])<strong>{{ Money::format($info['free_threshold']) }}</strong> ve üzeri siparişlerde kargo ücretsiz.@if ($info['cargo_fee']) Altında kargo ücreti {{ Money::format($info['cargo_fee']) }}.@endif
-                        @elseif ($info['cargo_fee'])Kargo ücreti {{ Money::format($info['cargo_fee']) }}.
+                        @if ($info['free_threshold'])<strong>{{ Money::format($info['free_threshold']) }}</strong> ve üzeri siparişlerde kargo ücretsiz.@if ($info['cargo_fee']) Altında kargo ücreti {{ Money::format($info['cargo_fee']) }}{{ $info['cargo_from'] ? "'den başlar" : '' }}.@endif
+                        @elseif ($info['cargo_fee'])Kargo ücreti {{ Money::format($info['cargo_fee']) }}{{ $info['cargo_from'] ? "'den başlar" : '' }}.
                         @else Türkiye geneline kargo ile gönderim.@endif
                     </span></li>
                     @if ($info['local'])

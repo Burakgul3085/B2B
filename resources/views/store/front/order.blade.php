@@ -69,8 +69,9 @@
             </ol>
         @endif
         @if ($order->tracking_number)
-            <p class="mt-4 text-sm">Kargo: <span class="font-medium">{{ $order->carrier }}</span> · Takip no: <span class="font-mono font-medium">{{ $order->tracking_number }}</span>
-                @if ($order->tracking_url)<a href="{{ $order->tracking_url }}" target="_blank" rel="noopener noreferrer" class="ml-2 font-medium text-primary hover:underline">Kargoyu takip et →</a>@endif</p>
+            <x-store.tracking-card :order="$order" class="mt-6" id="kargo-takip" />
+        @elseif ($order->carrier && $order->delivery_method === 'cargo')
+            <p class="mt-4 text-sm text-muted">Kargo firması: <span class="font-medium text-ink">{{ $order->carrier }}</span> · Takip numarası kargoya verilince burada görünür.</p>
         @endif
 
         @error('return')<p role="alert" class="mt-6 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</p>@enderror

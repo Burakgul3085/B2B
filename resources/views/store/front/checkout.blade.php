@@ -11,6 +11,7 @@
         'district' => (int) old('address.district_id') ?: '',
         'districts' => [],
         'delivery' => old('delivery_method', 'cargo'),
+        'carrierId' => (int) old('carrier_id', $rules['carriers'][0]['id'] ?? 0),
         'payment' => old('payment_method', $rules['cardAvailable'] ? 'card' : ($rules['transferAvailable'] ? 'transfer' : 'cod')),
         'billingType' => old('billing_type', 'individual'),
         'billingSame' => old('billing_same', '1') === '1',
@@ -108,8 +109,8 @@
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
                         <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="delivery === 'cargo' ? 'border-primary ring-1 ring-primary' : 'border-line'">
                             <input type="radio" name="delivery_method" value="cargo" x-model="delivery" class="mt-0.5 size-4 text-primary">
-                            <span><span class="font-semibold">Kargo</span><span class="block text-muted" x-text="money(cargoFee) === money(0) ? 'Ücretsiz' : money(cargoFee)"></span>
-                                <template x-if="freeThreshold && positive(cargoFee)"><span class="block text-xs text-muted" x-text="money(freeThreshold) + ' ve üzeri ücretsiz'"></span></template></span>
+                            <span><span class="font-semibold">Kargo</span><span class="block text-muted" x-text="cargoLabel"></span>
+                                <template x-if="freeThreshold && ! cargoFree"><span class="block text-xs text-muted" x-text="money(freeThreshold) + ' ve üzeri ücretsiz'"></span></template></span>
                         </label>
                         <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! isLocal ? 'cursor-not-allowed opacity-50 border-line' : (delivery === 'local' ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
                             <input type="radio" name="delivery_method" value="local" x-model="delivery" :disabled="! isLocal" class="mt-0.5 size-4 text-primary">
@@ -119,6 +120,28 @@
                         </label>
                     </div>
                     @error('delivery_method')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+
+                    @if ($rules['carriers'] && ! $rules['cargoFree'])
+                        <fieldset class="mt-5" x-show="needsCarrier">
+                            <legend class="text-sm font-semibold">Kargo firması</legend>
+                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                @foreach ($rules['carriers'] as $carrier)
+                                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm" :class="isCarrier(@alpine($carrier)) ? 'border-primary ring-1 ring-primary' : 'border-line'">
+                                        <input type="radio" name="carrier_id" value="{{ $carrier['id'] }}" x-model.number="carrierId" :disabled="! needsCarrier" class="size-4 text-primary">
+                                        <span class="flex h-10 w-24 shrink-0 items-center justify-center rounded-lg bg-[#fff] px-2 ring-1 ring-line">
+                                            @if ($carrier['logo'])<img src="{{ $carrier['logo'] }}" alt="" class="max-h-6 max-w-full object-contain" loading="lazy">
+                                            @else<span class="text-xs font-bold text-slate-500">{{ mb_strtoupper(mb_substr($carrier['name'], 0, 2)) }}</span>@endif
+                                        </span>
+                                        <span class="min-w-0 flex-1"><span class="block truncate font-medium">{{ $carrier['name'] }}</span>
+                                            <span class="block text-muted tabular-nums" x-text="carrierPrice(@alpine($carrier))"></span></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('carrier_id')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+                        </fieldset>
+                    @elseif ($rules['cargoFree'])
+                        <p class="mt-4 flex items-center gap-2 rounded-xl bg-puzzle-green-soft px-4 py-3 text-sm font-medium text-puzzle-green" x-show="delivery === 'cargo'"><x-icon name="truck" class="size-4" /> Kargo ücretsiz. Siparişiniz anlaşmalı kargo firmalarımızdan biriyle gönderilir.</p>
+                    @endif
                 </section>
 
                 {{-- 4. Ödeme --}}

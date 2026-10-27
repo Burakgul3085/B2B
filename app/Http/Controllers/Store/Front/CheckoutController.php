@@ -66,6 +66,10 @@ class CheckoutController extends Controller
             'rules' => [
                 'subtotal' => $net,
                 'cargoFee' => $discount?->freeShipping ? '0.00' : $delivery->cargoFee($net),
+                // Ücretsiz kargo sınırı aşıldıysa firma seçilmez; aşılmadıysa müşteri firmayı fiyatıyla seçer.
+                'cargoFree' => $delivery->cargoIsFree($net),
+                'shippingWaived' => (bool) $discount?->freeShipping,
+                'carriers' => $delivery->carrierChoices()->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'fee' => (string) $c->fee, 'logo' => $c->logoUrl()])->values()->all(),
                 'freeThreshold' => $threshold,
                 'localEnabled' => StoreSetting::flag('local_delivery_enabled'),
                 'localFee' => $discount?->freeShipping ? '0.00' : (Decimal::parse(StoreSetting::get('local_delivery_fee'), 2) ?? '0.00'),

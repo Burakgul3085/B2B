@@ -3,6 +3,7 @@
 namespace App\Domain\Store\Storefront;
 
 use App\Domain\Store\Content\StoreFooter;
+use App\Domain\Store\Orders\DeliveryRules;
 use App\Domain\Support\Decimal;
 use App\Models\Store\StoreSetting;
 
@@ -12,14 +13,20 @@ use App\Models\Store\StoreSetting;
  */
 class ProductPage
 {
-    /** @return array{free_threshold: ?string, cargo_fee: ?string, cutoff: ?string, local: bool, return_days: int, perks: array, whatsapp: ?string} */
+    /**
+     * cargo_fee: firma fiyatlarının en düşüğü (birden çok firma fiyatlıysa cargo_from ile "…'den başlayan" yazılır).
+     *
+     * @return array{free_threshold: ?string, cargo_fee: ?string, cargo_from: bool, cutoff: ?string, local: bool, return_days: int, perks: array, whatsapp: ?string}
+     */
     public static function info(): array
     {
-        $fee = Decimal::parse(StoreSetting::get('shipping_cargo_fee'), 2);
+        $delivery = app(DeliveryRules::class);
+        $fee = $delivery->startingCargoFee();
 
         return [
             'free_threshold' => Decimal::parse(StoreSetting::get('shipping_free_threshold'), 2),
-            'cargo_fee' => $fee && bccomp($fee, '0', 2) > 0 ? $fee : null,
+            'cargo_fee' => bccomp($fee, '0', 2) > 0 ? $fee : null,
+            'cargo_from' => $delivery->carrierChoices()->pluck('fee')->unique()->count() > 1,
             'cutoff' => StoreSetting::get('cargo_cutoff'),
             'local' => StoreSetting::flag('local_delivery_enabled'),
             'return_days' => (int) StoreSetting::get('return_days'),

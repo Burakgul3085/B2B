@@ -58,7 +58,14 @@
                             </span>
                             <span class="flex items-center gap-4"><x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
                                 <span class="font-display font-extrabold tabular-nums">{{ Money::format($order->total) }}</span></span>
-                        </a></li>
+                        </a>
+                        @if ($order->tracking_number && $order->tracking_url && $order->status === 'shipped')
+                            <div class="flex items-center justify-between gap-3 bg-surface/60 px-5 py-2.5 text-sm">
+                                <span class="text-muted">{{ $order->carrier }} · <span class="font-mono">{{ $order->tracking_number }}</span></span>
+                                <a href="{{ $order->tracking_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 font-semibold text-navy-ink hover:underline"><x-icon name="truck" class="size-4" /> Kargom nerede</a>
+                            </div>
+                        @endif
+                        </li>
                     @endforeach
                 </ul>
             @endif
