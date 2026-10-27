@@ -27,7 +27,7 @@
             @foreach ($photos as $i => $photo)
                 <button type="button" @click="open({{ $i }})" class="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl focus:ring-4 focus:ring-amber-400/50 focus:outline-none md:mb-4"
                     aria-label="Fotoğrafı büyüt{{ $photo['caption'] ? ': '.$photo['caption'] : '' }}">
-                    <x-store.fit-image :src="$photo['thumb']" :alt="$photo['caption'] ?? $name" :ratio="$photo['ratio']" :frame="$photo['ratio'] ? max(0.5, min(2.2, $photo['ratio'])) : null" :loading="$i < 8 ? 'eager' : 'lazy'" />
+                    <x-store.fit-image :src="$photo['thumb']" :alt="$photo['caption'] ?? $name" :ratio="$photo['ratio']" natural :loading="$i < 8 ? 'eager' : 'lazy'" />
                     <span class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100"></span>
                     @if ($photo['caption'])<span class="absolute inset-x-0 bottom-0 p-4 text-left text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100">{{ $photo['caption'] }}</span>@endif
                 </button>

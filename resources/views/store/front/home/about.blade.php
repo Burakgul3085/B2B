@@ -19,8 +19,8 @@
                         <div class="pointer-events-none absolute -top-5 -left-5 grid -rotate-12 grid-cols-2 gap-1.5" aria-hidden="true">
                             <span class="size-8 rounded-lg bg-puzzle-orange"></span><span class="size-8 rounded-lg bg-puzzle-green"></span><span class="size-8 rounded-lg bg-puzzle-blue"></span><span class="size-8 rounded-lg bg-puzzle-yellow"></span>
                         </div>
-                        <x-store.fit-image :src="$photo['src']" :alt="config('store.name')" :ratio="$photo['ratio']" :frame="$photo['ratio'] ? max(0.7, min(1.6, $photo['ratio'])) : 4 / 3" :maxHeight="34"
-                            class="mx-auto rounded-[2rem] shadow-2xl shadow-navy/15 ring-8 ring-white lg:ml-0" />
+                        <x-store.fit-image :src="$photo['src']" :alt="config('store.name')" :ratio="$photo['ratio']" natural :maxHeight="30"
+                            class="mx-auto rounded-[2rem] shadow-2xl shadow-navy/15 lg:ml-0" />
                         @if ($about['badge_value'])
                             <div class="absolute right-0 bottom-0 rounded-3xl bg-white px-6 py-5 shadow-xl shadow-navy/10 ring-1 ring-line sm:-right-2">
                                 <p class="font-display text-4xl leading-none font-extrabold text-puzzle-orange">{{ $about['badge_value'] }}</p>
