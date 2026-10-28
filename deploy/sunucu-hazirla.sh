@@ -64,6 +64,44 @@ if [ ! -f "$SITE" ]; then
     rm -f /etc/nginx/sites-enabled/default
 fi
 sed -i 's/^\(\s*\)# server_tokens off;/\1server_tokens off;/' /etc/nginx/nginx.conf
+# Eski TLS 1.0 / 1.1 kapalı (site blokları zaten certbot ayarıyla yalnızca 1.2 / 1.3 kullanır; bu, varsayılan sunucu içindir).
+sed -i 's/^\(\s*\)ssl_protocols .*;.*$/\1ssl_protocols TLSv1.2 TLSv1.3;/' /etc/nginx/nginx.conf
+
+# SSH: yalnızca anahtarla giriş (parola denemeleri kapanır), root yalnızca anahtarla. 00- dosyası cloud-init'in
+# "PasswordAuthentication yes" satırından önce okunur (sshd'de ilk değer geçerlidir). Kilitlenmemek için root'un
+# yetkili anahtarı yoksa dokunulmaz; ayar sshd -t ile denetlenmeden uygulanmaz.
+SSHD=/etc/ssh/sshd_config.d/00-yapboz.conf
+if [ -s /root/.ssh/authorized_keys ]; then
+    cat > "$SSHD.tmp" <<'SSH'
+# Yapboz Kırtasiye — SSH sertleştirme (sunucu-hazirla.sh)
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+X11Forwarding no
+MaxAuthTries 3
+SSH
+    if ! cmp -s "$SSHD.tmp" "$SSHD"; then
+        mv "$SSHD.tmp" "$SSHD"
+        if sshd -t; then systemctl reload ssh; else rm -f "$SSHD"; echo "SSH ayarı geçersiz, geri alındı."; fi
+    else
+        rm -f "$SSHD.tmp"
+    fi
+fi
+
+# fail2ban: SSH'ye art arda hatalı giriş deneyen adresler 1 saat engellenir.
+if ! command -v fail2ban-client >/dev/null; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends fail2ban >/dev/null
+fi
+cat > /etc/fail2ban/jail.d/yapboz.local <<'JAIL'
+[sshd]
+enabled = true
+backend = systemd
+maxretry = 5
+findtime = 10m
+bantime = 1h
+JAIL
+systemctl enable -q fail2ban
+systemctl restart fail2ban
 
 # Kuyruk işçisi ve zamanlayıcı
 install -m 644 "$HERE/supervisor.conf" /etc/supervisor/conf.d/yapboz-queue.conf

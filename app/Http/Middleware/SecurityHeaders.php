@@ -25,6 +25,9 @@ class SecurityHeaders
             // Google Analytics yalnızca mağaza vitrininde ve ölçüm kimliği tanımlıysa izinlidir.
             $analytics = config('store.analytics_id') && $request->getHost() === config('store.domain');
             $gaHosts = 'https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com';
+            // Kartla ödemede sipariş formu bize gönderilir, yanıt iyzico'nun ödeme sayfasına yönlendirir; tarayıcılar
+            // form-action'ı yönlendirmeye de uyguladığı için iyzico alan adları vitrinde izinlidir.
+            $store = $request->getHost() === config('store.domain');
 
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
@@ -37,7 +40,7 @@ class SecurityHeaders
                 "connect-src 'self'".($analytics ? " {$gaHosts}" : ''),
                 "object-src 'none'",
                 "base-uri 'self'",
-                "form-action 'self'",
+                "form-action 'self'".($store ? ' https://*.iyzipay.com https://*.iyzico.com' : ''),
                 "frame-ancestors 'none'",
             ]));
         }

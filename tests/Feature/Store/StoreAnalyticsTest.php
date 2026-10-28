@@ -30,6 +30,8 @@ class StoreAnalyticsTest extends TestCase
         $csp = $response->headers->get('Content-Security-Policy');
         $this->assertStringContainsString("script-src 'self' https://www.googletagmanager.com;", $csp);
         $this->assertStringContainsString("connect-src 'self' https://*.google-analytics.com", $csp);
+        // Kartla ödeme: sipariş formunun iyzico ödeme sayfasına yönlenmesine izin verilir.
+        $this->assertStringContainsString("form-action 'self' https://*.iyzipay.com https://*.iyzico.com;", $csp);
     }
 
     public function test_b2b_and_store_admin_never_allow_analytics(): void
@@ -40,6 +42,7 @@ class StoreAnalyticsTest extends TestCase
             $response = $this->get($url);
             $this->assertStringContainsString("script-src 'self';", $response->headers->get('Content-Security-Policy'));
             $this->assertStringNotContainsString('google-analytics', $response->headers->get('Content-Security-Policy'));
+            $this->assertStringContainsString("form-action 'self';", $response->headers->get('Content-Security-Policy'));
             $response->assertDontSee('ga-measurement-id', false);
         }
     }

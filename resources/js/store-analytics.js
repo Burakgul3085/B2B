@@ -6,10 +6,40 @@ import { consentAllows } from './store-consent.js';
 
 let loaded = false;
 
+// Gizli bağlantı anahtarları (misafir sipariş sayfası, parola sıfırlama, e-bülten onayı / ayrılma) Google'a gönderilmez:
+// adres yoldaki anahtar atılarak ölçülür. Aksi hâlde Analytics'i gören biri müşterinin siparişini açabilirdi.
+const SECRET_PATHS = [/^(\/siparis\/[^/]+)\/.+$/, /^(\/parola-sifirla)\/.+$/, /^(\/bulten\/(?:onay|ayril))\/.+$/];
+
+export function safeUrl(href) {
+    let url;
+    try {
+        url = new URL(href, location.href);
+    } catch {
+        return '';
+    }
+    const rule = SECRET_PATHS.find((re) => re.test(url.pathname));
+    if (rule) {
+        url.pathname = url.pathname.replace(rule, '$1');
+        url.search = '';
+    }
+    ['token', 'email', 'code'].forEach((key) => url.searchParams.delete(key));
+    url.hash = '';
+
+    return url.href;
+}
+
+function config(id) {
+    const options = { page_location: safeUrl(location.href) };
+    if (document.referrer) {
+        options.page_referrer = safeUrl(document.referrer);
+    }
+    window.gtag('config', id, options);
+}
+
 function start(id) {
     window[`ga-disable-${id}`] = false;
     if (loaded) {
-        window.gtag('config', id);
+        config(id);
         return;
     }
     loaded = true;
@@ -19,7 +49,7 @@ function start(id) {
         window.dataLayer.push(arguments);
     };
     window.gtag('js', new Date());
-    window.gtag('config', id);
+    config(id);
 
     const script = document.createElement('script');
     script.async = true;

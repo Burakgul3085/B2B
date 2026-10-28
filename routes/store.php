@@ -280,14 +280,14 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
             Route::get('parolami-unuttum', [Front\AuthController::class, 'showForgot'])->name('password.request');
             Route::post('parolami-unuttum', [Front\AuthController::class, 'sendReset'])->middleware(['throttle:5,10,password.email', 'store.bot'])->name('password.email');
             Route::get('parola-sifirla/{token}', [Front\AuthController::class, 'showReset'])->name('password.reset');
-            Route::post('parola-sifirla', [Front\AuthController::class, 'reset'])->name('password.update');
+            Route::post('parola-sifirla', [Front\AuthController::class, 'reset'])->middleware('throttle:10,10,password.update')->name('password.update');
         });
 
         Route::middleware(['auth:customer', 'auth.session'])->group(function () {
             Route::post('cikis', [Front\AuthController::class, 'logout'])->name('logout');
             Route::get('hesabim', [Front\AccountController::class, 'show'])->name('account');
             Route::put('hesabim', [Front\AccountController::class, 'updateProfile'])->name('account.profile');
-            Route::put('hesabim/parola', [Front\AccountController::class, 'updatePassword'])->name('account.password');
+            Route::put('hesabim/parola', [Front\AccountController::class, 'updatePassword'])->middleware('throttle:10,10,account.password')->name('account.password');
             Route::delete('hesabim', [Front\AccountController::class, 'close'])->middleware('throttle:5,10,account.close')->name('account.close');
             Route::put('hesabim/e-posta', [Front\AccountController::class, 'updateEmail'])->middleware('throttle:5,10,account.email')->name('account.email');
 
