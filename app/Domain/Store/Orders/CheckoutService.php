@@ -12,6 +12,8 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
+use App\Domain\Store\Print\PrintFiles;
+use App\Domain\Store\Print\PrintSettings;
 use App\Domain\Support\Decimal;
 use App\Models\Store\District;
 use App\Models\Store\Province;
@@ -21,6 +23,7 @@ use App\Models\Store\StoreCustomerAddress;
 use App\Models\Store\StoreDiscount;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StorePrintJob;
 use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +127,10 @@ class CheckoutService
             throw ValidationException::withMessages($errors);
         }
 
+        if ($notice = app(PrintSettings::class)->minimumNotice($summary)) {
+            throw new DomainException($notice);
+        }
+
         $province = Province::findOrFail($shipping['province_id']);
         $district = District::findOrFail($shipping['district_id']);
         $subtotal = $summary->subtotal();
@@ -192,6 +199,24 @@ class CheckoutService
             'discount_amount' => $discount?->shares[$i] ?? '0.00',
             'vat_amount' => self::vatOf(bcsub($l->total(), $discount?->shares[$i] ?? '0.00', 2), (string) $l->variant->vat_rate),
         ], $summary->orderable(), array_keys($summary->orderable()));
+
+        // Baskı işleri (fotokopi): stoksuz kalem; kampanya ve kuponlar yalnızca ürünlere uygulanır.
+        foreach ($summary->printsOrderable() as $p) {
+            $lines[] = [
+                'variant_id' => null,
+                'print_job_id' => $p->job->id,
+                'product_id' => null,
+                'product_name' => mb_substr($p->name(), 0, 200),
+                'option_label' => mb_substr($p->job->summary(), 0, 160),
+                'sku' => 'FOTOKOPI-'.$p->job->id,
+                'unit_price' => $p->total(),
+                'vat_rate' => $p->vatRate(),
+                'quantity' => 1,
+                'line_total' => $p->total(),
+                'discount_amount' => '0.00',
+                'vat_amount' => self::vatOf($p->total(), $p->vatRate()),
+            ];
+        }
 
         $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
         $vatTotal = array_reduce($lines, fn ($s, $l) => bcadd($s, $l['vat_amount'], 2), '0.00');
@@ -300,7 +325,17 @@ class CheckoutService
 
             $quantities = [];
             foreach ($draft['lines'] as $line) {
+                if ($line['variant_id'] === null) {
+                    continue; // baskı işi: stok yok
+                }
                 $quantities[$line['variant_id']] = ($quantities[$line['variant_id']] ?? 0) + $line['quantity'];
+            }
+            $printJobs = array_filter(array_column($draft['lines'], 'print_job_id'));
+            if ($printJobs) {
+                StorePrintJob::whereIn('id', $printJobs)->update(['order_id' => $order->id]);
+                foreach (StorePrintJob::with('file')->whereIn('id', $printJobs)->get() as $job) {
+                    app(PrintFiles::class)->keepForOrder($job->file);
+                }
             }
 
             if ($isCod || $isTransfer) {

@@ -4,9 +4,12 @@ namespace App\Domain\Store\Cart;
 
 use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Print\PrintCart;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreCustomer;
+use App\Models\Store\StorePrintFile;
+use App\Models\Store\StorePrintJob;
 use App\Models\Store\StoreProductVariant;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +74,9 @@ class CartService
         if ($quantity > self::MAX_QUANTITY) {
             throw new DomainException('Geçerli bir adet girin.');
         }
+        if ($item->print_job_id) {
+            throw new DomainException('Fotokopide kopya adedi baskı seçeneklerinden belirlenir.');
+        }
 
         $variant = $this->sellable($item->variant_id);
         $this->assertAvailable($variant, $quantity, 0);
@@ -80,7 +86,12 @@ class CartService
 
     public function remove(StoreCart $cart, int $itemId): void
     {
-        StoreCartItem::where('cart_id', $cart->id)->whereKey($itemId)->delete();
+        $item = StoreCartItem::where('cart_id', $cart->id)->find($itemId);
+        if ($item?->print_job_id) {
+            StorePrintJob::whereKey($item->print_job_id)->delete(); // sepet satırı da silinir (cascade); belge sepette kalır
+        } else {
+            $item?->delete();
+        }
     }
 
     /** Girişte misafir sepetini müşterinin sepetine katar (adetler satılabilir stokla sınırlanır) ve misafir sepetini siler. */
@@ -92,7 +103,11 @@ class CartService
 
         DB::transaction(function () use ($guest, $customer) {
             $cart = $this->forCustomer($customer);
-            foreach ($guest->items()->get() as $item) {
+            // Baskı işleri ve belgeleri hesabın sepetine taşınır.
+            StorePrintFile::where('cart_id', $guest->id)->update(['cart_id' => $cart->id]);
+            StorePrintJob::where('cart_id', $guest->id)->update(['cart_id' => $cart->id]);
+            $guest->items()->whereNotNull('print_job_id')->update(['cart_id' => $cart->id]);
+            foreach ($guest->items()->whereNotNull('variant_id')->get() as $item) {
                 $existing = StoreCartItem::where('cart_id', $cart->id)->where('variant_id', $item->variant_id)->first();
                 $wanted = ($existing?->quantity ?? 0) + $item->quantity;
                 $available = $this->stock->available([$item->variant_id])[$item->variant_id] ?? 0;
@@ -137,10 +152,14 @@ class CartService
             return new CartSummary([]);
         }
 
-        $items = $cart->items()->with(['variant.product.primaryImage'])->get();
+        $all = $cart->items()->with(['variant.product.primaryImage', 'printJob.file'])->get();
+        [$prints, $items] = $all->partition(fn (StoreCartItem $item) => $item->print_job_id !== null);
         $available = $this->stock->available($items->pluck('variant_id')->all());
 
-        return new CartSummary($items->map(fn (StoreCartItem $item) => new CartLine($item, $available[$item->variant_id] ?? 0))->all());
+        return new CartSummary(
+            $items->map(fn (StoreCartItem $item) => new CartLine($item, $available[$item->variant_id] ?? 0))->values()->all(),
+            app(PrintCart::class)->lines($prints->values()),
+        );
     }
 
     /** @throws DomainException */

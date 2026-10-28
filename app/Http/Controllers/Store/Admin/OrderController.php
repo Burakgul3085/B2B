@@ -64,7 +64,7 @@ class OrderController extends Controller
     public function show(StoreOrder $storeOrder, ReturnService $returns): View
     {
         return view('store.admin.orders.show', [
-            'order' => $storeOrder->load(['items', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice', 'creditNotes']),
+            'order' => $storeOrder->load(['items.printJob.file', 'events', 'payments', 'consents', 'customer', 'returns', 'refunds', 'invoice', 'creditNotes']),
             'returnable' => $storeOrder->status === 'delivered' ? $returns->returnableQuantities($storeOrder) : [],
             'carriers' => StoreCarrier::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id'),
             'blocked' => StoreCodBlock::where('phone', $storeOrder->phone)

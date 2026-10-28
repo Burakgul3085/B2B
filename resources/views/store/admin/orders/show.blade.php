@@ -162,7 +162,21 @@
                     <tbody class="divide-y divide-line">
                         @foreach ($order->items as $item)
                             <tr>
-                                <td>{{ $item->product_name }}<p class="text-xs text-muted">@if ($item->option_label){{ $item->option_label }} · @endif{{ $item->sku }} · KDV %{{ (int) $item->vat_rate }}</p></td>
+                                <td>{{ $item->product_name }}<p class="text-xs text-muted">@if ($item->option_label){{ $item->option_label }} · @endif{{ $item->sku }} · KDV %{{ (int) $item->vat_rate }}</p>
+                                    @if ($item->printJob)
+                                        @php $job = $item->printJob; @endphp
+                                        @if ($job->options['note'] ?? null)<p class="mt-1 text-xs">Müşteri notu: {{ $job->options['note'] }}</p>@endif
+                                        <p class="mt-1 flex flex-wrap gap-3 text-xs">
+                                            @if ($job->file->status === 'deleted')
+                                                <span class="text-muted">Belge saklama süresi dolduğu için silindi.</span>
+                                            @else
+                                                <a href="{{ route('store_admin.orders.print-file', [$order, $job, 'pdf']) }}" class="inline-flex items-center gap-1 font-medium text-primary hover:underline"><x-icon name="printer" class="size-3.5" /> Baskı dosyası ({{ $job->pages }} sayfa)</a>
+                                                @if ($job->file->pdf_path)<a href="{{ route('store_admin.orders.print-file', [$order, $job, 'ozgun']) }}" class="inline-flex items-center gap-1 font-medium text-primary hover:underline"><x-icon name="download" class="size-3.5" /> Özgün dosya (.{{ $job->file->extension }})</a>@endif
+                                                <span class="text-muted">{{ $job->file->expires_at?->timezone('Europe/Istanbul')->format('d.m.Y') }} tarihinde silinir</span>
+                                            @endif
+                                        </p>
+                                    @endif
+                                </td>
                                 <td class="text-right tabular-nums">{{ $item->quantity }}</td>
                                 <td class="text-right tabular-nums">{{ Money::format($item->unit_price) }}</td>
                                 <td class="text-right font-medium tabular-nums">{{ Money::format($item->line_total) }}</td>
@@ -171,7 +185,7 @@
                     </tbody>
                 </table>
                 <dl class="space-y-1.5 border-t border-line p-5 text-sm">
-                    <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-muted">Ara toplam</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
                     @if (bccomp((string) $order->discount_total, '0', 2) > 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
                     @if ($order->discount_name && bccomp((string) $order->discount_total, '0', 2) === 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd>Ücretsiz teslimat</dd></div>@endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums">{{ Money::format($order->shipping_fee) }}</dd></div>

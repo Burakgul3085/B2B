@@ -23,6 +23,12 @@ class StoreOrderItem extends Model
         return $this->belongsTo(StoreOrder::class, 'order_id');
     }
 
+    /** Baskı işi (fotokopi) kalemi; variant_id boştur, iade edilemez (kişiye özel üretim). */
+    public function printJob(): BelongsTo
+    {
+        return $this->belongsTo(StorePrintJob::class, 'print_job_id');
+    }
+
     public function returnItems(): HasMany
     {
         return $this->hasMany(StoreReturnItem::class, 'order_item_id');

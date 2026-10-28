@@ -63,7 +63,8 @@ class ReturnService
             ->whereIn('return_id', StoreReturn::where('order_id', $order->id)->where('status', '!=', 'rejected')->select('id'))
             ->groupBy('order_item_id')->selectRaw('order_item_id, SUM(quantity) as qty')->pluck('qty', 'order_item_id');
 
-        return $order->items()->get()->mapWithKeys(fn ($item) => [$item->id => max(0, $item->quantity - (int) ($requested[$item->id] ?? 0))])->all();
+        // Baskı işleri (fotokopi) kişiye özel üretimdir; cayma hakkı kapsamı dışındadır, iade edilemez.
+        return $order->items()->whereNull('print_job_id')->get()->mapWithKeys(fn ($item) => [$item->id => max(0, $item->quantity - (int) ($requested[$item->id] ?? 0))])->all();
     }
 
     /** Müşterinin talep açıp açamayacağı; açamıyorsa nedeni. */

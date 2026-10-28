@@ -41,6 +41,16 @@ fi
 chown -R www-data:www-data "$BASE/shared"
 chown root:www-data "$ENV"
 
+# Fotokopi: Word/PowerPoint/Excel → PDF (LibreOffice, arayüzsüz) ve sayfa sayımı / önizleme (poppler).
+# Office yazı tiplerinin metrik eşdeğerleri (Carlito = Calibri, Caladea = Cambria, Liberation = Arial/Times) sayfa
+# sayısının Word'e yakın çıkması içindir.
+if ! command -v soffice >/dev/null || ! command -v pdfinfo >/dev/null; then
+    apt-get update -q >/dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+        libreoffice-writer-nogui libreoffice-impress-nogui libreoffice-calc-nogui poppler-utils \
+        fonts-dejavu fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea >/dev/null
+fi
+
 # PHP
 for sapi in fpm cli; do
     install -m 644 "$HERE/php.ini" "/etc/php/8.5/$sapi/conf.d/99-yapboz.ini"

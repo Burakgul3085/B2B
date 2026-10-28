@@ -52,6 +52,7 @@ class StoreSetting extends Model
         'newsletter_text' => 'Yeni ürünler, indirimler ve size özel fırsatlar e-postanıza gelsin.',
         'newsletter_consent' => 'Kampanya ve duyurular için ticari elektronik ileti almayı kabul ediyorum.',
         'payment_logos_path' => null, // alt bilgideki ödeme logo bandı (iyzico'nun verdiği görsel)
+        'print' => null, // JSON: fotokopi ayarları (App\Domain\Store\Print\PrintSettings)
         'legal_reviewed' => null, // JSON {anahtar: sürüm}: yönetimde "gözden geçirildi" işaretlenen yasal metin sürümleri (LegalDocuments)
 
         // Satıcı bilgileri (yasal metinler, iletişim sayfası, fatura)

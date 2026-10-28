@@ -1241,3 +1241,203 @@ export function productList() {
         },
     };
 }
+
+/**
+ * Fotokopi sayfası: belgeler parça parça (chunk) yüklenir, sunucu sayfa sayısını çıkarınca seçenekler açılır.
+ * Fiyat her değişiklikte sunucudan alınır (tarayıcı fiyat hesaplamaz). Yarım kalan yükleme 409 yanıtındaki
+ * "received" değerinden sürer. config: { urls: {start, file}, files, maxBytes, maxFiles }.
+ * urls.file "__T__" yer tutuculu belge adresidir (durum, parça, önizleme, fiyat, sepet bunun altındadır).
+ */
+export function printOrder(config) {
+    const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
+    const fileUrl = (token, suffix) => config.urls.file.replace('__T__', token) + (suffix || '');
+    const defaults = () => ({ color: 'bw', duplex: '0', layout: 1, size: 'A4', range: '', copies: 1, binding: 'none', note: '' });
+    let uid = 0;
+    const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
+
+    return {
+        files: (config.files || []).map(prepare),
+        consent: false,
+        dragging: false,
+        message: '',
+        init() {
+            this.files.forEach((f) => {
+                if (f.status === 'processing') {
+                    this.poll(f);
+                } else if (f.status === 'ready') {
+                    this.quote(f);
+                }
+            });
+        },
+        get hasFiles() {
+            return this.files.length > 0;
+        },
+        pick(event) {
+            this.addFiles(event.target.files);
+            event.target.value = '';
+        },
+        drop(event) {
+            this.dragging = false;
+            this.addFiles(event.dataTransfer.files);
+        },
+        dragOver() {
+            this.dragging = true;
+        },
+        dragLeave() {
+            this.dragging = false;
+        },
+        addFiles(list) {
+            this.message = '';
+            if (!this.consent) {
+                this.message = 'Yüklemeden önce belgeyi çoğaltma hakkınız olduğunu onaylayın.';
+                return;
+            }
+            Array.from(list).forEach((file) => {
+                if (this.files.length >= config.maxFiles) {
+                    this.message = 'En fazla ' + config.maxFiles + ' belge yükleyebilirsiniz.';
+                } else if (file.size > config.maxBytes) {
+                    this.message = file.name + ': dosya ' + Math.round(config.maxBytes / 1048576) + ' MB sınırını aşıyor.';
+                } else {
+                    this.upload(file);
+                }
+            });
+        },
+        async request(url, method, body) {
+            const headers = { Accept: 'application/json', 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' };
+            if (body && !(body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+                body = JSON.stringify(body);
+            }
+            const res = await window.fetch(url, { method: method, headers: headers, body: body, credentials: 'same-origin' });
+            const data = await res.json().catch(() => ({}));
+            return { status: res.status, ok: res.ok, data: data };
+        },
+        async upload(source) {
+            this.files.push(prepare({ token: null, name: source.name, size: source.size, received: 0, status: 'uploading', pages: null, preview: null, image: false, progress: 0 }));
+            const f = this.files[this.files.length - 1];
+            try {
+                const started = await this.request(config.urls.start, 'POST', { name: source.name, size: source.size, consent: this.consent ? 1 : 0 });
+                if (!started.ok) {
+                    throw new Error(started.data.message || 'Yükleme başlatılamadı.');
+                }
+                f.token = started.data.token;
+                const chunk = started.data.chunk;
+                let offset = 0;
+                let retries = 0;
+                while (offset < source.size) {
+                    const form = new FormData();
+                    form.append('offset', offset);
+                    form.append('chunk', source.slice(offset, offset + chunk), 'parca');
+                    let res;
+                    try {
+                        res = await this.request(fileUrl(f.token, '/parca'), 'POST', form);
+                    } catch (e) {
+                        res = { status: 0, ok: false, data: {} };
+                    }
+                    if (res.ok) {
+                        offset = res.data.received;
+                        retries = 0;
+                        f.status = res.data.status;
+                        f.progress = Math.floor((offset / source.size) * 100);
+                    } else if (res.status === 409 && typeof res.data.received === 'number') {
+                        offset = res.data.received;
+                    } else if ((res.status === 0 || res.status >= 500) && retries < 5) {
+                        retries++;
+                        await new Promise((r) => setTimeout(r, 2000 * retries));
+                    } else {
+                        throw new Error(res.data.message || 'Yükleme yarıda kaldı.');
+                    }
+                }
+                f.progress = 100;
+                this.poll(f);
+            } catch (e) {
+                f.status = 'failed';
+                f.error = e.message;
+            }
+        },
+        poll(f) {
+            setTimeout(async () => {
+                if (!this.files.includes(f)) {
+                    return;
+                }
+                const res = await this.request(fileUrl(f.token), 'GET').catch(() => ({ ok: false }));
+                if (res.ok) {
+                    Object.assign(f, res.data, { error: res.data.error || '' });
+                }
+                if (f.status === 'ready') {
+                    this.quote(f);
+                } else if (f.status === 'processing' || !res.ok) {
+                    this.poll(f);
+                }
+            }, 2000);
+        },
+        requote(f) {
+            f.added = false;
+            clearTimeout(f.timer);
+            f.timer = setTimeout(() => this.quote(f), 350);
+        },
+        async quote(f) {
+            const res = await this.request(fileUrl(f.token, '/fiyat'), 'POST', f.opts);
+            if (res.ok) {
+                f.total = res.data.total;
+                f.summary = res.data.summary;
+                f.lines = res.data.quote.lines;
+                f.error = '';
+            } else {
+                f.total = null;
+                f.lines = [];
+                f.error = res.data.message || 'Fiyat hesaplanamadı.';
+            }
+        },
+        async addToCart(f) {
+            if (f.busy || !f.total) {
+                return;
+            }
+            f.busy = true;
+            const res = await this.request(fileUrl(f.token, '/sepet'), 'POST', f.opts).catch(() => ({ ok: false, data: {} }));
+            f.busy = false;
+            if (res.ok) {
+                f.added = true;
+                window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: res.data.count, open: true } }));
+            } else {
+                f.error = res.data.message || 'Sepete eklenemedi.';
+            }
+        },
+        async remove(f) {
+            this.files = this.files.filter((x) => x !== f);
+            if (f.token) {
+                await this.request(fileUrl(f.token), 'DELETE').catch(() => null);
+            }
+        },
+        isReady(f) {
+            return f.status === 'ready';
+        },
+        isBusy(f) {
+            return f.status === 'uploading' || f.status === 'processing';
+        },
+        isFailed(f) {
+            return f.status === 'failed';
+        },
+        statusText(f) {
+            if (f.status === 'uploading') {
+                return 'Yükleniyor… %' + f.progress;
+            }
+            if (f.status === 'processing') {
+                return 'Sayfalar sayılıyor…';
+            }
+            if (f.status === 'ready') {
+                return f.pages + ' sayfa';
+            }
+            return 'Yüklenemedi';
+        },
+        sizeText(f) {
+            return f.size >= 1048576 ? (f.size / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(f.size / 1024)) + ' KB';
+        },
+        progressStyle(f) {
+            return 'width: ' + f.progress + '%';
+        },
+        canAdd(f) {
+            return f.status === 'ready' && f.total !== null && !f.busy;
+        },
+    };
+}

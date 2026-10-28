@@ -10,8 +10,11 @@
                 <x-button class="mt-6" :href="route('store.products')">Alışverişe başla</x-button>
             </div>
         @else
+            @if ($printNotice = app(\App\Domain\Store\Print\PrintSettings::class)->minimumNotice($summary))
+                <p class="mt-6 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">{{ $printNotice }} Kopya ekleyebilir veya başka belge yükleyebilirsiniz.</p>
+            @endif
             @if ($summary->hasIssues())
-                <p class="mt-6 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">Sepetinizdeki bazı ürünlerin stok durumu değişti. İşaretli satırları düzenleyin; bu satırlar toplama dahil edilmez.</p>
+                <p class="mt-6 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">Sepetinizdeki bazı satırlar şu anda sipariş edilemiyor. İşaretli satırları düzenleyin; bu satırlar toplama dahil edilmez.</p>
             @endif
 
             <div class="mt-6 grid gap-8 lg:grid-cols-3">
@@ -58,12 +61,34 @@
                             </div>
                         </li>
                     @endforeach
+                    @foreach ($summary->prints as $line)
+                        <li @class(['flex gap-4 p-4 sm:p-5', 'bg-danger-soft/30' => $line->issue])>
+                            <a href="{{ route('store.print') }}" class="flex size-20 shrink-0 items-center justify-center rounded-xl border border-line bg-puzzle-blue/5 text-puzzle-blue sm:size-24"><x-icon name="printer" class="size-7" /></a>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="font-medium break-all">{{ $line->name() }}</p>
+                                        <p class="text-sm text-muted">{{ $line->job->summary() }}</p>
+                                        @if ($line->job->options['note'] ?? null)<p class="text-xs text-muted">Not: {{ $line->job->options['note'] }}</p>@endif
+                                    </div>
+                                    <p @class(["font-semibold tabular-nums", "text-muted line-through" => $line->issue])>{{ Money::format($line->total()) }}</p>
+                                </div>
+                                @if ($line->issue)
+                                    <p class="mt-2 text-sm font-medium text-danger">Bu baskı şu anda sipariş edilemiyor. Kaldırıp belgeyi yeniden yükleyin.</p>
+                                @endif
+                                <div class="mt-3">
+                                    <form method="POST" action="{{ route('store.cart.remove', $line->item->id) }}">@csrf @method('DELETE')<button class="text-sm text-muted hover:text-danger">Kaldır</button></form>
+                                </div>
+                            </div>
+                        </li>
+                    @endforeach
                 </ul>
 
                 <aside class="h-fit rounded-2xl border border-line p-6 lg:sticky lg:top-40">
                     <h2 class="text-lg font-semibold">Sipariş özeti</h2>
                     <dl class="mt-4 space-y-2 text-sm">
-                        <div class="flex justify-between"><dt class="text-muted">Ürünler ({{ collect($summary->orderable())->sum(fn ($l) => $l->quantity()) }} adet)</dt><dd class="tabular-nums">{{ Money::format($summary->subtotal()) }}</dd></div>
+                        @if ($summary->lines)<div class="flex justify-between"><dt class="text-muted">Ürünler ({{ collect($summary->orderable())->sum(fn ($l) => $l->quantity()) }} adet)</dt><dd class="tabular-nums">{{ Money::format($summary->productsSubtotal()) }}</dd></div>@endif
+                        @if ($summary->prints)<div class="flex justify-between"><dt class="text-muted">Fotokopi ({{ count($summary->printsOrderable()) }} belge)</dt><dd class="tabular-nums">{{ Money::format($summary->printsSubtotal()) }}</dd></div>@endif
                         @if ($discount && bccomp($discount->amount, '0', 2) > 0)
                             <div class="flex justify-between text-green-800"><dt>{{ $discount->label() }}</dt><dd class="tabular-nums">−{{ Money::format($discount->amount) }}</dd></div>
                         @endif

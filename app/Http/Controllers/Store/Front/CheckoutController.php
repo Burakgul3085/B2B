@@ -12,6 +12,7 @@ use App\Domain\Store\Orders\DeliveryRules;
 use App\Domain\Store\Orders\LegalDocuments;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\PaymentService;
+use App\Domain\Store\Print\PrintSettings;
 use App\Domain\Store\Sms\OtpService;
 use App\Domain\Support\Decimal;
 use App\Http\Controllers\Controller;
@@ -47,6 +48,9 @@ class CheckoutController extends Controller
         }
         if ($summary->hasIssues()) {
             return redirect()->route('store.cart')->withErrors(['cart' => 'Sepetinizdeki bazı ürünlerin stok durumu değişti; devam etmeden önce düzenleyin.']);
+        }
+        if ($notice = app(PrintSettings::class)->minimumNotice($summary)) {
+            return redirect()->route('store.cart')->withErrors(['cart' => $notice]);
         }
 
         $customer = $request->user('customer');
@@ -162,7 +166,8 @@ class CheckoutController extends Controller
         $customer = $request->user('customer');
         $cart = $this->current->find($request);
         $summary = $this->carts->summary($cart);
-        $lines = array_map(fn ($l) => [$l->variant->id, $l->quantity(), $l->unitPrice()], $summary->orderable());
+        $lines = [...array_map(fn ($l) => [$l->variant->id, $l->quantity(), $l->unitPrice()], $summary->orderable()),
+            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->printsOrderable())];
         $expected = array_map(fn ($l) => [$l['variant_id'], $l['quantity'], $l['unit_price']], $draft['lines']);
 
         // Kod beklenirken sepet, fiyat veya kapıda ödeme uygunluğu değiştiyse sipariş oluşturulmaz.

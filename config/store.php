@@ -21,6 +21,15 @@ return [
     // Boşsa kapalıdır; üretimde varsayılan mağazanın kimliğidir, yerelde ve testlerde kapalıdır.
     'analytics_id' => env('STORE_ANALYTICS_ID', env('APP_ENV') === 'production' ? 'G-P86EVFT132' : null),
 
+    // Fotokopi: belge çevirme ve sayfa sayımı araçları (sunucuda: apt install libreoffice-core-nogui poppler-utils).
+    'print' => [
+        'soffice' => env('PRINT_SOFFICE', 'soffice'),
+        'pdfinfo' => env('PRINT_PDFINFO', 'pdfinfo'),
+        'pdftoppm' => env('PRINT_PDFTOPPM', 'pdftoppm'),
+        'convert_timeout' => (int) env('PRINT_CONVERT_TIMEOUT', 300),
+        'chunk_bytes' => 8 * 1024 * 1024, // tarayıcı dosyayı bu boyutta parçalarla yükler
+    ],
+
     // Alt bilgideki yazılım geliştirici künyesi (sabit)
     'developer' => [
         'name' => 'Burak Gül',

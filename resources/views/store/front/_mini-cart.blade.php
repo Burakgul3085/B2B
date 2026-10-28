@@ -44,6 +44,17 @@
                 <p class="text-sm font-semibold tabular-nums">{{ Money::format($line->total()) }}</p>
             </li>
         @endforeach
+        @foreach ($summary->prints as $line)
+            <li class="flex gap-3 px-5 py-4">
+                <span class="flex size-16 shrink-0 items-center justify-center rounded-xl border border-line bg-puzzle-blue/5 text-puzzle-blue"><x-icon name="printer" class="size-6" /></span>
+                <div class="min-w-0 flex-1 text-sm">
+                    <p class="line-clamp-2 font-medium break-all">{{ $line->name() }}</p>
+                    <p class="text-xs text-muted">{{ $line->job->summary() }}</p>
+                    @if ($line->issue)<p class="mt-1 text-xs font-medium text-danger">Sipariş edilemiyor; sepette kontrol edin.</p>@endif
+                </div>
+                <p class="text-sm font-semibold tabular-nums">{{ Money::format($line->total()) }}</p>
+            </li>
+        @endforeach
     </ul>
     <div class="space-y-3 border-t border-line px-5 py-5">
         <div class="flex justify-between font-display text-base font-bold"><span>Ara toplam</span><span class="tabular-nums">{{ Money::format($subtotal) }}</span></div>

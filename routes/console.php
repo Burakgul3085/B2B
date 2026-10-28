@@ -4,6 +4,7 @@ use App\Domain\Platform\BackupService;
 use App\Domain\Store\Inventory\StockAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Payments\PaymentService;
+use App\Domain\Store\Print\PrintFiles;
 use App\Domain\Support\OpsStatus;
 use App\Jobs\QueueHeartbeat;
 use Database\Seeders\Support\DemoImages;
@@ -95,3 +96,10 @@ Schedule::command('store:stock-alerts')->everyTenMinutes()->withoutOverlapping()
 Artisan::command('store:stock-alerts', function (StockAlerts $alerts) {
     $this->info($alerts->sendDue().' stok bildirimi gönderildi.');
 })->purpose('Mağaza: stoğa giren ürünler için bekleyen bildirimleri gönderir');
+
+// Mağaza: saklama süresi dolan fotokopi belgelerini siler (siparişe dönüşmeyen 7, siparişteki 30 gün; Fotokopi ayarları).
+Schedule::command('store:prune-print-files')->dailyAt('04:15')->timezone('Europe/Istanbul')->withoutOverlapping();
+
+Artisan::command('store:prune-print-files', function (PrintFiles $files) {
+    $this->info($files->prune().' fotokopi belgesi silindi.');
+})->purpose('Mağaza: saklama süresi dolan fotokopi belgelerini siler');

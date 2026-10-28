@@ -112,6 +112,7 @@
                 ['label' => 'Mağaza Ayarları', 'route' => 'store_admin.settings.edit', 'icon' => 'settings', 'active' => 'store_admin.settings.*'],
                 ['label' => 'Ödeme ve Teslimat', 'route' => 'store_admin.payments.edit', 'icon' => 'cart', 'active' => 'store_admin.payments.*'],
                 ['label' => 'Kargo Firmaları', 'route' => 'store_admin.carriers.index', 'icon' => 'package', 'active' => 'store_admin.carriers.*'],
+                ['label' => 'Fotokopi', 'route' => 'store_admin.print.edit', 'icon' => 'printer', 'active' => 'store_admin.print.*'],
                 ['label' => 'Yayın Hazırlığı', 'route' => 'store_admin.launch', 'icon' => 'check-circle', 'active' => 'store_admin.launch'],
                 ['label' => 'Yasal Metinler', 'route' => 'store_admin.legal.index', 'icon' => 'shield', 'active' => 'store_admin.legal.*'],
             ]],

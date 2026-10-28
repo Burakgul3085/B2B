@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Content\HelpPages;
 use App\Domain\Store\Content\SitePages;
+use App\Domain\Store\Print\PrintSettings;
 use App\Domain\Store\Storefront\Catalog;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\RobotsController;
@@ -33,7 +34,7 @@ class SeoController extends Controller
         // Kişiye özel ve işlem sayfaları taranmaz (sepet, ödeme, hesap, sipariş bağlantıları, arama, yardımcı uç noktalar).
         // "/odeme-secenekleri" ve "/siparis-ve-teslimat" açık kalsın diye önekler sonu belirtilerek yazılır.
         $private = ['/ara', '/onizleme', '/sepet', '/odeme$', '/odeme/', '/siparis/', '/hesabim', '/favoriler/', '/giris', '/uye-ol',
-            '/parolami-unuttum', '/parola-sifirla', '/bulten/', '/stok-bildirimi', '/menu/', '/ilceler/', '/cikis'];
+            '/parolami-unuttum', '/parola-sifirla', '/bulten/', '/stok-bildirimi', '/menu/', '/ilceler/', '/cikis', '/fotokopi/'];
         $body = "User-agent: *\nAllow: /\n".implode('', array_map(fn ($p) => "Disallow: {$p}\n", $private))
             ."\nSitemap: ".route('store.sitemap')."\n";
 
@@ -55,6 +56,7 @@ class SeoController extends Controller
             ->merge(StoreCollection::where('is_active', true)->get(['slug', 'updated_at'])->map(fn ($c) => ['loc' => route('store.collection', $c->slug), 'lastmod' => $c->updated_at]))
             ->merge($catalog->products()->get(['slug', 'updated_at'])->map(fn ($p) => ['loc' => route('store.product', $p->slug), 'lastmod' => $p->updated_at]))
             ->merge(collect(SitePages::published())->map(fn ($p) => ['loc' => $p['url'], 'lastmod' => $p['updated_at']]))
+            ->when(app(PrintSettings::class)->enabled(), fn ($u) => $u->push($page('store.print')))
             ->when($about && ! empty($about->content['gallery']) && SitePages::sectionOn($about->content, 'gallery'), fn ($u) => $u->push($page('store.about.gallery', $about->updated_at)))
             ->merge(collect(array_keys(HelpPages::PAGES))->filter(fn ($key) => HelpPages::isPublished($key))->map(fn ($key) => $page('store.help.'.$key)))
             ->merge(collect(array_keys(StoreLegalDocument::KEYS))->map(fn ($key) => ['loc' => route('store.legal', $key), 'lastmod' => StoreLegalDocument::current($key)?->created_at]))

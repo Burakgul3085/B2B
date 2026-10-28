@@ -1,6 +1,6 @@
 {{--
     Vitrin üst bilgisi: üst şerit (lacivert), logo + canlı arama + hesap/sepet/tema, menü çubuğu, mobil çekmece.
-    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye; içeriği store.front._menu-desktop / _menu-mobile, ilk açılışta yüklenir) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › Kampanyalar (yayında varsa) › yayındaki
+    Menü çubuğu: Tüm kategoriler (açılır menü, 3 seviye; içeriği store.front._menu-desktop / _menu-mobile, ilk açılışta yüklenir) › Tüm ürünler › Markalar › Yeni gelenler › İndirimler › Fotokopi (açıksa) › Kampanyalar (yayında varsa) › yayındaki
     sabit sayfalar (Hakkımızda, İletişim) › Blog (yazı varsa). Kategori renkleri: Catalog::menu() her ana kategoriye bir yapboz rengi verir.
 --}}
 @props(['storeName', 'settings', 'menu', 'footer', 'pages', 'customer', 'cartCount'])
@@ -17,6 +17,9 @@
         ['Yeni gelenler', route('store.products', ['yeni' => 1]), $listing && ! $campaignList && request()->boolean('yeni'), ['star', 'text-puzzle-yellow']],
         ['İndirimler', route('store.products', ['indirim' => 1]), $listing && ! $campaignList && request()->boolean('indirim') && ! request()->boolean('yeni'), ['percent', 'text-puzzle-orange']],
     ];
+    if (app(\App\Domain\Store\Print\PrintSettings::class)->enabled()) {
+        $links[] = ['Fotokopi', route('store.print'), request()->routeIs('store.print*'), ['printer', 'text-puzzle-blue']];
+    }
     if (\App\Domain\Store\Discounts\CampaignPage::any()) {
         $links[] = ['Kampanyalar', route('store.campaigns'), request()->routeIs('store.campaigns') || $campaignList, ['gift', 'text-green-600']];
     }

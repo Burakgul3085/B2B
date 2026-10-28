@@ -215,9 +215,17 @@
                             <span class="shrink-0 tabular-nums">{{ Money::format($line->total()) }}</span>
                         </li>
                     @endforeach
+                    @foreach ($summary->printsOrderable() as $line)
+                        <li class="flex justify-between gap-3">
+                            <span class="min-w-0"><span class="line-clamp-2 break-all">{{ $line->name() }}</span>
+                                <span class="text-xs text-muted">{{ $line->job->summary() }}</span></span>
+                            <span class="shrink-0 tabular-nums">{{ Money::format($line->total()) }}</span>
+                        </li>
+                    @endforeach
                 </ul>
                 <dl class="space-y-2 border-t border-line pt-4 text-sm">
-                    <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($summary->subtotal()) }}</dd></div>
+                    @if ($summary->orderable())<div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($summary->productsSubtotal()) }}</dd></div>@endif
+                    @if ($summary->printsOrderable())<div class="flex justify-between"><dt class="text-muted">Fotokopi</dt><dd class="tabular-nums">{{ Money::format($summary->printsSubtotal()) }}</dd></div>@endif
                     @if ($discount && bccomp($discount->amount, '0', 2) > 0)
                         <div class="flex justify-between text-green-800"><dt>{{ $discount->label() }}</dt><dd class="tabular-nums">−{{ Money::format($discount->amount) }}</dd></div>
                     @endif

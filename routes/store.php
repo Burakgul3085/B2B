@@ -130,6 +130,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('siparisler/{storeOrder}/iade-faturasi', [Admin\OrderController::class, 'storeCreditNote'])->name('orders.credit-note.store');
             Route::get('siparisler/{storeOrder}/iade-faturasi/{note}', [Admin\OrderController::class, 'creditNote'])->whereNumber('note')->name('orders.credit-note');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
+            Route::get('siparisler/{storeOrder}/fotokopi/{storePrintJob}/{kind}', [Admin\PrintController::class, 'download'])->whereIn('kind', ['pdf', 'ozgun'])->name('orders.print-file');
             Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
             // İletişim formu mesajları
             Route::get('mesajlar', [Admin\ContactMessageController::class, 'index'])->name('messages.index');
@@ -184,6 +185,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::put('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'update'])->name('payments.update');
             Route::delete('ayarlar/odeme-teslimat/anahtar/{key}', [Admin\PaymentSettingsController::class, 'removeSecret'])->name('payments.secret.destroy');
             Route::get('ayarlar/yayin-hazirligi', [Admin\SettingsController::class, 'launch'])->name('launch');
+            Route::get('ayarlar/fotokopi', [Admin\PrintController::class, 'edit'])->name('print.edit');
+            Route::put('ayarlar/fotokopi', [Admin\PrintController::class, 'update'])->name('print.update');
             Route::get('ayarlar/kargo-firmalari', [Admin\CarrierController::class, 'index'])->name('carriers.index');
             Route::post('ayarlar/kargo-firmalari', [Admin\CarrierController::class, 'store'])->name('carriers.store');
             Route::put('ayarlar/kargo-firmalari/{storeCarrier}', [Admin\CarrierController::class, 'update'])->name('carriers.update');
@@ -320,6 +323,16 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         });
 
         // Sepet (M5)
+        // Fotokopi: belge yükleme (parçalı), sayfa sayımı, canlı fiyat, sepete ekleme
+        Route::get('fotokopi', [Front\PrintController::class, 'show'])->name('print');
+        Route::post('fotokopi/dosya', [Front\PrintController::class, 'start'])->middleware('throttle:30,10,print.start')->name('print.start');
+        Route::post('fotokopi/dosya/{token}/parca', [Front\PrintController::class, 'chunk'])->middleware('throttle:900,10,print.chunk')->name('print.chunk');
+        Route::get('fotokopi/dosya/{token}', [Front\PrintController::class, 'status'])->middleware('throttle:240,1,print.status')->name('print.status');
+        Route::get('fotokopi/dosya/{token}/onizleme', [Front\PrintController::class, 'preview'])->name('print.preview');
+        Route::delete('fotokopi/dosya/{token}', [Front\PrintController::class, 'destroy'])->name('print.destroy');
+        Route::post('fotokopi/dosya/{token}/fiyat', [Front\PrintController::class, 'quote'])->middleware('throttle:240,1,print.quote')->name('print.quote');
+        Route::post('fotokopi/dosya/{token}/sepet', [Front\PrintController::class, 'add'])->middleware('throttle:60,1,print.add')->name('print.add');
+
         Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');
         Route::get('sepet/cekmece', [Front\CartController::class, 'drawer'])->name('cart.drawer');
         Route::post('sepet', [Front\CartController::class, 'add'])->middleware('throttle:60,1,cart.add')->name('cart.add');
