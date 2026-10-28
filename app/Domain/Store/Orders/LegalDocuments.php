@@ -46,7 +46,7 @@ class LegalDocuments
             'SATICI_EPOSTA' => $s['email'] ?: '—',
             'SATICI_VERGI' => trim(($s['company_tax_office'] ?? '').' '.($s['company_tax_number'] ?? '')) ?: '—',
             'SATICI_MERSIS' => $s['company_mersis'] ?: ($s['company_esnaf_no'] ?: '—'),
-            'SATICI_WEB' => config('store.domain'),
+            'SATICI_WEB' => config('store.display_domain'),
             'ALICI_AD' => $order['name'],
             'ALICI_ADRES' => $order['address'],
             'ALICI_TELEFON' => $order['phone'],

@@ -127,7 +127,7 @@ class PaymentService
         $items = $order->items()->get()->map(fn ($i) => [
             'id' => (string) $i->id,
             'name' => mb_substr($i->product_name.($i->option_label ? " ({$i->option_label})" : ''), 0, 200),
-            'category1' => 'Kırtasiye',
+            'category1' => $i->print_job_id ? 'Fotokopi / Baskı' : 'Kırtasiye',
             'itemType' => 'PHYSICAL',
             'price' => bcsub((string) $i->line_total, (string) $i->discount_amount, 2),
         ])->filter(fn ($i) => bccomp($i['price'], '0', 2) > 0)->values()->all();

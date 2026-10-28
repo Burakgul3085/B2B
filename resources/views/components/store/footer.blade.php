@@ -155,6 +155,26 @@
         </div>
     </div>
 
+    {{-- Satıcı künyesi ve sözleşmeler: alt bilgi sütunları yönetimde değiştirilse de her sayfada görünür (iyzico üye işyeri koşulu). --}}
+    @php
+        $seller = array_filter([
+            $settings['company_title'] ?: $storeName,
+            ($settings['company_tax_office'] || $settings['company_tax_number']) ? 'Vergi dairesi / no: '.trim($settings['company_tax_office'].' / '.$settings['company_tax_number'], ' /') : null,
+            $settings['company_mersis'] ? 'MERSİS: '.$settings['company_mersis'] : ($settings['company_esnaf_no'] ? 'Esnaf sicil no: '.$settings['company_esnaf_no'] : null),
+            $settings['address'],
+        ]);
+    @endphp
+    <div class="border-t border-white/10 bg-[#0e1c3d]">
+        <div class="mx-auto max-w-7xl px-4 py-4 text-center text-xs text-white/55 sm:px-6 lg:px-8">
+            <nav aria-label="Sözleşmeler" class="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+                @foreach (\App\Models\Store\StoreLegalDocument::KEYS as $key => $title)
+                    <a href="{{ route('store.legal', $key) }}" class="text-white/75 transition hover:text-white hover:underline">{{ $title }}</a>
+                @endforeach
+            </nav>
+            <p class="mt-2 leading-relaxed">{{ implode(' · ', $seller) }}</p>
+        </div>
+    </div>
+
     {{-- Telif ve künye --}}
     <div class="border-t border-white/10 bg-black/20">
         <div class="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-5 text-[13px] sm:px-6 lg:flex-row lg:justify-between lg:px-8">

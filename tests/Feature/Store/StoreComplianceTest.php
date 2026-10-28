@@ -48,6 +48,14 @@ class StoreComplianceTest extends TestCase
         $this->get(self::HOST.'/')->assertOk()
             ->assertSee('x-data="cookieConsent"', false)->assertSee('Çerez tercihleri')
             ->assertSee(route('store.legal', 'kvkk'))->assertSee(route('store.legal', 'iptal-iade'));
+
+        // iyzico: satıcı künyesi ve tüm sözleşmeler her sayfanın alt bilgisinde; alan adı punycode değil okunur hâliyle yazılır.
+        StoreSetting::put(['company_tax_office' => 'Eskişehir', 'company_tax_number' => '1234567890', 'company_esnaf_no' => '76076']);
+        $this->get(self::HOST.'/urunler')->assertOk()
+            ->assertSee(route('store.legal', 'mesafeli-satis'))->assertSee(route('store.legal', 'on-bilgilendirme'))->assertSee(route('store.legal', 'gizlilik-cerez'))
+            ->assertSee('Vergi dairesi / no: Eskişehir / 1234567890 · Esnaf sicil no: 76076 · Hamamyolu Cad. No 1 Eskişehir');
+        config(['store.display_domain' => 'yapbozkırtasiye.com']);
+        $this->get(self::HOST.'/yasal/mesafeli-satis')->assertSee('yapbozkırtasiye.com');
         $this->get(self::HOST.'/uye-ol')->assertSee(route('store.legal', 'kvkk'));
 
         // Ödemede yalnızca iki sözleşme onaylanır ve siparişe kopyalanır.

@@ -11,6 +11,9 @@ return [
     // Herkese açık mağaza (ör. yapbozkirtasiye.com)
     'domain' => env('STORE_DOMAIN', 'magaza.localhost'),
 
+    // Metinlerde gösterilen alan adı: Türkçe karakterli alan adı punycode (xn--...) değil okunur hâliyle yazılır.
+    'display_domain' => (function_exists('idn_to_utf8') ? idn_to_utf8(env('STORE_DOMAIN', 'magaza.localhost')) : false) ?: env('STORE_DOMAIN', 'magaza.localhost'),
+
     // Mağaza yönetim paneli (ör. yonetim.yapbozkirtasiye.com)
     'admin_domain' => env('STORE_ADMIN_DOMAIN', 'yonetim.localhost'),
 
