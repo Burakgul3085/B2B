@@ -12,6 +12,15 @@ class StoreEmailRenderer
 {
     public const LOGO_CID = 'magaza-logo';
 
+    /**
+     * Sipariş e-postalarının hareketli figürleri (resources/images/mail, database/data/mail-figures/figures.py ile üretilir).
+     * content['figure'] bu anahtarlardan biriyse e-postanın üstüne gömülü (cid) GIF olarak eklenir.
+     */
+    public const FIGURES = [
+        'siparis-alindi' => 'Siparişinizi hazırlayan Yapboz figürü el sallıyor',
+        'kargoda' => 'Yapboz kargo aracı yolda',
+    ];
+
     /** E-postada logonun gösterileceği yükseklik (px); görsel 2 katı çözünürlükte gömülür. */
     public const LOGO_HEIGHT = 48;
 
@@ -21,9 +30,15 @@ class StoreEmailRenderer
      */
     public function render(string $subject, array $content): array
     {
+        $inline = [$this->inlineLogo()];
+        $figure = $content['figure'] ?? null;
+        if (isset(self::FIGURES[$figure])) {
+            $content += ['figure_src' => 'cid:figur-'.$figure, 'figure_alt' => self::FIGURES[$figure]];
+            $inline[] = ['cid' => 'figur-'.$figure, 'data' => file_get_contents(resource_path("images/mail/{$figure}.gif")), 'name' => "{$figure}.gif", 'mime' => 'image/gif'];
+        }
         $html = view('emails.store', $content + ['subject' => $subject] + $this->logoView(true))->render();
 
-        return ['html' => $html, 'text' => $this->text($subject, $content), 'inline' => [$this->inlineLogo()]];
+        return ['html' => $html, 'text' => $this->text($subject, $content), 'inline' => $inline];
     }
 
     /**

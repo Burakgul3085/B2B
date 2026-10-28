@@ -35,7 +35,7 @@ class OrderMailer
         ])->all();
 
         $this->send($order, "Siparişiniz alındı — {$order->order_no}", 'Siparişiniz için teşekkürler',
-            $intro.($documents ? ' Onayladığınız sözleşmeler bu e-postanın altındadır; saklamanızı öneririz.' : ''), true, null, $documents, $bankRows);
+            $intro.($documents ? ' Onayladığınız sözleşmeler bu e-postanın altındadır; saklamanızı öneririz.' : ''), true, null, $documents, $bankRows, 'siparis-alindi');
     }
 
     /** Havale / EFT ödeme talimatı: tutar, açıklamaya yazılacak sipariş numarası ve son ödeme zamanı. */
@@ -61,7 +61,7 @@ class OrderMailer
     public function shipped(StoreOrder $order): void
     {
         if ($order->delivery_method !== 'cargo') {
-            $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', 'Siparişiniz teslimat için yola çıktı.', false);
+            $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', 'Siparişiniz teslimat için yola çıktı.', false, figure: 'kargoda');
 
             return;
         }
@@ -75,7 +75,7 @@ class OrderMailer
 
         $this->send($order, "Kargonuz yola çıktı — {$order->order_no}", 'Kargonuz yola çıktı', $intro, false,
             $order->tracking_url ? [$order->tracking_url, 'Kargonuz nerede?'] : null, [],
-            [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]]);
+            [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]], 'kargoda');
     }
 
     public function cancelled(StoreOrder $order): void
@@ -109,8 +109,11 @@ class OrderMailer
             "{$order->order_no} numaralı siparişinizin faturası ({$invoice->invoice_no}) hazır. Sipariş sayfasından indirebilirsiniz.", false);
     }
 
-    /** @param  array{0: string, 1: string}|null  $action  ek bağlantı (adres, etiket); yoksa sipariş sayfası */
-    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null, array $documents = [], array $extraRows = []): void
+    /**
+     * @param  array{0: string, 1: string}|null  $action  ek bağlantı (adres, etiket); yoksa sipariş sayfası
+     * @param  string|null  $figure  e-postanın üstündeki hareketli figür (StoreEmailRenderer::FIGURES)
+     */
+    private function send(StoreOrder $order, string $subject, string $title, string $intro, bool $withItems, ?array $action = null, array $documents = [], array $extraRows = [], ?string $figure = null): void
     {
         $rows = [];
         if ($withItems) {
@@ -139,6 +142,7 @@ class OrderMailer
             'action_label' => $action[1] ?? 'Siparişi görüntüle',
             'outro' => "Sipariş numaranız {$order->order_no}. Bize ulaşırken bu numarayı belirtmeniz işlemlerinizi hızlandırır.",
             'documents' => $documents,
+            'figure' => $figure,
         ];
         $email = $order->email;
 

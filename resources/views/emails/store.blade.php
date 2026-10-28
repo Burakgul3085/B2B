@@ -2,7 +2,8 @@
     /*
      * Mağaza e-postası (sipariş, bildirim, stok, e-bülten onayı): B2B e-postalarıyla (emails.business) aynı kurumsal düzen.
      * E-posta istemcileri için tablo tabanlı ve satır içi stillidir. Logo e-postaya gömülüdür (cid); önizlemede data: adresi.
-     * İçerik: $title, $intro, $rows (list<[etiket, değer]>), $action_url/$action_label, $eyebrow, $tagline, $outro, $documents.
+     * İçerik: $title, $intro, $rows (list<[etiket, değer]>), $action_url/$action_label, $eyebrow, $tagline, $outro, $documents,
+     * $figure_src/$figure_alt (sipariş alındı / kargoda e-postalarındaki hareketli figür, gömülü GIF).
      */
     $accent = '#172554';
     $font = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
@@ -45,6 +46,9 @@
 
             {{-- İçerik --}}
             <tr><td style="background:#ffffff;border:1px solid #e2e8f0;border-top:0;border-bottom:0;padding:34px 36px 8px;" class="px">
+                @if (! empty($figure_src))
+                    <img src="{{ $figure_src }}" width="548" alt="{{ $figure_alt ?? '' }}" style="display:block;width:100%;max-width:548px;height:auto;border:0;outline:none;margin:0 0 22px;">
+                @endif
                 @if ($eyebrow)
                     <div style="display:inline-block;background:#f1f5f9;color:{{ $accent }};font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;padding:6px 11px;border-radius:999px;margin-bottom:16px;">{{ $eyebrow }}</div>
                 @endif

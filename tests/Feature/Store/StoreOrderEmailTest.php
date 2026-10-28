@@ -7,6 +7,7 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Mail\StoreEmailRenderer;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\CheckoutService;
+use App\Domain\Store\Orders\OrderMailer;
 use App\Models\Store\District;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
@@ -62,9 +63,24 @@ class StoreOrderEmailTest extends TestCase
         $this->assertStringContainsString(config('store.domain'), $mail['content']['documents'][1]['html']);
         $this->assertStringNotContainsString('{SATICI_', $mail['content']['documents'][0]['html'].$mail['content']['documents'][1]['html']);
 
-        $html = app(StoreEmailRenderer::class)->render($mail['subject'], $mail['content'])['html'];
+        $rendered = app(StoreEmailRenderer::class)->render($mail['subject'], $mail['content']);
+        $html = $rendered['html'];
+        // Hareketli figür e-postaya gömülü GIF olarak eklenir.
+        $this->assertSame('siparis-alindi', $mail['content']['figure']);
+        $this->assertStringContainsString('src="cid:figur-siparis-alindi"', $html);
+        $gif = collect($rendered['inline'])->firstWhere('cid', 'figur-siparis-alindi');
+        $this->assertSame(['image/gif', 'GIF89a'], [$gif['mime'], substr($gif['data'], 0, 6)]);
         $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 2)', $html);
         $this->assertStringContainsString('<h2', $html);
         $this->assertStringContainsString($order->order_no, $html);
+
+        // Kargoya verildi e-postasında kargo aracı figürü; diğer e-postalarda figür yok.
+        $order->update(['status' => 'preparing', 'payment_status' => 'paid', 'delivery_method' => 'cargo', 'carrier' => 'Aras Kargo', 'tracking_number' => '123']);
+        app(OrderMailer::class)->shipped($order->fresh());
+        app(OrderMailer::class)->cancelled($order->fresh());
+        $this->app->terminate();
+        $mails = array_slice($this->mails, -2);
+        $this->assertSame(['kargoda', null], array_map(fn ($m) => $m['content']['figure'], $mails));
+        $this->assertCount(1, app(StoreEmailRenderer::class)->render('x', $mails[1]['content'])['inline'], 'yalnızca logo');
     }
 }
