@@ -19,7 +19,7 @@
                                     @if ($r->status === 'stock_updated')<a href="{{ route('dealer.catalog.show', $r->product_id) }}" class="mt-1 block text-xs font-medium text-primary hover:underline">Sipariş ver</a>@endif
                                 </td>
                                 <td class="max-w-64 text-sm">{{ $r->response_note ?? '—' }}</td>
-                                <td class="text-muted tabular-nums">{{ $r->created_at->format('d.m.Y') }}</td>
+                                <td class="text-muted tabular-nums">{{ $r->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</td>
                             </tr>
                         @endforeach
                     </tbody>

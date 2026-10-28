@@ -43,7 +43,7 @@
         <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
             <p class="text-sm text-muted">Son ödeme günü</p>
             @if ($dueDate && ! $closed)
-                @php $due = Carbon::parse($dueDate); $days = (int) Carbon::today()->diffInDays($due, false); @endphp
+                @php $due = Carbon::parse($dueDate); $days = (int) Carbon::today('Europe/Istanbul')->diffInDays($due, false); @endphp
                 <p class="mt-1 text-2xl font-bold text-ink tabular-nums">{{ $due->format('d.m.Y') }}</p>
                 <p @class(['text-xs', 'font-semibold text-red-700' => $days < 0, 'text-muted' => $days >= 0])>{{ $days < 0 ? abs($days).' gün gecikti' : ($days === 0 ? 'Bugün' : $days.' gün kaldı') }} · <a href="{{ route('dealer.account.statement') }}" class="text-primary hover:underline">Cari hesap</a></p>
             @else

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Business;
 use App\Domain\Ledger\AccountAnalysis;
 use App\Domain\Reporting\DashboardMetrics;
 use App\Domain\Reporting\Reports\Options;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
@@ -65,10 +66,10 @@ class DashboardController extends Controller
             'stock_value' => (string) $stockTotals->value,
             'unpriced' => (int) $stockTotals->unpriced,
             'pending_orders' => Order::whereIn('status', [...Order::PENDING, 'cancel_requested'])->count(),
-            'today_orders' => Order::where('created_at', '>=', now()->startOfDay())->count(),
+            'today_orders' => Order::where('created_at', '>=', LocalTime::utc(LocalTime::now()->startOfDay()))->count(),
             // Satış = onaylanmış ve iptal edilmemiş siparişlerin tutarı (onay tarihine göre).
             'month_sales' => (string) Order::whereIn('status', ['approved', 'preparing', 'completed', 'cancel_requested'])
-                ->where('approved_at', '>=', now()->startOfMonth())->sum('grand_total'),
+                ->where('approved_at', '>=', LocalTime::utc(LocalTime::now()->startOfMonth()))->sum('grand_total'),
             'open_requests' => ProductRequest::whereIn('status', ProductRequest::OPEN)->count(),
             'new_applications' => DealerApplication::whereIn('status', ['new', 'waiting_info'])->count(),
         ];
@@ -80,7 +81,7 @@ class DashboardController extends Controller
         $finance = [
             'receivable' => (string) $accounts->sum('balance'),
             'overdue' => collect($aging)->reduce(fn ($c, $a) => bcadd($c, $a['overdue'], 2), '0.00'),
-            'month_collections' => (string) CollectionEntry::whereNull('cancelled_at')->where('collected_on', '>=', now()->startOfMonth()->toDateString())->sum('amount'),
+            'month_collections' => (string) CollectionEntry::whereNull('cancelled_at')->where('collected_on', '>=', LocalTime::now()->startOfMonth()->toDateString())->sum('amount'),
         ];
 
         $critical = (clone $active)->with('unit')

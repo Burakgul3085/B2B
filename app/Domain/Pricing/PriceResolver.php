@@ -3,6 +3,7 @@
 namespace App\Domain\Pricing;
 
 use App\Domain\Support\Decimal;
+use App\Domain\Support\LocalTime;
 use App\Models\Category;
 use App\Models\DealerProductPrice;
 use App\Models\DealerRelationship;
@@ -44,7 +45,7 @@ class PriceResolver
             return collect();
         }
 
-        $date ??= now()->toDateString();
+        $date ??= LocalTime::today();
         $products = $products->keyBy('id');
         $products->each->loadMissing('taxRate');
         $ids = $products->keys()->all();

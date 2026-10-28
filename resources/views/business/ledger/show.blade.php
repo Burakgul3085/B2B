@@ -49,7 +49,7 @@
                     @csrf
                     <div class="grid grid-cols-2 gap-3">
                         <x-field name="amount" label="Tutar (₺)" type="number" step="0.01" min="0.01" required />
-                        <x-field name="collected_on" label="Tarih" type="date" :value="now()->toDateString()" required />
+                        <x-field name="collected_on" label="Tarih" type="date" :value="now('Europe/Istanbul')->toDateString()" required />
                     </div>
                     <x-field name="method" label="Yöntem" :options="CollectionEntry::METHODS" required />
                     <x-field name="order_id" label="İlgili sipariş (isteğe bağlı)" :options="['' => 'Seçilmedi'] + $orders->all()" />
@@ -64,7 +64,7 @@
                         @csrf
                         <div class="grid grid-cols-2 gap-3">
                             <x-field name="amount" label="Tutar (₺)" type="number" step="0.01" required hint="Bayi borçluysa pozitif, alacaklıysa negatif." />
-                            <x-field name="date" label="Tarih" type="date" :value="now()->toDateString()" required />
+                            <x-field name="date" label="Tarih" type="date" :value="now('Europe/Istanbul')->toDateString()" required />
                         </div>
                         <x-field name="note" label="Açıklama" />
                         <x-button variant="secondary" class="w-full">Açılış bakiyesini kaydet</x-button>
@@ -78,7 +78,7 @@
                     <x-field name="direction" label="Tür" :options="['credit' => 'Alacak (bayinin borcunu azaltır)', 'debit' => 'Borç (bayinin borcunu artırır)']" />
                     <div class="grid grid-cols-2 gap-3">
                         <x-field name="amount" label="Tutar (₺)" type="number" step="0.01" min="0.01" required />
-                        <x-field name="date" label="Tarih" type="date" :value="now()->toDateString()" required />
+                        <x-field name="date" label="Tarih" type="date" :value="now('Europe/Istanbul')->toDateString()" required />
                     </div>
                     <x-field name="note" label="Açıklama" required />
                     <x-button variant="secondary" class="w-full">Kaydet</x-button>

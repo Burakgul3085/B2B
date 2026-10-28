@@ -6,6 +6,7 @@ use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReorderService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CurrentAccountMovement;
@@ -64,7 +65,7 @@ class OrderController extends Controller
                 'open_count' => (int) $sum(self::GROUPS['open'], 'c'),
                 'open_total' => $sum(self::GROUPS['open'], 't'),
                 'month_total' => (float) Order::where('dealer_relationship_id', $relationshipId)->whereNotIn('status', self::GROUPS['closed'])
-                    ->where('created_at', '>=', now()->startOfMonth())->sum('grand_total'),
+                    ->where('created_at', '>=', LocalTime::utc(LocalTime::now()->startOfMonth()))->sum('grand_total'),
                 'completed_count' => (int) $sum(['completed'], 'c'),
             ],
         ]);

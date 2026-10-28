@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Support\LocalTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -42,7 +43,7 @@ class Business extends Model
 
     public function currentLicense(): ?License
     {
-        $today = now()->toDateString();
+        $today = LocalTime::today();
 
         return $this->licenses->first(
             fn (License $l) => $l->starts_on->toDateString() <= $today

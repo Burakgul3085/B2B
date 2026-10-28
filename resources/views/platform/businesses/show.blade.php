@@ -14,7 +14,7 @@
                         'Kısa ad' => $business->slug, 'E-posta' => $business->email, 'Telefon' => $business->phone,
                         'Vergi dairesi / no' => trim(($business->tax_office ?? '').' '.($business->tax_number ?? '')),
                         'İl / ilçe' => trim(($business->city ?? '').' / '.($business->district ?? ''), ' /'),
-                        'Oluşturulma' => $business->created_at->format('d.m.Y'),
+                        'Oluşturulma' => $business->created_at->timezone('Europe/Istanbul')->format('d.m.Y'),
                     ] as $label => $value)
                         <div><dt class="text-muted">{{ $label }}</dt><dd class="mt-0.5 font-medium">{{ $value ?: '—' }}</dd></div>
                     @endforeach

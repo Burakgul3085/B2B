@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\StockMovement;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -85,7 +86,7 @@ class StockMovementReport extends Report
             ->select('stock_movements.created_at', 'warehouses.name as warehouse', 'products.sku', 'products.name',
                 'stock_movements.quantity', 'stock_movements.balance_after', 'stock_movements.note')
             ->selectRaw("{$case} as type_label")
-            ->whereBetween('stock_movements.created_at', [($f['from'] ?? now()->startOfMonth()->toDateString()).' 00:00:00', ($f['to'] ?? now()->toDateString()).' 23:59:59'])
+            ->whereBetween('stock_movements.created_at', LocalTime::dayRange($f['from'] ?? LocalTime::now()->startOfMonth()->toDateString(), $f['to'] ?? LocalTime::today()))
             ->when($types, fn ($q) => $q->whereIn('stock_movements.type', $types))
             ->when($f['warehouse'] ?? null, fn ($q, $w) => $q->where('stock_movements.warehouse_id', $w))
             ->when($f['q'] ?? null, fn ($q, $t) => $q->where(fn ($q) => $q->where('products.name', 'like', Options::like($t))->orWhere('products.sku', 'like', Options::like($t))));

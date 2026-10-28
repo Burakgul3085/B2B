@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\DealerApplication;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -59,7 +60,7 @@ class ApplicationReport extends Report
 
         return DealerApplication::query()
             ->select('created_at', 'legal_name', 'contact_name', 'city')->selectRaw("{$case} as status_label")
-            ->whereBetween('created_at', [($f['from'] ?? now()->startOfYear()->toDateString()).' 00:00:00', ($f['to'] ?? now()->toDateString()).' 23:59:59'])
+            ->whereBetween('created_at', LocalTime::dayRange($f['from'] ?? LocalTime::now()->startOfYear()->toDateString(), $f['to'] ?? LocalTime::today()))
             ->when($f['status'] ?? null, fn ($q, $s) => $q->where('status', $s));
     }
 }

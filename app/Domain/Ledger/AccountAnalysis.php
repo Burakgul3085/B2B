@@ -2,6 +2,7 @@
 
 namespace App\Domain\Ledger;
 
+use App\Domain\Support\LocalTime;
 use App\Models\CurrentAccount;
 use App\Models\CurrentAccountMovement;
 use Illuminate\Support\Carbon;
@@ -38,7 +39,7 @@ class AccountAnalysis
      */
     public function agingMany(Collection $accounts, ?string $asOf = null): array
     {
-        $today = $asOf ?? now()->toDateString();
+        $today = $asOf ?? LocalTime::today();
         $soon = Carbon::parse($today)->addDays(self::DUE_SOON_DAYS)->toDateString();
         $result = $accounts->mapWithKeys(fn ($a) => [$a->id => [
             'overdue' => '0.00', 'due_soon' => '0.00', 'not_due' => '0.00', 'open' => '0.00',
@@ -87,7 +88,7 @@ class AccountAnalysis
 
     public function agingFromMovements(Collection $movements, ?string $asOf = null): array
     {
-        $today = $asOf ?? now()->toDateString();
+        $today = $asOf ?? LocalTime::today();
         $soon = Carbon::parse($today)->addDays(self::DUE_SOON_DAYS)->toDateString();
 
         // Ters kayıt çiftlerini dışla.

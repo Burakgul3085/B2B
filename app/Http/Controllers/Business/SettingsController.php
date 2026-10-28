@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Business;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Catalog\NewProducts;
 use App\Domain\Files\ImageUploader;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -41,7 +42,7 @@ class SettingsController extends Controller
             'default_payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'price_display' => ['required', Rule::in(['excl_vat', 'incl_vat'])],
             'new_product_days' => ['sometimes', 'integer', Rule::in(NewProducts::DAY_OPTIONS)],
-            'new_products_since' => ['nullable', 'date', 'before_or_equal:today'],
+            'new_products_since' => ['nullable', 'date', 'before_or_equal:'.LocalTime::today()],
         ], [], [
             'display_name' => 'görünen ad', 'accent_color' => 'vurgu rengi',
             'default_payment_term_days' => 'varsayılan vade (gün)',

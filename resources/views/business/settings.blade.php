@@ -66,7 +66,7 @@
                     :options="collect(\App\Domain\Catalog\NewProducts::DAY_OPTIONS)->mapWithKeys(fn ($d) => [$d => 'Son '.$d.' günde eklenenler'])->all()"
                     hint="Bu süre içinde eklenen ürünler bayilere yeni olarak gösterilir." />
                 <x-field name="new_products_since" label="Bu tarihten önce eklenenleri yeni sayma" type="date" :value="$settings->new_products_since?->toDateString()"
-                    :max="now()->toDateString()" hint="İsteğe bağlı. İlk toplu ürün yüklemesinden sonraki günü seçin; o yüklemedeki ürünler yeni görünmez." />
+                    :max="now('Europe/Istanbul')->toDateString()" hint="İsteğe bağlı. İlk toplu ürün yüklemesinden sonraki günü seçin; o yüklemedeki ürünler yeni görünmez." />
             </div>
         </x-card>
 

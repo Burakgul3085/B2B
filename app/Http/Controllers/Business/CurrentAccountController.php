@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 
 use App\Domain\Ledger\AccountAnalysis;
 use App\Domain\Ledger\LedgerService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
@@ -47,7 +48,7 @@ class CurrentAccountController extends Controller
         $totals = [
             'receivable' => (string) CurrentAccount::where('balance', '>', 0)->sum('balance'),
             'overdue' => collect($aging)->reduce(fn ($c, $a) => bcadd($c, $a['overdue'], 2), '0.00'),
-            'month_collections' => (string) CollectionEntry::whereNull('cancelled_at')->where('collected_on', '>=', now()->startOfMonth()->toDateString())->sum('amount'),
+            'month_collections' => (string) CollectionEntry::whereNull('cancelled_at')->where('collected_on', '>=', LocalTime::now()->startOfMonth()->toDateString())->sum('amount'),
         ];
 
         return view('business.ledger.index', compact('accounts', 'aging', 'filters', 'view', 'totals'));
@@ -56,8 +57,8 @@ class CurrentAccountController extends Controller
     public function show(Request $request, CurrentAccount $account): View
     {
         $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', new NotBefore('from')]]);
-        $from = $range['from'] ?? now()->subMonths(3)->startOfMonth()->toDateString();
-        $to = $range['to'] ?? now()->toDateString();
+        $from = $range['from'] ?? LocalTime::now()->subMonths(3)->startOfMonth()->toDateString();
+        $to = $range['to'] ?? LocalTime::today();
 
         $account->load('relationship.dealer');
 
@@ -76,7 +77,7 @@ class CurrentAccountController extends Controller
     public function storeCollection(Request $request, CurrentAccount $account): RedirectResponse
     {
         $data = $request->validate([
-            'collected_on' => ['required', 'date', 'before_or_equal:today'],
+            'collected_on' => ['required', 'date', 'before_or_equal:'.LocalTime::today()],
             'amount' => ['required', 'decimal:0,2', 'gt:0', 'max:9999999999999'],
             'method' => ['required', Rule::in(array_keys(CollectionEntry::METHODS))],
             'order_id' => ['nullable', 'integer'],
@@ -90,7 +91,7 @@ class CurrentAccountController extends Controller
     {
         $data = $request->validate([
             'amount' => ['required', 'decimal:0,2', 'not_in:0', 'min:-9999999999999', 'max:9999999999999'],
-            'date' => ['required', 'date', 'before_or_equal:today'],
+            'date' => ['required', 'date', 'before_or_equal:'.LocalTime::today()],
             'note' => ['nullable', 'string', 'max:500'],
         ], [], ['amount' => 'açılış bakiyesi', 'date' => 'tarih']);
 
@@ -102,7 +103,7 @@ class CurrentAccountController extends Controller
         $data = $request->validate([
             'direction' => ['required', Rule::in(['debit', 'credit'])],
             'amount' => ['required', 'decimal:0,2', 'gt:0', 'max:9999999999999'],
-            'date' => ['required', 'date', 'before_or_equal:today'],
+            'date' => ['required', 'date', 'before_or_equal:'.LocalTime::today()],
             'note' => ['required', 'string', 'max:500'],
         ], [], ['amount' => 'tutar', 'date' => 'tarih', 'note' => 'açıklama']);
 

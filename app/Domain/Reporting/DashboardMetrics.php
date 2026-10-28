@@ -3,6 +3,7 @@
 namespace App\Domain\Reporting;
 
 use App\Domain\Reporting\Reports\Options;
+use App\Domain\Support\LocalTime;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\CollectionEntry;
 use App\Models\Order;
@@ -30,12 +31,12 @@ class DashboardMetrics
     /** @return array{from: Carbon, to: Carbon, prevFrom: Carbon, prevTo: Carbon, monthly: bool} */
     public function range(string $period, ?string $from = null, ?string $to = null): array
     {
-        $now = now();
+        $now = LocalTime::now();
         [$start, $end] = match ($period) {
             '30d' => [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()],
             '90d' => [$now->copy()->subDays(89)->startOfDay(), $now->copy()->endOfDay()],
             '12m' => [$now->copy()->subMonths(11)->startOfMonth(), $now->copy()->endOfDay()],
-            'custom' => [Carbon::parse($from ?? $now->copy()->startOfMonth())->startOfDay(), Carbon::parse($to ?? $now)->endOfDay()],
+            'custom' => [Carbon::parse($from ?? $now->copy()->startOfMonth(), LocalTime::TZ)->startOfDay(), Carbon::parse($to ?? $now, LocalTime::TZ)->endOfDay()],
             default => [$now->copy()->startOfMonth(), $now->copy()->endOfDay()],
         };
         if ($start > $end) {
@@ -148,7 +149,7 @@ class DashboardMetrics
             'Tamamlandı' => ['completed'],
             'Reddedildi / iptal' => ['rejected', 'cancelled'],
         ];
-        $counts = $this->orders($f)->whereBetween('orders.created_at', [$range['from'], $range['to']])
+        $counts = $this->orders($f)->whereBetween('orders.created_at', [LocalTime::utc($range['from']), LocalTime::utc($range['to'])])
             ->selectRaw('orders.status, COUNT(*) c')->groupBy('orders.status')->pluck('c', 'status');
 
         return collect($groups)->map(fn ($statuses) => (int) collect($statuses)->sum(fn ($s) => $counts[$s] ?? 0))->all();
@@ -180,14 +181,14 @@ class DashboardMetrics
     /** Bayi paneli: son 12 ayın onaylanmış sipariş tutarı. */
     public function dealerMonthly(int $relationshipId): array
     {
-        $from = now()->subMonths(11)->startOfMonth();
+        $from = LocalTime::now()->subMonths(11)->startOfMonth();
         $data = Order::where('dealer_relationship_id', $relationshipId)->whereIn('status', self::FULFILLED)
-            ->where('approved_at', '>=', $from)
-            ->selectRaw("DATE_FORMAT(approved_at, '%Y-%m') k, SUM(grand_total) t")->groupBy('k')->pluck('t', 'k');
+            ->where('approved_at', '>=', LocalTime::utc($from))
+            ->selectRaw('DATE_FORMAT('.LocalTime::sql('approved_at').", '%Y-%m') k, SUM(grand_total) t")->groupBy('k')->pluck('t', 'k');
 
         $labels = [];
         $values = [];
-        for ($m = $from->copy(); $m <= now(); $m->addMonthNoOverflow()) {
+        for ($m = $from->copy(); $m <= LocalTime::now(); $m->addMonthNoOverflow()) {
             $labels[] = $m->translatedFormat('M Y');
             $values[] = (float) ($data[$m->format('Y-m')] ?? 0);
         }
@@ -221,7 +222,7 @@ class DashboardMetrics
 
     private function fulfilled(Carbon $from, Carbon $to, array $f): Builder
     {
-        return $this->orders($f)->whereIn('orders.status', self::FULFILLED)->whereBetween('orders.approved_at', [$from, $to]);
+        return $this->orders($f)->whereIn('orders.status', self::FULFILLED)->whereBetween('orders.approved_at', [LocalTime::utc($from), LocalTime::utc($to)]);
     }
 
     private function items(array $range, array $f): Builder
@@ -242,8 +243,8 @@ class DashboardMetrics
     private function bucketed(Carbon $from, Carbon $to, array $f, bool $monthly)
     {
         $format = $monthly ? '%Y-%m' : '%Y-%m-%d';
-        // Kovalar, dönem sınırlarıyla aynı saat diliminde (uygulama saati) hesaplanır.
-        $expr = "DATE_FORMAT(orders.approved_at, '{$format}')";
+        // Kovalar, dönem sınırlarıyla aynı saat diliminde (Türkiye saati) hesaplanır.
+        $expr = 'DATE_FORMAT('.LocalTime::sql('orders.approved_at').", '{$format}')";
 
         return $this->fulfilled($from, $to, $f)->selectRaw("{$expr} k, SUM(orders.grand_total) t")->groupBy(DB::raw($expr))->pluck('t', 'k');
     }

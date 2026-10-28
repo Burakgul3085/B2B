@@ -29,7 +29,7 @@
                         <div class="lg:col-span-2">
                             <a href="{{ route('business.products.show', $r->product_id) }}" class="font-medium hover:text-primary">{{ $r->product->name }}</a>
                             <p class="text-xs text-muted">{{ $r->product->sku }} · {{ $r->relationship->dealer->legal_name }}</p>
-                            <p class="mt-1 text-sm"><b class="tabular-nums">{{ Quantity::format($r->quantity) }} {{ $r->product->unit->name }}</b> · {{ $r->created_at->format('d.m.Y') }}
+                            <p class="mt-1 text-sm"><b class="tabular-nums">{{ Quantity::format($r->quantity) }} {{ $r->product->unit->name }}</b> · {{ $r->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}
                                 @if ($r->notify_when_in_stock)<span class="text-xs text-muted">· gelince haber ver</span>@endif</p>
                             @if ($r->note)<p class="mt-1 text-sm text-slate-700">“{{ $r->note }}”</p>@endif
                             @if ($d && $d->dealers > 1)<p class="mt-1 text-xs font-medium text-primary">Bu ürünü {{ $d->dealers }} bayi talep ediyor (toplam {{ Quantity::format($d->qty) }})</p>@endif

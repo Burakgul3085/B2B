@@ -38,7 +38,7 @@
                             <p class="truncate text-xs text-muted">{{ $banner->link_url ?: 'Bağlantı yok' }}</p>
                             <p class="mt-1 flex flex-wrap gap-1.5">
                                 @if ($banner->is_active)<x-badge tone="success">Yayında</x-badge>@else<x-badge>Pasif</x-badge>@endif
-                                @if ($banner->starts_at || $banner->ends_at)<x-badge tone="info">{{ $banner->starts_at?->format('d.m.Y') ?? '…' }} – {{ $banner->ends_at?->format('d.m.Y') ?? '…' }}</x-badge>@endif
+                                @if ($banner->starts_at || $banner->ends_at)<x-badge tone="info">{{ $banner->starts_at?->timezone('Europe/Istanbul')->format('d.m.Y') ?? '…' }} – {{ $banner->ends_at?->timezone('Europe/Istanbul')->format('d.m.Y') ?? '…' }}</x-badge>@endif
                                 @if ($banner->mobile_image_path)<x-badge>Mobil görsel var</x-badge>@endif
                             </p>
                         </div>

@@ -28,7 +28,7 @@
                     <span>Bayi kodu <b class="font-semibold text-white">{{ $relationship->dealer_code }}</b></span>
                     @if ($relationship->group)<span class="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-primary-dark">{{ $relationship->group->name }}</span>@endif
                     <span>· Ödeme vadesi {{ $relationship->payment_term_days }} gün</span>
-                    @if ($relationship->approved_at)<span>· {{ $relationship->approved_at->translatedFormat('F Y') }}'den beri bayimiz</span>@endif
+                    @if ($relationship->approved_at)<span>· {{ $relationship->approved_at->timezone('Europe/Istanbul')->translatedFormat('F Y') }}'den beri bayimiz</span>@endif
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">

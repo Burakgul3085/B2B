@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -73,7 +74,7 @@ class OrderReport extends Report
     public static function base(array $f, ReportContext $context): Builder
     {
         return Order::query()
-            ->whereBetween('orders.created_at', [($f['from'] ?? now()->startOfMonth()->toDateString()).' 00:00:00', ($f['to'] ?? now()->toDateString()).' 23:59:59'])
+            ->whereBetween('orders.created_at', LocalTime::dayRange($f['from'] ?? LocalTime::now()->startOfMonth()->toDateString(), $f['to'] ?? LocalTime::today()))
             ->when($context->relationshipId, fn ($q, $r) => $q->where('orders.dealer_relationship_id', $r))
             ->when($f['dealer'] ?? null, fn ($q, $d) => $q->where('orders.dealer_relationship_id', $d))
             ->when(($f['status'] ?? null) === 'pending', fn ($q) => $q->whereIn('orders.status', [...Order::PENDING, 'cancel_requested']))

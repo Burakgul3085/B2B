@@ -18,8 +18,8 @@
     <x-field name="placement" label="Yerleşim" :options="\App\Models\Store\StoreBanner::PLACEMENTS" :value="$banner?->placement ?? 'hero'"
         hint="Büyük alan: ana sayfanın en üstünde ekranın iki yanına uzanan kayan banner (1920×520, 2 saniyede bir geçer). Kampanya kutusu: büyük alanın altındaki kutulardan biri (900×600, en fazla 4)." />
     <x-field name="button_text" label="Düğme yazısı" :value="$banner?->button_text" maxlength="40" placeholder="Hemen incele" />
-    <x-field name="starts_at" label="Başlangıç (isteğe bağlı)" type="datetime-local" :value="$banner?->starts_at?->format('Y-m-d\TH:i')" />
-    <x-field name="ends_at" label="Bitiş (isteğe bağlı)" type="datetime-local" :value="$banner?->ends_at?->format('Y-m-d\TH:i')" />
+    <x-field name="starts_at" label="Başlangıç (isteğe bağlı)" type="datetime-local" :value="$banner?->starts_at?->timezone('Europe/Istanbul')->format('Y-m-d\TH:i')" />
+    <x-field name="ends_at" label="Bitiş (isteğe bağlı)" type="datetime-local" :value="$banner?->ends_at?->timezone('Europe/Istanbul')->format('Y-m-d\TH:i')" />
 </div>
 @error('image')<p class="text-sm text-danger">{{ $message }}</p>@enderror
 @error('mobile_image')<p class="text-sm text-danger">{{ $message }}</p>@enderror

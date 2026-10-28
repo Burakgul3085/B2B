@@ -89,7 +89,7 @@
                         @foreach ($history as $h)
                             <li class="flex items-center justify-between px-5 py-3">
                                 <a href="{{ route('dealer.orders.show', $h->order) }}" class="text-primary hover:underline">{{ $h->order->order_no }}</a>
-                                <span class="text-muted">{{ $h->order->created_at->format('d.m.Y') }}</span>
+                                <span class="text-muted">{{ $h->order->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span>
                                 <span class="tabular-nums">{{ Quantity::format($h->effectiveQuantity()) }} × {{ Money::formatUnit($h->unit_price) }}</span>
                             </li>
                         @endforeach

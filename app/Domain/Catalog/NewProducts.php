@@ -3,6 +3,7 @@
 namespace App\Domain\Catalog;
 
 use App\Domain\Ordering\CartService;
+use App\Domain\Support\LocalTime;
 use App\Models\BusinessSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,8 +18,8 @@ final class NewProducts
 
     public static function since(?BusinessSetting $settings): CarbonImmutable
     {
-        $window = CarbonImmutable::now()->subDays((int) ($settings?->new_product_days ?: 30))->startOfDay();
-        $floor = $settings?->new_products_since ? CarbonImmutable::parse($settings->new_products_since)->startOfDay() : null;
+        $window = CarbonImmutable::now(LocalTime::TZ)->subDays((int) ($settings?->new_product_days ?: 30))->startOfDay()->utc();
+        $floor = $settings?->new_products_since ? CarbonImmutable::parse($settings->new_products_since, LocalTime::TZ)->startOfDay()->utc() : null;
 
         return $floor && $floor->greaterThan($window) ? $floor : $window;
     }

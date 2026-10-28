@@ -7,6 +7,7 @@ use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReturnService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\DealerRelationship;
 use App\Models\Order;
@@ -40,8 +41,8 @@ class OrderController extends Controller
             ->when($status !== 'pending', fn ($q) => $q->where('status', $status))
             ->when($filters['dealer'] ?? null, fn ($q, $d) => $q->where('dealer_relationship_id', $d))
             ->when($filters['q'] ?? null, fn ($q, $t) => $q->where('order_no', 'like', '%'.addcslashes($t, '%_\\').'%'))
-            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', $d.' 00:00:00'))
-            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', $d.' 23:59:59'))
+            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', LocalTime::dayRange($d, $d)[0]))
+            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', LocalTime::dayRange($d, $d)[1]))
             ->latest('id')
             ->paginate(25)
             ->withQueryString();
@@ -89,7 +90,7 @@ class OrderController extends Controller
             'delivery_recipient' => ['nullable', 'string', 'max:120'],
             'delivery_phone' => ['nullable', 'string', 'max:30'],
             'delivery_note' => ['nullable', 'string', 'max:500'],
-            'delivery_planned_on' => ['nullable', 'date', 'after_or_equal:today'],
+            'delivery_planned_on' => ['nullable', 'date', 'after_or_equal:'.LocalTime::today()],
         ], [], ['warehouse_id' => 'depo', 'delivery_planned_on' => 'planlanan teslim tarihi']);
 
         try {

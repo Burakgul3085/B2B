@@ -2,6 +2,7 @@
 
 namespace App\Domain\Reporting\Reports;
 
+use App\Domain\Support\LocalTime;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DealerGroup;
@@ -47,8 +48,8 @@ final class Options
     public static function dateFilters(string $defaultFrom = 'month'): array
     {
         return [
-            'from' => ['label' => 'Başlangıç', 'type' => 'date', 'default' => $defaultFrom === 'year' ? now()->startOfYear()->toDateString() : now()->startOfMonth()->toDateString()],
-            'to' => ['label' => 'Bitiş', 'type' => 'date', 'default' => now()->toDateString()],
+            'from' => ['label' => 'Başlangıç', 'type' => 'date', 'default' => $defaultFrom === 'year' ? LocalTime::now()->startOfYear()->toDateString() : LocalTime::now()->startOfMonth()->toDateString()],
+            'to' => ['label' => 'Bitiş', 'type' => 'date', 'default' => LocalTime::today()],
         ];
     }
 

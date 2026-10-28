@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Ledger\AccountAnalysis;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CollectionEntry;
@@ -19,8 +20,8 @@ class AccountStatementController extends Controller
     public function __invoke(Request $request, AccountAnalysis $analysis): View
     {
         $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', new NotBefore('from')]]);
-        $from = $range['from'] ?? now()->subMonths(3)->startOfMonth()->toDateString();
-        $to = $range['to'] ?? now()->toDateString();
+        $from = $range['from'] ?? LocalTime::now()->subMonths(3)->startOfMonth()->toDateString();
+        $to = $range['to'] ?? LocalTime::today();
 
         $account = CurrentAccount::where('dealer_relationship_id', $this->relationship()->id)->firstOrFail();
 

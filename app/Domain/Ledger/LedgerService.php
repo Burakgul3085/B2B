@@ -4,6 +4,7 @@ namespace App\Domain\Ledger;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
+use App\Domain\Support\LocalTime;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
 use App\Models\CurrentAccountMovement;
@@ -34,7 +35,7 @@ class LedgerService
             'type' => 'order_debit',
             'debit' => (string) $order->grand_total,
             'credit' => '0',
-            'movement_date' => now()->toDateString(),
+            'movement_date' => LocalTime::today(),
             'due_date' => now()->addDays($termDays)->toDateString(),
             'order_id' => $order->id,
             'description' => "Sipariş {$order->order_no}",
@@ -53,7 +54,7 @@ class LedgerService
             'type' => 'reversal',
             'debit' => '0',
             'credit' => (string) $original->debit,
-            'movement_date' => now()->toDateString(),
+            'movement_date' => LocalTime::today(),
             'order_id' => $order->id,
             'reverses_movement_id' => $original->id,
             'description' => "Sipariş {$order->order_no} iptali: {$reason}",
@@ -71,7 +72,7 @@ class LedgerService
             'type' => 'return_credit',
             'debit' => '0',
             'credit' => (string) $return->grand_total,
-            'movement_date' => now()->toDateString(),
+            'movement_date' => LocalTime::today(),
             'order_id' => $order->id,
             'description' => "Sipariş {$order->order_no} iadesi",
             'source_key' => "return:{$return->id}:credit",
@@ -189,8 +190,8 @@ class LedgerService
                 'type' => 'reversal',
                 'debit' => (string) $original->credit,
                 'credit' => '0',
-                'movement_date' => now()->toDateString(),
-                'due_date' => now()->toDateString(),
+                'movement_date' => LocalTime::today(),
+                'due_date' => LocalTime::today(),
                 'collection_id' => $collection->id,
                 'reverses_movement_id' => $original->id,
                 'description' => 'Tahsilat iptali: '.$reason,

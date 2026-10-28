@@ -162,7 +162,7 @@ class Subscriptions
         } elseif ($status) {
             $query->where('status', $status);
         }
-        $name = ($format === 'iys' ? 'iys-eposta-izinleri-' : 'e-bulten-aboneleri-').now()->format('Y-m-d').'.csv';
+        $name = ($format === 'iys' ? 'iys-eposta-izinleri-' : 'e-bulten-aboneleri-').now('Europe/Istanbul')->format('Y-m-d').'.csv';
 
         return response()->streamDownload(function () use ($query, $format) {
             $out = fopen('php://output', 'w');

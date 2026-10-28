@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\CurrentAccountMovement;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -67,7 +68,7 @@ class AccountMovementReport extends Report
             ->select('current_account_movements.movement_date', 'dealers.legal_name as dealer', 'current_account_movements.description',
                 'current_account_movements.due_date', 'current_account_movements.debit', 'current_account_movements.credit')
             ->selectRaw("{$case} as type_label")
-            ->whereBetween('current_account_movements.movement_date', [$f['from'] ?? now()->startOfYear()->toDateString(), $f['to'] ?? now()->toDateString()])
+            ->whereBetween('current_account_movements.movement_date', [$f['from'] ?? LocalTime::now()->startOfYear()->toDateString(), $f['to'] ?? LocalTime::today()])
             ->when($context->relationshipId, fn ($q, $r) => $q->where('current_accounts.dealer_relationship_id', $r))
             ->when($f['dealer'] ?? null, fn ($q, $d) => $q->where('current_accounts.dealer_relationship_id', $d))
             ->when($f['type'] ?? null, fn ($q, $t) => $q->where('current_account_movements.type', $t));

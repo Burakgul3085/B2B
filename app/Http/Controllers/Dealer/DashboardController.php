@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Ledger\AccountAnalysis;
 use App\Domain\Reporting\DashboardMetrics;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\Announcement;
@@ -29,14 +30,14 @@ class DashboardController extends Controller
         $approvedSince = fn ($from, $to = null) => (string) (clone $purchased)->where('approved_at', '>=', $from)
             ->when($to, fn ($q) => $q->where('approved_at', '<', $to))->sum('grand_total');
 
-        $year = (clone $purchased)->where('approved_at', '>=', now()->startOfYear())
+        $year = (clone $purchased)->where('approved_at', '>=', LocalTime::utc(LocalTime::now()->startOfYear()))
             ->selectRaw('COUNT(*) c, COALESCE(SUM(grand_total), 0) t')->toBase()->first();
 
         $kpis = [
             'open_orders' => (clone $orders)->whereIn('status', [...Order::PENDING, ...Order::ACTIVE_FULFILMENT])->count(),
             'pending_orders' => (clone $orders)->whereIn('status', Order::PENDING)->count(),
-            'month_amount' => $approvedSince(now()->startOfMonth()),
-            'last_month_amount' => $approvedSince(now()->subMonthNoOverflow()->startOfMonth(), now()->startOfMonth()),
+            'month_amount' => $approvedSince(LocalTime::utc(LocalTime::now()->startOfMonth())),
+            'last_month_amount' => $approvedSince(LocalTime::utc(LocalTime::now()->subMonthNoOverflow()->startOfMonth()), LocalTime::utc(LocalTime::now()->startOfMonth())),
             'balance' => (string) ($relationship->currentAccount?->balance ?? '0'),
             'overdue' => $relationship->currentAccount ? $analysis->aging($relationship->currentAccount)['overdue'] : '0.00',
             'open_requests' => ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)->count(),

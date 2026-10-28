@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
@@ -32,8 +33,8 @@ class StockMovementController extends Controller
             })
             ->when($filters['warehouse'] ?? null, fn ($q, $w) => $q->where('warehouse_id', $w))
             ->when($filters['type'] ?? null, fn ($q, $t) => $q->where('type', $t))
-            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', $d.' 00:00:00'))
-            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', $d.' 23:59:59'))
+            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', LocalTime::dayRange($d, $d)[0]))
+            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', LocalTime::dayRange($d, $d)[1]))
             ->latest('id')
             ->paginate(40)
             ->withQueryString();

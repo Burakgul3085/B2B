@@ -27,7 +27,7 @@
             @forelse ($pendingOwners as $business)
                 <a href="{{ route('platform.businesses.show', $business) }}" class="flex items-center justify-between border-b border-line px-5 py-3 text-sm last:border-0 hover:bg-slate-50">
                     <span class="font-medium">{{ $business->display_name }}</span>
-                    <span class="text-muted">{{ $business->created_at->format('d.m.Y') }}</span>
+                    <span class="text-muted">{{ $business->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }}</span>
                 </a>
             @empty
                 <x-empty-state icon="check-circle" title="Şifre bekleyen işletme yok" class="py-8" />

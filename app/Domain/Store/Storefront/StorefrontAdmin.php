@@ -8,6 +8,7 @@ use App\Models\Store\StoreBanner;
 use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -240,8 +241,9 @@ class StorefrontAdmin
             'button_text' => $data['button_text'] ?? null,
             'link_url' => $link ?: null,
             'placement' => $data['placement'] ?? 'hero',
-            'starts_at' => $data['starts_at'] ?? null,
-            'ends_at' => $data['ends_at'] ?? null,
+            // Formdaki saat Türkiye saatidir; UTC saklanır.
+            'starts_at' => filled($data['starts_at'] ?? null) ? Carbon::parse($data['starts_at'], 'Europe/Istanbul')->utc() : null,
+            'ends_at' => filled($data['ends_at'] ?? null) ? Carbon::parse($data['ends_at'], 'Europe/Istanbul')->utc() : null,
             'is_active' => filter_var($input['is_active'] ?? true, FILTER_VALIDATE_BOOL),
         ];
     }

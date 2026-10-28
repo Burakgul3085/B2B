@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Business;
 
 use App\Domain\Ledger\LedgerService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
@@ -26,8 +27,8 @@ class CollectionController extends Controller
             'account' => ['nullable', 'integer'],
             'cancelled' => ['nullable', 'boolean'],
         ]);
-        $from = $filters['from'] ?? now()->startOfMonth()->toDateString();
-        $to = $filters['to'] ?? now()->toDateString();
+        $from = $filters['from'] ?? LocalTime::now()->startOfMonth()->toDateString();
+        $to = $filters['to'] ?? LocalTime::today();
 
         $query = CollectionEntry::query()
             ->whereBetween('collected_on', [$from, $to])

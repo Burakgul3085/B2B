@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\CollectionEntry;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -69,7 +70,7 @@ class CollectionReport extends Report
             ->select('collections.collected_on', 'dealers.legal_name as dealer', 'collections.amount', 'orders.order_no', 'collections.description')
             ->selectRaw("{$case} as method_label")
             ->selectRaw("CASE WHEN collections.cancelled_at IS NULL THEN 'Geçerli' ELSE 'İptal' END as state")
-            ->whereBetween('collections.collected_on', [$f['from'] ?? now()->startOfMonth()->toDateString(), $f['to'] ?? now()->toDateString()])
+            ->whereBetween('collections.collected_on', [$f['from'] ?? LocalTime::now()->startOfMonth()->toDateString(), $f['to'] ?? LocalTime::today()])
             ->when($f['method'] ?? null, fn ($q, $m) => $q->where('collections.method', $m))
             ->when($f['dealer'] ?? null, fn ($q, $d) => $q->where('current_accounts.dealer_relationship_id', $d))
             ->when(($f['cancelled'] ?? '0') !== '1', fn ($q) => $q->whereNull('collections.cancelled_at'));

@@ -8,7 +8,7 @@
     $open = $aging['items']->sortBy('due')->values();
     $nextDue = $open->first()['due'] ?? null;
     $nextAmount = $nextDue ? $open->where('due', $nextDue)->reduce(fn ($c, $i) => bcadd($c, $i['open'], 2), '0.00') : null;
-    $today = Carbon::today();
+    $today = Carbon::today('Europe/Istanbul');
     $buckets = [
         ['key' => 'overdue', 'label' => 'Gecikmiş', 'hint' => 'Ödeme günü geçmiş', 'bar' => 'bg-red-500', 'text' => 'text-red-700'],
         ['key' => 'due_soon', 'label' => 'Bu hafta ödenecek', 'hint' => 'Önümüzdeki 7 gün içinde', 'bar' => 'bg-amber-400', 'text' => 'text-amber-700'],

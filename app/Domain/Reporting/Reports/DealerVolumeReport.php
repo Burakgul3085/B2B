@@ -4,6 +4,7 @@ namespace App\Domain\Reporting\Reports;
 
 use App\Domain\Reporting\Report;
 use App\Domain\Reporting\ReportContext;
+use App\Domain\Support\LocalTime;
 use App\Models\DealerRelationship;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -58,8 +59,8 @@ class DealerVolumeReport extends Report
 
     public function query(array $f, ReportContext $context): Builder
     {
-        $from = ($f['from'] ?? now()->startOfYear()->toDateString()).' 00:00:00';
-        $to = ($f['to'] ?? now()->toDateString()).' 23:59:59';
+        [$from, $to] = array_map(fn ($t) => $t->format('Y-m-d H:i:s'),
+            LocalTime::dayRange($f['from'] ?? LocalTime::now()->startOfYear()->toDateString(), $f['to'] ?? LocalTime::today()));
         $ok = "('approved','preparing','completed','cancel_requested')";
         $case = 'CASE dealer_relationships.status '.collect(DealerRelationship::STATUSES)->map(fn ($l, $k) => "WHEN '{$k}' THEN '{$l}'")->implode(' ').' END';
 

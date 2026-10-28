@@ -2,6 +2,7 @@
 
 namespace App\Domain\Reporting;
 
+use App\Domain\Support\LocalTime;
 use App\Models\Business;
 use App\Models\DealerRelationship;
 use Dompdf\Dompdf;
@@ -30,7 +31,7 @@ class ReportExporter
         $columns = $this->columns($report, $prepared);
         $totals = $this->runner->totals($report, $prepared, $context);
         $count = $this->runner->count($report, $prepared, $context);
-        $filename = Str::slug($report->title()).'-'.now()->format('Ymd-Hi').'.xlsx';
+        $filename = Str::slug($report->title()).'-'.LocalTime::now()->format('Ymd-Hi').'.xlsx';
 
         return response()->streamDownload(function () use ($report, $prepared, $context, $business, $filterSummary, $columns, $totals, $count) {
             (new ExcelReportWriter)->write('php://output', $report, $business, $columns,
@@ -73,7 +74,7 @@ class ReportExporter
         $dompdf->render();
         $this->pageNumbers($dompdf);
 
-        $filename = Str::slug($report->title()).'-'.now()->format('Ymd-Hi').'.pdf';
+        $filename = Str::slug($report->title()).'-'.LocalTime::now()->format('Ymd-Hi').'.pdf';
 
         return response()->streamDownload(fn () => print ($dompdf->output()), $filename, ['Content-Type' => 'application/pdf']);
     }

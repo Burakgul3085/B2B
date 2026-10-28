@@ -10,9 +10,9 @@
         ? ['collection' => 'Ödeme', 'adjustment_debit' => 'Düzeltme (borç)', 'adjustment_credit' => 'Düzeltme (alacak)', 'reversal' => 'İptal kaydı'] + CurrentAccountMovement::TYPES
         : CurrentAccountMovement::TYPES;
     $presets = [
-        'Bu ay' => [now()->startOfMonth(), now()],
-        'Son 3 ay' => [now()->subMonths(3)->startOfMonth(), now()],
-        'Bu yıl' => [now()->startOfYear(), now()],
+        'Bu ay' => [now('Europe/Istanbul')->startOfMonth(), now('Europe/Istanbul')],
+        'Son 3 ay' => [now('Europe/Istanbul')->subMonths(3)->startOfMonth(), now('Europe/Istanbul')],
+        'Bu yıl' => [now('Europe/Istanbul')->startOfYear(), now('Europe/Istanbul')],
     ];
 @endphp
 <div class="flex flex-wrap items-end justify-between gap-3 border-b border-line p-4 print:hidden">

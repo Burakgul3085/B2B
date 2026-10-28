@@ -22,7 +22,7 @@
         <x-card title="Lisans">
             <div class="grid gap-5 sm:grid-cols-3">
                 <x-field name="plan" label="Plan" value="Standart" required />
-                <x-field name="starts_on" label="Başlangıç" type="date" :value="now()->toDateString()" required />
+                <x-field name="starts_on" label="Başlangıç" type="date" :value="now('Europe/Istanbul')->toDateString()" required />
                 <x-field name="ends_on" label="Bitiş" type="date" hint="Boş bırakılırsa süresiz." />
             </div>
         </x-card>

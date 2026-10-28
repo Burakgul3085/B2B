@@ -7,6 +7,7 @@ use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\NewOrderAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Returns\ReturnService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCodBlock;
@@ -41,8 +42,8 @@ class OrderController extends Controller
                 ->orWhere('email', 'like', "%{$term}%")->orWhere('phone', 'like', '%'.preg_replace('/\D/', '', $term).'%')))
             ->when($filters['status'] ?? null, fn ($q, $s) => $s === 'new' ? $q->whereIn('status', ['awaiting_approval', 'paid']) : $q->where('status', $s))
             ->when($filters['payment'] ?? null, fn ($q, $p) => $q->where('payment_method', $p))
-            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', $d))
-            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<', date('Y-m-d', strtotime($d.' +1 day'))))
+            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', LocalTime::dayRange($d, $d)[0]))
+            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', LocalTime::dayRange($d, $d)[1]))
             ->withCount('items')
             ->latest('id')
             ->paginate(30)

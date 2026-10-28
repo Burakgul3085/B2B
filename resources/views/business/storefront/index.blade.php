@@ -3,7 +3,7 @@
     use App\Models\Showcase;
 
     $status = function (HomeBanner $b): array {
-        $today = now()->toDateString();
+        $today = now('Europe/Istanbul')->toDateString();
 
         return match (true) {
             ! $b->is_active => ['Kapalı', 'neutral'],

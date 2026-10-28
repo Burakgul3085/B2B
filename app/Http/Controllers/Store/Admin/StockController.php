@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Catalog\CategoryService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCategory;
 use App\Models\Store\StoreProduct;
@@ -114,8 +115,8 @@ class StockController extends Controller
                 ->where('sku', 'like', "%{$term}%")
                 ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%"))))
             ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('type', $type))
-            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', $d))
-            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<', date('Y-m-d', strtotime($d.' +1 day'))))
+            ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', LocalTime::dayRange($d, $d)[0]))
+            ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', LocalTime::dayRange($d, $d)[1]))
             ->latest('id')
             ->paginate(50)
             ->withQueryString();

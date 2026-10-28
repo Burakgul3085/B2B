@@ -8,6 +8,7 @@ use App\Domain\Inventory\InsufficientStock;
 use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
+use App\Domain\Support\LocalTime;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\BusinessCounter;
 use App\Models\BusinessSetting;
@@ -361,7 +362,7 @@ class OrderService
     /** SIP-2026-000001 biçiminde, işletme ve yıl bazında kesintisiz sıra. */
     private function nextOrderNo(): string
     {
-        $year = now()->year;
+        $year = LocalTime::now()->year;
         $key = "order:{$year}";
         $businessId = $this->tenant->businessId();
 

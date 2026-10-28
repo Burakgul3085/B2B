@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Support\LocalTime;
 use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,7 +32,7 @@ class PriceList extends Model
 
     public function isCurrent(?string $date = null): bool
     {
-        $date ??= now()->toDateString();
+        $date ??= LocalTime::today();
 
         return $this->is_active
             && ($this->starts_on === null || $this->starts_on->toDateString() <= $date)

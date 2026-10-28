@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Support\LocalTime;
 use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -55,7 +56,7 @@ class HomeBanner extends Model
     /** Yayında mı: etkin ve tarih aralığında. */
     public function isLive(): bool
     {
-        $today = now()->toDateString();
+        $today = LocalTime::today();
 
         return $this->is_active
             && (! $this->starts_on || $this->starts_on->toDateString() <= $today)
@@ -65,7 +66,7 @@ class HomeBanner extends Model
     /** Bayinin şu an görebildiği slaytlar: etkin, tarihi uygun, herkese veya bayinin grubuna. */
     public function scopeVisibleTo(Builder $query, DealerRelationship $relationship): void
     {
-        $today = now()->toDateString();
+        $today = LocalTime::today();
         $query->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('starts_on')->orWhere('starts_on', '<=', $today))
             ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today))
