@@ -1245,7 +1245,7 @@ export function productList() {
 /**
  * Fotokopi sayfası: belgeler parça parça (chunk) yüklenir, sunucu sayfa sayısını çıkarınca seçenekler açılır.
  * Fiyat her değişiklikte sunucudan alınır (tarayıcı fiyat hesaplamaz). Yarım kalan yükleme 409 yanıtındaki
- * "received" değerinden sürer. config: { urls: {start, file}, files, maxBytes, maxFiles }.
+ * "received" değerinden sürer. config: { urls: {start, file}, files, maxBytes, maxFiles, maxCopies }.
  * urls.file "__T__" yer tutuculu belge adresidir (durum, parça, önizleme, fiyat, sepet bunun altındadır).
  */
 export function printOrder(config) {
@@ -1435,6 +1435,38 @@ export function printOrder(config) {
         },
         progressStyle(f) {
             return 'width: ' + f.progress + '%';
+        },
+        stepCopies(f, delta) {
+            const next = (parseInt(f.opts.copies, 10) || 1) + delta;
+            f.opts.copies = Math.min(Math.max(next, 1), config.maxCopies || 100);
+            this.requote(f);
+        },
+        /** Dosya türü rozeti: etiket ve renk sınıfı. */
+        extLabel(f) {
+            return (f.name.split('.').pop() || '').toUpperCase().slice(0, 4);
+        },
+        extClass(f) {
+            const ext = (f.name.split('.').pop() || '').toLowerCase();
+            if (ext === 'pdf') {
+                return 'bg-red-50 text-red-600 ring-red-200';
+            }
+            if (['doc', 'docx', 'odt'].includes(ext)) {
+                return 'bg-puzzle-blue-soft text-puzzle-blue ring-puzzle-blue/30';
+            }
+            if (['ppt', 'pptx', 'odp'].includes(ext)) {
+                return 'bg-puzzle-orange-soft text-puzzle-orange ring-puzzle-orange/30';
+            }
+            if (['xls', 'xlsx', 'ods'].includes(ext)) {
+                return 'bg-puzzle-green-soft text-puzzle-green ring-puzzle-green/30';
+            }
+            return 'bg-violet-50 text-violet-700 ring-violet-200';
+        },
+        isChoice(f, key, value) {
+            return String(f.opts[key]) === String(value);
+        },
+        choose(f, key, value) {
+            f.opts[key] = value;
+            this.requote(f);
         },
         canAdd(f) {
             return f.status === 'ready' && f.total !== null && !f.busy;

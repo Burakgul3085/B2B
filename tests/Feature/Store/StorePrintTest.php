@@ -143,7 +143,7 @@ class StorePrintTest extends TestCase
 
     public function test_chunked_upload_counts_pages_and_resumes(): void
     {
-        $this->get(self::HOST.'/fotokopi')->assertOk()->assertSee('Fotokopi ve belge baskı')->assertSee('Baskılar 1 iş günü içinde hazırlanır.');
+        $this->get(self::HOST.'/fotokopi')->assertOk()->assertSee('Belgeni yükle,')->assertSee('Baskılar 1 iş günü içinde hazırlanır.');
         $this->postJson(self::HOST.'/fotokopi/dosya', ['name' => 'a.pdf', 'size' => 10])->assertStatus(422); // telif onayı yok
         $this->postJson(self::HOST.'/fotokopi/dosya', ['name' => 'virus.exe', 'size' => 10, 'consent' => '1'])->assertStatus(422);
         $this->postJson(self::HOST.'/fotokopi/dosya', ['name' => 'buyuk.pdf', 'size' => 201 * 1024 * 1024, 'consent' => '1'])->assertStatus(422);
