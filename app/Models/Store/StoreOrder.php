@@ -124,6 +124,12 @@ class StoreOrder extends Model
         return $this->hasOne(StoreInvoice::class, 'order_id');
     }
 
+    /** Faturalar ekranında hazırlanan e-Fatura / e-Arşiv belgeleri (taslak, gönderilen, iptal). */
+    public function eInvoices(): HasMany
+    {
+        return $this->hasMany(StoreEInvoice::class, 'order_id')->orderBy('id');
+    }
+
     /** Ödenen (kart) veya tahsil edilen (kapıda) tutar; iade bunun üzerinden yapılabilir. */
     public function isSettled(): bool
     {

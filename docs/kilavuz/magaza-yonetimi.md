@@ -70,7 +70,11 @@ Aynı sayfanın altında **kapıda ödeme engel listesi** ve son SMS'ler görün
 - **İptal:** Yola çıkmadan yapılabilir.
   - Kartla ödenmiş siparişin tutarı iptalle birlikte iyzico üzerinden karta iade edilir.
   - Havalesi alınmış siparişte önce tutarı müşterinin hesabına gönderip **Para iadesi** ile elle kaydedin, sonra iptal edin.
-- **Fatura:** Şimdilik e-Arşiv faturası Uyumsoft'ta kesilir. Fatura numarası ve PDF siparişe eklenir; müşteri sipariş sayfasından indirir. İade faturası da eklenebilir.
+- **Fatura:** Ödeme alınınca fatura kendiliğinden kesilmez. **Satış → Faturalar** ekranında "Fatura bekleyen" sekmesinden siparişi seçip **Fatura hazırla** deyin. Taslakta kalemleri, miktarı, fiyatı ve KDV'yi değiştirebilir, kalem ekleyip silebilirsiniz.
+  - Fatura toplamı müşterinin ödediğinden farklıysa ekranda uyarı çıkar. Göndermek için "Farkı biliyorum" kutusunu işaretleyin.
+  - **Kaydet ve faturayı kes** ile fatura Uyumsoft'a gider. Numarası ve PDF'i siparişe eklenir; müşteri sipariş sayfasından indirir.
+  - İade ya da iptalde aynı ekranın "İade faturası bekleyen" sekmesini kullanın. Uyumsoft bilgileri girilene kadar faturalar "DENEME" olarak üretilir ve geçerli değildir.
+  - Ayarları süper admin **Yönetim → Fatura Ayarları**'ndan yapar.
 - **Para iadesi (ürün iadesi olmadan):** Eksik gönderim, hasar indirimi vb. Kartta iyzico'dan karta; kapıda ödeme ve havalede müşterinin hesabına havale edip elle kaydedilir.
 
 ## 6. İadeler (cayma hakkı)

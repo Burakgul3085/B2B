@@ -256,7 +256,32 @@
                 <p class="text-sm">{{ $order->billing_type === 'corporate' ? 'Kurumsal' : 'Bireysel' }} · {{ $order->billing_name }}</p>
                 @if ($order->billing_tax_number)<p class="text-sm text-muted">{{ $order->billing_tax_office ? $order->billing_tax_office.' / ' : 'TCKN: ' }}{{ $order->billing_tax_number }}</p>@endif
                 <p class="mt-1 text-sm text-slate-600">{{ $order->billing_address }}</p>
+                @php
+                    $eInvoices = $order->eInvoices()->where('status', '!=', 'cancelled')->get();
+                    $canSale = in_array($order->status, \App\Domain\Store\Invoicing\EInvoiceService::BILLABLE, true) && ! $order->invoice && $eInvoices->where('kind', 'sale')->isEmpty();
+                    $canRefund = \App\Domain\Store\Invoicing\EInvoiceService::awaitingRefund()->whereKey($order->id)->exists();
+                    $manualInvoice = ! $order->invoice || $order->invoice->provider === 'manual';
+                @endphp
                 <div class="mt-4 border-t border-line pt-4">
+                    @foreach ($eInvoices as $doc)
+                        <p class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                            <a href="{{ route('store_admin.invoices.edit', $doc) }}" class="font-medium text-primary hover:underline">{{ $doc->invoice_no ?: \App\Models\Store\StoreEInvoice::KINDS[$doc->kind].' taslağı' }}</a>
+                            <x-badge :tone="$doc->statusTone()">{{ $doc->statusLabel() }}</x-badge>
+                            <span class="text-muted tabular-nums">{{ Money::format($doc->total) }}</span>
+                        </p>
+                    @endforeach
+                    @if ($canSale)
+                        <form method="POST" action="{{ route('store_admin.invoices.create-sale', $order) }}" class="mb-3">@csrf<x-button size="sm" icon="file">Fatura hazırla</x-button></form>
+                    @endif
+                    @if ($canRefund)
+                        <form method="POST" action="{{ route('store_admin.invoices.create-refund', $order) }}" class="mb-3 flex flex-wrap items-end gap-2">
+                            @csrf
+                            @if ($order->returns->isNotEmpty())
+                                <x-field name="return_id" label="İade" :options="['' => 'Tüm sipariş'] + $order->returns->pluck('return_no', 'id')->all()" class="min-w-40" />
+                            @endif
+                            <x-button size="sm" variant="secondary" icon="file">İade faturası hazırla</x-button>
+                        </form>
+                    @endif
                     @if ($order->invoice)
                         <p class="text-sm">Fatura no: <span class="font-medium">{{ $order->invoice->invoice_no }}</span> · {{ $order->invoice->issued_on->format('d.m.Y') }}</p>
                         @if ($order->invoice->file_path)<a href="{{ route('store_admin.orders.invoice', $order) }}" class="mt-1 inline-block text-sm text-primary hover:underline">PDF dosyasını indir</a>@endif
@@ -267,7 +292,7 @@
                     @endforeach
                     @if ($order->invoice && (bccomp((string) $order->refunded_total, '0', 2) > 0 || in_array($order->status, ['cancelled', 'not_delivered'], true)))
                         <details class="mt-3" @if ($errors->hasAny(['number'])) open @endif>
-                            <summary class="cursor-pointer text-sm font-medium text-primary">İade faturası ekle</summary>
+                            <summary class="cursor-pointer text-sm font-medium text-muted hover:text-primary">Elle iade faturası ekle (PDF)</summary>
                             <form method="POST" action="{{ route('store_admin.orders.credit-note.store', $order) }}" enctype="multipart/form-data" class="mt-3 space-y-3">
                                 @csrf
                                 <x-field name="number" label="İade faturası no" required maxlength="30" />
@@ -276,14 +301,14 @@
                                 @if ($order->returns->isNotEmpty())
                                     <x-field name="return_id" label="İlgili iade" :options="['' => '—'] + $order->returns->pluck('return_no', 'id')->all()" />
                                 @endif
-                                <x-field name="file" label="PDF" type="file" accept="application/pdf" required hint="e-Arşiv bağlanana kadar elle eklenir." />
+                                <x-field name="file" label="PDF" type="file" accept="application/pdf" required hint="Faturalar ekranı dışında kesilen iade faturası için." />
                                 <x-button>Kaydet</x-button>
                             </form>
                         </details>
                     @endif
-                    @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true))
-                        <details @class(['mt-3' => $order->invoice]) @if (! $order->invoice || $errors->hasAny(['invoice_no', 'issued_on', 'file'])) open @endif>
-                            <summary class="cursor-pointer text-sm font-medium text-primary">{{ $order->invoice ? 'Faturayı değiştir' : 'Fatura ekle' }}</summary>
+                    @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true) && $manualInvoice && $eInvoices->where('kind', 'sale')->isEmpty())
+                        <details class="mt-3" @if ($errors->hasAny(['invoice_no', 'issued_on', 'file'])) open @endif>
+                            <summary class="cursor-pointer text-sm font-medium text-muted hover:text-primary">{{ $order->invoice ? 'Elle eklenen faturayı değiştir' : 'Başka yerde kesilen faturayı elle ekle (PDF)' }}</summary>
                             <form method="POST" action="{{ route('store_admin.orders.invoice.store', $order) }}" enctype="multipart/form-data" class="mt-3 space-y-3">
                                 @csrf
                                 <x-field name="invoice_no" label="Fatura numarası" required maxlength="30" :value="$order->invoice?->invoice_no" />

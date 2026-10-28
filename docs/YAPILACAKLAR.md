@@ -6,8 +6,8 @@
 
 ### M7'den kalanlar
 M7 tamamlandı (kargo firmaları ve takip bağlantısı, iade talepleri, iyzico ve elle para iadesi, kartlı siparişin iadeli iptali, elle fatura). Kalanlar:
-- [ ] **Uyumsoft e-Arşiv sürücüsü.** Uyumsoft API kullanıcısı ve test ortamı gelince yazılacak; şimdilik fatura numarası ve PDF elle ekleniyor.
-- [ ] **Otomatik iade faturası.** Elle iade faturası eklenebiliyor; e-Arşiv bağlanınca otomatik oluşturulacak, belge türü mali müşavirle netleştirilecek.
+- [x] **Faturalar ekranı ve Uyumsoft altyapısı** (docs/28-fatura-uyumsoft-raporu.md). Fatura otomatik kesilmez, yönetici taslağı düzenleyip kendisi gönderir. Satış ve iade faturası, e-Fatura/e-Arşiv ayrımı, deneme sürücüsü hazır.
+- [ ] **Uyumsoft test ortamında uçtan uca deneme.** Sürücü yazıldı ama gerçek hesapla denenmedi. Bilgiler gelince test ortamında e-Arşiv, e-Fatura ve iade faturası denenecek; seri/numaralandırma, %0 KDV istisna kodu ve kargo KDV oranı mali müşavirle teyit edilecek.
 - [ ] **Kargo firması API'si:** Gönderi oluşturma, barkod, durum sorgulama. Anlaşma yapılan firmaya göre; şimdilik firma seçilip takip numarası elle giriliyor.
 
 ### M9'dan kalanlar (yayın aşaması)
@@ -31,7 +31,7 @@ M9'un kod tarafı tamamlandı (yasal metinler, çerez bandı, bot koruması, KVK
 | iyzico sandbox anahtarları | Müşteri (iyzico sandbox hesabı) | Kart ödemesini gerçek iyzico deneme ortamında uçtan uca denemek |
 | iyzico üye işyeri başvurusu ve canlı anahtarlar | Müşteri | Canlı kart ödemesi (yayından sonra) |
 | Netgsm kullanıcı kodu, şifre, onaylı mesaj başlığı | Müşteri | Gerçek SMS; canlıda kapıda ödemenin açılması |
-| Uyumsoft e-Arşiv API kullanıcısı ve test ortamı | Müşteri / mali müşavir | Otomatik fatura (M7) |
+| Uyumsoft web servis kullanıcısı (test ve canlı) | Müşteri / mali müşavir | Faturalar ekranından gerçek e-Fatura / e-Arşiv |
 | Satıcı bilgileri (unvan, vergi dairesi, vergi no, MERSİS) | Müşteri | Yasal metinler ve faturalar |
 | Yasal metinlerin hukuki kontrolü | Müşteri / hukukçu | Yayından önce. Şu anki metinler başlangıç şablonudur. |
 | Kargo firması anlaşması | Müşteri | İsteğe bağlı |

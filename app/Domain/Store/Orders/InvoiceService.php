@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Sipariş faturası (elle): fatura numarası, tarihi ve PDF'i siparişe eklenir; müşteri sipariş sayfasından indirir.
  * PDF yerel diskte, web'den doğrudan erişilemeyen klasörde saklanır; yalnızca yetkili rotalardan indirilir.
- * e-Arşiv sağlayıcısı (Uyumsoft) bağlandığında aynı kayıt otomatik oluşturulacak.
+ * Faturalar ekranında (EInvoiceService) kesilen e-Fatura / e-Arşiv de aynı kayda yazılır; o fatura burada elle değiştirilemez.
  */
 class InvoiceService
 {
@@ -32,6 +32,9 @@ class InvoiceService
     public function attach(StoreOrder $order, array $input, ?UploadedFile $file): StoreInvoice
     {
         $existing = $order->invoice()->first();
+        if (($existing && $existing->provider !== 'manual') || $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')->exists()) {
+            throw new DomainException('Bu siparişin faturası Faturalar ekranından hazırlanıyor veya kesildi; elle değiştirilemez.');
+        }
         $data = Validator::make($input + ['file' => $file], [
             'invoice_no' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-\/]+$/', 'unique:store_invoices,invoice_no'.($existing ? ','.$existing->id : '')],
             'issued_on' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.$order->created_at->toDateString()],

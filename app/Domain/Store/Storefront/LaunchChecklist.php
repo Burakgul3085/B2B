@@ -64,6 +64,12 @@ class LaunchChecklist
                     'En az bir kargo firmasının takip bağlantısı olmalı (bilinen firmalarda kendiliğinden gelir); müşteri kargosunu sipariş sayfasından izler.', 'store_admin.carriers.index'),
                 $this->item('Kargo firması ücretleri', StoreCarrier::where('is_active', true)->whereNotNull('fee')->exists() ? 'ok' : 'warn',
                     'Anlaştığınız firmaların ücretini girin; müşteri ödeme sayfasında firmayı fiyatıyla seçer. Girilmezse yedek kargo ücreti uygulanır.', 'store_admin.carriers.index'),
+                $this->item('e-Fatura / e-Arşiv (Uyumsoft)', $s['invoice_driver'] === 'uyumsoft' ? ($s['uyumsoft_mode'] === 'live' ? 'ok' : 'warn') : 'todo',
+                    match (true) {
+                        $s['invoice_driver'] !== 'uyumsoft' => 'Deneme sürücüsü açık; Faturalar ekranında kesilen belgeler geçerli fatura değildir. Uyumsoft bilgilerini Fatura Ayarları\'na girin.',
+                        $s['uyumsoft_mode'] !== 'live' => 'Uyumsoft test ortamında; denemeler bitince ortamı "Canlı" yapın.',
+                        default => 'Uyumsoft canlı ortamda. Faturalar otomatik kesilmez; Faturalar ekranından gönderilir.',
+                    }, 'store_admin.invoices.index'),
                 $this->item('İade adresi', blank($s['return_address']) && blank($s['address']) ? 'todo' : 'ok', 'Onaylanan iade e-postasında müşteriye gösterilir.', 'store_admin.payments.edit'),
             ]],
             ['group' => 'Güvenlik ve işletim', 'items' => [

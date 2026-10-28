@@ -29,6 +29,7 @@
 | [25-yayin-oncesi-eksikler-raporu.md](25-yayin-oncesi-eksikler-raporu.md) | Yayın öncesi eksikler: Türkçe hata sayfaları ve referans kodu, eksiksiz Türkçe doğrulama mesajları, sözleşmelerin sipariş e-postasıyla gönderimi, iyzico bildirim adresi (webhook), adrese göre kapıda ödeme engeli, .env.example ve günlük dosyaları, mağaza performans ölçümü |
 | [26-havale-ve-kilavuzlar-raporu.md](26-havale-ve-kilavuzlar-raporu.md) | Havale / EFT ile ödeme (hesaplar, süre, onay, süre dolunca iptal, iade kuralı); desiye göre kargo ücreti olmayacağı ve Turnstile'ın yapılmayacağı kararları |
 | [27-hakkimizda-iletisim-raporu.md](27-hakkimizda-iletisim-raporu.md) | Mağaza: serbest sayfalar yerine sabit Hakkımızda ve İletişim sayfaları (yönetimde düzenlenir), Google Haritalar, çalışma saatleri, iletişim formu ve Mesajlar kutusu |
+| [28-fatura-uyumsoft-raporu.md](28-fatura-uyumsoft-raporu.md) | Mağaza: Faturalar ekranı (otomatik fatura yok; taslak düzenlenip elle gönderilir), e-Fatura / e-Arşiv ayrımı, iade faturası, deneme sürücüsü ve Uyumsoft altyapısı |
 | [kilavuz/](kilavuz/) | Kullanım kılavuzları: [toptancı](kilavuz/toptanci.md), [bayi](kilavuz/bayi.md), [mağaza yönetimi](kilavuz/magaza-yonetimi.md), [platform](kilavuz/platform.md); [sunucu kurulumu](kilavuz/kurulum.md) |
 | [YAPILACAKLAR.md](YAPILACAKLAR.md) | Yapılmayanlar ve bekleyenler: kalan mağaza aşamaları (M7–M10), dışarıdan beklenen hesap ve bilgiler, B2B Aşama 10 ve eksik ekranlar |
 | [GELISTIRME.md](GELISTIRME.md) | Yerel kurulum ve çalıştırma |

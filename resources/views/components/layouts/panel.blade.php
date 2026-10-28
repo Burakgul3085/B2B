@@ -82,6 +82,8 @@
                     'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
                 ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
                     'badge' => \App\Models\Store\StoreReturn::where('status', 'requested')->count()],
+                ['label' => 'Faturalar', 'route' => 'store_admin.invoices.index', 'icon' => 'file', 'active' => 'store_admin.invoices.*',
+                    'badge' => \App\Domain\Store\Invoicing\EInvoiceService::awaitingSale()->count()],
                 ['label' => 'Mesajlar', 'route' => 'store_admin.messages.index', 'icon' => 'message-circle', 'active' => 'store_admin.messages.*',
                     'badge' => \App\Models\Store\StoreContactMessage::where('status', 'new')->count()],
                 ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],
@@ -123,6 +125,7 @@
             ]],
             ['label' => 'Yönetim', 'items' => array_values(array_filter([
                 $user->is_super ? ['label' => 'Yöneticiler', 'route' => 'store_admin.admins.index', 'icon' => 'users', 'active' => 'store_admin.admins.*'] : null,
+                $user->is_super ? ['label' => 'Fatura Ayarları', 'route' => 'store_admin.invoice-settings.edit', 'icon' => 'settings', 'active' => 'store_admin.invoice-settings.*'] : null,
                 ['label' => 'İşlem Geçmişi', 'route' => 'store_admin.activity', 'icon' => 'list', 'active' => 'store_admin.activity'],
                 ['label' => 'Profil ve Güvenlik', 'route' => 'store_admin.account', 'icon' => 'user', 'active' => 'store_admin.account*'],
             ]))],

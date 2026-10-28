@@ -1473,3 +1473,87 @@ export function printOrder(config) {
         },
     };
 }
+
+/**
+ * Fatura taslağı düzenleyici (Faturalar): kalem ekleme / silme ve canlı toplamlar. Buradaki hesap yalnızca
+ * gösterim içindir; kesin tutarlar kaydedilirken sunucuda hesaplanır (App\Domain\Store\Invoicing\InvoiceMath).
+ */
+export function invoiceEditor(config) {
+    const blank = () => ({ order_item_id: '', name: '', sku: '', quantity: '1', unit_price: '', discount: '', vat_rate: config.defaultVat });
+    const money = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+    const num = (value) => {
+        let s = String(value ?? '').replace(/[\s₺]/g, '');
+        if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+        const n = Number.parseFloat(s);
+        return Number.isFinite(n) ? n : 0;
+    };
+    const round = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+    return {
+        rows: config.lines.length ? config.lines : [blank()],
+        buyerType: config.buyerType,
+        errors: config.errors,
+        max: config.max,
+        expected: num(config.expected),
+        add() {
+            if (this.rows.length < this.max) this.rows.push(blank());
+        },
+        remove(index) {
+            this.rows.splice(index, 1);
+            this.errors = {};
+            if (!this.rows.length) this.rows.push(blank());
+        },
+        canAdd() {
+            return this.rows.length < this.max;
+        },
+        isCorporate() {
+            return this.buyerType === 'corporate';
+        },
+        lineTotal(row) {
+            return round(round(num(row.quantity) * num(row.unit_price)) - num(row.discount));
+        },
+        lineNet(row) {
+            return round((this.lineTotal(row) * 100) / (100 + num(row.vat_rate)));
+        },
+        lineText(row) {
+            return money.format(this.lineTotal(row));
+        },
+        total() {
+            return round(this.rows.reduce((sum, row) => sum + this.lineTotal(row), 0));
+        },
+        subtotal() {
+            return round(this.rows.reduce((sum, row) => sum + this.lineNet(row), 0));
+        },
+        totalText() {
+            return money.format(this.total());
+        },
+        subtotalText() {
+            return money.format(this.subtotal());
+        },
+        vatText() {
+            return money.format(round(this.total() - this.subtotal()));
+        },
+        difference() {
+            return round(this.total() - this.expected);
+        },
+        hasDifference() {
+            return Math.abs(this.difference()) >= 0.005;
+        },
+        differenceText() {
+            const d = this.difference();
+            return (d > 0 ? '+' : '') + money.format(d);
+        },
+        error(index, field) {
+            return this.errors['lines.' + index + '.' + field] || '';
+        },
+    };
+}
+
+/** Listede seçim kutuları (Faturalar): hiçbiri seçili değilken toplu işlem düğmesi kapalıdır. */
+export function pickList() {
+    return {
+        picked: [],
+        get none() {
+            return this.picked.length === 0;
+        },
+    };
+}

@@ -131,6 +131,21 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('siparisler/{storeOrder}/iade-faturasi/{note}', [Admin\OrderController::class, 'creditNote'])->whereNumber('note')->name('orders.credit-note');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
             Route::get('siparisler/{storeOrder}/fotokopi/{storePrintJob}/{kind}', [Admin\PrintController::class, 'download'])->whereIn('kind', ['pdf', 'ozgun'])->name('orders.print-file');
+            // Faturalar (e-Fatura / e-Arşiv): ödeme alınınca kesilmez, yönetici buradan tek tek veya seçerek gönderir.
+            Route::get('faturalar', [Admin\InvoiceController::class, 'index'])->name('invoices.index');
+            Route::post('faturalar/toplu-taslak', [Admin\InvoiceController::class, 'createMany'])->name('invoices.create-many');
+            Route::post('faturalar/toplu-gonder', [Admin\InvoiceController::class, 'sendMany'])->middleware('throttle:10,1,store_admin.invoices.send-many')->name('invoices.send-many');
+            Route::post('siparisler/{storeOrder}/fatura-taslagi', [Admin\InvoiceController::class, 'createSale'])->name('invoices.create-sale');
+            Route::post('siparisler/{storeOrder}/iade-faturasi-taslagi', [Admin\InvoiceController::class, 'createRefund'])->name('invoices.create-refund');
+            Route::get('faturalar/{storeEInvoice}', [Admin\InvoiceController::class, 'edit'])->name('invoices.edit');
+            Route::put('faturalar/{storeEInvoice}', [Admin\InvoiceController::class, 'update'])->middleware('throttle:60,1,store_admin.invoices.update')->name('invoices.update');
+            Route::delete('faturalar/{storeEInvoice}', [Admin\InvoiceController::class, 'destroy'])->name('invoices.destroy');
+            Route::post('faturalar/{storeEInvoice}/sorgula', [Admin\InvoiceController::class, 'check'])->middleware('throttle:20,1,store_admin.invoices.check')->name('invoices.check');
+            Route::post('faturalar/{storeEInvoice}/taslaga-al', [Admin\InvoiceController::class, 'release'])->name('invoices.release');
+            Route::post('faturalar/{storeEInvoice}/iptal', [Admin\InvoiceController::class, 'cancel'])->name('invoices.cancel');
+            Route::post('faturalar/{storeEInvoice}/pdf-al', [Admin\InvoiceController::class, 'refetchPdf'])->middleware('throttle:20,1,store_admin.invoices.pdf-fetch')->name('invoices.refetch-pdf');
+            Route::get('faturalar/{storeEInvoice}/onizleme', [Admin\InvoiceController::class, 'preview'])->middleware('throttle:30,1,store_admin.invoices.preview')->name('invoices.preview');
+            Route::get('faturalar/{storeEInvoice}/pdf', [Admin\InvoiceController::class, 'pdf'])->name('invoices.pdf');
             Route::delete('kapida-odeme-engeli/{storeCodBlock}', [Admin\OrderController::class, 'unblock'])->name('cod-blocks.destroy');
             // İletişim formu mesajları
             Route::get('mesajlar', [Admin\ContactMessageController::class, 'index'])->name('messages.index');
@@ -215,6 +230,10 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('yoneticiler/{storeAdmin}', [Admin\AdminController::class, 'update'])->name('admins.update');
                 Route::put('yoneticiler/{storeAdmin}/sifre', [Admin\AdminController::class, 'password'])->name('admins.password');
                 Route::put('yoneticiler/{storeAdmin}/durum', [Admin\AdminController::class, 'status'])->name('admins.status');
+                // Fatura sağlayıcısı (Uyumsoft) ayarları
+                Route::get('ayarlar/fatura', [Admin\InvoiceSettingsController::class, 'edit'])->name('invoice-settings.edit');
+                Route::put('ayarlar/fatura', [Admin\InvoiceSettingsController::class, 'update'])->name('invoice-settings.update');
+                Route::post('ayarlar/fatura/dene', [Admin\InvoiceSettingsController::class, 'test'])->middleware('throttle:10,1,store_admin.invoice-settings.test')->name('invoice-settings.test');
             });
         });
     });

@@ -28,7 +28,8 @@ final class StoreReportBranding
     {
         $s = StoreSetting::values();
         $contact = implode('  ·  ', array_filter([$s['phone'] ? 'Tel: '.$s['phone'] : null, $s['email'], config('store.display_domain')]));
-        $tax = $s['company_tax_number'] ? trim(($s['company_tax_office'] ? $s['company_tax_office'].' V.D.' : 'Vergi no').' '.$s['company_tax_number']) : null;
+        $office = $s['company_tax_office'] && ! preg_match('/vergi dairesi|v\.d\./iu', $s['company_tax_office']) ? $s['company_tax_office'].' V.D.' : $s['company_tax_office'];
+        $tax = $s['company_tax_number'] ? trim(($office ?: 'Vergi no').' '.$s['company_tax_number']) : null;
         $registry = $s['company_mersis'] ? 'MERSİS: '.$s['company_mersis'] : ($s['company_esnaf_no'] ? 'Esnaf ve Sanatkârlar Sicil No: '.$s['company_esnaf_no'] : null);
 
         return array_values(array_filter([$s['address'], $contact, implode('  ·  ', array_filter([$tax, $registry]))]));

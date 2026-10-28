@@ -106,10 +106,20 @@ class StoreSetting extends Model
         'netgsm_usercode' => null,
         'netgsm_password' => null,
         'netgsm_header' => null,
+
+        // e-Fatura / e-Arşiv (Ayarlar → Fatura). deneme: sahte numara ve PDF üretir, hiçbir yere gönderilmez.
+        // Fatura otomatik kesilmez; yönetici Faturalar ekranından tek tek gönderir. Şifre şifreli saklanır.
+        'invoice_driver' => 'deneme',        // deneme | uyumsoft
+        'uyumsoft_mode' => 'test',           // test | live
+        'uyumsoft_username' => null,
+        'uyumsoft_password' => null,
+        'invoice_sender_id' => null,         // gönderici VKN / TCKN (boşsa vergi numarası)
+        'invoice_shipping_vat' => '20',      // kargo ve kapıda ödeme bedeli kaleminin KDV oranı
+        'invoice_notify' => '1',             // gönderilen faturayı müşteriye e-postayla bildir (varsayılan)
     ];
 
     /** Veritabanında şifreli tutulan anahtarlar. */
-    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password', 'mail_password'];
+    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password', 'mail_password', 'uyumsoft_password'];
 
     private const CACHE_KEY = 'store.settings.saved';
 
