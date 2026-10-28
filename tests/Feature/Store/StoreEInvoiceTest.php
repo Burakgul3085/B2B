@@ -359,6 +359,56 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame('11111111111', $x->evaluate('string(//cac:AccountingCustomerParty//cac:PartyIdentification/cbc:ID)'));
         $this->assertSame('Yılmaz', $x->evaluate('string(//cac:AccountingCustomerParty//cac:Person/cbc:FamilyName)'));
         $this->assertSame(2.0, $x->evaluate('count(/*/cac:TaxTotal/cac:TaxSubtotal)'));
+        // UBL-TR'de zorunlu imza bilgisi, taraflardan önce.
+        $this->assertSame('1770247133', $x->evaluate('string(/*/cac:Signature/cbc:ID)'));
+        $this->assertSame('AccountingSupplierParty', $x->query('/*/cac:Signature')->item(0)->nextSibling->localName);
+    }
+
+    public function test_sole_proprietor_buyer_with_tckn_and_date_and_status_guards(): void
+    {
+        $order = $this->paidOrder();
+        $service = app(EInvoiceService::class);
+        $invoice = $service->createSale($order)->load('lines');
+
+        // Fatura tarihi siparişten önce olamaz.
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['issue_date' => now('Europe/Istanbul')->subDays(3)->toDateString()]) + ['action' => 'save'])
+            ->assertSessionHasErrors('issue_date');
+
+        // Şahıs firması: kurumsal alıcı 11 haneli TCKN ile; UBL'de kişi adı da yazılır.
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_type' => 'corporate', 'buyer_name' => 'Ali Veli',
+            'buyer_tax_number' => '12345678901', 'buyer_tax_office' => 'Çankaya']) + ['action' => 'save'])->assertSessionHasNoErrors();
+        $xml = app(UblBuilder::class)->xml($invoice->fresh(), 'e_arsiv');
+        $this->assertStringContainsString('schemeID="TCKN">12345678901', $xml);
+        $this->assertStringContainsString('<cbc:FamilyName>Veli</cbc:FamilyName>', $xml);
+
+        // Taslak varken sipariş iptal edildiyse satış faturası kesilmez.
+        $order->update(['status' => 'cancelled']);
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice->fresh('lines')) + ['action' => 'send'])->assertSessionHasErrors('invoice');
+        $this->assertSame('draft', $invoice->fresh()->status);
+    }
+
+    public function test_e_fatura_buyer_refund_is_issued_by_buyer_not_here(): void
+    {
+        $order = $this->paidOrder();
+        $service = app(EInvoiceService::class);
+        $sale = $service->createSale($order)->load('lines');
+        $this->put(self::ADMIN.'/faturalar/'.$sale->id, $this->form($sale, ['buyer_type' => 'corporate', 'buyer_name' => 'Örnek Ltd. Şti.',
+            'buyer_tax_number' => DenemeProvider::EFATURA_TEST_VKN, 'buyer_tax_office' => 'Çankaya']) + ['action' => 'send'])->assertSessionHasNoErrors();
+        $this->assertSame('e_fatura', $sale->fresh()->document_type);
+
+        $order->update(['refunded_total' => '100.00', 'payment_status' => 'partially_refunded']);
+        $this->assertNotContains($order->id, EInvoiceService::awaitingRefund()->pluck('id')->all());
+        $this->get(self::ADMIN.'/siparisler/'.$order->id)->assertOk()->assertSee('iade faturasını alıcı size keser');
+
+        // Elle (satış faturası dışarıda kesilmiş) olsa bile mükellef alıcıya iade faturası gönderilmez.
+        $refund = $service->createRefund($order->fresh());
+        $this->expectException(\DomainException::class);
+        try {
+            $service->send($refund, true);
+        } finally {
+            $this->assertSame('draft', $refund->fresh()->status);
+            $this->assertStringContainsString('alıcı size keser', $refund->fresh()->error_message);
+        }
     }
 
     public function test_launch_checklist_shows_invoice_item(): void

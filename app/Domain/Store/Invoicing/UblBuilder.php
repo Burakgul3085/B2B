@@ -62,6 +62,7 @@ final class UblBuilder
             $this->cbc($ref, 'IssueDate', $reference['issue_date']);
         }
 
+        $this->signature($root);
         $this->supplier($root);
         $this->customer($root, $invoice);
         $this->taxTotal($root, $totals['vat_total'], $totals['by_rate']);
@@ -87,18 +88,50 @@ final class UblBuilder
         return (string) $this->doc->saveXML($root);
     }
 
+    /** UBL-TR'de zorunlu imza bilgisi: imzalayan satıcıdır; imzanın kendisini (mali mühür) entegratör ekler. */
+    private function signature(DOMElement $root): void
+    {
+        $s = StoreSetting::values();
+        $id = $this->senderId();
+        $signature = $this->cac($root, 'Signature');
+        $this->cbc($signature, 'ID', $id)->setAttribute('schemeID', 'VKN_TCKN');
+        $party = $this->cac($signature, 'SignatoryParty');
+        $this->identification($party, $id);
+        [$district, $city] = $this->supplierCity((string) $s['address']);
+        $this->address($party, (string) $s['address'], $district, $city);
+        $this->cbc($this->cac($this->cac($signature, 'DigitalSignatureAttachment'), 'ExternalReference'), 'URI', '#Signature_'.$id);
+    }
+
+    private function senderId(): string
+    {
+        $s = StoreSetting::values();
+
+        return (string) preg_replace('/\D/', '', (string) ($s['invoice_sender_id'] ?: $s['company_tax_number']));
+    }
+
+    /**
+     * Adres "… ODUNPAZARI / ESKİŞEHİR" biçimindedir: son iki parça ilçe ve il olarak alınır.
+     *
+     * @return array{0: ?string, 1: string}
+     */
+    private function supplierCity(string $address): array
+    {
+        $parts = array_map('trim', explode('/', $address));
+        $city = count($parts) > 1 ? array_pop($parts) : 'Eskişehir';
+        $district = count($parts) > 0 && preg_match('/(\S+)$/u', end($parts), $m) ? $m[1] : null;
+
+        return [$district, $city];
+    }
+
     /** Satıcı: mağaza ayarlarındaki unvan, adres ve vergi bilgileri. Gönderici kimliği ayarda (yoksa vergi numarası). */
     private function supplier(DOMElement $root): void
     {
         $s = StoreSetting::values();
-        $id = preg_replace('/\D/', '', (string) ($s['invoice_sender_id'] ?: $s['company_tax_number']));
+        $id = $this->senderId();
         $party = $this->cac($this->cac($root, 'AccountingSupplierParty'), 'Party');
         $this->identification($party, $id);
         $this->cbc($this->cac($party, 'PartyName'), 'Name', $s['company_title'] ?: config('store.name'));
-        // Adres "… ODUNPAZARI / ESKİŞEHİR" biçimindedir: son iki parça ilçe ve il olarak alınır.
-        $parts = array_map('trim', explode('/', (string) $s['address']));
-        $city = count($parts) > 1 ? array_pop($parts) : 'Eskişehir';
-        $district = count($parts) > 0 && preg_match('/(\S+)$/u', end($parts), $m) ? $m[1] : null;
+        [$district, $city] = $this->supplierCity((string) $s['address']);
         $this->address($party, (string) $s['address'], $district, $city);
         $this->taxScheme($party, $s['company_tax_office']);
         $contact = $this->cac($party, 'Contact');
@@ -131,7 +164,8 @@ final class UblBuilder
         if ($invoice->buyer_email) {
             $this->cbc($contact, 'ElectronicMail', $invoice->buyer_email);
         }
-        if ($individual) {
+        // TCKN ile tanımlanan alıcıda (bireysel veya şahıs firması) kişi adı zorunludur.
+        if ($individual || strlen($id) === 11) {
             $this->person($party, $invoice->buyer_name);
         }
     }

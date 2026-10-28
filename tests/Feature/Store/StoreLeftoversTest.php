@@ -138,12 +138,12 @@ class StoreLeftoversTest extends TestCase
         $pdf = fn () => UploadedFile::fake()->createWithContent('iade.pdf', "%PDF-1.4\n%%EOF");
         $order = $this->delivered($this->codOrder($this->cart(2, 0)));
 
-        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'IAD001', 'issued_on' => now()->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('order'); // satış faturası yok
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ001', 'issued_on' => now()->toDateString(), 'file' => $pdf()])->assertSessionHasNoErrors();
-        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'IAD001', 'issued_on' => now()->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('order'); // iade yok
+        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'IAD001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('order'); // satış faturası yok
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])->assertSessionHasNoErrors();
+        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'IAD001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('order'); // iade yok
         $this->post(route('store_admin.orders.refund', $order), ['amount' => '100', 'refund_reason' => 'Hasarlı'])->assertSessionHasNoErrors();
-        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'YBZ001', 'issued_on' => now()->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('number'); // satış faturası numarası
-        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'iad001', 'issued_on' => now()->toDateString(), 'amount' => '100', 'file' => $pdf()])->assertSessionHasNoErrors();
+        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'YBZ001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('number'); // satış faturası numarası
+        $this->post(route('store_admin.orders.credit-note.store', $order), ['number' => 'iad001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'amount' => '100', 'file' => $pdf()])->assertSessionHasNoErrors();
 
         $note = $order->creditNotes()->firstOrFail();
         $this->assertSame(['IAD001', '100.00'], [$note->number, $note->amount]);

@@ -22,7 +22,7 @@
             <x-card title="Fatura bilgileri" description="Satıcı unvanı, adresi ve vergi dairesi Mağaza Ayarları'ndan alınır.">
                 <div class="space-y-5">
                     <x-field name="invoice_sender_id" label="Gönderici VKN / TCKN" :value="$s['invoice_sender_id']" maxlength="11" inputmode="numeric"
-                        :hint="'Uyumsoft hesabınızın kayıtlı olduğu kimlik numarası. Boşsa Mağaza Ayarları\'ndaki vergi numarası kullanılır'.($s['company_tax_number'] ? ' ('.$s['company_tax_number'].')' : '').'.'" />
+                        :hint="'Uyumsoft hesabınızın kayıtlı olduğu kimlik numarası (şahıs firmasında genellikle sahibin TCKN\'si). Boşsa Mağaza Ayarları\'ndaki vergi numarası kullanılır'.($s['company_tax_number'] ? ' ('.$s['company_tax_number'].')' : '').'.'" />
                     <x-field name="invoice_shipping_vat" label="Kargo / kapıda ödeme bedeli KDV oranı" :options="['20' => '%20', '10' => '%10', '1' => '%1', '0' => '%0']" :value="$s['invoice_shipping_vat']"
                         hint="Taslakta kargo ve kapıda ödeme bedeli ayrı hizmet kalemi olarak gelir; oranı taslakta da değiştirebilirsiniz." />
                     <x-toggle name="invoice_notify" label="Kesilen faturayı müşteriye e-postayla bildir (varsayılan)" :checked="$s['invoice_notify'] === '1'"

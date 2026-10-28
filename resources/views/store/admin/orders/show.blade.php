@@ -281,6 +281,9 @@
                             @endif
                             <x-button size="sm" variant="secondary" icon="file">İade faturası hazırla</x-button>
                         </form>
+                    @elseif ($order->creditNotes->isEmpty() && $eInvoices->contains(fn ($d) => $d->kind === 'sale' && $d->status === 'sent' && $d->document_type === 'e_fatura')
+                        && (bccomp((string) $order->refunded_total, '0', 2) > 0 || in_array($order->status, ['cancelled', 'not_delivered'], true)))
+                        <p class="mb-3 text-sm text-muted">Alıcı e-Fatura mükellefi: iade faturasını alıcı size keser. Gelen iade faturasını aşağıdan elle ekleyin.</p>
                     @endif
                     @if ($order->invoice)
                         <p class="text-sm">Fatura no: <span class="font-medium">{{ $order->invoice->invoice_no }}</span> · {{ $order->invoice->issued_on->format('d.m.Y') }}</p>

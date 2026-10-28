@@ -32,7 +32,8 @@ use Illuminate\Validation\ValidationException;
  *  - Taslak siparişi, ödemeyi ve stoku değiştirmez; yalnızca faturayı belirler. Tutarlar her zaman sunucuda hesaplanır.
  *  - Fatura toplamı siparişte ödenenden (iade faturasında iade edilenden) farklıysa gönderimde ayrıca onay istenir.
  *  - Alıcı e-Fatura mükellefiyse e-Fatura, değilse e-Arşiv kesilir (sağlayıcıdan sorgulanır).
- *  - Gönderilen fatura değişmez; e-Arşiv iptal edilebilir, e-Faturada düzeltme iade faturasıyla yapılır.
+ *  - Gönderilen fatura değişmez; e-Arşiv iptal edilebilir. e-Fatura mükellefi alıcıda iade faturasını alıcı keser
+ *    (buradan kesilmez); e-Fatura iptali alıcıyla GİB portalından yürütülür.
  *  - Bağlantı koparsa fatura "sonuç belirsiz" kalır ve sağlayıcıdan sorgulanmadan yeniden gönderilemez (çift fatura olmaz).
  *  - Kesilen fatura store_invoices (satış) / store_credit_notes (iade) kaydına da yazılır: müşteri sipariş sayfasından indirir.
  */
@@ -57,13 +58,17 @@ class EInvoiceService
             ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->where('status', '!=', 'cancelled'));
     }
 
-    /** İade faturası bekleyen siparişler: satış faturası var, para iadesi yapıldı veya sipariş iptal edildi, iade faturası yok. */
+    /**
+     * İade faturası bekleyen siparişler: satış faturası var, para iadesi yapıldı veya sipariş iptal edildi, iade faturası yok.
+     * Satış faturası e-Fatura olan (alıcı mükellef) siparişler hariç: iade faturasını alıcı keser, gelen belge elle eklenir.
+     */
     public static function awaitingRefund(): Builder
     {
         return StoreOrder::query()->whereHas('invoice')
             ->where(fn ($q) => $q->where('refunded_total', '>', 0)->orWhereIn('status', ['cancelled', 'not_delivered']))
             ->whereDoesntHave('creditNotes')
-            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'refund')->where('status', '!=', 'cancelled'));
+            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'refund')->where('status', '!=', 'cancelled'))
+            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->where('status', 'sent')->where('document_type', 'e_fatura'));
     }
 
     /** @throws DomainException */
@@ -109,6 +114,8 @@ class EInvoiceService
         }
         $return = $returnId ? $order->returns()->with('items')->find($returnId) : null;
         $items = $order->items()->orderBy('id')->get()->keyBy('id');
+        // Satış faturası buradan kesildiyse onun (düzeltilmiş olabilecek) alıcısı ve kalemleri esas alınır.
+        $saleDoc = $order->eInvoices()->where('kind', 'sale')->where('status', 'sent')->with('lines')->latest('id')->first();
 
         if ($return) {
             $lines = $return->items->map(function ($ri) use ($items) {
@@ -122,8 +129,7 @@ class EInvoiceService
             })->values()->all();
             $expected = (string) ($return->refund_amount ?? $order->refunded_total);
         } else {
-            // Satış faturasının kalemleri (e-Fatura ile kesildiyse onun düzenlenmiş hâli) olduğu gibi gelir.
-            $saleDoc = $order->eInvoices()->where('kind', 'sale')->where('status', 'sent')->with('lines')->latest('id')->first();
+            // Satış faturasının kalemleri (buradan kesildiyse onun düzenlenmiş hâli) olduğu gibi gelir.
             $lines = $saleDoc
                 ? $saleDoc->lines->map(fn ($l) => $l->only(['order_item_id', 'name', 'sku', 'quantity', 'unit_price', 'discount', 'vat_rate']))->all()
                 : $items->map(fn ($i) => [
@@ -136,7 +142,7 @@ class EInvoiceService
             $expected = bccomp((string) $order->refunded_total, '0', 2) > 0 ? (string) $order->refunded_total : ($saleDoc ? (string) $saleDoc->total : (string) $order->total);
         }
 
-        return $this->create($order, 'refund', $return, $lines, $expected);
+        return $this->create($order, 'refund', $return, $lines, $expected, $saleDoc);
     }
 
     /**
@@ -188,6 +194,9 @@ class EInvoiceService
         if ($invoice->kind === 'refund' && ! $invoice->order->invoice()->exists()) {
             throw new DomainException('Satış faturası olmadan iade faturası gönderilemez.');
         }
+        if ($invoice->kind === 'sale' && ! in_array($invoice->order->status, self::BILLABLE, true)) {
+            throw new DomainException('Sipariş iptal edilmiş veya ödemesi alınmamış; satış faturası kesilemez. Taslağı silebilirsiniz.');
+        }
         $provider = $this->provider();
         if (! $provider->isConfigured()) {
             throw new DomainException('Fatura sağlayıcısı ayarlanmamış (Ayarlar → Fatura).');
@@ -202,6 +211,11 @@ class EInvoiceService
                 $lookup = $provider->lookup($taxNumber);
             } catch (EInvoiceUncertain|EInvoiceRejected $e) {
                 $invoice->update(['error_message' => 'Alıcının e-Fatura durumu sorgulanamadı: '.$e->getMessage()]);
+                throw new DomainException($invoice->error_message);
+            }
+            if ($lookup['registered'] && $invoice->kind === 'refund') {
+                // Malı iade eden e-Fatura mükellefidir: iade faturasını o keser, satıcı keserse belge ters yönde olur.
+                $invoice->update(['error_message' => 'Alıcı e-Fatura mükellefi: iade faturasını alıcı size keser. Bu taslağı silin; gelen iade faturasını muhasebenize kaydedin.']);
                 throw new DomainException($invoice->error_message);
             }
             if ($lookup['registered']) {
@@ -313,7 +327,7 @@ class EInvoiceService
             throw new DomainException('Yalnızca gönderilmiş fatura iptal edilebilir.');
         }
         if ($invoice->document_type !== 'e_arsiv') {
-            throw new DomainException('e-Fatura sistemden iptal edilemez; düzeltme için iade faturası kesin veya alıcıyla GİB portalından iptal sürecini yürütün.');
+            throw new DomainException('e-Fatura buradan iptal edilemez: iptali alıcıyla GİB portalından yürütün veya alıcı size iade faturası kessin.');
         }
         if ($invoice->kind === 'sale' && $invoice->order->eInvoices()->where('kind', 'refund')->where('status', 'sent')->exists()) {
             throw new DomainException('Bu satış faturasına dayanan bir iade faturası var; önce iade faturasını iptal edin.');
@@ -433,15 +447,13 @@ class EInvoiceService
         return $lines;
     }
 
-    private function create(StoreOrder $order, string $kind, ?StoreReturn $return, array $lines, string $expected): StoreEInvoice
+    private function create(StoreOrder $order, string $kind, ?StoreReturn $return, array $lines, string $expected, ?StoreEInvoice $buyerFrom = null): StoreEInvoice
     {
         $actor = $this->actor->get();
         $corporate = $order->billing_type === 'corporate';
-
-        $invoice = DB::transaction(function () use ($order, $kind, $return, $lines, $expected, $actor, $corporate) {
-            $invoice = StoreEInvoice::create([
-                'order_id' => $order->id, 'return_id' => $return?->id, 'kind' => $kind, 'status' => 'draft',
-                'local_id' => strtoupper(($kind === 'sale' ? 'S' : 'I').'-'.$order->order_no.'-'.Str::random(6)),
+        $buyer = $buyerFrom
+            ? $buyerFrom->only(['buyer_type', 'buyer_name', 'buyer_tax_office', 'buyer_tax_number', 'buyer_address', 'buyer_district', 'buyer_city', 'buyer_email', 'buyer_phone'])
+            : [
                 'buyer_type' => $corporate ? 'corporate' : 'individual',
                 'buyer_name' => $order->billing_name ?: $order->shipping_name,
                 'buyer_tax_office' => $corporate ? $order->billing_tax_office : null,
@@ -451,6 +463,12 @@ class EInvoiceService
                 'buyer_city' => $order->shipping_province,
                 'buyer_email' => $order->email,
                 'buyer_phone' => $order->phone,
+            ];
+
+        $invoice = DB::transaction(function () use ($order, $kind, $return, $lines, $expected, $actor, $buyer) {
+            $invoice = StoreEInvoice::create($buyer + [
+                'order_id' => $order->id, 'return_id' => $return?->id, 'kind' => $kind, 'status' => 'draft',
+                'local_id' => strtoupper(($kind === 'sale' ? 'S' : 'I').'-'.$order->order_no.'-'.Str::random(6)),
                 'issue_date' => now('Europe/Istanbul')->toDateString(),
                 'expected_total' => $expected,
                 'notify_customer' => StoreSetting::get('invoice_notify') !== '0',
@@ -494,8 +512,8 @@ class EInvoiceService
             'buyer_tax_office' => ['nullable', 'required_if:buyer_type,corporate', 'string', 'max:80'],
             'buyer_tax_number' => ['nullable', 'string', 'max:14', function ($attribute, $value, $fail) use ($input) {
                 $digits = preg_replace('/\D/', '', (string) $value);
-                if (($input['buyer_type'] ?? null) === 'corporate' && strlen($digits) !== 10) {
-                    $fail('Kurumsal faturada 10 haneli vergi kimlik numarası gerekir.');
+                if (($input['buyer_type'] ?? null) === 'corporate' && ! in_array(strlen($digits), [10, 11], true)) {
+                    $fail('Kurumsal faturada 10 haneli VKN (şahıs firmasında 11 haneli TCKN) gerekir.');
                 } elseif (($input['buyer_type'] ?? null) === 'individual' && $digits !== '' && strlen($digits) !== 11) {
                     $fail('TC kimlik numarası 11 hanelidir (boş bırakılırsa 11111111111 kullanılır).');
                 }
@@ -506,7 +524,7 @@ class EInvoiceService
             'buyer_email' => ['nullable', 'email', 'max:160'],
             'buyer_phone' => ['nullable', 'string', 'max:20'],
             'note' => ['nullable', 'string', 'max:500'],
-            'issue_date' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.now('Europe/Istanbul')->subDays(7)->toDateString()],
+            'issue_date' => ['required', 'date', 'before_or_equal:'.now('Europe/Istanbul')->toDateString(), 'after_or_equal:'.now('Europe/Istanbul')->subDays(7)->toDateString()],
             'lines' => ['required', 'array', 'min:1', 'max:'.self::MAX_LINES],
             'lines.*.name' => ['required', 'string', 'max:200'],
             'lines.*.sku' => ['nullable', 'string', 'max:64'],
@@ -526,6 +544,13 @@ class EInvoiceService
         ])->validate();
 
         $errors = [];
+        $floor = $invoice->order->created_at->timezone('Europe/Istanbul')->toDateString();
+        if ($invoice->kind === 'refund' && ($sale = $invoice->order->invoice()->first())) {
+            $floor = max($floor, $sale->issued_on->toDateString());
+        }
+        if ($data['issue_date'] < $floor) {
+            $errors['issue_date'] = 'Fatura tarihi '.($invoice->kind === 'refund' ? 'satış faturasının' : 'siparişin').' tarihinden ('.date('d.m.Y', strtotime($floor)).') önce olamaz.';
+        }
         $taxNumber = preg_replace('/\D/', '', (string) ($data['buyer_tax_number'] ?? ''));
 
         $itemIds = $invoice->order->items()->pluck('id')->all();

@@ -37,7 +37,7 @@ class InvoiceService
         }
         $data = Validator::make($input + ['file' => $file], [
             'invoice_no' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-\/]+$/', 'unique:store_invoices,invoice_no'.($existing ? ','.$existing->id : '')],
-            'issued_on' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.$order->created_at->toDateString()],
+            'issued_on' => ['required', 'date', 'before_or_equal:'.now('Europe/Istanbul')->toDateString(), 'after_or_equal:'.$order->created_at->timezone('Europe/Istanbul')->toDateString()],
             'file' => [$existing ? 'nullable' : 'required', 'file', 'max:'.self::MAX_KB, 'mimes:pdf'],
         ], ['invoice_no.regex' => 'Fatura numarası yalnızca harf, rakam, - ve / içerebilir.'],
             ['invoice_no' => 'fatura numarası', 'issued_on' => 'fatura tarihi', 'file' => 'PDF dosyası'])->validate();
@@ -94,7 +94,7 @@ class InvoiceService
         }
         $data = Validator::make($input + ['file' => $file], [
             'number' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-\/]+$/', 'unique:store_credit_notes,number', 'unique:store_invoices,invoice_no'],
-            'issued_on' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.$order->created_at->toDateString()],
+            'issued_on' => ['required', 'date', 'before_or_equal:'.now('Europe/Istanbul')->toDateString(), 'after_or_equal:'.$order->created_at->timezone('Europe/Istanbul')->toDateString()],
             'amount' => ['nullable', 'string', 'max:20'],
             'return_id' => ['nullable', 'integer'],
             'file' => ['required', 'file', 'max:'.self::MAX_KB, 'mimes:pdf'],

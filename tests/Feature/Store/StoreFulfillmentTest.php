@@ -341,11 +341,11 @@ class StoreFulfillmentTest extends TestCase
         $order = $this->paidCardOrder();
         $pdf = fn () => UploadedFile::fake()->createWithContent('fatura.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
 
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000001', 'issued_on' => now()->toDateString()])->assertSessionHasErrors('file');
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000001', 'issued_on' => now()->toDateString(),
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000001', 'issued_on' => now('Europe/Istanbul')->toDateString()])->assertSessionHasErrors('file');
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000001', 'issued_on' => now('Europe/Istanbul')->toDateString(),
             'file' => UploadedFile::fake()->createWithContent('fatura.pdf', '<html>sahte</html>')])->assertSessionHasErrors();
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ 1', 'issued_on' => now()->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('invoice_no');
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'ybz2026000000001', 'issued_on' => now()->toDateString(), 'file' => $pdf()])
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ 1', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])->assertSessionHasErrors('invoice_no');
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'ybz2026000000001', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])
             ->assertSessionHasNoErrors();
 
         $invoice = $order->invoice()->firstOrFail();
@@ -361,9 +361,9 @@ class StoreFulfillmentTest extends TestCase
 
         // Numara değişir, PDF boş bırakılırsa eskisi korunur; yeni PDF yüklenirse eskisi silinir.
         $oldPath = $invoice->file_path;
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000002', 'issued_on' => now()->toDateString()])->assertSessionHasNoErrors();
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000002', 'issued_on' => now('Europe/Istanbul')->toDateString()])->assertSessionHasNoErrors();
         $this->assertSame([$oldPath, 'YBZ2026000000002'], [$invoice->fresh()->file_path, $invoice->fresh()->invoice_no]);
-        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000002', 'issued_on' => now()->toDateString(), 'file' => $pdf()]);
+        $this->post(route('store_admin.orders.invoice.store', $order), ['invoice_no' => 'YBZ2026000000002', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()]);
         Storage::disk('local')->assertMissing($oldPath);
         $this->assertDatabaseHas('audit_logs', ['action' => 'store.invoice_replaced']);
     }

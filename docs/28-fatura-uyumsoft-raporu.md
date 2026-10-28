@@ -20,8 +20,12 @@
 - **Fark uyarısı:** Fatura toplamı ödenen tutardan farklıysa (iade faturasında iade edilen tutardan) ekranda fark gösterilir. Gönderim için "Farkı biliyorum" onayı gerekir. Toplu gönderim farkı onaylanmamış taslağı atlar.
 - **e-Fatura / e-Arşiv:** VKN veya TCKN yazılmış alıcı sağlayıcıdan sorgulanır. e-Fatura mükellefiyse e-Fatura (TEMELFATURA), değilse e-Arşiv kesilir. Kimliksiz bireysel alıcıda 11111111111 kullanılır.
 - **Çift fatura olmaz.** Taslak, gönderim başında tek seferlik "gönderiliyor" durumuna geçer. ETTN'yi sistem üretir. Bağlantı koparsa fatura "sonuç belirsiz" kalır ve yeniden gönderilemez. "Sağlayıcıdan sorgula" ile bulunursa kesilmiş sayılır, bulunmazsa taslağa döner. Yönetici sağlayıcı panelinde kontrol edip "taslağa al" da diyebilir.
-- **Kesilen fatura değişmez.** e-Arşiv iptal edilebilir; o zaman müşterinin sipariş sayfasındaki fatura kalkar ve yeni taslak hazırlanabilir. e-Fatura sistemden iptal edilmez; iade faturası kesilir. İade faturası olan satış faturası iptal edilemez.
-- **İade faturası** satış faturasına dayanır (UBL BillingReference, tip IADE). İade talebi seçilirse iade edilen adetler gelir, seçilmezse satış faturasının kalemleri gelir.
+- **Kesilen fatura değişmez.** e-Arşiv iptal edilebilir; o zaman müşterinin sipariş sayfasındaki fatura kalkar ve yeni taslak hazırlanabilir. e-Fatura buradan iptal edilmez; iptal alıcıyla GİB portalından yürütülür. İade faturası olan satış faturası iptal edilemez.
+- **İade faturası** satış faturasına dayanır (UBL BillingReference, tip IADE). Alıcı bilgileri ve kalemler satış faturasından gelir; iade talebi seçilirse yalnızca iade edilen adetler gelir.
+- **e-Fatura mükellefi alıcının iadesinde iade faturasını alıcı keser.** Bu siparişler "iade faturası bekleyen" listesine girmez; sipariş sayfasında uyarı çıkar, gelen iade faturası "Elle iade faturası ekle" ile eklenir. Mükellef alıcıya iade faturası gönderilmeye çalışılırsa gönderim durdurulur.
+- **Fatura tarihi** bugünden ileri, 7 günden eski ve siparişten (iadede satış faturasından) önce olamaz. Tarihler Türkiye saatine göredir.
+- Taslak varken sipariş iptal edilirse satış faturası gönderilemez.
+- Kurumsal alıcı 10 haneli VKN ya da şahıs firmasında 11 haneli TCKN ile girilebilir.
 - **Müşteri tarafı değişmedi.** Kesilen fatura `store_invoices` (satış) veya `store_credit_notes` (iade) kaydına yazılır ve PDF'i eklenir. Müşteri sipariş sayfasından indirir; istenirse "Faturanız hazır" e-postası gider.
 - Her işlem (taslak, değişiklik öncesi/sonrası kalemler, gönderim, ret, iptal) işlem geçmişine yazılır.
 
@@ -49,11 +53,12 @@
 
 Bilgiler gelince sırayla:
 
-1. Fatura Ayarları'nda Sağlayıcı = Uyumsoft, Ortam = Test seçin. Kullanıcı adı, şifre ve gönderici VKN/TCKN'yi girin, ardından "Bağlantıyı dene".
+1. Fatura Ayarları'nda Sağlayıcı = Uyumsoft, Ortam = Test seçin. Kullanıcı adı, şifre ve gönderici VKN/TCKN'yi girin, ardından "Bağlantıyı dene". Yapboz şahıs firmasıdır; e-Fatura kaydı sahibin TCKN'si ile yapılmışsa gönderici kimliğine TCKN yazılır (Uyumsoft'a sorun).
 2. Test ortamında üç fatura deneyin: bireysel e-Arşiv, kurumsal e-Fatura mükellefi ve iade faturası. Uyumsoft'un yanıt alanlarını (fatura numarası, PDF, iptal) kontrol edin; gerekirse `UyumsoftProvider`'da işlem ve alan adlarını düzeltin.
 3. Mali müşavirle teyit edin:
    - Seri ve numaralandırma (numarayı Uyumsoft verir)
    - %0 KDV istisna kodu (şimdilik 351)
    - Kargo kaleminin KDV oranı
-   - İade faturası belge türü
+   - Bireysel müşterinin iadesinde e-Arşiv iade faturası mı, gider pusulası mı kullanılacağı
+   - Kimliği bilinmeyen bireysel alıcıda (11111111111) tutar sınırı
 4. Ortam = Canlı.
