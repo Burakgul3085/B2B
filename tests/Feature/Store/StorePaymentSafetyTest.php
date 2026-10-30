@@ -4,6 +4,7 @@ namespace Tests\Feature\Store;
 
 use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Support\Payments\IyzicoApi;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\AuditLog;
 use App\Models\Store\District;
@@ -50,6 +51,9 @@ class StorePaymentSafetyTest extends TestCase
 
     private ?string $signature = null;
 
+    /** Sahte iyzico'nun aynen döneceği ham yanıt (sayı biçimi testi) */
+    private ?string $rawBody = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -77,6 +81,9 @@ class StorePaymentSafetyTest extends TestCase
     /** Sahte iyzico: sıralı belirteçler, yalnızca $paid'deki belirteçler ödenmiş görünür; iade davranışı ayarlanabilir. */
     private function iyzico(HttpRequest $r)
     {
+        if ($this->rawBody !== null) {
+            return Http::response($this->rawBody);
+        }
         if (str_contains($r->url(), 'initialize')) {
             $this->seq++;
 
@@ -257,6 +264,20 @@ class StorePaymentSafetyTest extends TestCase
         $this->signature = 'valid';
         $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-2']);
         $this->assertSame('paid', $order->fresh()->status);
+    }
+
+    public function test_signature_uses_prices_as_iyzico_library_does(): void
+    {
+        // iyzico tutarları "3.0" / "12.50" diye yazar; imza çözülmüş sayının metniyle ("3", "12.5") hesaplanır.
+        $sign = fn (string $paid, string $price) => hash_hmac('sha256', "SUCCESS:p1:TRY:YB1:YB1:{$paid}:{$price}:tok", 'gizli');
+        $api = new IyzicoApi('anahtar', 'gizli', 'live');
+        foreach ([['3.0', '3.0', '3', '3'], ['12.50', '10.0', '12.5', '10']] as [$rawPaid, $rawPrice, $paid, $price]) {
+            $this->rawBody = ('{"status":"success","paymentStatus":"SUCCESS","paymentId":"p1","currency":"TRY","basketId":"YB1","conversationId":"YB1",'
+                .'"paidPrice":'.$rawPaid.',"price":'.$rawPrice.',"token":"tok","signature":"'.$sign($paid, $price).'"}');
+            $result = $api->retrieveCheckoutForm('tok', 'YB1');
+            $this->assertTrue($api->checkoutSignatureValid($result, 'tok'), "{$rawPaid} / {$rawPrice}");
+            $this->assertFalse($api->checkoutSignatureValid(['signature' => $sign($rawPaid, $rawPrice)] + $result, 'tok'));
+        }
     }
 
     public function test_uncertain_refund_blocks_retry_until_admin_resolves_it(): void

@@ -21,8 +21,6 @@ final class IyzicoApi
     public const LIVE_URL = 'https://api.iyzipay.com';
 
     /** Son yanıtın ham gövdesi (imza doğrulamasında fiyatlar yazıldığı gibi kullanılır). */
-    private string $lastBody = '';
-
     public function __construct(private ?string $apiKey, private ?string $secretKey, private string $mode = 'sandbox') {}
 
     public function mode(): string
@@ -33,6 +31,7 @@ final class IyzicoApi
     /**
      * Ödeme formu sonucunun iyzico imzası: HMAC-SHA256(paymentStatus:paymentId:currency:basketId:conversationId:paidPrice:price:token,
      * gizli anahtar). Yanıt zaten HTTPS ile doğrudan iyzico'dan alınır; imza ek bir doğrulamadır.
+     * Tutarlar iyzico'nun PHP kütüphanesindeki gibi JSON'dan çözülmüş sayının metin hâliyle girer (3.0 → "3", 12.50 → "12.5").
      *
      * @return bool|null null: yanıtta imza yok (doğrulanamadı)
      */
@@ -43,17 +42,11 @@ final class IyzicoApi
         }
         $parts = [
             $result['paymentStatus'] ?? '', $result['paymentId'] ?? '', $result['currency'] ?? '', $result['basketId'] ?? '',
-            $result['conversationId'] ?? '', $this->rawNumber('paidPrice') ?? ($result['paidPrice'] ?? ''), $this->rawNumber('price') ?? ($result['price'] ?? ''), $token,
+            $result['conversationId'] ?? '', $result['paidPrice'] ?? '', $result['price'] ?? '', $token,
         ];
         $expected = hash_hmac('sha256', implode(':', array_map('strval', $parts)), (string) $this->secretKey);
 
         return hash_equals($expected, strtolower($result['signature']));
-    }
-
-    /** Ham yanıttaki sayı, yazıldığı biçimde (ör. "6.0"); JSON'a çevrilince biçim kaybolmasın. */
-    private function rawNumber(string $key): ?string
-    {
-        return preg_match('/"'.preg_quote($key, '/').'"\s*:\s*"?(-?[0-9]+(?:\.[0-9]+)?)"?/', $this->lastBody, $m) ? $m[1] : null;
     }
 
     public function isConfigured(): bool
@@ -128,8 +121,7 @@ final class IyzicoApi
             throw new IyzicoUnreachable('Ödeme sağlayıcısına bağlanılamadı. Lütfen tekrar deneyin.');
         }
 
-        $this->lastBody = (string) $response->body();
-        $data = json_decode($this->lastBody, true);
+        $data = json_decode((string) $response->body(), true);
         if (! is_array($data)) {
             throw new IyzicoUnreachable('Ödeme sağlayıcısından geçersiz yanıt alındı.');
         }
