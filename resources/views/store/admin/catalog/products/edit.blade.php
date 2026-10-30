@@ -73,7 +73,7 @@
                                         </div>
                                     </form>
                                     @if ($product->variants->count() > 1)
-                                        <form method="POST" action="{{ route('store_admin.variants.destroy', $variant) }}" class="mt-3 text-right" data-confirm="&quot;{{ $variant->option_value }}&quot; seçeneği silinsin mi?">
+                                        <form method="POST" action="{{ route('store_admin.variants.destroy', $variant) }}" class="mt-3 text-right" data-confirm="&quot;{{ $variant->option_value }}&quot; seçeneği stok hareketleriyle birlikte silinsin mi?">
                                             @csrf @method('DELETE')
                                             <button class="text-sm text-danger hover:underline">Seçeneği sil</button>
                                         </form>
@@ -166,8 +166,8 @@
             </x-card>
 
             <x-card title="Ürünü sil">
-                <p class="mb-4 text-sm text-muted">Ürün, seçenekleri ve görselleri kalıcı olarak silinir. Mağazadan yalnızca kaldırmak için "Mağazada yayında" seçeneğini kapatın.</p>
-                <form method="POST" action="{{ route('store_admin.products.destroy', $product) }}" data-confirm="&quot;{{ $product->name }}&quot; kalıcı olarak silinsin mi?">
+                <p class="mb-4 text-sm text-muted">Ürün; seçenekleri, görselleri, stok ve stok hareketleri, yorumları ve sepetlerdeki kayıtlarıyla kalıcı olarak silinir. Geçmiş siparişlerde ürün adı ve fiyatı korunur. Mağazadan yalnızca kaldırmak için "Mağazada yayında" seçeneğini kapatın.</p>
+                <form method="POST" action="{{ route('store_admin.products.destroy', $product) }}" data-confirm="&quot;{{ $product->name }}&quot; stok hareketleri ve yorumlarıyla birlikte kalıcı olarak silinsin mi? Bu işlem geri alınamaz.">
                     @csrf @method('DELETE')
                     <x-button variant="danger" icon="trash" size="sm">Ürünü sil</x-button>
                 </form>

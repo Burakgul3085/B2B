@@ -67,8 +67,10 @@
 
     {{-- Alt bilgi --}}
     {{-- Başa dön: aşağı inince sol altta; halka okunan oranı gösterir --}}
+    {{-- iyzico Korumalı Alışveriş rozeti sol altta açıksa düğme rozetin üstüne çıkar (rozet ~60px) --}}
     <button type="button" x-data="scrollTop" x-show="visible" x-transition.opacity x-cloak @click="up" aria-label="Sayfanın başına dön"
-        class="fixed bottom-20 left-4 z-40 flex size-12 lg:bottom-5 lg:left-5 items-center justify-center rounded-full bg-[#0b1631] text-white shadow-lg shadow-black/25 transition hover:scale-105 print:hidden">
+        @class(['fixed left-4 z-40 flex size-12 items-center justify-center rounded-full bg-[#0b1631] text-white shadow-lg shadow-black/25 transition hover:scale-105 lg:left-5 print:hidden',
+            $iyzicoBadge && \App\Models\Store\StoreSetting::get('iyzico_badge_position') !== 'bottomRight' ? 'bottom-36 lg:bottom-24' : 'bottom-20 lg:bottom-5'])>
         <svg class="absolute inset-0 size-12 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
             <circle cx="20" cy="20" r="18" fill="none" stroke="rgb(255 255 255 / 0.15)" stroke-width="3" />
             <circle cx="20" cy="20" r="18" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-dasharray="113.1" :stroke-dashoffset="dash" />

@@ -95,22 +95,21 @@ class ProductService
     }
 
     /**
-     * Ürün kalıcı olarak silinir (görselleriyle). Stok hareketi olan ürün silinemez: hareketler yalnızca eklenir
-     * ve geçmişi korunur; böyle ürünler yayından kaldırılır.
-     *
-     * @throws DomainException
+     * Ürün kalıcı olarak silinir: seçenekleri, görselleri ve stok hareketleriyle. Stok hareketleri normalde yalnızca
+     * eklenir; ürün tümüyle silindiğinde ise hareket geçmişi de onunla birlikte kalkar (silinen stok miktarı ve ürün
+     * işlem geçmişine yazılır). Siparişler etkilenmez: sipariş kalemi ürün adını ve fiyatını kendi üzerinde saklar,
+     * ürün bağlantısı boşalır. Sepet, favori, stok bildirimi ve yorumlar ürünle birlikte silinir.
      */
     public function delete(StoreProduct $product): void
     {
-        if (StoreStockMovement::whereIn('variant_id', $product->variants()->select('id'))->exists()) {
-            throw new DomainException('Stok hareketi olan ürün silinemez. Mağazadan kaldırmak için yayından kaldırın.');
-        }
-
         $paths = $product->images()->pluck('path');
 
         DB::transaction(function () use ($product) {
+            $variantIds = $product->variants()->pluck('id');
+            $stock = (int) $product->variants()->sum('stock_quantity');
+            $movements = StoreStockMovement::whereIn('variant_id', $variantIds)->delete();
             $product->delete();
-            $this->audit->log('store.product_deleted', $product, ['name' => $product->name, 'slug' => $product->slug]);
+            $this->audit->log('store.product_deleted', $product, ['name' => $product->name, 'slug' => $product->slug, 'stock' => $stock, 'stock_movements' => $movements]);
         });
 
         foreach ($paths as $path) {
@@ -180,16 +179,16 @@ class ProductService
         if ($product->variants()->count() <= 1) {
             throw new DomainException('Ürünün son varyantı silinemez.');
         }
-        if ($variant->movements()->exists()) {
-            throw new DomainException('Stok hareketi olan seçenek silinemez; "Satışta" seçeneğini kapatın.');
-        }
         if ($product->is_published && $variant->is_active
             && ! $product->variants()->whereKeyNot($variant->id)->where('is_active', true)->exists()) {
             throw new DomainException('Yayındaki ürünün son etkin varyantı silinemez.');
         }
 
-        $variant->delete();
-        $this->audit->log('store.variant_deleted', $variant, ['product_id' => $product->id, 'sku' => $variant->sku]);
+        DB::transaction(function () use ($variant, $product) {
+            $movements = $variant->movements()->delete(); // ürün silmede olduğu gibi seçenekle birlikte kalkar
+            $variant->delete();
+            $this->audit->log('store.variant_deleted', $variant, ['product_id' => $product->id, 'sku' => $variant->sku, 'stock' => (int) $variant->stock_quantity, 'stock_movements' => $movements]);
+        });
     }
 
     /* ---------------- Görseller ---------------- */

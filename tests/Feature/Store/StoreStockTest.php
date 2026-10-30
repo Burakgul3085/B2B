@@ -4,6 +4,7 @@ namespace Tests\Feature\Store;
 
 use App\Domain\Store\Inventory\InsufficientStoreStock;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Models\AuditLog;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
@@ -162,16 +163,22 @@ class StoreStockTest extends TestCase
         $this->assertLedgerConsistent($a);
     }
 
-    public function test_products_with_stock_history_cannot_be_deleted(): void
+    public function test_products_with_stock_history_are_deleted_with_their_movements(): void
     {
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel', 'variant_name' => 'Renk']);
         $blue = $product->variants()->create(['sku' => 'J-M', 'option_value' => 'Mavi', 'price' => '10', 'vat_rate' => '20']);
-        $product->variants()->create(['sku' => 'J-S', 'option_value' => 'Siyah', 'price' => '10', 'vat_rate' => '20']);
+        $black = $product->variants()->create(['sku' => 'J-S', 'option_value' => 'Siyah', 'price' => '10', 'vat_rate' => '20']);
         $this->stock->receive($blue, 3);
+        $this->stock->receive($black, 4);
 
-        $this->delete(route('store_admin.variants.destroy', $blue))->assertSessionHasErrors('product');
-        $this->delete(route('store_admin.products.destroy', $product))->assertSessionHasErrors('product');
-        $this->assertTrue(StoreProduct::whereKey($product->id)->exists());
+        // Seçenek, stok hareketleriyle birlikte silinir; diğer seçeneğin hareketleri kalır.
+        $this->delete(route('store_admin.variants.destroy', $blue))->assertSessionHasNoErrors();
+        $this->assertSame([0, 1], [StoreStockMovement::where('variant_id', $blue->id)->count(), StoreStockMovement::where('variant_id', $black->id)->count()]);
+
+        $this->delete(route('store_admin.products.destroy', $product))->assertSessionHasNoErrors()->assertRedirect(route('store_admin.products.index'));
+        $this->assertFalse(StoreProduct::whereKey($product->id)->exists());
+        $this->assertSame(0, StoreStockMovement::count());
+        $this->assertSame(4, AuditLog::where('action', 'store.product_deleted')->firstOrFail()->old_values['stock']);
     }
 
     public function test_critical_stock_is_set_on_the_variant_and_listed(): void
