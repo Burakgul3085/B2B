@@ -70,7 +70,7 @@ class ListingController extends Controller
     /** Arama kutusunda yazarken gösterilen öneriler: ürünler, kategoriler, markalar. */
     public function suggest(Request $request): JsonResponse
     {
-        $term = trim((string) $request->validate(['q' => ['nullable', 'string', 'max:100']])['q']);
+        $term = trim((string) ($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? ''));
         if (mb_strlen($term) < 2) {
             return response()->json(['products' => [], 'categories' => [], 'brands' => []]);
         }
@@ -94,7 +94,7 @@ class ListingController extends Controller
 
     public function search(Request $request): View
     {
-        $term = trim((string) $request->validate(['q' => ['nullable', 'string', 'max:100']])['q']);
+        $term = trim((string) ($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? ''));
 
         return $this->render($request, $term === '' ? $this->catalog->products()->whereRaw('1 = 0') : $this->catalog->search($term), [
             'title' => $term === '' ? 'Arama' : "“{$term}” için sonuçlar",

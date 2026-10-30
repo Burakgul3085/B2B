@@ -99,6 +99,8 @@ class StorefrontRedesignTest extends TestCase
         $this->product('Pensan Jel Kalem Mavi', '24.90');
         $this->product('Gizli Kalem', '10.00')->update(['is_published' => false]);
 
+        $this->getJson(self::HOST.'/ara/oneri')->assertOk()->assertExactJson(['products' => [], 'categories' => [], 'brands' => []]);
+        $this->get(self::HOST.'/ara')->assertOk(); // arama terimi olmadan
         $this->getJson(self::HOST.'/ara/oneri?q=k')->assertOk()->assertExactJson(['products' => [], 'categories' => [], 'brands' => []]);
         $json = $this->getJson(self::HOST.'/ara/oneri?q=kalem')->assertOk()->json();
         $this->assertSame(['Pensan Jel Kalem Mavi'], array_column($json['products'], 'name'));
