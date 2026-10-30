@@ -253,8 +253,11 @@ class StoreCheckoutTest extends TestCase
         });
 
         // iyzico geri dönüşü (başka siteden; CSRF yok, çerez yok)
+        // Oturum açılmaz: müşterinin oturum çerezi ezilmez (müşteri çıkış yapmış olmaz).
         $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-ok'])
-            ->assertRedirect(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]));
+            ->assertRedirect(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'odeme' => 'sonuc']))
+            ->assertCookieMissing('magaza');
+        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'odeme' => 'sonuc']))->assertSee('Ödemeniz alındı');
 
         $order->refresh();
         $this->assertSame(['paid', 'paid'], [$order->status, $order->payment_status]);
@@ -286,7 +289,9 @@ class StoreCheckoutTest extends TestCase
         foreach (array_keys($results) as $token) {
             $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'cargo', 'payment_method' => 'card']));
             $order = StoreOrder::latest('id')->firstOrFail();
-            $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => $token])->assertSessionHasErrors('cart');
+            $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => $token])->assertRedirect()->assertCookieMissing('magaza');
+            $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'odeme' => 'sonuc']))
+                ->assertSee('Ödeme alınamadığı için sipariş tamamlanmadı')->assertDontSee('Ödemeniz alındı');
             $this->assertSame('payment_failed', $order->fresh()->status, $token);
             $this->assertSame([$this->pen->id => 10], app(StoreStockService::class)->available([$this->pen->id]), $token.': ayırma bırakıldı');
             $this->assertSame(1, $this->cart->items()->count(), 'sepet korunur, yeniden denenebilir');

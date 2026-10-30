@@ -220,20 +220,19 @@ class CheckoutController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-    /** iyzico geri dönüşü (başka siteden POST; CSRF dışında). Sonuç iyzico'dan sorgulanır. */
+    /**
+     * iyzico geri dönüşü (başka siteden POST; CSRF ve oturum çerezi gelmez, rota oturumsuzdur). Sonuç iyzico'dan
+     * sorgulanır; sonuç mesajı sipariş sayfasında siparişin gerçek durumuna göre gösterilir (?odeme=sonuc).
+     */
     public function callback(Request $request, PaymentService $payments): RedirectResponse
     {
-        $token = (string) $request->input('token');
-        $order = $token !== '' ? $payments->complete($token) : null;
+        $token = $request->input('token');
+        $order = is_string($token) && $token !== '' && strlen($token) <= 120 ? $payments->complete($token) : null;
         if (! $order) {
-            return redirect()->route('store.home')->withErrors(['cart' => 'Ödeme bilgisi bulunamadı.']);
+            return redirect()->route('store.home');
         }
 
-        $route = redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
-
-        return $order->status === 'payment_failed'
-            ? $route->withErrors(['cart' => 'Ödeme alınamadı. Kart bilgilerinizi kontrol edip yeniden sipariş verebilirsiniz.'])
-            : $route->with('order_placed', $order->status !== 'pending_payment');
+        return redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'odeme' => 'sonuc']);
     }
 
     /** Kısa yol: ön bilgilendirme ve sözleşme şablonları (sipariş bilgileri onay anında doldurulur). */

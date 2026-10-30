@@ -15,7 +15,7 @@
 @endphp
 <x-layouts.store :title="'Sipariş '.$order->order_no" :noindex="true">
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        @if (session('order_placed'))
+        @if (session('order_placed') || (request('odeme') === 'sonuc' && ! in_array($order->status, ['pending_payment', 'payment_failed', 'cancelled'], true)))
             <div class="mb-6 rounded-2xl border border-green-200 bg-success-soft p-6 text-green-900">
                 <p class="text-lg font-semibold">Siparişiniz alındı, teşekkür ederiz!</p>
                 <p class="mt-1 text-sm">

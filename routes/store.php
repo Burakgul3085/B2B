@@ -4,7 +4,10 @@ use App\Domain\Store\Content\HelpPages;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Store\Admin;
 use App\Http\Controllers\Store\Front;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 | Mağaza (B2C) — docs/13-magaza-mimarisi.md.
@@ -249,7 +252,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('onizleme', [Front\PreviewController::class, 'start'])->middleware('signed')->name('preview');
     Route::get('onizleme/kapat', [Front\PreviewController::class, 'end'])->name('preview.end');
     // iyzico geri dönüşü: mağaza kapalıyken (önizlemede) de sonuçlanabilmeli
-    Route::post('odeme/iyzico/donus', [Front\CheckoutController::class, 'callback'])->middleware('throttle:60,1,payment.callback')->name('payment.callback');
+    // Oturum açılmaz: çerezsiz gelen istekte yeni oturum çerezi müşterinin açık oturumunun üzerine yazılır, müşteri çıkış yapmış olurdu.
+    Route::post('odeme/iyzico/donus', [Front\CheckoutController::class, 'callback'])->middleware('throttle:60,1,payment.callback')
+        ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('payment.callback');
     // iyzico anlık bildirimi (webhook): müşteri ödeme sonrası sayfayı kapatsa da sipariş hemen sonuçlanır.
     Route::post('odeme/iyzico/bildirim', [Front\CheckoutController::class, 'webhook'])->middleware('throttle:120,1,payment.webhook')->name('payment.webhook');
 
