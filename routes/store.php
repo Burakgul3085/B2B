@@ -160,6 +160,10 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::put('yorumlar/{storeReview}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
             Route::delete('yorumlar/{storeReview}', [Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
             Route::get('yorumlar/{storeReview}/fotograf/{photo}', [Admin\ReviewController::class, 'photo'])->whereNumber('photo')->name('reviews.photo');
+            Route::get('urun-sorulari', [Admin\QuestionController::class, 'index'])->name('questions.index');
+            Route::put('urun-sorulari/{storeProductQuestion}', [Admin\QuestionController::class, 'answer'])->name('questions.answer');
+            Route::put('urun-sorulari/{storeProductQuestion}/gorunurluk', [Admin\QuestionController::class, 'visibility'])->name('questions.visibility');
+            Route::delete('urun-sorulari/{storeProductQuestion}', [Admin\QuestionController::class, 'destroy'])->name('questions.destroy');
 
             // Pazarlama: e-bülten aboneleri ve toplu e-posta
             Route::get('pazarlama/e-bulten', [Admin\NewsletterController::class, 'index'])->name('newsletter.index');
@@ -283,6 +287,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
         Route::post('urun/{slug}/yorum', [Front\ReviewController::class, 'store'])->middleware(['auth:customer', 'auth.session', 'throttle:10,10,review.store'])->name('review.store');
+        // Ürün sorusu: üye olmadan (ad, soyad, e-posta); cevaplanınca cevabıyla birlikte yayımlanır
+        Route::post('urun/{slug}/soru', [Front\QuestionController::class, 'store'])->middleware(['throttle:5,10,question.store', 'store.bot'])->name('question.store');
         // Yorum fotoğrafı: yayındaki yorumda herkese, onay bekleyende yalnızca yorumun sahibine
         Route::get('yorum-fotografi/{photo}', [Front\ReviewController::class, 'photo'])->whereNumber('photo')->middleware('throttle:240,1,review.photo')->name('review-photo');
         Route::post('stok-bildirimi', [Front\StockAlertController::class, 'store'])->middleware(['throttle:10,10,stock-alert.store', 'store.bot'])->name('stock-alert.store');

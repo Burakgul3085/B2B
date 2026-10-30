@@ -9,6 +9,7 @@ use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProduct;
+use App\Models\Store\StoreProductQuestion;
 use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreReview;
@@ -114,6 +115,16 @@ class AdminNotifier
         $this->send("Yeni ürün yorumu: {$product->name}", 'Onay bekleyen yorum',
             "{$product->name} için {$review->rating} yıldızlı yeni bir yorum geldi".($review->photos()->exists() ? ' (fotoğraflı)' : '').'. Yayımlamak için inceleyin.',
             [['Müşteri', $review->author_name], ['Puan', str_repeat('★', $review->rating)]], route('store_admin.reviews.index'), 'Yorumları aç');
+    }
+
+    public function questionAsked(StoreProductQuestion $question, StoreProduct $product): void
+    {
+        if (! StoreSetting::flag('notify_returns')) { // müşteri geri bildirimleri (iade, yorum, soru) aynı tercihte
+            return;
+        }
+        $this->send("Yeni ürün sorusu: {$product->name}", 'Cevap bekleyen soru',
+            "{$product->name} hakkında yeni bir soru geldi. Cevapladığınızda soru ve cevap ürün sayfasında yayımlanır, cevap soranın e-postasına gider.",
+            [['Soran', $question->first_name.' '.$question->last_name], ['Soru', $question->question]], route('store_admin.questions.index'), 'Soruları aç');
     }
 
     public function returnShipped(StoreReturn $return, StoreOrder $order): void

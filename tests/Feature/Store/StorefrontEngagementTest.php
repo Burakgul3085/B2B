@@ -10,11 +10,13 @@ use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreFavorite;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProduct;
+use App\Models\Store\StoreProductQuestion;
 use App\Models\Store\StoreReview;
 use App\Models\Store\StoreSetting;
 use App\Models\Store\StoreStockAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
@@ -94,15 +96,15 @@ class StorefrontEngagementTest extends TestCase
         $this->deliveredOrder($buyer, $pen);
         $this->deliveredOrder($other, $pen, 'shipped');   // henüz teslim edilmedi
 
-        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Yorum yazmak için')->assertSee('Henüz yorum yok');
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Değerlendirme yazmak için')->assertSee('Henüz değerlendirme yok');
 
         $this->actingAs($other, 'customer');
-        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Yalnızca bu ürünü satın alıp teslim alan');
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Yalnızca bu ürünü satın alıp teslim alan müşterilerimiz değerlendirebilir');
         $this->post(self::HOST.'/urun/jel-kalem/yorum', ['rating' => 5, 'body' => 'Çok güzel bir kalem.'])->assertSessionHasErrors('body');
 
         $this->flushSession();   // oturum başka üyeye geçerken (auth.session parolayı eşler)
         $this->actingAs($buyer, 'customer');
-        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Yorum yazın')->assertSee('Ayşe K.');
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Değerlendirme yazın')->assertSee('Ayşe K.');
         $this->post(self::HOST.'/urun/jel-kalem/yorum', ['rating' => 9, 'body' => 'Çok güzel bir kalem.'])->assertSessionHasErrors('rating');
         $this->post(self::HOST.'/urun/jel-kalem/yorum', ['rating' => 4, 'title' => 'Akıcı', 'body' => 'Çok güzel yazıyor, tavsiye ederim.'])
             ->assertRedirect(route('store.product', 'jel-kalem').'#yorumlar');
@@ -172,6 +174,72 @@ class StorefrontEngagementTest extends TestCase
         // Silinen yorumun fotoğrafları da silinir.
         $this->delete(route('store_admin.reviews.destroy', $review));
         Storage::disk('local')->assertMissing($photo->path);
+    }
+
+    public function test_visitor_questions_publish_only_when_answered_and_answer_is_emailed(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class); // istek sınırı (5 / 10 dk) art arda denemeleri engellemesin
+        $pen = $this->product('Jel Kalem');
+        $mailer = Mockery::mock(StoreMailer::class)->makePartial();
+        $mailer->shouldReceive('send')->withArgs(fn ($to, $subject, $content) => $to === 'ziyaretci@ornek.com'
+            && str_contains($subject, 'Sorunuz cevaplandı') && str_contains(json_encode($content, JSON_UNESCAPED_UNICODE), 'Evet, mavi rengi de var.'))->once()->andReturn(true);
+        $mailer->shouldReceive('send')->andReturn(true); // yönetici bildirimi
+        $this->instance(StoreMailer::class, $mailer);
+
+        $this->get(self::HOST.'/urun/jel-kalem')->assertOk()->assertSee('Satıcıya sorun')->assertSee('Bu ürün hakkında henüz soru yok');
+
+        // Üyelik gerekmez; onay kutusu ve alanlar zorunlu.
+        $form = ['first_name' => 'mehmet', 'last_name' => 'Yılmaz', 'email' => 'Ziyaretci@Ornek.com', 'question' => 'Bu kalemin mavi rengi de var mı?', 'consent' => '1'];
+        $this->post(self::HOST.'/urun/jel-kalem/soru', ['consent' => '1'] + array_diff_key($form, ['email' => 1]))->assertSessionHasErrors('email');
+        $this->post(self::HOST.'/urun/jel-kalem/soru', array_diff_key($form, ['consent' => 1]))->assertSessionHasErrors('consent');
+        $this->post(self::HOST.'/urun/jel-kalem/soru', ['question' => 'kısa'] + $form)->assertSessionHasErrors('question');
+        $this->post(self::HOST.'/urun/jel-kalem/soru', $form)->assertRedirect(route('store.product', 'jel-kalem').'#sorular')->assertSessionHas('question_sent');
+
+        $question = StoreProductQuestion::sole();
+        $this->assertSame(['pending', 'ziyaretci@ornek.com'], [$question->status, $question->email]);
+        // Cevapsız soru vitrinde görünmez; e-posta hiçbir yerde görünmez.
+        $this->get(self::HOST.'/urun/jel-kalem')->assertDontSee('mavi rengi de var mı')->assertDontSee('ziyaretci@ornek.com');
+
+        // Aynı e-postadan en fazla 3 cevap bekleyen soru.
+        foreach (range(1, 2) as $i) {
+            $this->post(self::HOST.'/urun/jel-kalem/soru', ['question' => "Başka bir soru numarası {$i}?"] + $form)->assertSessionHasNoErrors();
+        }
+        $this->post(self::HOST.'/urun/jel-kalem/soru', ['question' => 'Dördüncü soru gönderilemez mi?'] + $form)->assertSessionHasErrors('question');
+
+        // Yönetim cevaplar: soru ve cevap birlikte yayımlanır, cevap soranın e-postasına gider (bir kez).
+        $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
+        $this->get(route('store_admin.questions.index'))->assertOk()->assertSee('mavi rengi de var mı')->assertSee('ziyaretci@ornek.com');
+        $this->put(route('store_admin.questions.answer', $question), ['answer' => ''])->assertSessionHasErrors('answer');
+        $this->put(route('store_admin.questions.answer', $question), ['answer' => 'Evet, mavi rengi de var.'])->assertSessionHasNoErrors();
+        $this->put(route('store_admin.questions.answer', $question), ['answer' => 'Evet, mavi ve kırmızı rengi de var.'])->assertSessionHasNoErrors(); // düzenleme e-posta göndermez
+        $this->assertSame('answered', $question->fresh()->status);
+
+        $this->get(self::HOST.'/urun/jel-kalem#sorular')->assertSee('Bu kalemin mavi rengi de var mı?')->assertSee('Evet, mavi ve kırmızı rengi de var.')
+            ->assertSee('Mehmet Y.')->assertDontSee('ziyaretci@ornek.com')->assertDontSee('Başka bir soru numarası');
+
+        // Gizlenen soru vitrinden kalkar, yeniden gösterilebilir; silinebilir.
+        $this->put(route('store_admin.questions.visibility', $question), ['hidden' => '1']);
+        $this->get(self::HOST.'/urun/jel-kalem')->assertDontSee('Bu kalemin mavi rengi de var mı?');
+        $this->put(route('store_admin.questions.visibility', $question), ['hidden' => '0']);
+        $this->assertSame('answered', $question->fresh()->status);
+        $this->delete(route('store_admin.questions.destroy', $question))->assertSessionHasNoErrors();
+        $this->assertSame(2, StoreProductQuestion::count());
+    }
+
+    public function test_reviews_can_be_filtered_sorted_and_show_recommendation(): void
+    {
+        $pen = $this->product('Jel Kalem');
+        foreach ([5 => 'Mükemmel yazıyor kalem', 4 => 'Gayet iyi bir kalem', 2 => 'Beklediğim gibi değil'] as $rating => $body) {
+            $customer = $this->customer("kisi{$rating}@ornek.com");
+            StoreReview::create(['product_id' => $pen->id, 'customer_id' => $customer->id, 'author_name' => "Kişi {$rating}", 'rating' => $rating, 'body' => $body, 'status' => 'approved']);
+        }
+
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('%67')->assertSee('3 doğrulanmış değerlendirme')
+            ->assertSeeInOrder(['Beklediğim gibi değil', 'Gayet iyi bir kalem', 'Mükemmel yazıyor kalem']); // en yeni önce
+        $this->get(self::HOST.'/urun/jel-kalem?yorum_sirala=yuksek')->assertSeeInOrder(['Mükemmel yazıyor kalem', 'Gayet iyi bir kalem', 'Beklediğim gibi değil']);
+        $this->get(self::HOST.'/urun/jel-kalem?yildiz=2')->assertSee('Beklediğim gibi değil')->assertDontSee('Mükemmel yazıyor kalem')->assertSee('Filtreyi kaldır');
+        $this->get(self::HOST.'/urun/jel-kalem?yorum_sirala=fotografli')->assertSee('Bu seçime uyan değerlendirme yok');
+        $this->get(self::HOST.'/urun/jel-kalem?yorum_sirala=xyz&yildiz=9')->assertOk()->assertSee('Mükemmel yazıyor kalem');
     }
 
     public function test_stock_alert_is_sent_once_when_stock_arrives(): void

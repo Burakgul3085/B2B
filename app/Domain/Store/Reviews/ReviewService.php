@@ -166,7 +166,7 @@ class ReviewService
         array_map(fn ($p) => $this->images->delete($p), $paths);
     }
 
-    /** @return array{average: ?float, count: int, bars: array<int, int>} yıldıza göre dağılım (5→1) */
+    /** @return array{average: ?float, count: int, bars: array<int, int>, recommend: ?int} yıldıza göre dağılım (5→1), 4–5 yıldız oranı (%) */
     public static function summary(StoreProduct $product): array
     {
         $counts = StoreReview::approved()->where('product_id', $product->id)->groupBy('rating')->selectRaw('rating, COUNT(*) as c')->pluck('c', 'rating');
@@ -180,6 +180,7 @@ class ReviewService
             'average' => $total ? round($counts->map(fn ($c, $r) => $c * $r)->sum() / $total, 1) : null,
             'count' => $total,
             'bars' => $bars,
+            'recommend' => $total ? (int) round(($bars[5] + $bars[4]) / $total * 100) : null,
         ];
     }
 }

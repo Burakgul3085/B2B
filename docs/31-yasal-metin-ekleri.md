@@ -60,6 +60,14 @@ Bu cümleler sistemin bugünkü davranışını anlatır: müşteri kargodan ön
 
 > ; iade talebinde yüklediğiniz ürün fotoğrafları ve iade kargosu firma / takip bilgisi
 
+**İşlenen kişisel veriler bölümüne (ürün soruları, yeni satır):**
+
+> Ürün sayfasından soru sorduğunuzda adınız, soyadınız, e-posta adresiniz ve sorunuz. E-posta adresiniz yalnızca cevabımızı size iletmek için kullanılır ve sitede gösterilmez; sorunuz cevabıyla birlikte, adınız ve soyadınızın baş harfiyle (ör. Ayşe K.) ürün sayfasında yayımlanır.
+
+**Ürün yorumları (yeni satır):**
+
+> Ürün değerlendirmesinde yüklediğiniz fotoğraflar, yorumunuz yayımlandığında ürün sayfasında herkese açık olarak gösterilir.
+
 **İşleme amaçları bölümüne (iade ile ilgili satırın sonuna):**
 
 > İade talebinin değerlendirilmesi ve ürünün durumunun tespiti (yüklenen fotoğraflar yalnızca bu amaçla, yetkili personelce görüntülenir).

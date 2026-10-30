@@ -100,6 +100,8 @@
                 ['label' => 'Markalar', 'route' => 'store_admin.brands.index', 'icon' => 'layers', 'active' => 'store_admin.brands.*'],
                 ['label' => 'Yorumlar', 'route' => 'store_admin.reviews.index', 'icon' => 'star', 'active' => 'store_admin.reviews.*',
                     'badge' => \App\Models\Store\StoreReview::where('status', 'pending')->count()],
+                ['label' => 'Ürün Soruları', 'route' => 'store_admin.questions.index', 'icon' => 'message-circle', 'active' => 'store_admin.questions.*',
+                    'badge' => \App\Models\Store\StoreProductQuestion::where('status', 'pending')->count()],
             ]],
             ['label' => 'Vitrin', 'items' => [
                 ['label' => 'Ana Sayfa', 'route' => 'store_admin.home-layout.edit', 'icon' => 'home', 'active' => 'store_admin.home-layout.*'],

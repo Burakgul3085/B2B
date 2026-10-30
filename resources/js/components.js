@@ -680,6 +680,24 @@ export function tabs(initial) {
     };
 }
 
+/** Ürün sayfası değerlendirme / soru sekmeleri: adres #sorular ile gelinirse Soru & Cevap açılır. */
+export function feedbackTabs(initial) {
+    return {
+        active: initial,
+        init() {
+            if (window.location.hash === '#sorular') {
+                this.active = 'sorular';
+            }
+        },
+        select(key) {
+            this.active = key;
+        },
+        is(key) {
+            return this.active === key;
+        },
+    };
+}
+
 /** Kupon kodunu panoya kopyalar (ana sayfa kampanya kartı). */
 export function copyCode(code) {
     return {
