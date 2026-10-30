@@ -109,6 +109,8 @@ class OrderController extends Controller
             'invoiceUrl' => $invoiceUrl,
             'creditNoteUrl' => $creditNoteUrl,
             'canReturn' => $refusal === null,
+            // Teslim edilmiş siparişte form yoksa nedeni gösterilir (açık talep zaten listede görünür).
+            'returnRefusal' => $order->status === 'delivered' && $refusal !== null && ! $order->returns->whereIn('status', StoreReturn::OPEN)->count() ? $refusal : null,
             'returnable' => $refusal === null ? $returns->returnableQuantities($order) : [],
             'returnDeadline' => ReturnService::deadline($order),
             'cancelUrl' => $order->customer_id && auth('customer')->id() === $order->customer_id

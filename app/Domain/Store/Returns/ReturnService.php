@@ -51,6 +51,8 @@ class ReturnService
         private ImageUploader $images,
     ) {}
 
+    public const PRINT_ONLY = 'Fotokopi ve baskılar kişiye özel üretildiği için iade edilemez. Baskı hatası varsa bize ulaşın, ücretsiz yeniden basalım.';
+
     public static function returnDays(): int
     {
         return max(14, (int) StoreSetting::get('return_days'));
@@ -87,6 +89,9 @@ class ReturnService
         }
         if ($order->returns()->whereIn('status', StoreReturn::OPEN)->exists()) {
             return 'Bu sipariş için açık bir iade talebiniz var.';
+        }
+        if (! $order->items()->whereNull('print_job_id')->exists()) {
+            return self::PRINT_ONLY;
         }
         if (array_sum($this->returnableQuantities($order)) === 0) {
             return 'Bu siparişteki tüm ürünler için iade talebi açılmış.';

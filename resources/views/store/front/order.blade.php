@@ -186,6 +186,9 @@
                     </div>
                 @endif
 
+                @if ($returnRefusal)
+                    <p class="border-t border-line px-5 py-4 text-sm text-muted">{{ $returnRefusal }}</p>
+                @endif
                 @if ($canReturn)
                     <details class="border-t border-line px-5 py-4" @if ($errors->any()) open @endif>
                         <summary class="cursor-pointer text-sm font-semibold text-primary">İade talebi oluştur</summary>

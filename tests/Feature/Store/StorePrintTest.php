@@ -271,9 +271,16 @@ class StorePrintTest extends TestCase
         $this->assertSame(1, StoreStockMovement::where('type', 'sale')->where('reference_id', $order->id)->count(), 'baskı stoktan düşmez');
         $this->assertSame(9, $pen->fresh()->stock_quantity);
 
-        // Baskı iade edilemez (kişiye özel üretim).
+        // Baskı iade edilemez (kişiye özel üretim); yalnızca baskı içeren siparişte müşteriye nedeni yazılır.
         $order->update(['status' => 'delivered']);
         $this->assertSame([$order->items()->whereNull('print_job_id')->value('id')], array_keys(app(ReturnService::class)->returnableQuantities($order)));
+        $order->update(['delivered_at' => now()]);
+        $orderUrl = self::HOST.'/siparis/'.$order->order_no.'/'.$order->access_token;
+        $this->get($orderUrl)->assertSee('İade talebi oluştur')->assertDontSee(ReturnService::PRINT_ONLY);
+        $order->items()->whereNull('print_job_id')->update(['print_job_id' => $job->id]); // yalnızca baskı kalmış gibi
+        $this->assertSame(ReturnService::PRINT_ONLY, app(ReturnService::class)->refusal($order->fresh()));
+        $this->get($orderUrl)->assertSee('Fotokopi ve baskılar kişiye özel üretildiği için iade edilemez')->assertDontSee('İade talebi oluştur');
+        $order->items()->where('sku', '!=', 'FOTOKOPI-'.$job->id)->update(['print_job_id' => null]);
 
         // Yönetim baskı dosyasını indirir; başka siparişin adresiyle indiremez.
         $admin = StoreAdmin::create(['name' => 'Yönetici', 'email' => 'yonetici@ornek.com', 'password' => 'Gizli-Parola-123', 'is_super' => true]);
