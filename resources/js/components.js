@@ -1253,7 +1253,7 @@ export function printOrder(config) {
     const fileUrl = (token, suffix) => config.urls.file.replace('__T__', token) + (suffix || '');
     const defaults = () => ({ color: 'bw', duplex: '0', layout: 1, size: 'A4', range: '', copies: 1, binding: 'none', note: '' });
     let uid = 0;
-    const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
+    const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], tip: null, busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
 
     return {
         files: (config.files || []).map(prepare),
@@ -1382,10 +1382,12 @@ export function printOrder(config) {
                 f.total = res.data.total;
                 f.summary = res.data.summary;
                 f.lines = res.data.quote.lines;
+                f.tip = res.data.quote.tip;
                 f.error = '';
             } else {
                 f.total = null;
                 f.lines = [];
+                f.tip = null;
                 f.error = res.data.message || 'Fiyat hesaplanamadı.';
             }
         },

@@ -31,9 +31,9 @@ class StorePrintJob extends Model
         return PrintOptions::fromArray($this->options);
     }
 
-    /** Sepette ve siparişte görünen kısa özet: "48 sayfa · S/B · Önlü arkalı · 2 sayfa/yüz · Spiral · 2 kopya" */
+    /** Sepette ve siparişte görünen kısa özet: "48 sayfa · Siyah-beyaz · Önlü arkalı · Bir yüze 2 sayfa · Spiral cilt · 2 kopya · toplam 24 yaprak" */
     public function summary(): string
     {
-        return $this->printOptions()->summary($this->pages);
+        return $this->printOptions()->summary($this->pages, $this->sheets);
     }
 }

@@ -104,7 +104,7 @@ class PrintController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['quote' => $quote, 'total' => Money::format($quote['total']), 'summary' => $options->summary($quote['pages'])]);
+        return response()->json(['quote' => $quote, 'total' => Money::format($quote['total']), 'summary' => $options->summary($quote['pages'], $quote['sheets'])]);
     }
 
     public function add(Request $request, string $token, PrintCart $prints, CartService $carts): JsonResponse

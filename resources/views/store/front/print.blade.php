@@ -23,7 +23,8 @@
     $choice = fn (string $key, string $value) => "isChoice(f, '{$key}', '{$value}') ? 'border-puzzle-blue bg-puzzle-blue-soft text-ink ring-2 ring-puzzle-blue/25' : 'border-line bg-white text-muted hover:border-slate-300 hover:text-ink'";
     $faq = [
         ['Sayfa sayısı nasıl hesaplanıyor?', 'Belgen yüklendiğinde sunucumuzda açılır ve sayfaları sayılır. Word, PowerPoint ve Excel dosyaları baskı için PDF\'e çevrilir; fiyat bu sayfa sayısına göre hesaplanır.'],
-        ['Bir yüze 2 veya 4 sayfa ne demek?', 'Belgenin 2 ya da 4 sayfası küçültülerek kağıdın tek yüzüne yan yana basılır. Ders notu ve sunumlarda kağıttan ve ücretten tasarruf sağlar.'],
+        ['Fiyat nasıl hesaplanıyor?', 'Ücret yaprak (kağıt) başınadır. Önlü arkalı baskı ve bir yüze birden fazla sayfa ek ücret almaz, yalnızca yaprak sayısını azaltır: 240 sayfalık belge tek yüz 240, önlü arkalı 120, önlü arkalı ve bir yüze 2 sayfa 60 yaprak tutar. Toplam yaprak arttıkça yaprak fiyatı düşer.'],
+        ['Bir yüze 2, 4 veya 8 sayfa ne demek?', 'Belgenin 2, 4 ya da 8 sayfası küçültülerek kağıdın tek yüzüne yan yana basılır. Ders notu ve sunumlarda kağıttan ve ücretten tasarruf sağlar.'],
         ['Sayfa düzenim bozulur mu?', 'PDF dosyalar olduğu gibi basılır. Word ve PowerPoint dosyalarında yazı tipleri farklılık gösterebileceği için mümkünse belgeyi PDF olarak kaydedip yükle.'],
         ['Baskılarım nasıl teslim edilir?', 'Baskılar siparişinin parçasıdır; ürünlerinle birlikte ödeme adımında seçtiğin teslimat yöntemiyle gönderilir.'],
         ['Belgelerim güvende mi?', 'Belgelerin herkese açık bir adreste tutulmaz; yalnızca sen ve baskıyı hazırlayan ekibimiz erişir. Siparişe dönüşmeyen belgeler '.$settings['unordered_days'].' gün, siparişteki belgeler '.$settings['ordered_days'].' gün sonra kendiliğinden silinir.'],
@@ -51,11 +52,11 @@
                         <p class="mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">Ders notu, ödev, tez, sunum… Sayfa sayısını biz sayalım, fiyatı seçeneklerine göre anında gör. Baskılarını kırtasiye ürünleriyle aynı sepette sipariş et.</p>
                     </div>
                     <div class="flex flex-wrap gap-3 lg:justify-end">
-                        @foreach (['Siyah-beyaz' => $last['bw_duplex'], 'Renkli' => $last['color_duplex']] as $label => $price)
+                        @foreach (['Siyah-beyaz' => $last['bw'], 'Renkli' => $last['color']] as $label => $price)
                             <div class="min-w-36 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur">
                                 <p class="text-xs font-medium text-white/60">{{ $label }}</p>
                                 <p class="mt-0.5 font-display text-2xl font-extrabold tabular-nums">{{ Money::format($price) }}<span class="text-sm font-semibold text-white/60">'dan</span></p>
-                                <p class="text-[11px] text-white/50">yüz başı</p>
+                                <p class="text-[11px] text-white/50">yaprak başı</p>
                             </div>
                         @endforeach
                     </div>
@@ -170,8 +171,8 @@
 
                                 <div role="group" aria-label="Bir yüze kaç sayfa">
                                     <p class="text-xs font-bold tracking-wider text-muted uppercase">Bir yüze kaç sayfa</p>
-                                    <div class="mt-2 grid grid-cols-3 gap-2">
-                                        @foreach ([1 => 'grid-cols-1', 2 => 'grid-cols-2', 4 => 'grid-cols-2'] as $n => $grid)
+                                    <div class="mt-2 grid grid-cols-4 gap-2">
+                                        @foreach ([1 => 'grid-cols-1', 2 => 'grid-cols-2', 4 => 'grid-cols-2', 8 => 'grid-cols-2'] as $n => $grid)
                                             <button type="button" class="flex flex-col items-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold transition" :class="{{ $choice('layout', (string) $n) }}" @click="choose(f, 'layout', {{ $n }})">
                                                 <span class="grid h-10 w-8 {{ $grid }} gap-0.5 rounded-[4px] border-2 border-current p-0.5" aria-hidden="true">
                                                     @for ($i = 0; $i < $n; $i++)<span class="rounded-[1px] bg-current opacity-30"></span>@endfor
@@ -231,6 +232,7 @@
                                 <div class="min-w-0">
                                     <p class="text-sm text-white/75" x-text="f.summary"></p>
                                     <template x-for="l in f.lines" :key="l[0]"><p class="text-xs text-white/50"><span x-text="l[0]"></span> = <span x-text="l[1]"></span></p></template>
+                                    <p x-show="f.tip" x-text="f.tip" class="mt-1 text-xs font-semibold text-puzzle-sun" x-cloak></p>
                                 </div>
                                 <div class="flex items-center gap-4">
                                     <p class="font-display text-3xl font-extrabold tabular-nums" x-text="f.total || '—'"></p>
@@ -251,12 +253,12 @@
                     <section class="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-line">
                         <div class="border-b border-line px-5 py-4">
                             <h2 class="font-display text-lg font-extrabold">Fiyat listesi</h2>
-                            <p class="text-xs text-muted">A4, yüz başı, KDV dahil. Çok basana daha ucuz.</p>
+                            <p class="text-xs text-muted">A4, yaprak başı, KDV dahil. Çok basana daha ucuz.</p>
                         </div>
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="text-[11px] tracking-wider text-muted uppercase">
-                                    <th class="px-5 py-2.5 text-left font-bold">Toplam yüz</th>
+                                    <th class="px-5 py-2.5 text-left font-bold">Toplam yaprak</th>
                                     <th class="px-2 py-2.5 text-right font-bold">S-B</th>
                                     <th class="px-5 py-2.5 text-right font-bold">Renkli</th>
                                 </tr>
@@ -266,8 +268,8 @@
                                     @php $next = $settings['tiers'][$i + 1]['from'] ?? null; @endphp
                                     <tr class="border-t border-line">
                                         <td class="px-5 py-2.5 font-semibold tabular-nums">{{ $next ? $tier['from'].' – '.($next - 1) : $tier['from'].' +' }}</td>
-                                        <td class="px-2 py-2.5 text-right tabular-nums">{{ Money::format($tier['bw']) }}<span class="block text-[11px] text-muted">ö/a {{ Money::format($tier['bw_duplex']) }}</span></td>
-                                        <td class="px-5 py-2.5 text-right tabular-nums">{{ Money::format($tier['color']) }}<span class="block text-[11px] text-muted">ö/a {{ Money::format($tier['color_duplex']) }}</span></td>
+                                        <td class="px-2 py-2.5 text-right tabular-nums">{{ Money::format($tier['bw']) }}</td>
+                                        <td class="px-5 py-2.5 text-right tabular-nums">{{ Money::format($tier['color']) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -278,7 +280,7 @@
                                 <div class="flex justify-between gap-3"><dt class="text-muted">Spiral <span class="text-xs">({{ $row['to'] }} yaprağa kadar)</span></dt><dd class="font-semibold tabular-nums">{{ Money::format($row['price']) }}</dd></div>
                             @endforeach
                         </dl>
-                        <p class="border-t border-line px-5 py-3 text-[11px] text-muted">ö/a: önlü arkalı baskıda yüz başı fiyat.@if (bccomp((string) $settings['min_total'], '0', 2) > 0) En düşük baskı tutarı {{ Money::format($settings['min_total']) }}.@endif</p>
+                        <p class="border-t border-line px-5 py-3 text-[11px] text-muted">Önlü arkalı ve bir yüze çok sayfa baskı ek ücret almaz, yaprak sayısını azaltır.@if (bccomp((string) $settings['min_total'], '0', 2) > 0) En düşük baskı tutarı {{ Money::format($settings['min_total']) }}.@endif</p>
                     </section>
 
                     <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-line">

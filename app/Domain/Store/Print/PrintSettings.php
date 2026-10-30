@@ -10,20 +10,20 @@ use App\Models\Store\StoreSetting;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Fotokopi ayarları (Mağaza yönetimi → Fotokopi): açık/kapalı, sayfa başı fiyat kademeleri, ciltleme fiyatları, sınırlar
+ * Fotokopi ayarları (Mağaza yönetimi → Fotokopi): açık/kapalı, yaprak başı fiyat kademeleri, ciltleme fiyatları, sınırlar
  * ve saklama süreleri. store_settings.print anahtarında JSON olarak tutulur. Fiyatlar KDV dahildir.
  *
- * Fiyat kademesi baskı yüzü sayısına göre seçilir (tüm kopyalarda toplam basılan yüz). Her kademede tek yüz ve
- * önlü arkalı için yüz başı fiyat ayrıdır. Spiral cilt kopya başına yaprak sayısına göre kademelidir.
+ * Fiyat kademesi tüm kopyalardaki toplam yaprak sayısına göre seçilir; her kademede siyah-beyaz ve renkli yaprak fiyatı
+ * vardır. Spiral cilt kopya başına yaprak sayısına göre kademelidir.
  */
 class PrintSettings
 {
     public const DEFAULTS = [
         'enabled' => false,
         'tiers' => [
-            ['from' => 1, 'bw' => '2.00', 'bw_duplex' => '1.75', 'color' => '6.00', 'color_duplex' => '5.50'],
-            ['from' => 101, 'bw' => '1.50', 'bw_duplex' => '1.25', 'color' => '5.00', 'color_duplex' => '4.50'],
-            ['from' => 501, 'bw' => '1.00', 'bw_duplex' => '0.90', 'color' => '4.00', 'color_duplex' => '3.50'],
+            ['from' => 1, 'bw' => '2.00', 'color' => '6.00'],
+            ['from' => 101, 'bw' => '1.50', 'color' => '5.00'],
+            ['from' => 501, 'bw' => '1.00', 'color' => '4.00'],
         ],
         'a3_enabled' => false,
         'a3_multiplier' => '2.00',
@@ -49,8 +49,31 @@ class PrintSettings
     public function all(): array
     {
         $saved = json_decode((string) StoreSetting::get('print'), true);
+        $all = array_replace(self::DEFAULTS, is_array($saved) ? $saved : []);
+        // Yüz başı fiyatlı eski kayıtta (bw_duplex, color_duplex) tek yüz fiyatları yaprak fiyatı olarak kullanılır.
+        $all['tiers'] = array_map(fn (array $t) => ['from' => (int) $t['from'], 'bw' => (string) $t['bw'], 'color' => (string) $t['color']], $all['tiers']);
 
-        return array_replace(self::DEFAULTS, is_array($saved) ? $saved : []);
+        return $all;
+    }
+
+    /**
+     * Kaydı engellemeyen fiyat uyarıları: üst kademede yaprak fiyatı alt kademeden yüksekse.
+     *
+     * @return list<string>
+     */
+    public function warnings(): array
+    {
+        $warnings = [];
+        $tiers = collect($this->get('tiers'))->sortBy('from')->values();
+        foreach ($tiers->skip(1) as $i => $tier) {
+            foreach (['bw' => 'Siyah-beyaz', 'color' => 'Renkli'] as $key => $label) {
+                if (bccomp($tier[$key], $tiers[$i - 1][$key], 2) > 0) {
+                    $warnings[] = "{$label}: {$tier['from']} yapraktan başlayan kademenin yaprak fiyatı (".Money::format($tier[$key]).') bir önceki kademeden ('.Money::format($tiers[$i - 1][$key]).') yüksek.';
+                }
+            }
+        }
+
+        return $warnings;
     }
 
     public function get(string $key): mixed
@@ -78,7 +101,6 @@ class PrintSettings
         return (int) $this->get('max_mb') * 1024 * 1024;
     }
 
-    /** En düşük kademenin fiyatları (vitrindeki "sayfa ₺…" özetleri için). */
     /** Sepetteki baskıların toplamı en düşük tutarın altındaysa müşteriye gösterilecek uyarı. */
     public function minimumNotice(CartSummary $summary): ?string
     {
@@ -86,11 +108,6 @@ class PrintSettings
 
         return $summary->prints !== [] && bccomp($summary->printsSubtotal(), $min, 2) < 0
             ? 'Fotokopi siparişi en az '.Money::format($min).' olmalıdır.' : null;
-    }
-
-    public function startingPrices(): array
-    {
-        return $this->get('tiers')[0];
     }
 
     /**
@@ -124,14 +141,14 @@ class PrintSettings
                 continue;
             }
             $tier = ['from' => $int($row['from'], "tiers.{$i}.from", 1, 1000000)];
-            foreach (['bw', 'bw_duplex', 'color', 'color_duplex'] as $k) {
+            foreach (['bw', 'color'] as $k) {
                 $tier[$k] = $money($row[$k] ?? null, "tiers.{$i}.{$k}");
             }
             $tiers[] = $tier;
         }
         usort($tiers, fn ($a, $b) => $a['from'] <=> $b['from']);
         if (! $tiers || $tiers[0]['from'] !== 1) {
-            $errors['tiers'] = 'İlk fiyat kademesi 1. yüzden başlamalıdır.';
+            $errors['tiers'] = 'İlk fiyat kademesi 1. yapraktan başlamalıdır.';
         }
         if (count(array_unique(array_column($tiers, 'from'))) !== count($tiers)) {
             $errors['tiers'] = 'Her kademenin başlangıcı farklı olmalıdır.';

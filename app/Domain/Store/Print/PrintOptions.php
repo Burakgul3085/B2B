@@ -5,14 +5,14 @@ namespace App\Domain\Store\Print;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Bir baskı işinin seçenekleri: renk, tek yüz / önlü arkalı, bir yüze kaç sayfa (1, 2, 4), kağıt boyutu, sayfa aralığı,
+ * Bir baskı işinin seçenekleri: renk, tek yüz / önlü arkalı, bir yüze kaç sayfa (1, 2, 4, 8), kağıt boyutu, sayfa aralığı,
  * kopya, ciltleme ve not. Tarayıcıdan gelen değerler burada doğrulanır; fiyat yalnızca PrintPricing ile hesaplanır.
  */
 final class PrintOptions
 {
     public const COLORS = ['bw' => 'Siyah-beyaz', 'color' => 'Renkli'];
 
-    public const LAYOUTS = [1 => 'Bir yüze 1 sayfa', 2 => 'Bir yüze 2 sayfa', 4 => 'Bir yüze 4 sayfa'];
+    public const LAYOUTS = [1 => 'Bir yüze 1 sayfa', 2 => 'Bir yüze 2 sayfa', 4 => 'Bir yüze 4 sayfa', 8 => 'Bir yüze 8 sayfa'];
 
     public const BINDINGS = ['none' => 'Ciltsiz', 'staple' => 'Zımbalı', 'spiral' => 'Spiral cilt'];
 
@@ -79,6 +79,12 @@ final class PrintOptions
             $data['range'] ?? null, (int) ($data['copies'] ?? 1), (string) ($data['binding'] ?? 'none'), $data['note'] ?? null);
     }
 
+    /** Aynı seçenekler, önlü arkalı (fiyat ipucu için). */
+    public function withDuplex(): self
+    {
+        return new self($this->color, true, $this->layout, $this->size, $this->range, $this->copies, $this->binding, $this->note);
+    }
+
     public function toArray(): array
     {
         return ['color' => $this->color, 'duplex' => $this->duplex, 'layout' => $this->layout, 'size' => $this->size,
@@ -112,7 +118,8 @@ final class PrintOptions
         return $pages ? array_keys($pages) : null;
     }
 
-    public function summary(int $pages): string
+    /** $sheets: kopya başı yaprak; verilirse toplam yaprak özete eklenir. */
+    public function summary(int $pages, ?int $sheets = null): string
     {
         return implode(' · ', array_filter([
             $pages.' sayfa'.($this->range ? " ({$this->range})" : ''),
@@ -122,6 +129,7 @@ final class PrintOptions
             $this->layout > 1 ? "Bir yüze {$this->layout} sayfa" : null,
             $this->binding !== 'none' ? self::BINDINGS[$this->binding] : null,
             $this->copies.' kopya',
+            $sheets !== null ? 'toplam '.($sheets * $this->copies).' yaprak' : null,
         ]));
     }
 }

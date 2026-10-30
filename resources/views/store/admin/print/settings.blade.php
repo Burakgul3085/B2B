@@ -1,6 +1,7 @@
 @php
     $money = fn ($v) => $v === null || $v === '' ? '' : number_format((float) $v, 2, ',', '');
-    $tiers = array_pad(old('tiers', $s['tiers']), max(5, count($s['tiers']) + 2), ['from' => '', 'bw' => '', 'bw_duplex' => '', 'color' => '', 'color_duplex' => '']);
+    $tiers = array_pad(old('tiers', $s['tiers']), max(5, count($s['tiers']) + 2), ['from' => '', 'bw' => '', 'color' => '']);
+    $t = $trial['input'] + ['pages' => '', 'color' => 'bw', 'duplex' => '0', 'layout' => 1, 'size' => 'A4', 'copies' => 1, 'binding' => 'none'];
     $spiral = array_pad(old('spiral', $s['spiral']), max(6, count($s['spiral']) + 2), ['to' => '', 'price' => '']);
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Fotokopi">
@@ -32,18 +33,20 @@
             </x-card>
         </div>
 
-        <x-card title="Baskı fiyatları (yüz başı)" description="Kademe, siparişteki tüm kopyalarda toplam basılan yüz sayısına göre seçilir. Önlü arkalı fiyatı her yüz içindir (bir yaprak = 2 yüz). İlk kademe 1'den başlamalıdır; boş satırlar yok sayılır." :padding="false">
+        <x-card title="Baskı fiyatları (yaprak başı)" description="Ücret yaprak başınadır. Kademe, siparişteki tüm kopyalardaki toplam yaprak sayısına göre seçilir. Önlü arkalı ve bir yüze çok sayfa baskı ek ücret almaz, yalnızca yaprak sayısını azaltır. Kademe eşiğinin altındaki bir iş, üst kademenin başlangıç tutarından pahalıya gelmez. İlk kademe 1'den başlamalıdır; boş satırlar yok sayılır." :padding="false">
             @error('tiers')<p class="px-5 pt-4 text-sm text-danger">{{ $message }}</p>@enderror
+            @foreach ($warnings as $warning)
+                <p class="mx-5 mt-4 flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"><x-icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $warning }}</p>
+            @endforeach
             <div class="overflow-x-auto">
                 <table class="table-base">
-                    <thead><tr><th>Başlangıç (yüz)</th><th>S-B tek yüz</th><th>S-B önlü arkalı</th><th>Renkli tek yüz</th><th>Renkli önlü arkalı</th></tr></thead>
+                    <thead><tr><th>Başlangıç (toplam yaprak)</th><th>Siyah-beyaz yaprak (₺)</th><th>Renkli yaprak (₺)</th></tr></thead>
                     <tbody class="divide-y divide-line">
                         @foreach (array_values($tiers) as $i => $row)
                             <tr>
                                 <td><x-field :name="'tiers['.$i.'][from]'" label="Başlangıç" class="[&>label]:sr-only" type="number" min="1" :value="$row['from']" /></td>
-                                @foreach (['bw', 'bw_duplex', 'color', 'color_duplex'] as $k)
-                                    <td><x-field :name="'tiers['.$i.']['.$k.']'" :label="$k" class="[&>label]:sr-only" inputmode="decimal" :value="$money($row[$k] ?? '')" /></td>
-                                @endforeach
+                                <td><x-field :name="'tiers['.$i.'][bw]'" label="Siyah-beyaz yaprak" class="[&>label]:sr-only" inputmode="decimal" :value="$money($row['bw'] ?? '')" /></td>
+                                <td><x-field :name="'tiers['.$i.'][color]'" label="Renkli yaprak" class="[&>label]:sr-only" inputmode="decimal" :value="$money($row['color'] ?? '')" /></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -72,14 +75,37 @@
                 </div>
             </x-card>
 
-            <x-card title="A3 baskı" description="Açıkken müşteri kağıt boyutunu seçebilir. A3 yüz fiyatı, yukarıdaki A4 fiyatının çarpanla çarpımıdır.">
+            <x-card title="A3 baskı" description="Açıkken müşteri kağıt boyutunu seçebilir. A3 yaprak fiyatı, yukarıdaki A4 yaprak fiyatının çarpanla çarpımıdır.">
                 <div class="space-y-5">
                     <x-toggle name="a3_enabled" label="A3 baskı açık" :checked="$s['a3_enabled']" />
-                    <x-field name="a3_multiplier" label="A3 fiyat çarpanı" :value="$money($s['a3_multiplier'])" inputmode="decimal" class="max-w-48" hint="Örn. 2,00: A3 yüz fiyatı A4'ün iki katı." />
+                    <x-field name="a3_multiplier" label="A3 fiyat çarpanı" :value="$money($s['a3_multiplier'])" inputmode="decimal" class="max-w-48" hint="Örn. 2,00: A3 yaprak fiyatı A4'ün iki katı." />
                 </div>
             </x-card>
         </div>
 
         <x-button>Kaydet</x-button>
     </form>
+
+    <x-card id="deneme" title="Deneme hesabı" description="Kayıtlı fiyatlarla bir baskının tutarını görün. Fiyatı değiştirdiyseniz önce kaydedin." class="mt-6">
+        <form method="GET" action="{{ route('store_admin.print.edit') }}#deneme" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <x-field name="deneme[pages]" label="Sayfa sayısı" type="number" min="1" :value="$t['pages']" required />
+            <x-field name="deneme[color]" label="Renk" :options="\App\Domain\Store\Print\PrintOptions::COLORS" :value="$t['color']" />
+            <x-field name="deneme[duplex]" label="Baskı yüzü" :options="['0' => 'Tek yüz', '1' => 'Önlü arkalı']" :value="$t['duplex']" />
+            <x-field name="deneme[layout]" label="Bir yüze" :options="\App\Domain\Store\Print\PrintOptions::LAYOUTS" :value="$t['layout']" />
+            <x-field name="deneme[copies]" label="Kopya" type="number" min="1" :value="$t['copies']" />
+            <x-field name="deneme[binding]" label="Ciltleme" :options="\App\Domain\Store\Print\PrintOptions::BINDINGS" :value="$t['binding']" />
+            @if ($s['a3_enabled'])<x-field name="deneme[size]" label="Kağıt" :options="\App\Domain\Store\Print\PrintOptions::SIZES" :value="$t['size']" />@endif
+            <div class="flex items-end"><x-button variant="secondary">Hesapla</x-button></div>
+        </form>
+        @if ($trial['error'])
+            <p class="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{{ $trial['error'] }}</p>
+        @elseif ($q = $trial['quote'])
+            <div class="mt-4 rounded-lg bg-surface p-4 text-sm">
+                <p class="text-muted">{{ $q['summary'] }}</p>
+                <p class="mt-1">Kopya başı {{ $q['sheets'] }} yaprak · toplam <strong>{{ $q['all_sheets'] }} yaprak</strong></p>
+                @foreach ($q['lines'] as [$label, $amount])<p class="mt-1">{{ $label }} = {{ $amount }}</p>@endforeach
+                <p class="mt-2 text-base font-semibold">Toplam: {{ \App\Domain\Support\Money::format($q['total']) }} <span class="text-xs font-normal text-muted">KDV dahil</span></p>
+            </div>
+        @endif
+    </x-card>
 </x-layouts.panel>
