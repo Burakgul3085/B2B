@@ -148,4 +148,20 @@ class ContactMessages
         $message->delete();
         $this->audit->log('store.contact_message_deleted', $message, ['name' => $message->name, 'subject' => $message->subject]);
     }
+
+    /**
+     * Seçilen mesajları (yanıtlarıyla birlikte) siler.
+     *
+     * @param  array<int, int|string>  $ids
+     * @return int silinen mesaj sayısı
+     */
+    public function deleteMany(array $ids): int
+    {
+        $count = StoreContactMessage::whereIn('id', array_map('intval', $ids))->delete();
+        if ($count > 0) {
+            $this->audit->log('store.contact_messages_deleted', null, [], ['count' => $count]);
+        }
+
+        return $count;
+    }
 }

@@ -145,6 +145,33 @@ class StoreAdminManagementTest extends TestCase
             ->assertDontSee('platform.business_created');
     }
 
+    public function test_only_super_admin_deletes_activity_and_b2b_records_are_untouched(): void
+    {
+        $super = $this->admin(super: true);
+        $b2b = AuditLog::create(['action' => 'platform.business_created', 'actor_type' => 'platform', 'actor_id' => 1]);
+        $logs = collect(range(1, 3))->map(fn ($i) => AuditLog::create(['action' => 'store.product_created', 'actor_type' => 'store_admin', 'actor_id' => $super->id]));
+
+        // Yönetici (süper değil) silemez, seçim kutularını görmez.
+        $this->actingAsStore($this->admin());
+        $this->get(route('store_admin.activity'))->assertOk()->assertDontSee('Seçilenleri sil');
+        $this->delete(route('store_admin.activity.destroy-many'), ['logs' => [$logs[0]->id]])->assertForbidden();
+        $this->delete(route('store_admin.activity.destroy-all'), ['confirm' => '1'])->assertForbidden();
+
+        $this->flushSession(); // oturum doğrulaması (auth.session) önceki yöneticinin parola özetini tutar
+        $this->actingAsStore($super);
+        $this->get(route('store_admin.activity'))->assertOk()->assertSee('Seçilenleri sil')->assertSee('Tümünü sil');
+        // B2B kaydının kimliği gönderilse bile silinmez.
+        $this->delete(route('store_admin.activity.destroy-many'), ['logs' => [$logs[0]->id, $b2b->id]])->assertSessionHas('status', '1 kayıt silindi.');
+        $this->assertModelMissing($logs[0]);
+        $this->assertModelExists($b2b);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'store.activity_deleted', 'actor_id' => $super->id]);
+
+        $this->delete(route('store_admin.activity.destroy-all'))->assertSessionHasErrors('confirm');
+        $this->delete(route('store_admin.activity.destroy-all'), ['confirm' => '1'])->assertRedirect(route('store_admin.activity'));
+        $this->assertSame(['platform.business_created', 'store.activity_deleted'], AuditLog::orderBy('id')->pluck('action')->all(), 'yalnızca silme kaydı ve B2B kaydı kalır');
+        $this->get(route('store_admin.activity'))->assertOk()->assertSee('İşlem geçmişi kayıtları silindi');
+    }
+
     public function test_store_admin_routes_are_unreachable_from_b2b_sessions(): void
     {
         $business = $this->makeBusiness();

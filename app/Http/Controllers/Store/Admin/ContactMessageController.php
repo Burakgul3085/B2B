@@ -48,6 +48,15 @@ class ContactMessageController extends Controller
         return back()->with('status', 'Mesaj yanıtlandı olarak işaretlendi.');
     }
 
+    /** Listede seçilen mesajları siler. */
+    public function destroyMany(Request $request): RedirectResponse
+    {
+        $ids = $request->validate(['messages' => ['required', 'array', 'max:100'], 'messages.*' => ['integer']], [], ['messages' => 'mesajlar'])['messages'];
+        $count = $this->messages->deleteMany($ids);
+
+        return back()->with('status', "{$count} mesaj silindi.");
+    }
+
     public function destroy(StoreContactMessage $storeContactMessage): RedirectResponse
     {
         $this->messages->delete($storeContactMessage);

@@ -1,4 +1,4 @@
-{{-- Mağaza işlem geçmişi tablosu: $logs, $names (mağaza yöneticisi id => ad) --}}
+{{-- Mağaza işlem geçmişi tablosu: $logs, $names (mağaza yöneticisi id => ad); $selectable: seçim kutuları ve satır silme (süper admin) --}}
 @php
     $labels = [
         'auth.login' => 'Giriş yaptı', 'auth.login_failed' => 'Başarısız giriş denemesi', 'auth.password_changed' => 'Parolasını değiştirdi',
@@ -33,17 +33,23 @@
         'store.customer_closed' => 'Müşteri hesabını kapattı', 'store.payment_logos_updated' => 'Ödeme logo bandı güncellendi', 'store.payment_logos_removed' => 'Ödeme logo bandı kaldırıldı',
         'store.credit_note_added' => 'İade faturası eklendi', 'store.discount_codes_generated' => 'Toplu kupon kodu üretildi',
         'store.discount_created' => 'İndirim oluşturuldu', 'store.discount_updated' => 'İndirim güncellendi', 'store.discount_deleted' => 'İndirim silindi',
+        'store.activity_deleted' => 'İşlem geçmişi kayıtları silindi', 'store.contact_message_deleted' => 'Mesaj silindi', 'store.contact_messages_deleted' => 'Mesajlar silindi',
         'store.carrier_created' => 'Kargo firması eklendi', 'store.carrier_updated' => 'Kargo firması güncellendi', 'store.carrier_deleted' => 'Kargo firması silindi',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];
     $legalTitles = \App\Models\Store\StoreLegalDocument::KEYS;
+    $selectable ??= false;
 @endphp
 @if ($logs->isEmpty())
     <x-empty-state icon="list" title="Henüz kayıt yok" class="py-8" />
 @else
     <div class="overflow-x-auto">
         <table class="table-base">
-            <thead><tr><th>Tarih</th><th>Kim</th><th>İşlem</th><th>Ayrıntı</th><th>IP</th></tr></thead>
+            <thead><tr>
+                @if ($selectable)<th class="w-10"><input type="checkbox" :checked="allPicked" @change="toggleAll" class="size-4 rounded border-line text-primary" aria-label="Sayfadaki tüm kayıtları seç"></th>@endif
+                <th>Tarih</th><th>Kim</th><th>İşlem</th><th>Ayrıntı</th><th>IP</th>
+                @if ($selectable)<th class="text-right"><span class="sr-only">İşlem</span></th>@endif
+            </tr></thead>
             <tbody class="divide-y divide-line">
                 @foreach ($logs as $log)
                     @php
@@ -60,6 +66,7 @@
                             isset($log->new_values['order_no']) => 'Sipariş '.$log->new_values['order_no'],
                             $log->action === 'store.legal_published' => ($legalTitles[$log->new_values['key'] ?? ''] ?? '').' · sürüm '.($log->new_values['version'] ?? ''),
                             $log->action === 'store.cod_unblocked' => $log->old_values['phone'] ?? null,
+                            in_array($log->action, ['store.activity_deleted', 'store.contact_messages_deleted'], true) => ($log->new_values['count'] ?? 0).' kayıt',
                             isset($entityNames[$log->entity_type]) => $entityNames[$log->entity_type].' #'.$log->entity_id
                                 .(isset($log->new_values['name']) ? ' · '.$log->new_values['name'] : (isset($log->old_values['name']) ? ' · '.$log->old_values['name'] : ''))
                                 .(isset($log->new_values['sku']) ? ' · '.$log->new_values['sku'] : '')
@@ -69,11 +76,13 @@
                         };
                     @endphp
                     <tr>
+                        @if ($selectable)<td><input type="checkbox" name="logs[]" value="{{ $log->id }}" x-model="picked" data-pick class="size-4 rounded border-line text-primary" aria-label="Kaydı seç"></td>@endif
                         <td class="whitespace-nowrap text-muted tabular-nums">{{ $log->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</td>
                         <td class="font-medium">{{ $who }}</td>
                         <td>{{ $labels[$log->action] ?? $log->action }}</td>
                         <td class="text-muted">{{ $detail ?? '—' }}</td>
                         <td class="text-muted tabular-nums">{{ $log->ip }}</td>
+                        @if ($selectable)<td class="text-right"><button type="submit" form="kayit-sil-{{ $log->id }}" class="text-sm text-danger hover:underline">Sil</button></td>@endif
                     </tr>
                 @endforeach
             </tbody>

@@ -265,6 +265,14 @@ class StoreSitePagesTest extends TestCase
         $this->assertSame(0, StoreContactMessage::count());
         $this->assertDatabaseHas('audit_logs', ['action' => 'store.contact_message_deleted']);
 
+        // Toplu silme: seçilen mesajlar yanıtlarıyla birlikte silinir.
+        $others = collect(range(1, 3))->map(fn ($i) => StoreContactMessage::create(['name' => "Kişi {$i}", 'email' => "k{$i}@ornek.com", 'subject' => 'Diğer', 'message' => 'Merhaba', 'status' => 'new']));
+        $this->get(route('store_admin.messages.index'))->assertOk()->assertSee('Seçilenleri sil')->assertSee('Kişi 1');
+        $this->delete(route('store_admin.messages.destroy-many'), ['messages' => []])->assertSessionHasErrors('messages');
+        $this->delete(route('store_admin.messages.destroy-many'), ['messages' => [$others[0]->id, $others[1]->id]])->assertSessionHas('status', '2 mesaj silindi.');
+        $this->assertSame([$others[2]->id], StoreContactMessage::pluck('id')->all());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'store.contact_messages_deleted']);
+
         // Form kapalıyken gönderim kabul edilmez.
         StorePage::where('key', 'contact')->update(['content' => json_encode(['form_enabled' => false])]);
         $this->post(self::HOST.'/iletisim', ['name' => 'X', 'email' => 'x@ornek.com', 'subject' => 'Diğer', 'message' => 'Merhaba dünya'])->assertNotFound();

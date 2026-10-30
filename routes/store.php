@@ -156,6 +156,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'show'])->name('messages.show');
             Route::post('mesajlar/{storeContactMessage}/yanit', [Admin\ContactMessageController::class, 'reply'])->middleware('throttle:20,1,store_admin.messages.reply')->name('messages.reply');
             Route::post('mesajlar/{storeContactMessage}/yanitlandi', [Admin\ContactMessageController::class, 'replied'])->name('messages.replied');
+            Route::delete('mesajlar', [Admin\ContactMessageController::class, 'destroyMany'])->name('messages.destroy-many');
             Route::delete('mesajlar/{storeContactMessage}', [Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
             Route::get('yorumlar', [Admin\ReviewController::class, 'index'])->name('reviews.index');
             Route::put('yorumlar/{storeReview}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
@@ -234,6 +235,9 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
 
             // Yönetici hesapları: yalnızca süper admin
             Route::middleware('store.super')->group(function () {
+                // İşlem geçmişini silme (seçilenler / tamamı)
+                Route::delete('islem-gecmisi', [Admin\ActivityController::class, 'destroyMany'])->name('activity.destroy-many');
+                Route::delete('islem-gecmisi/tumu', [Admin\ActivityController::class, 'destroyAll'])->name('activity.destroy-all');
                 Route::get('yoneticiler', [Admin\AdminController::class, 'index'])->name('admins.index');
                 Route::get('yoneticiler/yeni', [Admin\AdminController::class, 'create'])->name('admins.create');
                 Route::post('yoneticiler', [Admin\AdminController::class, 'store'])->name('admins.store');

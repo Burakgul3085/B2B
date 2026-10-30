@@ -1607,5 +1607,16 @@ export function pickList() {
         get none() {
             return this.picked.length === 0;
         },
+        get count() {
+            return this.picked.length;
+        },
+        get allPicked() {
+            const boxes = this.$root.querySelectorAll('input[data-pick]');
+            return boxes.length > 0 && this.picked.length === boxes.length;
+        },
+        // Başlıktaki kutu: sayfadaki tüm satırları seçer / bırakır (satır kutuları data-pick taşır).
+        toggleAll(event) {
+            this.picked = event.target.checked ? Array.from(this.$root.querySelectorAll('input[data-pick]'), (box) => box.value) : [];
+        },
     };
 }
