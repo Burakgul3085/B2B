@@ -60,6 +60,11 @@
                             @if ($secrets[$key])<button form="sil-{{ $key }}" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
                         </div>
                     @endforeach
+                    <div class="grid gap-5 sm:grid-cols-[1fr_auto]">
+                        <x-field name="iyzico_badge_token" label="Korumalı Alışveriş token" :value="$s['iyzico_badge_token']" autocomplete="off" spellcheck="false" placeholder="2e548140-482d-…"
+                            hint="iyzico panelinde Korumalı Alışveriş → Korumalı Alışveriş Script bölümündeki koddaki token: '…' değeri. Girilince vitrinin her sayfasında iyzico Korumalı Alışveriş rozeti görünür; boş bırakırsanız gösterilmez." />
+                        <x-field name="iyzico_badge_position" label="Rozet konumu" :options="['bottomLeft' => 'Sol alt köşe', 'bottomRight' => 'Sağ alt köşe']" :value="$s['iyzico_badge_position']" />
+                    </div>
                     <div class="rounded-lg bg-surface p-3 text-sm">
                         <p class="font-medium">Bildirim adresi (webhook)</p>
                         <p class="mt-1 text-muted">iyzico üye işyeri panelinde <span class="font-medium">Ayarlar → Bildirim Ayarları</span> bölümüne girin. Müşteri ödeme sonrası sayfayı kapatsa da sipariş hemen sonuçlanır.</p>

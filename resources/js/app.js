@@ -4,6 +4,7 @@ import { enableUploadProgress, heroSlider } from './storefront.js';
 import { checkout } from './store-checkout.js';
 import { cookieConsent } from './store-consent.js';
 import { initAnalytics } from './store-analytics.js';
+import { initBuyerProtection } from './store-buyer-protection.js';
 import { initTheme, themeSwitch } from './theme.js';
 
 // Alpine'in CSP sürümü: ifadeler eval olmadan yorumlanır (politikada 'unsafe-eval' yok). Mantık içeren
@@ -18,6 +19,7 @@ initTheme();
 Alpine.start();
 enableUploadProgress();
 initAnalytics();
+initBuyerProtection();
 
 // İçerik güvenlik politikası satır içi olay işleyicilerini (onsubmit="…") engeller; onay ve otomatik gönderim
 // bu yüzden öznitelikle tanımlanır: data-confirm="Soru?" (form veya buton), data-autosubmit (seçim değişince gönder).

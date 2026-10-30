@@ -45,6 +45,8 @@ class PaymentSettings
             'iyzico_mode' => ['required', 'in:sandbox,live'],
             'iyzico_api_key' => ['nullable', 'string', 'max:200'],
             'iyzico_secret_key' => ['nullable', 'string', 'max:200'],
+            'iyzico_badge_token' => ['nullable', 'string', 'regex:/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i'],
+            'iyzico_badge_position' => ['nullable', 'in:bottomLeft,bottomRight'],
             'sms_driver' => ['required', 'in:log,netgsm'],
             'netgsm_usercode' => ['nullable', 'string', 'max:40'],
             'netgsm_password' => ['nullable', 'string', 'max:100'],
@@ -54,6 +56,7 @@ class PaymentSettings
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
             'return_days' => 'iade süresi', 'return_address' => 'iade adresi',
             'transfer_accounts' => 'banka hesapları', 'transfer_days' => 'ödeme süresi',
+            'iyzico_badge_token' => 'Korumalı Alışveriş token',
         ])->validate();
 
         $errors = [];
@@ -106,6 +109,8 @@ class PaymentSettings
             'transfer_accounts' => implode("\n", array_map(fn ($a) => "{$a['bank']} | {$a['holder']} | {$a['iban']}", $transfer['accounts'])) ?: null,
             'transfer_days' => (string) ($data['transfer_days'] ?? StoreSetting::get('transfer_days')),
             'iyzico_mode' => $data['iyzico_mode'],
+            'iyzico_badge_token' => strtolower(trim((string) ($data['iyzico_badge_token'] ?? ''))) ?: null,
+            'iyzico_badge_position' => $data['iyzico_badge_position'] ?? 'bottomLeft',
             'sms_driver' => $data['sms_driver'],
             'netgsm_usercode' => trim((string) ($data['netgsm_usercode'] ?? '')) ?: null,
             'netgsm_header' => trim((string) ($data['netgsm_header'] ?? '')) ?: null,

@@ -170,6 +170,15 @@ class StoreOrderAdminTest extends TestCase
             $this->assertStringNotContainsString('gizli-456', json_encode([$log->old_values, $log->new_values]));
             $this->assertStringNotContainsString('api-123', json_encode([$log->old_values, $log->new_values]));
         }
+
+        // iyzico Korumalı Alışveriş rozeti: token biçimi doğrulanır; girilince vitrinde betik yüklenir ve CSP izin verir.
+        $this->put(route('store_admin.payments.update'), array_merge($form, ['iyzico_badge_token' => '<script>']))->assertSessionHasErrors('iyzico_badge_token');
+        $this->get('http://magaza.localhost/')->assertDontSee('iyzico-buyer-protection');
+        $this->put(route('store_admin.payments.update'), array_merge($form, ['iyzico_badge_token' => '2E548140-482d-402d-9ae8-191cf19f807d', 'iyzico_badge_position' => 'bottomRight']))
+            ->assertSessionHasNoErrors();
+        $home = $this->get('http://magaza.localhost/')->assertOk()
+            ->assertSee('<meta name="iyzico-buyer-protection" content="2e548140-482d-402d-9ae8-191cf19f807d" data-position="bottomRight">', false);
+        $this->assertStringContainsString('https://*.iyzipay.com', $home->headers->get('Content-Security-Policy'));
     }
 
     public function test_legal_documents_are_versioned(): void

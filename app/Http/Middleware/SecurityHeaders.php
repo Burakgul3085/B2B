@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Store\StoreSetting;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Vite;
@@ -28,18 +29,20 @@ class SecurityHeaders
             // Kartla ödemede sipariş formu bize gönderilir, yanıt iyzico'nun ödeme sayfasına yönlendirir; tarayıcılar
             // form-action'ı yönlendirmeye de uyguladığı için iyzico alan adları vitrinde izinlidir.
             $store = $request->getHost() === config('store.domain');
+            // iyzico Korumalı Alışveriş rozeti (vitrin): betik static.iyzipay.com'dan, görsel / stil / istekler iyzico alan adlarından.
+            $badge = $store && filled(StoreSetting::get('iyzico_badge_token')) ? ' https://*.iyzipay.com https://*.iyzico.com' : '';
             // Bayi panelinde de "Kartla öde" formu iyzico'ya yönlenir.
             $dealerPay = $request->is('bayi/siparislerim/*');
 
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                "script-src 'self'".($analytics ? ' https://www.googletagmanager.com' : ''),
-                "style-src 'self' 'unsafe-inline'",
-                "img-src 'self' data: blob:".($analytics ? ' https://*.google-analytics.com https://*.googletagmanager.com' : ''),
+                "script-src 'self'".($analytics ? ' https://www.googletagmanager.com' : '').$badge,
+                "style-src 'self' 'unsafe-inline'".$badge,
+                "img-src 'self' data: blob:".($analytics ? ' https://*.google-analytics.com https://*.googletagmanager.com' : '').$badge,
                 "media-src 'self' blob:", // vitrin slayt formunda seçilen videonun önizlemesi (blob:)
-                "font-src 'self'",
-                'frame-src https://www.google.com', // iletişim sayfasındaki Google Haritalar
-                "connect-src 'self'".($analytics ? " {$gaHosts}" : ''),
+                "font-src 'self'".$badge,
+                'frame-src https://www.google.com'.$badge, // iletişim sayfasındaki Google Haritalar
+                "connect-src 'self'".($analytics ? " {$gaHosts}" : '').$badge,
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'".($store || $dealerPay ? ' https://*.iyzipay.com https://*.iyzico.com' : ''),
