@@ -16,7 +16,8 @@ use Throwable;
  * (UblBuilder), Uyumsoft imzalar, numaralandırır ve GİB'e iletir.
  *
  *   test: https://efatura-test.uyumsoft.com.tr/Services/Integration
- *   canlı: https://efatura.uyumsoft.com.tr/Services/Integration
+ *   canlı: https://edonusumapi.uyum.com.tr/Services/Integration (Uyumsoft Kurumsal; hesap edonusum.uyum.com.tr portalında.
+ *          Eski efatura.uyumsoft.com.tr adresiyle WSDL aynıdır ama bu hesap orada tanınmaz.)
  *
  * Kimlik doğrulaması WS-Security UsernameToken başlığıyla yapılır (Uyumsoft web servis kullanıcısı; portal kullanıcısından
  * ayrı olabilir). İstek yapısı servisin WSDL'ine göredir (?singleWsdl); test ortamında Uyumsoft'un ortak test hesabıyla
@@ -29,7 +30,7 @@ final class UyumsoftProvider implements EInvoiceProvider
 {
     public const TEST_URL = 'https://efatura-test.uyumsoft.com.tr/Services/Integration';
 
-    public const LIVE_URL = 'https://efatura.uyumsoft.com.tr/Services/Integration';
+    public const LIVE_URL = 'https://edonusumapi.uyum.com.tr/Services/Integration';
 
     private const NS = 'http://tempuri.org/';
 

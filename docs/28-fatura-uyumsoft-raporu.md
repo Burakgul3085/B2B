@@ -66,7 +66,7 @@ Not: Yerel Windows PHP'sinde CA sertifika paketi tanımlı değildir. Gerçek se
 
 ## Canlıya geçiş
 
-1. Uyumsoft'tan **web servis (Integration) kullanıcısı** istenir. Portal kullanıcısıyla aynı olmayabilir. Canlı servis: `https://efatura.uyumsoft.com.tr/Services/Integration`. IP kısıtlaması varsa sunucu IP'si (187.126.9.129) tanımlatılır.
+1. Bağlantıda **web servis kullanıcısı** kullanılır, portal kullanıcısı değil: Kurumsal Portal (edonusum.uyum.com.tr) → Genel İşlemler & Ayarlar → Tanımlama İşlemleri → Kullanıcı Tanımları'nda `…_WebServis` adlı, "Integration & Ledger & Despatch Service Operator" rollü kullanıcı. Şifresi bilinmiyorsa aynı ekranda yeni şifre verilir. Canlı servis: `https://edonusumapi.uyum.com.tr/Services/Integration` (eski `efatura.uyumsoft.com.tr` adresi bu hesabı tanımaz; ikisi de yanlış bilgide "Bu sisteme erişmek için gerekli yetkiniz yok" döner). IP kısıtı Firma Genel Bilgileri → Yetkilendirme ve Güvenlik'tedir; liste boşsa kısıt yoktur.
 2. Fatura Ayarları:
    - Sağlayıcı = Uyumsoft, Ortam = Canlı.
    - Web servis kullanıcı adı ve şifresi girilir.
