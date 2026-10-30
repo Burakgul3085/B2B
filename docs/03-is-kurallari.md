@@ -230,7 +230,7 @@ Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırınd
 | C1 — Bakiye kaynağı hareketlerdir | `balance = SUM(debit) − SUM(credit)` (açılış dahil). `current_accounts.balance` yalnızca önbellektir ve hareketle **aynı transaction'da**, hesap satırı `FOR UPDATE` kilitliyken güncellenir. Günlük kontrol görevi farkı raporlar. |
 | C2 — Hareket silinmez | Hata ters kayıtla düzeltilir (`reverses_movement_id` UNIQUE → bir hareket en fazla bir kez ters çevrilir). |
 | C3 — Sipariş borcu tek | `source_key='order:{id}:debit'` UNIQUE. Ne zaman oluşacağı `ledger_post_on` ayarına bağlı (K5). |
-| C4 — Tahsilat | Toptancı manuel girer: tarih, tutar (> 0), yöntem, isteğe bağlı sipariş, açıklama. Tek transaction: `collections` + `collection` alacak hareketi + bakiye. Sistem ödeme almaz, bankayı kontrol etmez. |
+| C4 — Tahsilat | Toptancı manuel girer: tarih, tutar (> 0), yöntem, isteğe bağlı sipariş, açıklama. Tek transaction: `collections` + `collection` alacak hareketi + bakiye. Ödeme sistemi açıksa bayinin kart ödemesi (iyzico) ve toptancının siparişte kaydettiği havale / nakit / POS ödemesi aynı yolla otomatik tahsilat yazar (docs/29-b2b-odeme-raporu.md). Sistem bankayı kontrol etmez. |
 | C5 — Tahsilat iptali | Silinmez; `cancelled_at` + gerekçe + `reversal` hareketi. |
 | C6 — Açılış bakiyesi | İlişki başına bir kez (`source_key='opening:{account_id}'`); düzeltmesi `adjustment_*` ile. |
 | C7 — Manuel düzeltme | Açıklama zorunlu, `audit_logs`'a yazılır. |

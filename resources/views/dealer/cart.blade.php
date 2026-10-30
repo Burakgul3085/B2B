@@ -57,7 +57,10 @@
                             <div class="flex justify-between text-success"><dt>İndirim</dt><dd class="tabular-nums">−{{ Money::format($summary['totals']['discount_total']) }}</dd></div>
                         @endif
                         <div class="flex justify-between"><dt class="text-muted">KDV</dt><dd class="tabular-nums">{{ Money::format($summary['totals']['vat_total']) }}</dd></div>
-                        <div class="flex justify-between border-t border-line pt-2 text-base font-semibold"><dt>Genel toplam</dt><dd class="tabular-nums">{{ Money::format($summary['totals']['grand_total']) }}</dd></div>
+                        @if (bccomp($deliveryFee, '0', 2) > 0)
+                            <div class="flex justify-between"><dt class="text-muted">Teslimat ücreti</dt><dd class="tabular-nums">{{ Money::format($deliveryFee) }}</dd></div>
+                        @endif
+                        <div class="flex justify-between border-t border-line pt-2 text-base font-semibold"><dt>Genel toplam</dt><dd class="tabular-nums">{{ Money::format(bcadd((string) $summary['totals']['grand_total'], $deliveryFee, 2)) }}</dd></div>
                     </dl>
                 </x-card>
 
@@ -78,6 +81,25 @@
                                     </label>
                                 @endforeach
                             </fieldset>
+                            @if ($paymentMethods)
+                                @php
+                                    $methodHints = [
+                                        'card' => 'Onaydan sonra onaylanan tutarı kartla ödersiniz (iyzico güvenli ödeme).',
+                                        'transfer' => 'Onaydan sonra hesap bilgilerimizi görür, havale / EFT ile ödersiniz.',
+                                        'open_account' => 'Ödeme yapmadan; tutar cari hesabınıza borç yazılır.',
+                                        'on_delivery' => 'Teslimatta nakit veya kartla (POS) ödersiniz.',
+                                    ];
+                                @endphp
+                                <fieldset class="space-y-2">
+                                    <legend class="mb-1.5 text-sm font-medium">Ödeme yöntemi</legend>
+                                    @foreach ($paymentMethods as $key => $label)
+                                        <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 text-sm has-checked:border-primary has-checked:bg-primary-soft/40">
+                                            <input type="radio" name="payment_method" value="{{ $key }}" @checked(old('payment_method', array_key_first($paymentMethods)) === $key) class="mt-0.5">
+                                            <span><b>{{ $label }}</b><span class="block text-muted">{{ $methodHints[$key] }}</span></span>
+                                        </label>
+                                    @endforeach
+                                </fieldset>
+                            @endif
                             <x-field name="note" label="Sipariş notu" textarea placeholder="Toptancıya iletmek istedikleriniz" />
                             @if ($summary['has_issues'])
                                 <p class="rounded-lg bg-danger-soft px-3 py-2 text-sm text-red-900">İşaretli ürünleri düzeltmeden sipariş gönderilemez.</p>
@@ -85,7 +107,7 @@
                             <x-button class="w-full" :disabled="$summary['has_issues']" x-bind:disabled="sending || {{ $summary['has_issues'] ? 'true' : 'false' }}">
                                 <span x-text="sending ? 'Gönderiliyor…' : 'Siparişi gönder'">Siparişi gönder</span>
                             </x-button>
-                            <p class="text-xs text-muted">Siparişiniz toptancı onayından sonra kesinleşir; stok o anda kontrol edilir.</p>
+                            <p class="text-xs text-muted">Siparişiniz toptancı onayından sonra kesinleşir; stok o anda kontrol edilir.@if ($paymentMethods) Ödeme onaylanan tutar üzerinden alınır; miktar değişirse size bildirilir.@endif</p>
                         </form>
                     @endif
                 </x-card>

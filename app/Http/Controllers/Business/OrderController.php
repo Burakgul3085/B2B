@@ -28,7 +28,7 @@ class OrderController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->validate([
-            'status' => ['nullable', Rule::in([...array_keys(Order::STATUSES), 'pending'])],
+            'status' => ['nullable', Rule::in([...array_keys(Order::STATUSES), 'pending', 'awaiting_payment'])],
             'dealer' => ['nullable', 'integer'],
             'q' => ['nullable', 'string', 'max:40'],
             'from' => ['nullable', 'date'],
@@ -38,7 +38,8 @@ class OrderController extends Controller
 
         $orders = Order::query()->with('relationship.dealer:id,legal_name')->withCount('items')
             ->when($status === 'pending', fn ($q) => $q->whereIn('status', [...Order::PENDING, 'cancel_requested']))
-            ->when($status !== 'pending', fn ($q) => $q->where('status', $status))
+            ->when($status === 'awaiting_payment', fn ($q) => $q->where('payment_status', 'awaiting')->whereIn('status', Order::ACTIVE_FULFILMENT))
+            ->when(! in_array($status, ['pending', 'awaiting_payment'], true), fn ($q) => $q->where('status', $status))
             ->when($filters['dealer'] ?? null, fn ($q, $d) => $q->where('dealer_relationship_id', $d))
             ->when($filters['q'] ?? null, fn ($q, $t) => $q->where('order_no', 'like', '%'.addcslashes($t, '%_\\').'%'))
             ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', LocalTime::dayRange($d, $d)[0]))
@@ -52,13 +53,14 @@ class OrderController extends Controller
             'status' => $status,
             'filters' => $filters,
             'counts' => Order::selectRaw('status, count(*) c')->groupBy('status')->pluck('c', 'status'),
+            'awaitingPayment' => Order::where('payment_status', 'awaiting')->whereIn('status', Order::ACTIVE_FULFILMENT)->count(),
             'dealers' => DealerRelationship::with('dealer:id,legal_name')->orderBy('dealer_code')->get()->mapWithKeys(fn ($r) => [$r->id => $r->dealer_code.' · '.$r->dealer->legal_name]),
         ]);
     }
 
     public function show(Order $order): View
     {
-        $order->load(['items.product.unit', 'history', 'relationship.dealer', 'warehouse']);
+        $order->load(['items.product.unit', 'history', 'relationship.dealer', 'warehouse', 'payments']);
         $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
 
         // Onay ekranında her kalem için seçili depodaki güncel stok (bilgi amaçlı; kesin kontrol onayda kilitle yapılır).
@@ -106,9 +108,11 @@ class OrderController extends Controller
             return back()->withErrors(['order' => $e->getMessage()])->withInput();
         }
 
-        $this->notifier->orderStatusChanged($order->fresh(['relationship']), $order->is_partial ? 'Bazı kalemler stok nedeniyle kısmi karşılandı.' : null);
+        $order = $order->fresh(['relationship', 'items']);
+        $this->notifier->orderApproved($order);
 
-        return back()->with('status', $order->is_partial ? 'Sipariş kısmi olarak onaylandı; stok düşüldü.' : 'Sipariş onaylandı; stok düşüldü.');
+        return back()->with('status', ($order->is_partial ? 'Sipariş kısmi olarak onaylandı; stok düşüldü.' : 'Sipariş onaylandı; stok düşüldü.')
+            .($order->awaitingPayment() ? ' Bayiye onaylanan tutarı ödemesi için e-posta gönderildi.' : ''));
     }
 
     public function reject(Request $request, Order $order): RedirectResponse

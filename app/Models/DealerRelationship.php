@@ -17,12 +17,12 @@ class DealerRelationship extends Model
 
     protected $fillable = [
         'dealer_id', 'dealer_code', 'dealer_group_id', 'status', 'payment_term_days',
-        'can_edit_addresses', 'approved_at', 'approved_by',
+        'can_edit_addresses', 'allow_open_account', 'allow_on_delivery', 'approved_at', 'approved_by',
     ];
 
     protected function casts(): array
     {
-        return ['can_edit_addresses' => 'boolean', 'approved_at' => 'datetime'];
+        return ['can_edit_addresses' => 'boolean', 'allow_open_account' => 'boolean', 'allow_on_delivery' => 'boolean', 'approved_at' => 'datetime'];
     }
 
     public function dealer(): BelongsTo

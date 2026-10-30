@@ -95,6 +95,20 @@ final class EmailTemplates
             'intro' => "{siparis_no} numaralı siparişinizin durumu güncellendi.\n\nYeni durum: {durum}\n{neden}",
             'note' => 'Siparişinizin tüm aşamalarını, kalemlerini ve teslim planını Siparişlerim ekranından takip edebilirsiniz.',
         ],
+        'order_payment_due' => [
+            'label' => 'Sipariş onaylandı, ödeme bekleniyor (bayiye)',
+            'eyebrow' => 'Ödeme bekleniyor',
+            'subject' => 'Siparişiniz {siparis_no} onaylandı — ödenecek tutar {tutar}',
+            'intro' => "{siparis_no} numaralı siparişiniz onaylandı.\n\nÖdenecek tutar: {tutar}\n{degisiklik}\nSiparişiniz ödemeniz alındıktan sonra hazırlanır. Aşağıdaki düğmeyle siparişinize gidip kartla ödeyebilir veya havale bilgilerini görebilirsiniz.",
+            'note' => 'Yalnızca onaylanan tutarı ödersiniz. Değişen kalemleri sipariş ekranında istenen ve onaylanan miktarlarıyla görebilirsiniz.',
+        ],
+        'order_paid' => [
+            'label' => 'Sipariş ödemesi alındı (size)',
+            'eyebrow' => 'Ödeme alındı',
+            'subject' => 'Ödeme alındı: {siparis_no} — {bayi}',
+            'intro' => "{bayi}, {siparis_no} numaralı siparişin ödemesini yaptı.\n\nTutar: {tutar}\nYöntem: {yontem}\n\nÖdeme bayinin carisine tahsilat olarak işlendi. Siparişi hazırlamaya başlayabilirsiniz.",
+            'note' => 'Kart ödemeleri iyzico hesabınıza, havaleler banka hesabınıza geçer.',
+        ],
         'cancel_requested' => [
             'label' => 'İptal talebi (size)',
             'eyebrow' => 'İptal talebi',

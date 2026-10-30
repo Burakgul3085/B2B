@@ -145,7 +145,8 @@ class RouteAccessSweepTest extends TestCase
         $business = $this->makeBusiness();
         $world = $this->buildWorld($business);
         $ids = $world['ids'] + ['business' => $business->id];
-        $public = ['login', 'login.store', 'login.code', 'login.code.verify', 'login.code.resend', 'password.request', 'password.email', 'password.reset', 'password.update'];
+        $public = ['login', 'login.store', 'login.code', 'login.code.verify', 'login.code.resend', 'password.request', 'password.email', 'password.reset', 'password.update',
+            'payment.callback']; // iyzico geri dönüşü: oturumsuz gelir, sonucu iyzico'dan sorgular (DealerPaymentTest)
 
         $cases = [
             'platform.' => ['/platform/login', null],

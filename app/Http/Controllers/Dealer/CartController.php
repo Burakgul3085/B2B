@@ -6,6 +6,7 @@ use App\Domain\Inventory\Quantity;
 use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
+use App\Domain\Payments\PaymentSettings;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CartItem;
@@ -21,13 +22,16 @@ class CartController extends Controller
 
     public function __construct(private CartService $carts, private OrderService $orders) {}
 
-    public function index(): View
+    public function index(PaymentSettings $payments): View
     {
         $relationship = $this->relationship();
         $settings = $this->settings();
+        $summary = $this->carts->summary($relationship, (int) $settings->default_warehouse_id);
 
         return view('dealer.cart', [
-            'summary' => $this->carts->summary($relationship, (int) $settings->default_warehouse_id),
+            'summary' => $summary,
+            'paymentMethods' => $payments->methodsFor($relationship),
+            'deliveryFee' => $payments->deliveryFee((string) $summary['totals']['grand_total']),
             'addresses' => $relationship->addresses,
             'settings' => $settings,
             'submitToken' => (string) Str::uuid(), // çift gönderim koruması
@@ -80,10 +84,11 @@ class CartController extends Controller
             'address_id' => ['required', 'integer'],
             'note' => ['nullable', 'string', 'max:1000'],
             'submit_token' => ['required', 'uuid'],
+            'payment_method' => ['nullable', 'string', 'max:20'],
         ], ['address_id.required' => 'Sevk adresi seçin.'], ['note' => 'sipariş notu']);
 
         try {
-            $order = $this->orders->submit($this->relationship(), (int) $data['address_id'], $data['note'] ?? null, $data['submit_token']);
+            $order = $this->orders->submit($this->relationship(), (int) $data['address_id'], $data['note'] ?? null, $data['submit_token'], $data['payment_method'] ?? null);
         } catch (DomainException $e) {
             return back()->withErrors(['cart' => $e->getMessage()])->withInput();
         }
@@ -93,7 +98,8 @@ class CartController extends Controller
         }
 
         return redirect()->route('dealer.orders.show', $order)
-            ->with('status', "Siparişiniz {$order->order_no} numarasıyla toptancıya iletildi. Stok, sipariş onayında kesinleşir.");
+            ->with('status', "Siparişiniz {$order->order_no} numarasıyla toptancıya iletildi. Stok, sipariş onayında kesinleşir."
+                .(in_array($order->payment_method, ['card', 'transfer'], true) ? ' Onaylandığında onaylanan tutarı ödemeniz için e-posta alacaksınız.' : ''));
     }
 
     private function assertOwn(CartItem $item): void

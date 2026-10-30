@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Payments\OrderPaymentService;
 use App\Domain\Platform\BackupService;
 use App\Domain\Store\Inventory\StockAlerts;
 use App\Domain\Store\Orders\OrderService;
@@ -89,6 +90,13 @@ Artisan::command('store:expire-transfers', function (OrderService $orders) {
 Artisan::command('store:expire-pending-payments', function (PaymentService $payments) {
     $this->info($payments->expireStale().' bekleyen ödeme işlendi.');
 })->purpose('Mağaza: 30 dakikayı geçen ödeme bekleyen siparişleri sonuçlandırır');
+
+// B2B: bayinin geri dönüşü gelmeyen kart ödemelerini iyzico'dan sorgulayıp sonuçlandırır (sipariş ödeme beklemeye devam eder).
+Schedule::command('b2b:expire-pending-payments')->everyFiveMinutes()->withoutOverlapping();
+
+Artisan::command('b2b:expire-pending-payments', function (OrderPaymentService $payments) {
+    $this->info($payments->expireStale().' bekleyen bayi kart ödemesi işlendi.');
+})->purpose('B2B: 30 dakikayı geçen bayi kart ödemelerini sonuçlandırır');
 
 // Mağaza: "stoğa gelince haber ver" isteklerinden stoğa girenlere e-posta gönderir.
 Schedule::command('store:stock-alerts')->everyTenMinutes()->withoutOverlapping();

@@ -8,7 +8,10 @@ use App\Domain\Inventory\InsufficientStock;
 use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
+use App\Domain\Payments\OrderPaymentService;
+use App\Domain\Payments\PaymentSettings;
 use App\Domain\Support\LocalTime;
+use App\Domain\Support\Money;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\BusinessCounter;
 use App\Models\BusinessSetting;
@@ -29,7 +32,10 @@ use Illuminate\Support\Facades\DB;
  *  - Onay ya tamamen olur (durum + stok + cari) ya da hiç olmaz.
  *  - Aynı sipariş iki kez onaylanamaz (satır kilidi + durum + stock_applied_at + source_key UNIQUE).
  *  - Eşzamanlı onaylarda fazla satış olmaz (stok satırı kilidi, StockService::applyMany).
- *  - İptal, stok ve cariye en fazla bir kez ters kayıt yazar.
+ *  - İptal, stok ve cariye en fazla bir kez ters kayıt yazar; kartla ödenmiş siparişte iade alınamazsa iptal olmaz.
+ *
+ * Ödeme (ödeme sistemi açıksa): bayi yöntemi sepette seçer, onaydan sonra onaylanan tutarı öder. Kart / havale
+ * siparişi ödeme gelmeden hazırlanmaz; ödeme bekleyen sipariş tamamlanamaz.
  */
 class OrderService
 {
@@ -40,19 +46,21 @@ class OrderService
         private LedgerService $ledger,
         private AuditLogger $audit,
         private CurrentActor $actor,
+        private PaymentSettings $paymentSettings,
+        private OrderPaymentService $payments,
     ) {}
 
     /**
      * Bayinin sepetinden sipariş oluşturur. Stok kontrolü bilgilendiricidir (rezervasyon yok);
-     * fazla satışı engelleyen kontrol onaydadır.
+     * fazla satışı engelleyen kontrol onaydadır. Ödeme sistemi açıksa bayinin izinli yöntemlerinden biri seçilmelidir.
      */
-    public function submit(DealerRelationship $relationship, int $addressId, ?string $note, string $submitToken): Order
+    public function submit(DealerRelationship $relationship, int $addressId, ?string $note, string $submitToken, ?string $paymentMethod = null): Order
     {
         if ($existing = Order::where('submit_token', $submitToken)->first()) {
             return $existing; // çift tıklama / ağ tekrarı: aynı sipariş döner
         }
 
-        return DB::transaction(function () use ($relationship, $addressId, $note, $submitToken) {
+        return DB::transaction(function () use ($relationship, $addressId, $note, $submitToken, $paymentMethod) {
             // İlişki satırı kilidi aynı bayinin eşzamanlı gönderimlerini sıraya sokar; token kilitten sonra yeniden kontrol edilir.
             $relationship = DealerRelationship::with(['business', 'dealer.user'])->whereKey($relationship->id)->lockForUpdate()->firstOrFail();
             if ($existing = Order::where('submit_token', $submitToken)->first()) {
@@ -60,6 +68,11 @@ class OrderService
             }
             if (! $relationship->isActive() || ! $relationship->business->isActive() || $relationship->dealer->user?->status !== 'active') {
                 throw new DomainException('Hesabınız sipariş vermeye kapalı. Lütfen toptancınızla iletişime geçin.');
+            }
+
+            $methods = $this->paymentSettings->methodsFor($relationship);
+            if ($methods !== [] && ! isset($methods[$paymentMethod])) {
+                throw new DomainException('Ödeme yöntemi seçin.');
             }
 
             $address = DealerAddress::where('dealer_relationship_id', $relationship->id)->whereNull('archived_at')->find($addressId)
@@ -77,13 +90,15 @@ class OrderService
                 throw new DomainException('Sepetinizde düzeltilmesi gereken ürünler var.');
             }
 
+            $totals = $this->withDeliveryFee($summary['totals']);
             $order = Order::create([
                 'order_no' => $this->nextOrderNo(),
                 'dealer_relationship_id' => $relationship->id,
                 'status' => 'submitted',
                 'submit_token' => $submitToken,
                 'warehouse_id' => $warehouseId,
-                ...$summary['totals'],
+                ...$totals,
+                'payment_method' => $methods === [] ? null : $paymentMethod,
                 'dealer_note' => $note,
                 'ship_address_id' => $address->id,
                 'ship_title' => $address->title,
@@ -133,6 +148,9 @@ class OrderService
 
     public function markPreparing(Order $order): void
     {
+        if ($order->awaitingPayment() && in_array($order->payment_method, ['card', 'transfer'], true)) {
+            throw new DomainException('Bayinin ödemesi alınmadan sipariş hazırlanamaz. Havale geldiyse önce "Ödeme alındı" ile kaydedin.');
+        }
         $this->simpleTransition($order, 'preparing');
     }
 
@@ -189,8 +207,12 @@ class OrderService
             }
 
             $from = $order->status;
-            $order->fill(LineCalculator::totals($items->map->only(['line_subtotal', 'line_discount', 'line_net', 'line_vat', 'line_total'])));
+            $requested = (string) $order->grand_total;
+            $order->fill($this->withDeliveryFee(LineCalculator::totals($items->map->only(['line_subtotal', 'line_discount', 'line_net', 'line_vat', 'line_total']))));
             $order->fill([
+                'requested_total' => $requested,
+                // Onaylanan tutar ödenir: kart, havale ve teslimde ödemede ödeme beklenir; açık hesapta beklenmez.
+                'payment_status' => in_array($order->payment_method, ['card', 'transfer', 'on_delivery'], true) ? 'awaiting' : null,
                 'status' => 'approved',
                 'is_partial' => $isPartial,
                 'warehouse_id' => $warehouse->id,
@@ -237,6 +259,9 @@ class OrderService
         return DB::transaction(function () use ($order) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             OrderStateMachine::assert($order->status, 'completed');
+            if ($order->awaitingPayment()) {
+                throw new DomainException('Ödemesi alınmamış sipariş tamamlanamaz. Ödemeyi aldıysanız önce "Ödeme alındı" ile kaydedin.');
+            }
 
             if ($this->ledgerPostOn() === 'completion' && $order->ledger_applied_at === null) {
                 $this->ledger->postOrderDebit($order);
@@ -323,9 +348,12 @@ class OrderService
             $order->ledger_reversed_at = now();
         }
 
+        // Kart ödemesi iyzico'dan iade edilir (alınamazsa istisna: iptal geri alınır); havale / nakit ödeme carisinde alacak kalır.
+        $kept = $this->payments->settleCancellation($order, $reason);
+
         $from = $order->status;
         $order->fill(['status' => 'cancelled', 'cancel_reason' => $reason, 'cancelled_at' => now(), 'cancel_requested_from' => null])->save();
-        $this->history($order, $from, 'cancelled', $reason);
+        $this->history($order, $from, 'cancelled', $reason.($kept ? ' · Alınan '.Money::format($kept).' ödeme bayinin carisinde alacak olarak duruyor.' : ''));
         $this->audit->log('order.cancelled', $order, ['status' => $from], [
             'reason' => $reason, 'stock_reversed' => $order->stock_reversed_at !== null, 'ledger_reversed' => $order->ledger_reversed_at !== null,
         ]);
@@ -352,6 +380,14 @@ class OrderService
             'order_id' => $order->id, 'from_status' => $from, 'to_status' => $to,
             'actor_type' => $actor['type'], 'actor_id' => $actor['id'], 'note' => $note,
         ]);
+    }
+
+    /** Teslimat ücreti (ayarlıysa) KDV dahil genel toplama eklenir. */
+    private function withDeliveryFee(array $totals): array
+    {
+        $fee = $this->paymentSettings->deliveryFee((string) $totals['grand_total']);
+
+        return ['delivery_fee' => $fee, 'grand_total' => bcadd((string) $totals['grand_total'], $fee, 2)] + $totals;
     }
 
     private function ledgerPostOn(): string

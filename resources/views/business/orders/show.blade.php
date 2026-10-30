@@ -1,4 +1,4 @@
-@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; @endphp
+@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; use App\Models\Order; use App\Models\OrderPayment; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="$order->order_no">
     <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->relationship->dealer->legal_name.' · '.$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i')">
         <x-slot:breadcrumb><a href="{{ route('business.orders.index') }}" class="hover:underline">Siparişler</a></x-slot:breadcrumb>
@@ -122,6 +122,54 @@
         </div>
 
         <div class="space-y-6">
+            @if ($order->payment_method || $order->payments->isNotEmpty())
+                <x-card title="Ödeme">
+                    <dl class="space-y-2 text-sm">
+                        <div class="flex justify-between gap-3"><dt class="text-muted">Yöntem</dt><dd class="font-medium">{{ $order->paymentMethodLabel() }}</dd></div>
+                        <div class="flex justify-between gap-3"><dt class="text-muted">Durum</dt><dd>
+                            @if ($order->payment_status)
+                                <x-badge :tone="$order->payment_status === 'paid' ? 'success' : ($order->payment_status === 'awaiting' ? 'warning' : 'neutral')">{{ Order::PAYMENT_STATUSES[$order->payment_status] }}</x-badge>
+                            @else
+                                <span class="text-muted">{{ $order->stock_applied_at ? 'Ödeme beklenmiyor (cari)' : 'Onaydan sonra belirlenir' }}</span>
+                            @endif
+                        </dd></div>
+                        @if (bccomp((string) $order->delivery_fee, '0', 2) > 0)
+                            <div class="flex justify-between gap-3"><dt class="text-muted">Teslimat ücreti</dt><dd class="tabular-nums">{{ Money::format($order->delivery_fee) }}</dd></div>
+                        @endif
+                        @if ($order->paid_at)
+                            <div class="flex justify-between gap-3"><dt class="text-muted">Ödeme zamanı</dt><dd class="tabular-nums">{{ $order->paid_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</dd></div>
+                        @endif
+                    </dl>
+                    @if ($order->payments->isNotEmpty())
+                        <ul class="mt-4 space-y-1.5 border-t border-line pt-3 text-xs">
+                            @foreach ($order->payments as $p)
+                                <li class="flex justify-between gap-3">
+                                    <span>{{ $p->label() }} · {{ $p->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}
+                                        @if ($p->error_message)<span class="block text-danger">{{ $p->error_message }}</span>@endif</span>
+                                    <span class="shrink-0 tabular-nums">{{ Money::format($p->amount) }} · {{ ['initialized' => 'Başlatıldı', 'succeeded' => 'Başarılı', 'failed' => 'Başarısız', 'refunded' => 'İade edildi'][$p->status] ?? $p->status }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    @if ($order->awaitingPayment() && in_array($order->status, Order::ACTIVE_FULFILMENT, true))
+                        <p class="mt-4 rounded-lg bg-warning-soft px-3 py-2 text-sm text-amber-900">
+                            Bayinin {{ Money::format($order->grand_total) }} ödemesi bekleniyor.
+                            {{ in_array($order->payment_method, ['card', 'transfer'], true) ? 'Ödeme alınmadan sipariş hazırlanamaz.' : 'Teslimde ödemeyi alınca kaydedin; ödeme kaydedilmeden sipariş tamamlanamaz.' }}
+                        </p>
+                        <details class="mt-3" @if ($errors->has('paid_on') || $errors->has('method')) open @endif>
+                            <summary class="cursor-pointer text-sm font-medium text-primary">Ödeme alındı (havale / nakit / POS)</summary>
+                            <form method="POST" action="{{ route('business.orders.payments.store', $order) }}" class="mt-3 space-y-3" data-confirm="{{ Money::format($order->grand_total) }} ödeme alındı olarak kaydedilsin mi? Bayinin carisine tahsilat yazılacak.">
+                                @csrf
+                                <x-field name="method" label="Yöntem" :options="OrderPayment::MANUAL_METHODS" :value="old('method', $order->payment_method === 'transfer' ? 'transfer' : 'cash')" />
+                                <x-field name="paid_on" label="Ödeme tarihi" type="date" :value="old('paid_on', now('Europe/Istanbul')->toDateString())" required />
+                                <x-field name="note" label="Not" placeholder="ör. dekont no" />
+                                <x-button size="sm" icon="check">Ödemeyi kaydet</x-button>
+                            </form>
+                        </details>
+                    @endif
+                </x-card>
+            @endif
+
             <x-card title="Sevk adresi" description="Sipariş anındaki adres.">
                 <div class="space-y-1 text-sm">@foreach ($order->shippingLines() as $line)<p>{{ $line }}</p>@endforeach</div>
                 @if ($order->stock_applied_at && ($order->delivery_planned_on || $order->delivery_note || $order->delivery_recipient))
@@ -138,10 +186,10 @@
             @if ($can('preparing') || $can('completed') || $can('cancelled') || $can('rejected'))
                 <x-card title="İşlemler">
                     <div class="flex flex-wrap gap-2">
-                        @if ($can('preparing') && $order->status === 'approved')
+                        @if ($can('preparing') && $order->status === 'approved' && ! ($order->awaitingPayment() && in_array($order->payment_method, ['card', 'transfer'], true)))
                             <form method="POST" action="{{ route('business.orders.prepare', $order) }}">@csrf<x-button variant="secondary" size="sm">Hazırlanıyor</x-button></form>
                         @endif
-                        @if ($can('completed') && $order->status !== 'cancel_requested')
+                        @if ($can('completed') && $order->status !== 'cancel_requested' && ! $order->awaitingPayment())
                             <form method="POST" action="{{ route('business.orders.complete', $order) }}" data-confirm="Sipariş tamamlandı olarak kapatılsın mı?">@csrf<x-button size="sm" icon="check">Tamamlandı</x-button></form>
                         @endif
                     </div>
@@ -158,7 +206,7 @@
                     @if ($can('cancelled') && ! $canApprove && $order->status !== 'cancel_requested')
                         <details class="mt-4">
                             <summary class="cursor-pointer text-sm font-medium text-danger">Siparişi iptal et</summary>
-                            <form method="POST" action="{{ route('business.orders.cancel', $order) }}" class="mt-3 space-y-3" data-confirm="Sipariş iptal edilsin mi? Düşülen stok ve cari borç ters kayıtla geri alınacak.">
+                            <form method="POST" action="{{ route('business.orders.cancel', $order) }}" class="mt-3 space-y-3" data-confirm="Sipariş iptal edilsin mi? Düşülen stok ve cari borç ters kayıtla geri alınacak.{{ $order->payment_status === 'paid' && $order->payments->contains('driver', 'iyzico') ? ' Kart ödemesi iyzico üzerinden bayiye iade edilecek.' : '' }}">
                                 @csrf
                                 <x-field name="reason" label="İptal nedeni" textarea required />
                                 <x-button variant="danger" size="sm">İptal et</x-button>

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Inventory\Quantity;
 use App\Domain\Mail\BusinessMailer;
 use App\Domain\Mail\EmailSettingService;
 use App\Domain\Support\Money;
@@ -105,6 +106,56 @@ class Notifier
         }
         $this->mailer->queue('order_status', $this->dealerEmail($order->relationship),
             ['siparis_no' => $order->order_no, 'durum' => $status, 'neden' => $reason], ['url' => $url, 'label' => 'Siparişi görüntüle'], $details, 'order', $order->id);
+    }
+
+    /**
+     * Onay bildirimi: ödeme bekleniyorsa "onaylanan tutarı öde" e-postası; değişen kalemler (istenen → onaylanan)
+     * e-postada ayrıca listelenir.
+     */
+    public function orderApproved(Order $order): void
+    {
+        $order->loadMissing('items');
+        $changes = $order->approvalChanges();
+        if (! $order->awaitingPayment()) {
+            $this->orderStatusChanged($order, $changes ? 'Bazı kalemler istediğinizden farklı miktarda onaylandı; tutar onaylanan miktarlara göre hesaplandı.' : null);
+
+            return;
+        }
+
+        $url = route('dealer.orders.show', $order);
+        $total = Money::format($order->grand_total);
+        $change = '';
+        if ($changes) {
+            $change = "\nDİKKAT: Siparişinizde değişiklik yapıldı. Bazı kalemler istediğinizden farklı miktarda onaylandı";
+            $change .= $order->requested_total !== null ? ' (sipariş tutarınız '.Money::format($order->requested_total).' idi).' : '.';
+            $change .= " Lütfen yalnızca onaylanan tutarı ({$total}) ödeyin.\n";
+        }
+        $this->toDealer($order->relationship, 'order', "Sipariş {$order->order_no} onaylandı: {$total} ödeyin",
+            $changes ? 'Bazı kalemler farklı miktarda onaylandı. Onaylanan tutarı ödeyin.' : 'Ödemeniz alındıktan sonra siparişiniz hazırlanır.', $url);
+
+        $details = ['Ödenecek tutar' => $total, 'Ödeme yöntemi' => $order->paymentMethodLabel()];
+        if ($changes && $order->requested_total !== null) {
+            $details['Sipariş ettiğiniz tutar'] = Money::format($order->requested_total);
+        }
+        foreach ($changes as $c) {
+            $details['Değişti: '.Str::limit($c['name'], 60)] = Quantity::format($c['requested'])." {$c['unit']} istendi → ".Quantity::format($c['approved'])." {$c['unit']} onaylandı";
+        }
+        if ($order->delivery_planned_on) {
+            $details['Planlanan teslim'] = $order->delivery_planned_on->format('d.m.Y');
+        }
+        $this->mailer->queue('order_payment_due', $this->dealerEmail($order->relationship),
+            ['siparis_no' => $order->order_no, 'tutar' => $total, 'degisiklik' => $change], ['url' => $url, 'label' => 'Siparişi görüntüle ve öde'], $details, 'order', $order->id);
+    }
+
+    /** Ödeme alındı: toptancıya bildirim + e-posta, bayiye uygulama içi bildirim. */
+    public function orderPaid(Order $order, string $method): void
+    {
+        $dealer = $order->relationship->dealer->legal_name;
+        $total = Money::format($order->grand_total);
+        $this->toBusiness('order', "Ödeme alındı: {$order->order_no}", "{$dealer} · {$total} · {$method}", route('business.orders.show', $order));
+        $this->mailBusiness('order_paid', ['bayi' => $dealer, 'siparis_no' => $order->order_no, 'tutar' => $total, 'yontem' => $method],
+            ['url' => route('business.orders.show', $order), 'label' => 'Siparişi görüntüle'], ['Tutar' => $total, 'Yöntem' => $method], $order);
+        $this->toDealer($order->relationship, 'order', "Ödemeniz alındı: {$order->order_no}", "{$total} · {$method}. Siparişiniz hazırlanacak.", route('dealer.orders.show', $order));
     }
 
     public function cancelRequested(Order $order): void

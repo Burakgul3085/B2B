@@ -23,6 +23,8 @@
 
     @error('order')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
+    @include('dealer.orders._payment')
+
     {{-- Sipariş nerede? --}}
     <section class="mb-6 rounded-2xl border border-line bg-white px-5 py-6 shadow-xs sm:px-8">
         @include('dealer.orders._progress', ['order' => $order])
@@ -33,7 +35,7 @@
         <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
             <p class="text-sm text-muted">Sipariş tutarı</p>
             <p @class(['mt-1 text-2xl font-bold tabular-nums', 'text-ink' => ! $closed, 'text-slate-400 line-through' => $closed])>{{ Money::format($order->grand_total) }}</p>
-            <p class="text-xs text-muted">KDV dahil</p>
+            <p class="text-xs text-muted">KDV dahil{{ bccomp((string) $order->delivery_fee, '0', 2) > 0 ? ' · teslimat '.Money::format($order->delivery_fee) : '' }}@if ($order->payment_method) · {{ $order->paymentMethodLabel() }}@endif</p>
         </div>
         <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">
             <p class="text-sm text-muted">Ürünler</p>
@@ -63,10 +65,21 @@
         </div>
     </div>
 
-    @if ($order->is_partial && $order->stock_applied_at)
-        <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">
-            <x-icon name="alert" class="mt-0.5 size-4 shrink-0" />
-            <p><b>Kısmi onay:</b> bazı ürünler stok nedeniyle istediğinizden az gönderiliyor. Tabloda "İstenen / Onaylanan" sütununda görebilirsiniz; tutar onaylanan miktarlara göre hesaplandı.</p>
+    @if ($changes)
+        <div class="mb-6 rounded-xl border-2 border-amber-300 bg-warning-soft px-4 py-4 text-sm text-amber-900">
+            <p class="flex items-center gap-2 font-semibold"><x-icon name="alert" class="size-4 shrink-0" /> Siparişinizde değişiklik yapıldı</p>
+            <p class="mt-1">Aşağıdaki ürünler istediğinizden farklı miktarda onaylandı. Tutar onaylanan miktarlara göre hesaplandı{{ $payable ? '; yalnızca onaylanan tutarı ödeyin' : '' }}.</p>
+            <ul class="mt-3 divide-y divide-amber-200 rounded-lg bg-white/60">
+                @foreach ($changes as $c)
+                    <li class="flex flex-wrap justify-between gap-2 px-3 py-2">
+                        <span class="font-medium text-ink">{{ $c['name'] }}</span>
+                        <span class="tabular-nums"><span class="line-through opacity-70">{{ Quantity::format($c['requested']) }}</span> → <b>{{ Quantity::format($c['approved']) }}</b> {{ $c['unit'] }}</span>
+                    </li>
+                @endforeach
+            </ul>
+            @if ($order->requested_total !== null && bccomp((string) $order->requested_total, (string) $order->grand_total, 2) !== 0)
+                <p class="mt-3">Sipariş tutarınız <span class="line-through">{{ Money::format($order->requested_total) }}</span> yerine <b>{{ Money::format($order->grand_total) }}</b>.</p>
+            @endif
         </div>
     @endif
 

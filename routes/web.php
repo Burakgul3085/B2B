@@ -10,7 +10,10 @@ use App\Http\Controllers\Platform;
 use App\Http\Controllers\PublicSite;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RobotsController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 | B2B'nin üç giriş alanı: /platform, /toptanci, /bayi. Mağaza ve mağaza yönetimi routes/store.php'dedir.
@@ -137,6 +140,9 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('ayarlar', [Business\SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('ayarlar', [Business\SettingsController::class, 'update'])->name('settings.update');
         Route::post('ayarlar/logo', [Business\SettingsController::class, 'updateLogo'])->name('settings.logo');
+        Route::get('ayarlar/odeme', [Business\PaymentSettingsController::class, 'edit'])->name('payments.edit');
+        Route::put('ayarlar/odeme', [Business\PaymentSettingsController::class, 'update'])->name('payments.update');
+        Route::delete('ayarlar/odeme/anahtarlar', [Business\PaymentSettingsController::class, 'removeKeys'])->name('payments.keys.destroy');
         Route::get('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'index'])->name('support-access.index');
         Route::post('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'store'])->name('support-access.store');
         Route::delete('ayarlar/destek-erisimi/{grant}', [Business\SupportAccessController::class, 'destroy'])->whereNumber('grant')->name('support-access.destroy');
@@ -152,6 +158,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('siparisler/{order}/iptal', [Business\OrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('siparisler/{order}/iptal-talebi', [Business\OrderController::class, 'resolveCancel'])->name('orders.resolve-cancel');
         Route::post('siparisler/{order}/iade', [Business\OrderReturnController::class, 'store'])->name('orders.returns.store');
+        Route::post('siparisler/{order}/odeme', [Business\OrderPaymentController::class, 'store'])->name('orders.payments.store');
 
         // İletişim
         Route::middleware('module:messaging')->group(function () {
@@ -326,6 +333,11 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
 Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $accountRoutes) {
     $authRoutes('dealer');
 
+    // iyzico geri dönüşü (başka siteden POST; CSRF ve oturum çerezi yok). Sonuç iyzico'dan sorgulanır.
+    // Oturum açılmaz: çerezsiz istekte yeni oturum çerezi bayinin açık oturumunun üzerine yazılırdı.
+    Route::post('odeme/iyzico/donus', Dealer\PaymentCallbackController::class)->middleware('throttle:60,1,dealer.payment.callback')
+        ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('payment.callback');
+
     Route::middleware(['auth:dealer', 'auth.session', 'dealer.context'])->group(function () use ($accountRoutes) {
         Route::get('toptanci-sec', [Dealer\SelectBusinessController::class, 'show'])->name('select-business');
         Route::post('toptanci-sec', [Dealer\SelectBusinessController::class, 'store'])->name('select-business.store');
@@ -368,6 +380,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('siparislerim/{order}/ode', [Dealer\OrderController::class, 'pay'])->middleware('throttle:10,1,orders.pay')->name('orders.pay');
+        Route::post('siparislerim/{order}/odeme-yontemi', [Dealer\OrderController::class, 'changePaymentMethod'])->name('orders.payment-method');
         Route::post('siparislerim/{order}/tekrar', [Dealer\OrderController::class, 'reorder'])->middleware('throttle:20,1,orders.reorder')->name('orders.reorder');
         Route::middleware('module:product_requests')->group(function () {
             Route::get('taleplerim', [Dealer\ProductRequestController::class, 'index'])->name('requests.index');

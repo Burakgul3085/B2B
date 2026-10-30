@@ -138,7 +138,7 @@ class LedgerService
     }
 
     /** Manuel tahsilat (C4): tahsilat kaydı + alacak hareketi + bakiye tek transaction'da. */
-    public function recordCollection(CurrentAccount $account, array $data, int $userId): CollectionEntry
+    public function recordCollection(CurrentAccount $account, array $data, ?int $userId): CollectionEntry
     {
         return DB::transaction(function () use ($account, $data, $userId) {
             $account = $this->lockAccount($account->dealer_relationship_id);

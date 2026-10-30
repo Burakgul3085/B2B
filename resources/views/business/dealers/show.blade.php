@@ -44,6 +44,9 @@
                         <x-field name="dealer_group_id" label="Bayi grubu" :options="['' => 'Grupsuz'] + $groups->all()" :value="$r->dealer_group_id" />
                         <x-field name="payment_term_days" label="Vade (gün)" type="number" min="0" max="365" :value="$r->payment_term_days" required />
                         <x-toggle name="can_edit_addresses" label="Bayi sevk adreslerini değiştirebilir" :checked="$r->can_edit_addresses" class="sm:col-span-2" />
+                        <x-toggle name="allow_open_account" label="Açık hesapla (cari, ödemesiz) sipariş verebilir" :checked="$r->allow_open_account" class="sm:col-span-2" />
+                        <x-toggle name="allow_on_delivery" label="Teslimde ödeme (nakit / POS) seçebilir" :checked="$r->allow_on_delivery" class="sm:col-span-2" />
+                        <p class="text-xs text-muted sm:col-span-2">Ödeme sistemi açıkken (Ayarlar → Ödeme) bu iki seçenek yalnızca işaretli bayilere görünür; diğer bayiler kartla veya havaleyle öder.</p>
                         <div class="sm:text-right"><x-button variant="secondary">Kaydet</x-button></div>
                     </form>
                     @if ($r->group?->priceList)

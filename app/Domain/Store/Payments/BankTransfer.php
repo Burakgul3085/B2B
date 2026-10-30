@@ -2,7 +2,8 @@
 
 namespace App\Domain\Store\Payments;
 
-use App\Domain\Store\Returns\ReturnService;
+use App\Domain\Support\Payments\BankAccounts;
+use App\Domain\Support\Payments\Iban;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreSetting;
 use Carbon\CarbonInterface;
@@ -30,11 +31,7 @@ class BankTransfer
      */
     public static function accounts(): array
     {
-        return array_map(function ($a) {
-            $known = TurkishBanks::fromIban($a['iban']);
-
-            return ['bank' => $known['name'] ?? $a['bank'], 'holder' => $a['holder'], 'iban' => $a['iban'], 'logo' => $known['logo'] ?? null];
-        }, self::parse((string) StoreSetting::get('transfer_accounts'))['accounts']);
+        return BankAccounts::present(self::parse((string) StoreSetting::get('transfer_accounts'))['accounts']);
     }
 
     public static function days(): int
@@ -62,7 +59,7 @@ class BankTransfer
                 continue;
             }
             $parts = array_map('trim', explode('|', $line));
-            $iban = count($parts) === 3 ? ReturnService::normalizeIban($parts[2]) : null;
+            $iban = count($parts) === 3 ? Iban::normalize($parts[2]) : null;
             if (count($parts) !== 3 || $parts[0] === '' || $parts[1] === '' || ! $iban) {
                 $errors[] = ($i + 1).'. satır "Banka | Hesap sahibi | IBAN" biçiminde olmalı ve geçerli bir TR IBAN içermeli.';
 
@@ -78,49 +75,18 @@ class BankTransfer
     }
 
     /**
-     * Yönetim formundaki hesap satırları (holder, iban, bank). Banka IBAN'dan tanınırsa adı oradan alınır;
-     * tanınmayan bankada ad zorunludur. Tamamen boş satırlar atlanır. Hatalar satır alanlarına göre döner.
+     * Yönetim formundaki hesap satırları (holder, iban, bank); kurallar BankAccounts::fromRows içindedir.
      *
      * @return array{accounts: list<array{bank: string, holder: string, iban: string}>, errors: array<string, string>}
      */
     public static function fromRows(array $rows): array
     {
-        $accounts = [];
-        $errors = [];
-        foreach (array_values($rows) as $i => $row) {
-            $row = is_array($row) ? $row : [];
-            $holder = trim((string) ($row['holder'] ?? ''));
-            $rawIban = trim((string) ($row['iban'] ?? ''));
-            $bank = trim((string) ($row['bank'] ?? ''));
-            if ($holder === '' && $rawIban === '' && $bank === '') {
-                continue;
-            }
-            $key = "transfer_accounts.{$i}";
-            $iban = ReturnService::normalizeIban($rawIban);
-            if (! $iban) {
-                $errors["{$key}.iban"] = 'Geçerli bir TR IBAN girin (TR ile başlayan 26 karakter).';
-            }
-            if ($holder === '') {
-                $errors["{$key}.holder"] = 'Hesap sahibini yazın.';
-            }
-            $known = $iban ? TurkishBanks::fromIban($iban) : null;
-            if ($iban && ! $known && $bank === '') {
-                $errors["{$key}.bank"] = "Bu IBAN'ın bankası tanınmadı; banka adını yazın.";
-            }
-            if ($iban && $holder !== '' && ($known || $bank !== '')) {
-                $accounts[] = ['bank' => mb_substr(str_replace('|', ' ', $known['name'] ?? $bank), 0, 60), 'holder' => mb_substr(str_replace('|', ' ', $holder), 0, 120), 'iban' => $iban];
-            }
-        }
-        if (count($accounts) > self::MAX_ACCOUNTS) {
-            $errors['transfer_accounts'] = 'En fazla '.self::MAX_ACCOUNTS.' hesap girilebilir.';
-        }
-
-        return ['accounts' => $accounts, 'errors' => $errors];
+        return BankAccounts::fromRows($rows, 'transfer_accounts', self::MAX_ACCOUNTS);
     }
 
     /** TR00 0000 0000 ... biçiminde gösterim. */
     public static function formatIban(string $iban): string
     {
-        return trim(chunk_split($iban, 4, ' '));
+        return Iban::format($iban);
     }
 }

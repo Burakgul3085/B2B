@@ -19,6 +19,7 @@ class CollectionEntry extends Model
         'check' => 'Çek',
         'promissory_note' => 'Senet',
         'card_pos' => 'Kredi kartı (fiziki POS)',
+        'card_online' => 'Kredi kartı (sanal POS)',
         'other' => 'Diğer',
     ];
 

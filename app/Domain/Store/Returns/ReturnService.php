@@ -10,6 +10,7 @@ use App\Domain\Store\Orders\OrderMailer;
 use App\Domain\Store\Payments\RefundService;
 use App\Domain\Support\Decimal;
 use App\Domain\Support\Money;
+use App\Domain\Support\Payments\Iban;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreReturnItem;
@@ -286,15 +287,6 @@ class ReturnService
     /** "TR12 0006 ..." → "TR120006..." ; geçersizse null (ISO 13616, mod 97). */
     public static function normalizeIban(?string $raw): ?string
     {
-        $iban = strtoupper(preg_replace('/\s+/', '', (string) $raw));
-        if (! preg_match('/^TR\d{24}$/', $iban)) {
-            return null;
-        }
-        $numeric = '';
-        foreach (str_split(substr($iban, 4).substr($iban, 0, 4)) as $char) {
-            $numeric .= ctype_digit($char) ? $char : (string) (ord($char) - 55);
-        }
-
-        return bcmod($numeric, '97') === '1' ? $iban : null;
+        return Iban::normalize($raw);
     }
 }

@@ -4,12 +4,12 @@
 
     <nav class="mb-4 flex flex-wrap gap-2" aria-label="Durum">
         @php $pendingCount = ($counts['submitted'] ?? 0) + ($counts['in_review'] ?? 0) + ($counts['cancel_requested'] ?? 0); @endphp
-        @foreach (['pending' => 'Karar bekleyen', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'completed' => 'Tamamlandı', 'rejected' => 'Reddedildi', 'cancelled' => 'İptal'] as $key => $label)
+        @foreach (['pending' => 'Karar bekleyen', 'awaiting_payment' => 'Ödeme bekleyen', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'completed' => 'Tamamlandı', 'rejected' => 'Reddedildi', 'cancelled' => 'İptal'] as $key => $label)
             <a href="{{ route('business.orders.index', ['status' => $key]) }}" @class([
                 'rounded-full px-3 py-1.5 text-sm font-medium',
                 'bg-primary text-white' => $status === $key,
                 'bg-white text-muted ring-1 ring-line hover:text-ink' => $status !== $key,
-            ])>{{ $label }} <span class="tabular-nums opacity-75">{{ $key === 'pending' ? $pendingCount : ($counts[$key] ?? 0) }}</span></a>
+            ])>{{ $label }} <span class="tabular-nums opacity-75">{{ match ($key) { 'pending' => $pendingCount, 'awaiting_payment' => $awaitingPayment, default => $counts[$key] ?? 0 } }}</span></a>
         @endforeach
     </nav>
 
@@ -25,7 +25,7 @@
             </div>
         </form>
         @if ($orders->isEmpty())
-            <x-empty-state icon="file" title="{{ $status === 'pending' ? 'Karar bekleyen sipariş yok' : 'Sipariş bulunamadı' }}" />
+            <x-empty-state icon="file" title="{{ match ($status) { 'pending' => 'Karar bekleyen sipariş yok', 'awaiting_payment' => 'Ödeme bekleyen sipariş yok', default => 'Sipariş bulunamadı' } }}" />
         @else
             <div class="overflow-x-auto">
                 <table class="table-base">
@@ -37,7 +37,9 @@
                                 <td>{{ $order->relationship->dealer->legal_name }}</td>
                                 <td class="hidden text-muted tabular-nums sm:table-cell">{{ $order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</td>
                                 <td class="text-right font-medium tabular-nums">{{ Money::format($order->grand_total) }}</td>
-                                <td><x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge></td>
+                                <td><x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+                                    @if ($order->payment_status && $order->status !== 'cancelled')<x-badge :tone="$order->payment_status === 'paid' ? 'success' : ($order->payment_status === 'awaiting' ? 'warning' : 'neutral')" class="ml-1">{{ Order::PAYMENT_STATUSES[$order->payment_status] }}</x-badge>@endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

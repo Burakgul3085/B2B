@@ -66,7 +66,8 @@ class DealerController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses')]);
+        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses'), 'allow_open_account' => $request->boolean('allow_open_account'),
+            'allow_on_delivery' => $request->boolean('allow_on_delivery')]);
         $data = $request->validate([
             'legal_name' => ['required', 'string', 'max:255'],
             'contact_name' => ['required', 'string', 'max:120'],
@@ -137,6 +138,8 @@ class DealerController extends Controller
             'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
+            'allow_open_account' => ['boolean'],
+            'allow_on_delivery' => ['boolean'],
         ], [], $this->attributes());
 
         $old = $dealer->only(array_keys($data));

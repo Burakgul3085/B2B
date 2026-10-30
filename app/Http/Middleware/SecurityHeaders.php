@@ -28,6 +28,8 @@ class SecurityHeaders
             // Kartla ödemede sipariş formu bize gönderilir, yanıt iyzico'nun ödeme sayfasına yönlendirir; tarayıcılar
             // form-action'ı yönlendirmeye de uyguladığı için iyzico alan adları vitrinde izinlidir.
             $store = $request->getHost() === config('store.domain');
+            // Bayi panelinde de "Kartla öde" formu iyzico'ya yönlenir.
+            $dealerPay = $request->is('bayi/siparislerim/*');
 
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
@@ -40,7 +42,7 @@ class SecurityHeaders
                 "connect-src 'self'".($analytics ? " {$gaHosts}" : ''),
                 "object-src 'none'",
                 "base-uri 'self'",
-                "form-action 'self'".($store ? ' https://*.iyzipay.com https://*.iyzico.com' : ''),
+                "form-action 'self'".($store || $dealerPay ? ' https://*.iyzipay.com https://*.iyzico.com' : ''),
                 "frame-ancestors 'none'",
             ]));
         }

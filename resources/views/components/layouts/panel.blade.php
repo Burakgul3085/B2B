@@ -66,6 +66,7 @@
             ]))],
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
+                ['label' => 'Ödeme Ayarları', 'route' => 'business.payments.edit', 'icon' => 'lock', 'active' => 'business.payments.*'],
                 ['label' => 'E-posta Ayarları', 'route' => 'business.email.settings', 'icon' => 'refresh', 'active' => 'business.email.*'],
                 ['label' => 'KDV ve Birimler', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
                 ['label' => 'Destek Erişimi', 'route' => 'business.support-access.index', 'icon' => 'key', 'active' => 'business.support-access.*'],

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Domain\Store\Payments;
+namespace App\Domain\Support\Payments;
 
 /**
  * Türkiye'deki bankalar: TR IBAN'ın 5–9. hanelerindeki banka (EFT) kodundan banka adı ve logosu bulunur.
- * Yönetici yalnızca IBAN ve hesap sahibini girer; banka kendiliğinden tanınır, logosu gösterilir.
+ * Mağaza ve B2B havale hesaplarında ortaktır. Yönetici yalnızca IBAN ve hesap sahibini girer; banka kendiliğinden tanınır, logosu gösterilir.
  * Listede olmayan bankada ad elle yazılır ve logo yerine baş harfli rozet gösterilir.
  * Logolar public/images/banks altındadır (kaynaklar: KAYNAKLAR.md).
  */

@@ -6,6 +6,8 @@ use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReorderService;
+use App\Domain\Payments\OrderPaymentService;
+use App\Domain\Payments\PaymentSettings;
 use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
@@ -71,13 +73,18 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show(Order $order): View
+    public function show(Order $order, PaymentSettings $payments): View
     {
         $this->assertOwn($order);
-        $order->load(['items.product.primaryImage', 'history']);
+        $order->load(['items.product.primaryImage', 'history', 'payments']);
+        $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing'], true);
 
         return view('dealer.orders.show', [
             'order' => $order,
+            'payable' => $payable,
+            'changes' => $order->approvalChanges(),
+            'paymentMethods' => $payable ? $payments->methodsFor($this->relationship()) : [],
+            'accounts' => $payable && $payments->transferAvailable() ? $payments->accounts() : [],
             'dueDate' => CurrentAccountMovement::where('order_id', $order->id)->where('type', 'order_debit')->whereNull('reverses_movement_id')->value('due_date'),
             'canCancel' => in_array($order->status, Order::PENDING, true),
             'canRequestCancel' => OrderStateMachine::can($order->status, 'cancel_requested'),
@@ -99,6 +106,33 @@ class OrderController extends Controller
         $order->status === 'cancelled' ? $notifier->orderCancelledByDealer($order) : $notifier->cancelRequested($order);
 
         return back()->with('status', $order->status === 'cancelled' ? 'Siparişiniz iptal edildi.' : 'İptal talebiniz toptancıya iletildi.');
+    }
+
+    /** Kartla öde: iyzico ödeme sayfasına yönlendirir (onaylanan tutar). */
+    public function pay(Request $request, Order $order, OrderPaymentService $payments): RedirectResponse
+    {
+        $this->assertOwn($order);
+        try {
+            $url = $payments->startCard($order, route('dealer.payment.callback'), $request->ip());
+        } catch (DomainException $e) {
+            return back()->withErrors(['payment' => $e->getMessage()]);
+        }
+
+        return redirect()->away($url);
+    }
+
+    /** Ödeme yöntemini değiştir (ör. karttan havaleye); yalnızca onaylı ve ödenmemiş siparişte. */
+    public function changePaymentMethod(Request $request, Order $order, OrderPaymentService $payments): RedirectResponse
+    {
+        $this->assertOwn($order);
+        $method = $request->validate(['payment_method' => ['required', Rule::in(array_keys(Order::PAYMENT_METHODS))]])['payment_method'];
+        try {
+            $payments->changeMethod($order, $method);
+        } catch (DomainException $e) {
+            return back()->withErrors(['payment' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Ödeme yöntemi "'.Order::PAYMENT_METHODS[$method].'" olarak değiştirildi.');
     }
 
     public function reorder(Order $order, ReorderService $reorder): RedirectResponse
