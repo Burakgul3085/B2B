@@ -49,6 +49,25 @@ final class IyzicoApi
         return hash_equals($expected, strtolower($result['signature']));
     }
 
+    /**
+     * Anahtarlar iyzico'da geçerli mi? Kimlik doğrulaması isteyen zararsız bir sorgu (taksit bilgisi) yapılır.
+     * Ayarlar kaydedilmeden önce çağrılır: tarayıcının otomatik doldurduğu yanlış bir değer ödemeleri bozmasın.
+     *
+     * @return string|null null: geçerli; aksi hâlde iyzico'nun gerekçesi
+     */
+    public function credentialsError(): ?string
+    {
+        try {
+            $result = $this->post('/payment/iyzipos/installment', ['locale' => 'tr', 'conversationId' => 'anahtar-kontrolu', 'binNumber' => '554960', 'price' => '100.0']);
+        } catch (IyzicoUnreachable) {
+            return "iyzico'ya ulaşılamadı, biraz sonra yeniden deneyin";
+        } catch (DomainException $e) {
+            return $e->getMessage();
+        }
+
+        return ($result['status'] ?? null) === 'success' ? null : (string) ($result['errorMessage'] ?? 'bilinmeyen hata');
+    }
+
     public function isConfigured(): bool
     {
         return filled($this->apiKey) && filled($this->secretKey);

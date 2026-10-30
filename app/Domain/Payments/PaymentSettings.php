@@ -159,6 +159,12 @@ class PaymentSettings
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
+        // Anahtar veya ortam değiştiyse yeni anahtarlar iyzico'da denenir (tarayıcının otomatik doldurduğu yanlış değer
+        // ödemeleri bozmasın); geçmezse hiçbir ayar kaydedilmez.
+        if (($hasKeys && (isset($data['iyzico_api_key']) || isset($data['iyzico_secret_key']) || $data['iyzico_mode'] !== $s->iyzico_mode))
+            && ($error = (new IyzicoApi($this->decrypt($data['iyzico_api_key'] ?? $s->iyzico_api_key), $this->decrypt($data['iyzico_secret_key'] ?? $s->iyzico_secret_key), $data['iyzico_mode']))->credentialsError())) {
+            throw ValidationException::withMessages(['iyzico_api_key' => "iyzico bu anahtarları kabul etmedi ({$error}). Ayarlar kaydedilmedi; anahtarları iyzico panelinden kopyalayıp yeniden girin ve ortamın (Test / Canlı) doğru olduğunu kontrol edin."]);
+        }
 
         $old = $s->only(['payments_enabled', 'card_enabled', 'iyzico_mode', 'installments', 'transfer_enabled', 'delivery_fee', 'delivery_free_over']);
         $s->update($data);

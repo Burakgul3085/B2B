@@ -5,6 +5,7 @@ namespace App\Domain\Store\Payments;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Store\Sms\SmsGateway;
 use App\Domain\Support\Decimal;
+use App\Domain\Support\Payments\IyzicoApi;
 use App\Models\Store\District;
 use App\Models\Store\Province;
 use App\Models\Store\StoreSetting;
@@ -100,6 +101,7 @@ class PaymentSettings
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
+        $this->assertIyzicoKeys($data);
 
         $old = StoreSetting::values();
         StoreSetting::put($money + $flags + [
@@ -138,6 +140,24 @@ class PaymentSettings
         $changed = array_values(array_filter(array_keys($new), fn ($k) => ! in_array($k, StoreSetting::SECRETS, true) && (string) $new[$k] !== (string) ($old[$k] ?? '')));
         $renewed = array_values(array_filter(StoreSetting::SECRETS, fn ($k) => filled($data[$k] ?? null)));
         $this->audit->log('store.payment_settings_updated', null, [], ['changed' => $changed, 'secrets_renewed' => $renewed]);
+    }
+
+    /** Anahtar veya ortam değiştiyse yeni anahtarlar iyzico'da denenir; geçmezse hiçbir ayar kaydedilmez. */
+    private function assertIyzicoKeys(array $data): void
+    {
+        $apiKey = trim((string) ($data['iyzico_api_key'] ?? ''));
+        $secretKey = trim((string) ($data['iyzico_secret_key'] ?? ''));
+        if ($apiKey === '' && $secretKey === '' && $data['iyzico_mode'] === StoreSetting::get('iyzico_mode')) {
+            return;
+        }
+        $apiKey = $apiKey ?: (string) StoreSetting::secret('iyzico_api_key');
+        $secretKey = $secretKey ?: (string) StoreSetting::secret('iyzico_secret_key');
+        if ($apiKey === '' || $secretKey === '') {
+            return;
+        }
+        if ($error = (new IyzicoApi($apiKey, $secretKey, $data['iyzico_mode']))->credentialsError()) {
+            throw ValidationException::withMessages(['iyzico_api_key' => "iyzico bu anahtarları kabul etmedi ({$error}). Ayarlar kaydedilmedi; anahtarları iyzico panelinden kopyalayıp yeniden girin ve ortamın (Test / Canlı) doğru olduğunu kontrol edin."]);
+        }
     }
 
     public function removeSecret(string $key): void

@@ -263,11 +263,16 @@ class DealerPaymentTest extends TestCase
         $this->put(route('business.payments.update'), ['payments_enabled' => '1', 'transfer_enabled' => '1', 'transfer_accounts' => [['holder' => 'X', 'iban' => 'TR00']]])
             ->assertSessionHasErrors('transfer_accounts.0.iban');
 
-        $this->put(route('business.payments.update'), [
+        $form = [
             'payments_enabled' => '1', 'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'iyzico_api_key' => 'api-123', 'iyzico_secret_key' => 'sec-456',
             'installments' => ['1', '6', '7'], 'delivery_fee' => '25,50', 'delivery_free_over' => '',
             'transfer_enabled' => '1', 'transfer_accounts' => [['holder' => 'Yapboz', 'iban' => 'TR28 0004 6098 7654 3210 9876 54']],
-        ])->assertSessionHasNoErrors();
+        ];
+        // Anahtarlar kaydedilmeden iyzico'da denenir; kabul edilmezse hiçbir ayar kaydedilmez.
+        Http::fakeSequence('*/payment/iyzipos/installment')->push(['status' => 'failure', 'errorMessage' => 'api bilgileri bulunamadı'])->push(['status' => 'success'])->whenEmpty(Http::response(['status' => 'success']));
+        $this->put(route('business.payments.update'), $form)->assertSessionHasErrors('iyzico_api_key');
+        $this->assertNull(BusinessSetting::where('business_id', $this->business->id)->value('iyzico_api_key'));
+        $this->put(route('business.payments.update'), $form)->assertSessionHasNoErrors();
 
         $s = BusinessSetting::where('business_id', $this->business->id)->first();
         $this->assertNotSame('api-123', $s->getRawOriginal('iyzico_api_key'));

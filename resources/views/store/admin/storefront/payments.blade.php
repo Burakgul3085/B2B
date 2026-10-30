@@ -61,7 +61,7 @@
                     <x-field name="iyzico_mode" label="Ortam" :options="['sandbox' => 'Test (sandbox)', 'live' => 'Canlı']" :value="$s['iyzico_mode']" class="max-w-48" />
                     @foreach (['iyzico_api_key' => 'API anahtarı', 'iyzico_secret_key' => 'Gizli anahtar'] as $key => $label)
                         <div class="flex items-end gap-3">
-                            <x-field :name="$key" :label="$label" type="password" autocomplete="off" class="flex-1" :hint="$secrets[$key] ? 'Kayıtlı. Değiştirmek için yenisini girin; boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
+                            <x-field :name="$key" :label="$label" type="password" autocomplete="new-password" class="flex-1" :hint="$secrets[$key] ? 'Kayıtlı. Değiştirmek için yenisini girin; boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
                             @if ($secrets[$key])<button form="sil-{{ $key }}" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
                         </div>
                     @endforeach
@@ -97,7 +97,7 @@
                         <x-field name="netgsm_header" label="Mesaj başlığı" :value="$s['netgsm_header']" maxlength="20" hint="Netgsm'de onaylı başlık (ör. YAPBOZ)." />
                     </div>
                     <div class="flex items-end gap-3">
-                        <x-field name="netgsm_password" label="Şifre" type="password" autocomplete="off" class="flex-1" :hint="$secrets['netgsm_password'] ? 'Kayıtlı. Boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
+                        <x-field name="netgsm_password" label="Şifre" type="password" autocomplete="new-password" class="flex-1" :hint="$secrets['netgsm_password'] ? 'Kayıtlı. Boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
                         @if ($secrets['netgsm_password'])<button form="sil-netgsm_password" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
                     </div>
                 </div>

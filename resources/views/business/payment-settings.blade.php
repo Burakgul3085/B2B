@@ -23,7 +23,7 @@
                     @error('card_enabled')<p class="text-sm text-danger">{{ $message }}</p>@enderror
                     <x-field name="iyzico_mode" label="Ortam" :options="['sandbox' => 'Test (sandbox)', 'live' => 'Canlı']" :value="$s->iyzico_mode" class="max-w-48" />
                     @foreach (['iyzico_api_key' => 'API anahtarı', 'iyzico_secret_key' => 'Gizli anahtar'] as $key => $label)
-                        <x-field :name="$key" :label="$label" type="password" autocomplete="off" :hint="$hasKeys[$key] ? 'Kayıtlı. Değiştirmek için yenisini girin; boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
+                        <x-field :name="$key" :label="$label" type="password" autocomplete="new-password" :hint="$hasKeys[$key] ? 'Kayıtlı. Değiştirmek için yenisini girin; boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
                     @endforeach
                     @if ($hasKeys['iyzico_api_key'] || $hasKeys['iyzico_secret_key'])
                         <button form="anahtarlari-sil" class="text-sm text-danger hover:underline">Kayıtlı anahtarları sil</button>

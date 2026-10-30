@@ -16,6 +16,7 @@ use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -155,7 +156,13 @@ class StoreOrderAdminTest extends TestCase
 
         $this->put(route('store_admin.payments.update'), ['cod_max' => 'abc'] + $form)->assertSessionHasErrors('cod_max');
         $this->put(route('store_admin.payments.update'), ['local_districts' => []] + $form)->assertSessionHasErrors('local_districts');
+
+        // Anahtarlar kaydedilmeden iyzico'da denenir: kabul edilmezse (ör. tarayıcı şifre doldurdu) hiçbir ayar kaydedilmez.
+        Http::fakeSequence('*/payment/iyzipos/installment')->push(['status' => 'failure', 'errorCode' => '1001', 'errorMessage' => 'api bilgileri bulunamadı'])->push(['status' => 'success'])->whenEmpty(Http::response(['status' => 'success']));
+        $this->put(route('store_admin.payments.update'), $form)->assertSessionHasErrors(['iyzico_api_key' => 'iyzico bu anahtarları kabul etmedi (api bilgileri bulunamadı). Ayarlar kaydedilmedi; anahtarları iyzico panelinden kopyalayıp yeniden girin ve ortamın (Test / Canlı) doğru olduğunu kontrol edin.']);
+        $this->assertNull(StoreSetting::secret('iyzico_api_key'));
         $this->put(route('store_admin.payments.update'), $form)->assertSessionHasNoErrors();
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'sandbox-api.iyzipay.com/payment/iyzipos/installment'));
 
         $this->assertSame(['49.90', '750.00', '2500.00', '15.00', '2'], [StoreSetting::get('shipping_cargo_fee'), StoreSetting::get('shipping_free_threshold'),
             StoreSetting::get('cod_max'), StoreSetting::get('cod_fee'), StoreSetting::get('cod_max_open')]);
