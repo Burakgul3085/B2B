@@ -32,9 +32,11 @@ use Illuminate\Validation\ValidationException;
  *  - Her kalemden en fazla, daha önce reddedilmemiş (ve süresi dolmamış) taleplerde istenmemiş adet kadar iade istenebilir.
  *  - Kapıda ödemede para havaleyle döneceği için IBAN ve hesap sahibi zorunludur.
  *  - Hasarlı / yanlış / açıklamaya uymayan üründe en az bir fotoğraf zorunludur (en fazla 5); fotoğraflar özel diskte tutulur.
- *  - Onaydan sonra müşteri ürünü kendisi kargolar ve kargo bilgisini girer (shipped). Vazgeçme iadesinde kargo ücreti
- *    müşteriye aittir; mağazadan kaynaklı nedenlerde müşterinin ödediği iade kargo ücreti iade tutarına eklenir.
- *  - Onaydan sonra REMIND_DAYS gün içinde kargo bilgisi girilmezse hatırlatma, EXPIRE_DAYS günde talep kapanır.
+ *  - Onaydan sonra müşteri ürünü kargolar ve kargo bilgisini girer (shipped). Sözleşme gereği mağazanın bildirdiği kargo
+ *    firmasıyla yapılan iadede masraf mağazaya aittir: anlaşma kodu ayarlıysa müşteri o firmayla ücretsiz gönderir (başka
+ *    firmayla gönderirse ücret kendisine aittir); kod yoksa gönderici ödemeli gönderir, yazdığı ücret iade tutarına eklenir.
+ *  - Müşteri ürünü talepten itibaren SHIP_DAYS (10) gün içinde gönderir; REMIND_DAYS günde kargo bilgisi yoksa hatırlatma,
+ *    EXPIRE_DAYS günde talep kapanır.
  *  - Teslim alınırken sağlam bulunan adetler stoğa döner. Para iadesi ancak ürün teslim alındıktan sonra yapılır;
  *    yönetici "Teslim alındı, iade et" ile ikisini tek adımda yapar.
  *  - İade tutarı sunucuda hesaplanır: ürünlerin payı; siparişteki tüm ürünler iade ediliyorsa teslimat ve kapıda ödeme bedeli de.
@@ -214,13 +216,14 @@ class ReturnService
     public static function shippingInstructions(StoreReturn $return): string
     {
         $address = StoreSetting::get('return_address') ?: StoreSetting::get('address');
-        $deadline = $return->shipDeadline()?->timezone('Europe/Istanbul')->format('d.m.Y');
+        $deadline = $return->shipDeadline()->timezone('Europe/Istanbul')->format('d.m.Y');
+        $code = StoreReturn::returnCode();
 
         return 'Ürünleri, kutusuna iade numarasını ('.$return->return_no.') yazarak'.($address ? " şu adrese gönderin: {$address}." : ' iade adresimize gönderin.')
-            .($return->sellerFault()
-                ? ' İade sebebi bizden kaynaklandığı için kargo ücretini size iade edeceğiz: gönderici ödemeli gönderin ve ödediğiniz kargo ücretini kargo bilgisiyle birlikte yazın.'
-                : ' Kargo ücreti size aittir: kargo şubesinden gönderici ödemeli gönderin; alıcı ödemeli gönderiler teslim alınmaz.')
-            .($deadline ? " Ürünleri en geç {$deadline} tarihine kadar kargoya verin; bu tarihe kadar kargo bilgisi girilmezse talep kapanır." : '');
+            .($code
+                ? " {$code['carrier']} şubesine {$code['code']} iade anlaşma koduyla ücretsiz gönderebilirsiniz; başka bir kargo firmasıyla gönderirseniz kargo ücreti size aittir."
+                : ' Kargo şubesinden gönderici ödemeli gönderin ve ödediğiniz kargo ücretini kargo bilgisiyle birlikte yazın; bu tutar iadenize eklenir.')
+            ." Ürünleri en geç {$deadline} tarihine kadar kargoya verin.";
     }
 
     /**
@@ -237,7 +240,7 @@ class ReturnService
         ], ['cargo_tracking.regex' => 'Takip numarası yalnızca harf, rakam ve tire içerebilir.'], ['cargo_company' => 'kargo firması', 'cargo_tracking' => 'takip numarası', 'cargo_fee' => 'kargo ücreti'])->validate();
 
         $fee = null;
-        if ($return->sellerFault() && filled($data['cargo_fee'] ?? null)) {
+        if (StoreReturn::returnCode() === null && filled($data['cargo_fee'] ?? null)) {
             $fee = Decimal::parse($data['cargo_fee'], 2);
             if ($fee === null || bccomp($fee, '0', 2) < 0 || bccomp($fee, '1000', 2) > 0) {
                 throw ValidationException::withMessages(['cargo_fee' => 'Ödediğiniz kargo ücretini yazın (ör. 85,00).']);
@@ -303,8 +306,8 @@ class ReturnService
         if ($this->completesOrder($return)) {
             $amount = bcadd($amount, bcadd((string) $order->shipping_fee, (string) $order->cod_fee, 2), 2);
         }
-        if ($return->sellerFault() && $return->cargo_fee !== null) {
-            $amount = bcadd($amount, (string) $return->cargo_fee, 2); // müşterinin ödediği iade kargosu
+        if ($return->cargo_fee !== null) {
+            $amount = bcadd($amount, (string) $return->cargo_fee, 2); // müşterinin ödediği iade kargosu (anlaşma kodu yokken)
         }
         $refundable = $order->refundableAmount();
 
@@ -376,11 +379,11 @@ class ReturnService
     public function remindAndExpire(): array
     {
         $result = ['reminded' => 0, 'expired' => 0];
-        foreach (StoreReturn::with('order')->where('status', 'approved')->where('approved_at', '<', now()->subDays(StoreReturn::REMIND_DAYS))->get() as $return) {
-            if ($return->approved_at->lt(now()->subDays(StoreReturn::EXPIRE_DAYS))) {
+        foreach (StoreReturn::with('order')->where('status', 'approved')->where('created_at', '<', now()->subDays(StoreReturn::REMIND_DAYS))->get() as $return) {
+            if ($return->created_at->lt(now()->subDays(StoreReturn::EXPIRE_DAYS))) {
                 $this->transition($return, 'approved', 'expired', ['closed_at' => now()], 'store.return_expired');
                 $this->mailer->returnUpdate($return->order, $return, 'İade talebiniz kapandı',
-                    "{$return->return_no} numaralı iade talebiniz, onaydan sonraki ".StoreReturn::EXPIRE_DAYS.' gün içinde kargo bilgisi girilmediği için kapandı. Ürünü kargoya verdiyseniz bize ulaşın.');
+                    "{$return->return_no} numaralı iade talebiniz, ".StoreReturn::EXPIRE_DAYS.' gün içinde kargo bilgisi girilmediği için kapandı. Ürünü kargoya verdiyseniz bize ulaşın; iadenizi tamamlarız.');
                 $result['expired']++;
             } elseif ($return->reminded_at === null) {
                 $return->forceFill(['reminded_at' => now()])->save();

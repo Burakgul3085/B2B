@@ -30,12 +30,15 @@ class StoreReturn extends Model
     /** Müşterinin izlediği adımlar (sipariş sayfasındaki iade takibi). */
     public const STEPS = ['requested' => 'Talep alındı', 'approved' => 'Onaylandı', 'shipped' => 'Kargoda', 'received' => 'Teslim alındı', 'refunded' => 'İade yapıldı'];
 
-    /** Bu nedenlerde ürün fotoğrafı zorunludur ve iade kargo ücreti mağazaya aittir. */
+    /** Bu nedenlerde (ayıplı / yanlış ürün) ürün fotoğrafı zorunludur. */
     public const SELLER_FAULT = ['damaged', 'wrong_item', 'not_as_described'];
 
     public const MAX_PHOTOS = 5;
 
-    /** Onaydan sonra kargo bilgisi beklenen süre: hatırlatma ve otomatik kapanma (gün). */
+    /** Sözleşme: müşteri ürünü iade bildiriminden (talep) itibaren SHIP_DAYS gün içinde gönderir. */
+    public const SHIP_DAYS = 10;
+
+    /** Talepten sonra kargo bilgisi yoksa hatırlatma; kargoda yolda olabileceği için kapanma birkaç gün sonra (gün). */
     public const REMIND_DAYS = 7;
 
     public const EXPIRE_DAYS = 14;
@@ -66,10 +69,18 @@ class StoreReturn extends Model
         return in_array($this->reason, self::SELLER_FAULT, true);
     }
 
-    /** Müşteri kargo bilgisini bu tarihe kadar girmelidir (onaydan sonra). */
-    public function shipDeadline(): ?Carbon
+    /** Müşteri ürünü bu tarihe kadar kargoya vermelidir (sözleşme: iade bildiriminden itibaren 10 gün). */
+    public function shipDeadline(): Carbon
     {
-        return $this->approved_at?->copy()->addDays(self::EXPIRE_DAYS);
+        return $this->created_at->copy()->addDays(self::SHIP_DAYS);
+    }
+
+    /** İade kargosu mağazanın anlaşmalı firmasıyla ücretsiz mi (kod ayarlıysa), yoksa müşteri ödeyip ücret iadeye mi eklenir. */
+    public static function returnCode(): ?array
+    {
+        $code = StoreSetting::get('return_code');
+
+        return filled($code) && filled(StoreSetting::get('return_carrier')) ? ['carrier' => StoreSetting::get('return_carrier'), 'code' => $code] : null;
     }
 
     public function order(): BelongsTo

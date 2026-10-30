@@ -396,10 +396,11 @@ class StoreFulfillmentTest extends TestCase
         $this->get(self::HOST.'/iade-fotografi/'.$photo->id)->assertForbidden();
         $this->get($orderUrl)->assertOk()->assertSee('iade-fotografi/'.$photo->id.'?expires=', false);
 
-        // Onay: müşteri talimatı ve kargo formunu görür; mağaza kaynaklı olduğu için kargo ücretini yazabilir.
+        // Onay: müşteri talimatı ve kargo formunu görür; anlaşma kodu yokken ödediği kargo ücretini yazar (iadeye eklenir).
         $this->post(route('store_admin.returns.approve', $return))->assertSessionHasNoErrors();
         $shipUrl = route('store.order.return.ship', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'returnNo' => $return->return_no]);
-        $this->get($orderUrl)->assertSee('Kargoya verdim')->assertSee('kargo ücretini size iade edeceğiz');
+        $this->get($orderUrl)->assertSee('Kargoya verdim')->assertSee('gönderici ödemeli gönderin ve ödediğiniz kargo ücretini')
+            ->assertSee($return->created_at->addDays(StoreReturn::SHIP_DAYS)->timezone('Europe/Istanbul')->format('d.m.Y'));
         $this->post($shipUrl, ['cargo_company' => 'Aras Kargo'])->assertSessionHasErrors('cargo_tracking');
         $this->post($shipUrl, ['cargo_company' => 'Aras Kargo', 'cargo_tracking' => 'ARS 777', 'cargo_fee' => '20,00'])->assertSessionHasNoErrors();
         $return->refresh();
@@ -424,7 +425,11 @@ class StoreFulfillmentTest extends TestCase
         $this->post(route('store.order.return', ['orderNo' => $order->order_no, 'token' => $order->access_token]), ['items' => [$order->items()->value('id') => 1], 'reason' => 'changed_mind']);
         $return = StoreReturn::sole();
         $this->post(route('store_admin.returns.approve', $return));
-        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]))->assertSee('Kargo ücreti size aittir')->assertDontSee('Ödediğiniz kargo ücreti');
+        // Anlaşma kodu tanımlıysa (sözleşme: bildirilen firmayla iade ücretsiz) müşteri kodu görür, kargo ücreti alanı çıkmaz.
+        StoreSetting::put(['return_carrier' => 'Aras Kargo', 'return_code' => 'IADE-4455']);
+        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]))
+            ->assertSee('Aras Kargo şubesine IADE-4455 iade anlaşma koduyla ücretsiz')->assertSee('başka bir kargo firmasıyla gönderirseniz kargo ücreti size aittir')
+            ->assertDontSee('Ödediğiniz kargo ücreti');
 
         $this->travel(StoreReturn::REMIND_DAYS + 1)->days();
         $this->artisan('store:return-reminders')->expectsOutputToContain('1 hatırlatma, 0 kapanan')->assertSuccessful();

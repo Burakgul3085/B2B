@@ -47,6 +47,11 @@
                 <div class="space-y-5">
                     <x-field name="return_days" label="İade süresi (gün)" type="number" min="14" max="90" :value="$s['return_days']" required class="max-w-48" />
                     <x-field name="return_address" label="İade gönderim adresi" textarea maxlength="300" :value="$s['return_address']" hint="Onaylanan iade e-postasında müşteriye gösterilir. Boşsa Mağaza Ayarları'ndaki adres kullanılır." />
+                    <div class="grid gap-5 sm:grid-cols-2">
+                        <x-field name="return_carrier" label="İade kargo firması" :value="$s['return_carrier']" maxlength="40" placeholder="ör. Aras Kargo" />
+                        <x-field name="return_code" label="İade anlaşma kodu" :value="$s['return_code']" maxlength="40" autocomplete="off" />
+                    </div>
+                    <p class="text-xs text-muted">Sözleşmeye göre sizin bildirdiğiniz kargo firmasıyla yapılan iadelerde kargo ücreti size aittir. Kod girilirse müşteriye "bu firmanın şubesine kodla ücretsiz gönderin; başka firmayla gönderirseniz ücret size aittir" denir. Kod girilmezse müşteri gönderici ödemeli gönderir ve ödediği kargo ücreti iadesine eklenir.</p>
                 </div>
             </x-card>
 

@@ -13,6 +13,7 @@ use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
+use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -170,6 +171,11 @@ class StoreOrderAdminTest extends TestCase
             $this->assertStringNotContainsString('gizli-456', json_encode([$log->old_values, $log->new_values]));
             $this->assertStringNotContainsString('api-123', json_encode([$log->old_values, $log->new_values]));
         }
+
+        // İade anlaşma kodu firmasız girilemez.
+        $this->put(route('store_admin.payments.update'), array_merge($form, ['return_code' => 'IADE-1']))->assertSessionHasErrors('return_carrier');
+        $this->put(route('store_admin.payments.update'), array_merge($form, ['return_carrier' => 'Aras Kargo', 'return_code' => 'IADE-1']))->assertSessionHasNoErrors();
+        $this->assertSame(['carrier' => 'Aras Kargo', 'code' => 'IADE-1'], StoreReturn::returnCode());
 
         // iyzico Korumalı Alışveriş rozeti: token biçimi doğrulanır; girilince vitrinde betik yüklenir ve CSP izin verir.
         $this->put(route('store_admin.payments.update'), array_merge($form, ['iyzico_badge_token' => '<script>']))->assertSessionHasErrors('iyzico_badge_token');

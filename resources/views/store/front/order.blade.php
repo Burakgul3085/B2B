@@ -173,7 +173,7 @@
                                         @csrf
                                         <x-field name="cargo_company" label="Kargo firması" required maxlength="40" placeholder="ör. Aras Kargo" />
                                         <x-field name="cargo_tracking" label="Takip numarası" required maxlength="60" />
-                                        @if ($return->sellerFault())
+                                        @if (StoreReturn::returnCode() === null)
                                             <x-field name="cargo_fee" label="Ödediğiniz kargo ücreti (₺)" inputmode="decimal" maxlength="12" hint="İade tutarına eklenir." />
                                         @endif
                                         <div><x-button>Kargoya verdim</x-button></div>
@@ -223,7 +223,9 @@
                                 @error('photos')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
                                 @if ($errors->has('photos.*'))<p class="mt-1.5 text-sm text-danger">{{ collect($errors->get('photos.*'))->flatten()->first() }}</p>@endif
                             </div>
-                            <p class="rounded-lg bg-surface p-3 text-xs text-muted">Talebiniz onaylanınca ürünü kargo şubesinden <b>gönderici ödemeli</b> olarak gönderirsiniz. "Vazgeçtim" iadelerinde kargo ücreti size aittir; ürün hasarlı, yanlış veya açıklamadaki gibi değilse ödediğiniz kargo ücretini iade tutarına ekleriz.</p>
+                            <p class="rounded-lg bg-surface p-3 text-xs text-muted">Talebiniz onaylanınca ürünü {{ StoreReturn::SHIP_DAYS }} gün içinde kargoya verirsiniz.
+                                @if ($code = StoreReturn::returnCode()) {{ $code['carrier'] }} şubesine iade anlaşma koduyla ücretsiz gönderebilirsiniz; başka bir kargo firmasıyla gönderirseniz kargo ücreti size aittir.
+                                @else Gönderici ödemeli gönderin; ödediğiniz kargo ücretini iade tutarınıza ekleriz. @endif</p>
                             @if ($order->refundsToBank())
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <x-field name="iban" label="İade için IBAN" required maxlength="40" placeholder="TR00 0000 0000 0000 0000 0000 00" hint="İade tutarı bu hesaba havale edilir." />

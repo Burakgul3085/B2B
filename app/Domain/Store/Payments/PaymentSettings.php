@@ -36,6 +36,8 @@ class PaymentSettings
             'cod_max_open' => ['required', 'integer', 'min:1', 'max:10'],
             'return_days' => ['required', 'integer', 'min:14', 'max:90'],
             'return_address' => ['nullable', 'string', 'max:300'],
+            'return_carrier' => ['nullable', 'string', 'max:40', 'required_with:return_code'],
+            'return_code' => ['nullable', 'string', 'max:40'],
             'transfer_accounts' => ['nullable', 'array', 'max:20'],
             'transfer_accounts.*' => ['array'],
             'transfer_accounts.*.bank' => ['nullable', 'string', 'max:60'],
@@ -54,7 +56,7 @@ class PaymentSettings
         ], [], [
             'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'cargo_cutoff' => 'kargo saati', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
-            'return_days' => 'iade süresi', 'return_address' => 'iade adresi',
+            'return_days' => 'iade süresi', 'return_address' => 'iade adresi', 'return_carrier' => 'iade kargo firması', 'return_code' => 'iade anlaşma kodu',
             'transfer_accounts' => 'banka hesapları', 'transfer_days' => 'ödeme süresi',
             'iyzico_badge_token' => 'Korumalı Alışveriş token',
         ])->validate();
@@ -106,6 +108,8 @@ class PaymentSettings
             'cod_max_open' => (string) $data['cod_max_open'],
             'return_days' => (string) $data['return_days'],
             'return_address' => trim((string) ($data['return_address'] ?? '')) ?: null,
+            'return_carrier' => trim((string) ($data['return_carrier'] ?? '')) ?: null,
+            'return_code' => trim((string) ($data['return_code'] ?? '')) ?: null,
             'transfer_accounts' => implode("\n", array_map(fn ($a) => "{$a['bank']} | {$a['holder']} | {$a['iban']}", $transfer['accounts'])) ?: null,
             'transfer_days' => (string) ($data['transfer_days'] ?? StoreSetting::get('transfer_days')),
             'iyzico_mode' => $data['iyzico_mode'],

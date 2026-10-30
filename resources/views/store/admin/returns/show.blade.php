@@ -35,7 +35,7 @@
                         @case('approved')
                         @case('shipped')
                             @if ($return->status === 'approved')
-                                <p class="rounded-lg bg-surface p-3 text-muted">Müşterinin ürünü kargolaması bekleniyor (en geç {{ $return->shipDeadline()?->timezone('Europe/Istanbul')->format('d.m.Y') }}; kargo bilgisi girilmezse {{ \App\Models\Store\StoreReturn::REMIND_DAYS }}. günde hatırlatma gider, {{ \App\Models\Store\StoreReturn::EXPIRE_DAYS }}. günde talep kapanır). Ürün kargo bilgisi girilmeden elinize ulaştıysa yine teslim alabilirsiniz.</p>
+                                <p class="rounded-lg bg-surface p-3 text-muted">Müşterinin ürünü kargolaması bekleniyor (sözleşme: talepten itibaren {{ \App\Models\Store\StoreReturn::SHIP_DAYS }} gün, en geç {{ $return->shipDeadline()->timezone('Europe/Istanbul')->format('d.m.Y') }}). Kargo bilgisi girilmezse talepten sonraki {{ \App\Models\Store\StoreReturn::REMIND_DAYS }}. günde hatırlatma gider, {{ \App\Models\Store\StoreReturn::EXPIRE_DAYS }}. günde talep kapanır. Ürün kargo bilgisi girilmeden elinize ulaştıysa yine teslim alabilirsiniz.</p>
                             @endif
                             <form method="POST" action="{{ route('store_admin.returns.receive-refund', $return) }}" class="space-y-3 rounded-xl bg-surface p-4"
                                 data-confirm="{{ $isCard ? 'Ürünler teslim alınsın ve tutar iyzico üzerinden karta iade edilsin mi? Bu işlem geri alınamaz.' : 'Ürünler teslim alınsın ve havaleyle yaptığınız para iadesi kaydedilsin mi?' }}">
@@ -53,7 +53,7 @@
                                 @endunless
                                 <div class="flex flex-wrap items-end gap-3">
                                     <x-field name="amount" label="İade tutarı (₺)" required inputmode="decimal" :value="number_format((float) $maxRefund, 2, ',', '')" class="w-48"
-                                        :hint="'Hesaplanan: '.Money::format($maxRefund).($return->sellerFault() && $return->cargo_fee !== null ? ' (müşterinin ödediği '.Money::format($return->cargo_fee).' iade kargosu dahil)' : '').'. Gerekirse düşürebilirsiniz.'" />
+                                        :hint="'Hesaplanan: '.Money::format($maxRefund).($return->cargo_fee !== null ? ' (müşterinin ödediği '.Money::format($return->cargo_fee).' iade kargosu dahil)' : '').'. Gerekirse düşürebilirsiniz.'" />
                                     <x-field name="note" :label="$isCard ? 'Açıklama (isteğe bağlı)' : 'Havale bilgisi'" :required="! $isCard" maxlength="300" class="min-w-64 flex-1" :placeholder="$isCard ? null : 'ör. 21.10.2026 EFT, dekont no 12345'" />
                                 </div>
                                 <x-button icon="check-circle">{{ $isCard ? 'Teslim alındı, karta iade et' : 'Teslim alındı, iadeyi kaydet' }}</x-button>
@@ -155,7 +155,7 @@
                     @if ($return->cargo_tracking){{ $return->cargo_company }} · <span class="font-mono">{{ $return->cargo_tracking }}</span>
                         <span class="block text-xs text-muted">{{ $return->shipped_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}@if ($return->cargo_fee !== null) · müşterinin ödediği: {{ Money::format($return->cargo_fee) }}@endif</span>
                     @else <span class="text-muted">{{ $return->status === 'approved' ? 'henüz girilmedi' : '—' }}</span>@endif</p>
-                <p class="mt-1 text-xs text-muted">{{ $return->sellerFault() ? 'Neden mağazadan kaynaklı: iade kargosu müşteriye ödenir.' : 'Vazgeçme iadesi: iade kargosu müşteriye aittir.' }}</p>
+                <p class="mt-1 text-xs text-muted">{{ \App\Models\Store\StoreReturn::returnCode() ? 'İade kargosu anlaşma kodunuzla size faturalanır; müşteri başka firmayla gönderdiyse ücret ona aittir.' : 'Anlaşma kodu tanımlı değil: müşterinin ödediği iade kargosu iade tutarına eklenir.' }}</p>
                 @if ($return->admin_note)<p class="mt-3 rounded-lg bg-surface p-3 text-sm">Yönetici notu: {{ $return->admin_note }}</p>@endif
             </x-card>
         </div>

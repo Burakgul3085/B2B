@@ -89,6 +89,10 @@ class StoreSetting extends Model
         // İade (cayma hakkı). Süre yasal en az 14 gündür.
         'return_days' => '14',
         'return_address' => null,            // boşsa mağaza adresi kullanılır
+        // İade kargosu: sözleşmede "satıcının bildirdiği kargo firmasıyla yapılan iadelerde masraf satıcıya aittir".
+        // Anlaşma kodu girilirse müşteri o firmayla ücretsiz gönderir; girilmezse gönderici ödemeli gönderir, ücret iadeye eklenir.
+        'return_carrier' => null,
+        'return_code' => null,
 
         // Kartla ödeme (iyzico). Anahtarlar şifreli saklanır.
         'card_enabled' => '0',
