@@ -78,6 +78,16 @@ class OrderMailer
             [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]], 'kargoda');
     }
 
+    /** Teslim edildi: üyeye ürünleri değerlendirme daveti (misafir sipariş yorum yazamaz). */
+    public function delivered(StoreOrder $order): void
+    {
+        $member = (bool) $order->customer_id;
+        $this->send($order, "Siparişiniz teslim edildi — {$order->order_no}", 'Siparişiniz teslim edildi',
+            "{$order->order_no} numaralı siparişiniz teslim edildi. Bizi tercih ettiğiniz için teşekkür ederiz."
+            .($member ? ' Ürünleri beğendiyseniz Hesabım → Değerlendirmelerim bölümünden puan verip fotoğraflı yorum yazabilirsiniz; yorumunuz diğer müşterilerimize yol gösterir.' : ''),
+            false, $member ? [route('store.reviews'), 'Ürünleri değerlendir'] : null);
+    }
+
     public function cancelRequested(StoreOrder $order): void
     {
         $this->send($order, "İptal talebiniz alındı — {$order->order_no}", 'İptal talebiniz alındı',

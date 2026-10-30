@@ -5,6 +5,7 @@ namespace App\Models\Store;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Ürün yorumu. Yalnızca ürünü teslim almış üye yazabilir; yönetici onaylamadan yayımlanmaz.
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StoreReview extends Model
 {
     public const STATUSES = ['pending' => 'Onay bekliyor', 'approved' => 'Yayında', 'rejected' => 'Yayımlanmadı'];
+
+    public const MAX_PHOTOS = 5;
 
     protected $attributes = ['status' => 'pending'];
 
@@ -26,6 +29,11 @@ class StoreReview extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(StoreProduct::class, 'product_id');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(StoreReviewPhoto::class, 'review_id')->orderBy('id');
     }
 
     public function customer(): BelongsTo

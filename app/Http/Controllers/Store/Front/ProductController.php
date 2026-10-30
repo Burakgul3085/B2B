@@ -45,7 +45,7 @@ class ProductController extends Controller
             ],
             'related' => $related,
             'info' => ProductPage::info(),
-            'reviews' => StoreReview::approved()->where('product_id', $product->id)->latest('id')->limit(20)->get(),
+            'reviews' => StoreReview::approved()->where('product_id', $product->id)->with('photos')->latest('id')->limit(20)->get(),
             'reviewSummary' => ReviewService::summary($product),
             'reviewEligibility' => $this->reviews->eligibility($customer, $product),
             'isFavorite' => Favorites::has($product->id),

@@ -34,6 +34,15 @@
         @endforeach
     </div>
 
+    @if ($awaitingReviews)
+        <a href="{{ route('store.reviews') }}" class="mt-6 flex items-center gap-4 rounded-3xl border border-puzzle-yellow/40 bg-puzzle-yellow-soft p-5 transition hover:shadow-lg">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-puzzle-yellow"><x-icon name="star" class="size-5" /></span>
+            <span class="min-w-0 flex-1"><span class="block font-semibold text-ink">{{ $awaitingReviews }} ürün değerlendirmenizi bekliyor</span>
+                <span class="block text-sm text-muted">Teslim aldığınız ürünlere puan verin, fotoğraflı yorum yazın.</span></span>
+            <x-icon name="arrow-right" class="size-5 shrink-0 text-ink" />
+        </a>
+    @endif
+
     <div class="mt-6 space-y-6">
         {{-- Son siparişler --}}
         <section id="siparisler" class="scroll-mt-32 {{ $card }}">

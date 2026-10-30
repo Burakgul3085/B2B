@@ -8,8 +8,10 @@ use App\Domain\Support\Money;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreReturn;
+use App\Models\Store\StoreReview;
 use App\Models\Store\StoreSetting;
 use App\Models\Store\StoreStockMovement;
 use Illuminate\Support\Collection;
@@ -104,6 +106,16 @@ class AdminNotifier
     }
 
     /** @param  list<array{0: string, 1: string}>  $rows */
+    public function reviewSubmitted(StoreReview $review, StoreProduct $product): void
+    {
+        if (! StoreSetting::flag('notify_returns')) { // iade ve yorum bildirimleri aynı tercihte (müşteri geri bildirimleri)
+            return;
+        }
+        $this->send("Yeni ürün yorumu: {$product->name}", 'Onay bekleyen yorum',
+            "{$product->name} için {$review->rating} yıldızlı yeni bir yorum geldi".($review->photos()->exists() ? ' (fotoğraflı)' : '').'. Yayımlamak için inceleyin.',
+            [['Müşteri', $review->author_name], ['Puan', str_repeat('★', $review->rating)]], route('store_admin.reviews.index'), 'Yorumları aç');
+    }
+
     public function returnShipped(StoreReturn $return, StoreOrder $order): void
     {
         if (! StoreSetting::flag('notify_returns')) {

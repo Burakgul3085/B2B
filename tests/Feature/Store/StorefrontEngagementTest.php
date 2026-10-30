@@ -14,6 +14,8 @@ use App\Models\Store\StoreReview;
 use App\Models\Store\StoreSetting;
 use App\Models\Store\StoreStockAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -124,6 +126,52 @@ class StorefrontEngagementTest extends TestCase
         $this->get(self::HOST.'/urun/jel-kalem')->assertDontSee('Çok güzel yazıyor');
         $this->delete(route('store_admin.reviews.destroy', $review))->assertSessionHasNoErrors();
         $this->assertSame(0, StoreReview::count());
+    }
+
+    public function test_account_lists_products_to_review_and_photo_reviews_show_after_approval(): void
+    {
+        Storage::fake('local');
+        $pen = $this->product('Jel Kalem');
+        $book = $this->product('Defter');
+        $buyer = $this->customer();
+        $this->deliveredOrder($buyer, $pen);
+        $this->deliveredOrder($buyer, $book, 'shipped'); // teslim edilmedi: listede yok
+
+        $this->actingAs($buyer, 'customer');
+        $this->get(self::HOST.'/hesabim')->assertSee('1 ürün değerlendirmenizi bekliyor');
+        $this->get(self::HOST.'/hesabim/degerlendirmeler')->assertOk()->assertSee('Değerlendirmelerim')->assertSee('Jel Kalem')->assertDontSee('Defter')
+            ->assertSee('Henüz yorum yazmadınız');
+
+        // Hesaptan fotoğraflı yorum; en fazla 5 fotoğraf, yalnızca resim.
+        $form = ['from' => 'account', 'product_form' => $pen->id, 'rating' => 5, 'body' => 'Harika bir kalem, çok akıcı.'];
+        $this->post(self::HOST.'/urun/jel-kalem/yorum', $form + ['photos' => array_fill(0, 6, UploadedFile::fake()->image('a.jpg'))])->assertSessionHasErrors('photos');
+        $this->post(self::HOST.'/urun/jel-kalem/yorum', $form + ['photos' => [UploadedFile::fake()->create('a.pdf', 5, 'application/pdf')]])->assertSessionHasErrors('photos.0');
+        $this->post(self::HOST.'/urun/jel-kalem/yorum', $form + ['photos' => [UploadedFile::fake()->image('a.jpg', 1200, 900), UploadedFile::fake()->image('b.png', 300, 300)]])
+            ->assertRedirect(route('store.reviews'));
+        $review = StoreReview::sole();
+        $this->assertSame(2, $review->photos()->count());
+        $photo = $review->photos()->firstOrFail();
+        Storage::disk('local')->assertExists($photo->path);
+
+        // Onay bekleyen yorumun fotoğrafı: yalnızca sahibine; yorum hesapta "Onay bekliyor".
+        $this->get(self::HOST.'/hesabim/degerlendirmeler')->assertSee('Değerlendirilecek ürün yok')->assertSee('Onay bekliyor')->assertSee('yorum-fotografi/'.$photo->id);
+        $this->get(self::HOST.'/yorum-fotografi/'.$photo->id)->assertOk();
+        $this->post(self::HOST.'/cikis');
+        $this->flushSession();
+        auth('customer')->logout();
+        $this->get(self::HOST.'/yorum-fotografi/'.$photo->id)->assertNotFound();
+
+        // Yayımlanınca ürün sayfasında fotoğraflarıyla, herkese.
+        $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
+        $this->get(route('store_admin.reviews.index'))->assertSee(route('store_admin.reviews.photo', [$review, $photo->id]));
+        $this->get(route('store_admin.reviews.photo', [$review, $photo->id]))->assertOk();
+        $this->put(route('store_admin.reviews.update', $review), ['status' => 'approved'])->assertSessionHasNoErrors();
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Harika bir kalem')->assertSee('yorum-fotografi/'.$photo->id);
+        $this->get(self::HOST.'/yorum-fotografi/'.$photo->id)->assertOk()->assertHeader('Cache-Control', 'max-age=86400, public');
+
+        // Silinen yorumun fotoğrafları da silinir.
+        $this->delete(route('store_admin.reviews.destroy', $review));
+        Storage::disk('local')->assertMissing($photo->path);
     }
 
     public function test_stock_alert_is_sent_once_when_stock_arrives(): void

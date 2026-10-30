@@ -159,6 +159,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('yorumlar', [Admin\ReviewController::class, 'index'])->name('reviews.index');
             Route::put('yorumlar/{storeReview}', [Admin\ReviewController::class, 'update'])->name('reviews.update');
             Route::delete('yorumlar/{storeReview}', [Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
+            Route::get('yorumlar/{storeReview}/fotograf/{photo}', [Admin\ReviewController::class, 'photo'])->whereNumber('photo')->name('reviews.photo');
 
             // Pazarlama: e-bülten aboneleri ve toplu e-posta
             Route::get('pazarlama/e-bulten', [Admin\NewsletterController::class, 'index'])->name('newsletter.index');
@@ -282,6 +283,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('ara/oneri', [Front\ListingController::class, 'suggest'])->middleware('throttle:120,1,search.suggest')->name('search.suggest');
         Route::get('urun/{slug}', [Front\ProductController::class, 'show'])->name('product');
         Route::post('urun/{slug}/yorum', [Front\ReviewController::class, 'store'])->middleware(['auth:customer', 'auth.session', 'throttle:10,10,review.store'])->name('review.store');
+        // Yorum fotoğrafı: yayındaki yorumda herkese, onay bekleyende yalnızca yorumun sahibine
+        Route::get('yorum-fotografi/{photo}', [Front\ReviewController::class, 'photo'])->whereNumber('photo')->middleware('throttle:240,1,review.photo')->name('review-photo');
         Route::post('stok-bildirimi', [Front\StockAlertController::class, 'store'])->middleware(['throttle:10,10,stock-alert.store', 'store.bot'])->name('stock-alert.store');
         Route::get('secki/{slug}', [Front\CollectionController::class, 'show'])->name('collection');
         Route::get('hakkimizda', [Front\SitePageController::class, 'about'])->name('about');
@@ -325,6 +328,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
             Route::delete('hesabim/adres/{address}', [Front\AddressController::class, 'destroy'])->whereNumber('address')->name('addresses.destroy');
 
             Route::get('hesabim/favoriler', [Front\FavoriteController::class, 'index'])->name('favorites');
+            Route::get('hesabim/degerlendirmeler', [Front\ReviewController::class, 'index'])->name('reviews');
             Route::post('favoriler/{product}', [Front\FavoriteController::class, 'toggle'])->whereNumber('product')->middleware('throttle:60,1,favorites.toggle')->name('favorites.toggle');
         });
         Route::get('ilceler/{province}', [Front\AddressController::class, 'districts'])->whereNumber('province')->name('districts');

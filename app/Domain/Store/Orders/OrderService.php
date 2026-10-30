@@ -178,6 +178,7 @@ class OrderService
         $this->transition($order, ['shipped'], 'delivered', $extra,
             $order->payment_method === 'cod' ? 'Teslim edildi, ödeme tahsil edildi ('.($collectedMethod === 'cash' ? 'nakit' : 'kapıda kart').').' : 'Teslim edildi.',
             'store.order_delivered');
+        $this->mailer->delivered($order);
     }
 
     /**

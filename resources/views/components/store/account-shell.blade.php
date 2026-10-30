@@ -1,6 +1,6 @@
 {{--
     Üye hesabı sayfalarının ortak çerçevesi: solda profil kartı ve hesap menüsü, sağda içerik ($slot).
-    $active: overview | orders | favorites | addresses | profile | security
+    $active: overview | orders | reviews | favorites | addresses | profile | security
 --}}
 @props(['title', 'active' => 'overview'])
 @php
@@ -9,6 +9,7 @@
     $menu = [
         ['overview', route('store.account'), 'home', 'Genel bakış'],
         ['orders', route('store.orders'), 'package', 'Siparişlerim'],
+        ['reviews', route('store.reviews'), 'star', 'Değerlendirmelerim'],
         ['favorites', route('store.favorites'), 'heart', 'Favorilerim'],
         ['addresses', route('store.account').'#adresler', 'map-pin', 'Adreslerim'],
         ['profile', route('store.account').'#bilgiler', 'user', 'Bilgilerim'],

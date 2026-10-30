@@ -114,10 +114,12 @@
             <section class="rounded-2xl border border-line lg:col-span-2">
                 <h2 class="border-b border-line px-5 py-4 font-semibold">Ürünler</h2>
                 <ul class="divide-y divide-line">
+                    @php $canReview = $order->status === 'delivered' && $order->customer_id && auth('customer')->id() === $order->customer_id; @endphp
                     @foreach ($order->items as $item)
                         <li class="flex justify-between gap-4 px-5 py-3 text-sm">
                             <span><span class="font-medium">{{ $item->product_name }}</span>
-                                <span class="block text-xs text-muted">@if ($item->option_label){{ $item->option_label }} · @endif{{ $item->quantity }} × {{ Money::format($item->unit_price) }}</span></span>
+                                <span class="block text-xs text-muted">@if ($item->option_label){{ $item->option_label }} · @endif{{ $item->quantity }} × {{ Money::format($item->unit_price) }}</span>
+                                @if ($canReview && $item->product_id && ! $item->print_job_id)<a href="{{ route('store.reviews') }}" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-puzzle-orange hover:underline"><x-icon name="star" class="size-3.5" /> Değerlendir</a>@endif</span>
                             <span class="tabular-nums">{{ Money::format($item->line_total) }}</span>
                         </li>
                     @endforeach

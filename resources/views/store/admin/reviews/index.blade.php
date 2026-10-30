@@ -32,6 +32,15 @@
                     </div>
                     @if ($review->title)<p class="mt-3 font-semibold">{{ $review->title }}</p>@endif
                     <p class="mt-1 text-sm whitespace-pre-line text-slate-700">{{ $review->body }}</p>
+                    @if ($review->photos->isNotEmpty())
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach ($review->photos as $photo)
+                                <a href="{{ route('store_admin.reviews.photo', [$review, $photo->id]) }}" target="_blank" rel="noopener" class="block size-20 overflow-hidden rounded-lg ring-1 ring-line">
+                                    <img src="{{ route('store_admin.reviews.photo', [$review, $photo->id]) }}" alt="Yorum fotoğrafı {{ $loop->iteration }}" class="size-full object-cover">
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <form method="POST" action="{{ route('store_admin.reviews.update', $review) }}" class="mt-4 space-y-3">
                         @csrf @method('PUT')

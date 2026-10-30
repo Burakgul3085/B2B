@@ -28,7 +28,7 @@
             @if (session('review_sent'))
                 <p class="rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status">Teşekkürler! Yorumunuz incelendikten sonra yayımlanacak.</p>
             @elseif ($reviewEligibility === 'allowed')
-                <form method="POST" action="{{ route('store.review.store', $product->slug) }}" class="space-y-4 rounded-2xl border border-line p-5" x-data="starRating(@alpine((int) old('rating', 0)))">
+                <form method="POST" action="{{ route('store.review.store', $product->slug) }}" enctype="multipart/form-data" class="space-y-4 rounded-2xl border border-line p-5" x-data="starRating(@alpine((int) old('rating', 0)))">
                     @csrf
                     <p class="text-sm font-semibold">Yorum yazın</p>
                     <div>
@@ -45,13 +45,20 @@
                     </div>
                     <x-field name="title" label="Başlık (isteğe bağlı)" :value="old('title')" />
                     <x-field name="body" label="Yorumunuz" textarea :value="old('body')" required />
+                    <div>
+                        <label for="yorum_foto" class="mb-1.5 block text-sm font-medium">Fotoğraflar (isteğe bağlı)</label>
+                        <input id="yorum_foto" type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" class="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium">
+                        <p class="mt-1 text-xs text-muted">En fazla {{ \App\Models\Store\StoreReview::MAX_PHOTOS }} fotoğraf (JPG, PNG).</p>
+                        @error('photos')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                        @if ($errors->has('photos.*'))<p class="mt-1 text-xs text-danger">{{ collect($errors->get('photos.*'))->flatten()->first() }}</p>@endif
+                    </div>
                     <p class="text-xs text-muted">Yorumunuz adınız ve soyadınızın baş harfiyle ({{ \App\Domain\Store\Reviews\ReviewService::displayName(auth('customer')->user()) }}) onaydan sonra yayımlanır.</p>
                     <x-button class="w-full">Gönder</x-button>
                 </form>
             @elseif ($reviewEligibility === 'guest')
                 <p class="text-sm text-muted">Yorum yazmak için <a href="{{ route('store.login') }}" class="font-semibold text-navy-ink underline">giriş yapın</a>. Yalnızca ürünü satın alıp teslim alan müşterilerimiz yorum yazabilir.</p>
             @elseif ($reviewEligibility === 'reviewed')
-                <p class="text-sm text-muted">Bu ürün için yorumunuzu aldık, teşekkürler.</p>
+                <p class="text-sm text-muted">Bu ürün için yorumunuzu aldık, teşekkürler. Yorumunuzu <a href="{{ route('store.reviews') }}" class="font-semibold text-navy-ink underline">Değerlendirmelerim</a> sayfasında görebilirsiniz.</p>
             @else
                 <p class="text-sm text-muted">Yalnızca bu ürünü satın alıp teslim alan müşterilerimiz yorum yazabilir.</p>
             @endif
@@ -68,6 +75,15 @@
                     </div>
                     @if ($review->title)<h3 class="mt-2 font-semibold">{{ $review->title }}</h3>@endif
                     <p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-slate-700">{{ $review->body }}</p>
+                    @if ($review->photos->isNotEmpty())
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach ($review->photos as $photo)
+                                <a href="{{ route('store.review-photo', $photo->id) }}" target="_blank" rel="noopener" class="block size-20 overflow-hidden rounded-xl ring-1 ring-line transition hover:ring-navy">
+                                    <img src="{{ route('store.review-photo', $photo->id) }}" alt="{{ $review->author_name }} fotoğrafı {{ $loop->iteration }}" loading="lazy" class="size-full object-cover">
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                     @if ($review->reply)
                         <div class="mt-3 rounded-xl bg-surface px-4 py-3 text-sm">
                             <p class="text-xs font-bold text-navy-ink">{{ config('store.name') }} yanıtı</p>

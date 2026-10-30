@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Customers\CustomerService;
+use App\Domain\Store\Reviews\ReviewService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreFavorite;
@@ -30,6 +31,7 @@ class AccountController extends Controller
                 'open' => StoreOrder::where('customer_id', $customer->id)->whereIn('status', StoreOrder::OPEN)->count(),
                 'favorites' => StoreFavorite::where('customer_id', $customer->id)->count(),
             ],
+            'awaitingReviews' => app(ReviewService::class)->awaiting($customer)->count(),
         ]);
     }
 

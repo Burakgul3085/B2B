@@ -3,20 +3,50 @@
 namespace App\Domain\Store\Reviews;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
+use App\Domain\Store\Notifications\AdminNotifier;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreOrderItem;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreReview;
+use App\Models\Store\StoreReviewPhoto;
+use DomainException;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Ürün yorumları. Yalnızca ürünü teslim almış üye yazabilir (her ürüne bir yorum); yorum yönetici onayından
  * sonra yayımlanır. Puan ortalaması yalnızca onaylı yorumlardan hesaplanır, başka hiçbir yerden puan gösterilmez.
+ * Yoruma en fazla 5 fotoğraf eklenebilir (yeniden kodlanır, özel diskte); vitrinde yalnızca yayındaki yorumunki görünür.
+ * Üye, teslim aldığı ve henüz yorumlamadığı ürünleri Hesabım → Değerlendirmelerim'de görür.
  */
 class ReviewService
 {
-    public function __construct(private AuditLogger $audit) {}
+    public function __construct(private AuditLogger $audit, private ImageUploader $images, private AdminNotifier $notifier) {}
+
+    /**
+     * Üyenin teslim aldığı, mağazada yayında olan ve henüz yorumlamadığı ürünler (en son teslim alınan önce).
+     *
+     * @return Collection<int, StoreProduct>
+     */
+    public function awaiting(StoreCustomer $customer): Collection
+    {
+        $ids = StoreOrderItem::query()
+            ->join('store_orders', 'store_orders.id', '=', 'store_order_items.order_id')
+            ->where('store_orders.customer_id', $customer->id)->where('store_orders.status', 'delivered')
+            ->whereNotNull('store_order_items.product_id')
+            ->whereNotIn('store_order_items.product_id', StoreReview::where('customer_id', $customer->id)->select('product_id'))
+            ->groupBy('store_order_items.product_id')
+            ->orderByRaw('MAX(store_orders.delivered_at) DESC')
+            ->pluck('store_order_items.product_id');
+
+        $products = StoreProduct::where('is_published', true)->whereIn('id', $ids)->with('primaryImage')->get()->keyBy('id');
+
+        return $ids->map(fn ($id) => $products->get($id))->filter()->values();
+    }
 
     /** guest | not_purchased | reviewed | allowed */
     public function eligibility(?StoreCustomer $customer, StoreProduct $product): string
@@ -48,7 +78,14 @@ class ReviewService
             'rating' => ['required', 'integer', 'between:1,5'],
             'title' => ['nullable', 'string', 'max:80'],
             'body' => ['required', 'string', 'min:10', 'max:2000'],
-        ], ['rating.required' => 'Puan seçin.'], ['rating' => 'puan', 'title' => 'başlık', 'body' => 'yorum'])->validate();
+            'photos' => ['nullable', 'array', 'max:'.StoreReview::MAX_PHOTOS],
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ], [
+            'rating.required' => 'Puan seçin.',
+            'photos.max' => 'En fazla '.StoreReview::MAX_PHOTOS.' fotoğraf ekleyebilirsiniz.',
+            'photos.*.mimes' => 'Fotoğraflar JPG, PNG veya WEBP olmalıdır.',
+            'photos.*.max' => 'Her fotoğraf en fazla 10 MB olabilir.',
+        ], ['rating' => 'puan', 'title' => 'başlık', 'body' => 'yorum', 'photos' => 'fotoğraflar'])->validate();
 
         $status = $this->eligibility($customer, $product);
         if ($status !== 'allowed') {
@@ -57,14 +94,47 @@ class ReviewService
                 : 'Yalnızca bu ürünü satın alıp teslim almış müşterilerimiz yorum yazabilir.']);
         }
 
-        return StoreReview::create([
-            'product_id' => $product->id,
-            'customer_id' => $customer->id,
-            'author_name' => self::displayName($customer),
-            'rating' => (int) $data['rating'],
-            'title' => trim((string) ($data['title'] ?? '')) ?: null,
-            'body' => trim($data['body']),
-        ]);
+        $paths = [];
+        try {
+            foreach ($data['photos'] ?? [] as $file) {
+                $paths[] = $this->images->store($file, 'store/reviews', 1600, 10 * 1024 * 1024);
+            }
+        } catch (DomainException $e) {
+            array_map(fn ($p) => $this->images->delete($p), $paths);
+            throw ValidationException::withMessages(['photos' => $e->getMessage()]);
+        }
+
+        try {
+            $review = DB::transaction(function () use ($customer, $product, $data, $paths) {
+                $review = StoreReview::create([
+                    'product_id' => $product->id,
+                    'customer_id' => $customer->id,
+                    'author_name' => self::displayName($customer),
+                    'rating' => (int) $data['rating'],
+                    'title' => trim((string) ($data['title'] ?? '')) ?: null,
+                    'body' => trim($data['body']),
+                ]);
+                foreach ($paths as $path) {
+                    $review->photos()->create(['path' => $path, 'size' => (int) Storage::disk('local')->size($path), 'created_at' => now()]);
+                }
+
+                return $review;
+            });
+        } catch (\Throwable $e) {
+            array_map(fn ($p) => $this->images->delete($p), $paths);
+            throw $e;
+        }
+        $this->notifier->reviewSubmitted($review, $product);
+
+        return $review;
+    }
+
+    /** Fotoğraf vitrinde / hesapta gösterilebilir mi: yayındaki yorum veya yorumun sahibi. */
+    public static function canSeePhoto(StoreReviewPhoto $photo, ?StoreCustomer $viewer): bool
+    {
+        $review = $photo->review;
+
+        return $review->status === 'approved' || ($viewer && $viewer->id === $review->customer_id);
     }
 
     /** "Ayşe Kaya" → "Ayşe K." */
@@ -91,7 +161,9 @@ class ReviewService
     public function delete(StoreReview $review): void
     {
         $this->audit->log('store.review_deleted', $review, $review->only(['product_id', 'rating', 'status']));
+        $paths = $review->photos()->pluck('path')->all();
         $review->delete();
+        array_map(fn ($p) => $this->images->delete($p), $paths);
     }
 
     /** @return array{average: ?float, count: int, bars: array<int, int>} yıldıza göre dağılım (5→1) */
