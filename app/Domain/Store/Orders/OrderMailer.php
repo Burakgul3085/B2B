@@ -78,6 +78,13 @@ class OrderMailer
             [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]], 'kargoda');
     }
 
+    public function cancelRequested(StoreOrder $order): void
+    {
+        $this->send($order, "İptal talebiniz alındı — {$order->order_no}", 'İptal talebiniz alındı',
+            "{$order->order_no} numaralı siparişiniz için iptal talebinizi aldık. Ödemeniz havaleyle alındığı için tutarı bildirdiğiniz hesaba ("
+            .trim(chunk_split((string) $order->cancel_refund_iban, 4, ' ')).') gönderip siparişinizi iptal edeceğiz; işlem tamamlanınca size e-posta göndereceğiz.', false);
+    }
+
     public function cancelled(StoreOrder $order): void
     {
         $refund = match (true) {

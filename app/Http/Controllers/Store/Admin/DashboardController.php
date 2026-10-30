@@ -32,7 +32,7 @@ class DashboardController extends Controller
                 ['Yola çıkacak (hazırlanıyor)', StoreOrder::where('status', 'preparing')->count(), route('store_admin.orders.index', ['status' => 'preparing'])],
                 ['Yolda', StoreOrder::where('status', 'shipped')->count(), route('store_admin.orders.index', ['status' => 'shipped'])],
                 ['Yeni iade talebi', StoreReturn::where('status', 'requested')->count(), route('store_admin.returns.index', ['status' => 'requested'])],
-                ['Teslim alınacak iade', StoreReturn::where('status', 'approved')->count(), route('store_admin.returns.index', ['status' => 'approved'])],
+                ['Kargodaki iade', StoreReturn::where('status', 'shipped')->count(), route('store_admin.returns.index', ['status' => 'shipped'])],
                 ['Para iadesi bekleyen', StoreReturn::where('status', 'received')->count(), route('store_admin.returns.index', ['status' => 'received'])],
             ],
             'admin' => $request->user('store_admin'),

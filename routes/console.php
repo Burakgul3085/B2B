@@ -6,6 +6,7 @@ use App\Domain\Store\Inventory\StockAlerts;
 use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Payments\PaymentService;
 use App\Domain\Store\Print\PrintFiles;
+use App\Domain\Store\Returns\ReturnService;
 use App\Domain\Support\OpsStatus;
 use App\Jobs\QueueHeartbeat;
 use Database\Seeders\Support\DemoImages;
@@ -97,6 +98,14 @@ Schedule::command('b2b:expire-pending-payments')->everyFiveMinutes()->withoutOve
 Artisan::command('b2b:expire-pending-payments', function (OrderPaymentService $payments) {
     $this->info($payments->expireStale().' bekleyen bayi kart ödemesi işlendi.');
 })->purpose('B2B: 30 dakikayı geçen bayi kart ödemelerini sonuçlandırır');
+
+// Mağaza: onaylanıp kargolanmayan iade talepleri: 7. günde hatırlatma, 14. günde kapanır.
+Schedule::command('store:return-reminders')->dailyAt('10:00')->timezone('Europe/Istanbul')->withoutOverlapping();
+
+Artisan::command('store:return-reminders', function (ReturnService $returns) {
+    $r = $returns->remindAndExpire();
+    $this->info("{$r['reminded']} hatırlatma, {$r['expired']} kapanan iade talebi.");
+})->purpose('Mağaza: kargolanmayan iade taleplerine hatırlatma gönderir, süresi dolanları kapatır');
 
 // Mağaza: "stoğa gelince haber ver" isteklerinden stoğa girenlere e-posta gönderir.
 Schedule::command('store:stock-alerts')->everyTenMinutes()->withoutOverlapping();

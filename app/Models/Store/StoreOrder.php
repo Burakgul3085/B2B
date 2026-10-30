@@ -52,13 +52,25 @@ class StoreOrder extends Model
     /** Yola çıkmadan iptal edilebilen durumlar. */
     public const CANCELLABLE = ['pending_payment', 'awaiting_approval', 'awaiting_transfer', 'paid', 'preparing'];
 
+    /** Müşterinin kendisi iptal edebildiği durumlar: kargoya verilmeden önce (ödeme sürerken değil). */
+    public const CUSTOMER_CANCELLABLE = ['awaiting_approval', 'awaiting_transfer', 'paid', 'preparing'];
+
+    public const CANCEL_REASONS = [
+        'changed_mind' => 'Vazgeçtim',
+        'wrong_choice' => 'Yanlış ürün veya adet seçtim',
+        'address' => 'Teslimat adresini değiştirmem gerekiyor',
+        'too_slow' => 'Teslimat süresi uzun',
+        'bought_elsewhere' => 'Başka yerden aldım',
+        'other' => 'Diğer',
+    ];
+
     protected $guarded = ['id'];
 
     protected function casts(): array
     {
         return [
             'paid_at' => 'datetime', 'approved_at' => 'datetime', 'shipped_at' => 'datetime',
-            'delivered_at' => 'datetime', 'cancelled_at' => 'datetime', 'alerted_at' => 'datetime',
+            'delivered_at' => 'datetime', 'cancelled_at' => 'datetime', 'alerted_at' => 'datetime', 'cancel_requested_at' => 'datetime',
         ];
     }
 
@@ -131,6 +143,12 @@ class StoreOrder extends Model
     }
 
     /** Ödenen (kart) veya tahsil edilen (kapıda) tutar; iade bunun üzerinden yapılabilir. */
+    /** Müşteri iptal düğmesini görür mü: kargoya verilmemiş ve bekleyen bir iptal talebi yok. */
+    public function customerCancellable(): bool
+    {
+        return in_array($this->status, self::CUSTOMER_CANCELLABLE, true) && $this->cancel_requested_at === null;
+    }
+
     public function isSettled(): bool
     {
         return in_array($this->payment_status, ['paid', 'collected', 'partially_refunded'], true);
@@ -153,6 +171,7 @@ class StoreOrder extends Model
     {
         return self::STATUSES[$status] ?? match ($status) {
             'return' => 'İade',
+            'cancel_request' => 'İptal talebi',
             'refund' => 'Para iadesi',
             'invoice' => 'Fatura',
             default => $status,

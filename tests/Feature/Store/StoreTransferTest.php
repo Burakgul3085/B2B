@@ -188,12 +188,12 @@ class StoreTransferTest extends TestCase
         $item = $order->items()->sole();
 
         try {
-            app(ReturnService::class)->request($order->fresh(), ['items' => [$item->id => 1], 'reason' => 'damaged']);
+            app(ReturnService::class)->request($order->fresh(), ['items' => [$item->id => 1], 'reason' => 'changed_mind']);
             $this->fail('IBAN zorunlu');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('iban', $e->errors());
         }
-        $return = app(ReturnService::class)->request($order->fresh(), ['items' => [$item->id => 1], 'reason' => 'damaged', 'iban' => self::IBAN, 'account_name' => 'Ayşe Yılmaz']);
+        $return = app(ReturnService::class)->request($order->fresh(), ['items' => [$item->id => 1], 'reason' => 'changed_mind', 'iban' => self::IBAN, 'account_name' => 'Ayşe Yılmaz']);
         $this->assertSame(self::IBAN, $return->refund_iban);
     }
 

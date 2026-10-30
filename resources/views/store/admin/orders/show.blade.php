@@ -73,6 +73,13 @@
                         @endif
                     @endif
 
+                    @if ($order->cancel_requested_at && $order->status !== 'cancelled')
+                        <div class="rounded-lg border border-amber-200 bg-warning-soft p-3 text-amber-900">
+                            <p class="font-semibold">Müşteri iptal istedi ({{ $order->cancel_requested_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }})</p>
+                            <p class="mt-1">Neden: {{ $order->cancel_request_reason }}</p>
+                            <p class="mt-1">İade hesabı: <span class="font-mono">{{ trim(chunk_split((string) $order->cancel_refund_iban, 4, ' ')) }}</span> · {{ $order->cancel_refund_name }}</p>
+                        </div>
+                    @endif
                     @if ($canCancel && $transferPaid)
                         <p class="border-t border-line pt-4 text-muted">Havalesi alınmış sipariş: iptal için önce {{ Money::format($order->refundableAmount()) }} tutarını müşterinin hesabına gönderip aşağıdaki <span class="font-medium text-ink">Para iadesi</span> bölümünden elle kaydedin.</p>
                     @elseif ($canCancel)

@@ -5,23 +5,40 @@ namespace App\Models\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * İade talebi (cayma hakkı). Akış:
- *   requested → approved → received → refunded
- *   requested → rejected
+ *   requested → approved → shipped (müşteri kargo bilgisini girdi) → received → refunded
+ *   requested → rejected;  approved → expired (süresinde kargolanmadı)
+ * Yönetici ürünü kargo bilgisi gelmeden de teslim alabilir (approved → received).
  */
 class StoreReturn extends Model
 {
     public const STATUSES = [
         'requested' => 'Talep alındı',
-        'approved' => 'Onaylandı, ürün bekleniyor',
+        'approved' => 'Onaylandı, kargo bekleniyor',
+        'shipped' => 'Kargoya verildi',
         'received' => 'Ürün teslim alındı',
         'refunded' => 'Para iadesi yapıldı',
         'rejected' => 'Reddedildi',
+        'expired' => 'Süresi doldu',
     ];
 
-    public const OPEN = ['requested', 'approved', 'received'];
+    public const OPEN = ['requested', 'approved', 'shipped', 'received'];
+
+    /** Müşterinin izlediği adımlar (sipariş sayfasındaki iade takibi). */
+    public const STEPS = ['requested' => 'Talep alındı', 'approved' => 'Onaylandı', 'shipped' => 'Kargoda', 'received' => 'Teslim alındı', 'refunded' => 'İade yapıldı'];
+
+    /** Bu nedenlerde ürün fotoğrafı zorunludur ve iade kargo ücreti mağazaya aittir. */
+    public const SELLER_FAULT = ['damaged', 'wrong_item', 'not_as_described'];
+
+    public const MAX_PHOTOS = 5;
+
+    /** Onaydan sonra kargo bilgisi beklenen süre: hatırlatma ve otomatik kapanma (gün). */
+    public const REMIND_DAYS = 7;
+
+    public const EXPIRE_DAYS = 14;
 
     public const REASONS = [
         'changed_mind' => 'Vazgeçtim',
@@ -35,7 +52,24 @@ class StoreReturn extends Model
 
     protected function casts(): array
     {
-        return ['approved_at' => 'datetime', 'received_at' => 'datetime', 'refunded_at' => 'datetime', 'closed_at' => 'datetime'];
+        return ['approved_at' => 'datetime', 'shipped_at' => 'datetime', 'reminded_at' => 'datetime', 'received_at' => 'datetime',
+            'refunded_at' => 'datetime', 'closed_at' => 'datetime', 'cargo_fee' => 'decimal:2'];
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(StoreReturnPhoto::class, 'return_id')->orderBy('id');
+    }
+
+    public function sellerFault(): bool
+    {
+        return in_array($this->reason, self::SELLER_FAULT, true);
+    }
+
+    /** Müşteri kargo bilgisini bu tarihe kadar girmelidir (onaydan sonra). */
+    public function shipDeadline(): ?Carbon
+    {
+        return $this->approved_at?->copy()->addDays(self::EXPIRE_DAYS);
     }
 
     public function order(): BelongsTo
@@ -62,8 +96,8 @@ class StoreReturn extends Model
     {
         return match ($this->status) {
             'refunded' => 'success',
-            'requested' => 'warning',
-            'rejected' => 'danger',
+            'requested', 'shipped' => 'warning',
+            'rejected', 'expired' => 'danger',
             default => 'info',
         };
     }

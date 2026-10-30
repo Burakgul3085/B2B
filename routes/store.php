@@ -198,6 +198,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('iadeler/{storeReturn}/reddet', [Admin\ReturnController::class, 'reject'])->name('returns.reject');
             Route::post('iadeler/{storeReturn}/teslim-al', [Admin\ReturnController::class, 'receive'])->name('returns.receive');
             Route::post('iadeler/{storeReturn}/para-iadesi', [Admin\ReturnController::class, 'refund'])->name('returns.refund');
+            Route::post('iadeler/{storeReturn}/teslim-al-iade-et', [Admin\ReturnController::class, 'receiveAndRefund'])->name('returns.receive-refund');
+            Route::get('iadeler/{storeReturn}/fotograf/{photo}', [Admin\ReturnController::class, 'photo'])->whereNumber('photo')->name('returns.photo');
 
             Route::get('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'edit'])->name('payments.edit');
             Route::put('ayarlar/odeme-teslimat', [Admin\PaymentSettingsController::class, 'update'])->name('payments.update');
@@ -338,12 +340,18 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('siparis/{orderNo}/{token}/iade-faturasi/{note}', [Front\OrderController::class, 'creditNoteByToken'])->whereNumber('note')->middleware('throttle:30,1,order.credit-note')->name('order.credit-note');
         Route::get('siparis/{orderNo}/{token}/fatura', [Front\OrderController::class, 'invoiceByToken'])->middleware('throttle:30,1,order.invoice')->name('order.invoice');
         Route::post('siparis/{orderNo}/{token}/iade', [Front\ReturnController::class, 'storeByToken'])->middleware(['throttle:10,1,order.return', 'store.bot'])->name('order.return');
+        Route::post('siparis/{orderNo}/{token}/iade/{returnNo}/kargo', [Front\ReturnController::class, 'shipByToken'])->middleware('throttle:10,1,order.return.ship')->name('order.return.ship');
+        Route::post('siparis/{orderNo}/{token}/iptal', [Front\OrderController::class, 'cancelByToken'])->middleware(['throttle:10,1,order.cancel', 'store.bot'])->name('order.cancel');
+        // İade fotoğrafı: müşterinin sipariş sayfasındaki imzalı (1 saatlik) bağlantı
+        Route::get('iade-fotografi/{photo}', [Front\ReturnController::class, 'photo'])->whereNumber('photo')->middleware(['signed', 'throttle:120,1,return.photo'])->name('return-photo');
         Route::middleware(['auth:customer', 'auth.session'])->group(function () {
             Route::get('hesabim/siparisler', [Front\OrderController::class, 'index'])->name('orders');
             Route::get('hesabim/siparisler/{orderNo}', [Front\OrderController::class, 'showOwn'])->name('orders.show');
             Route::get('hesabim/siparisler/{orderNo}/fatura', [Front\OrderController::class, 'invoiceOwn'])->name('orders.invoice');
             Route::get('hesabim/siparisler/{orderNo}/iade-faturasi/{note}', [Front\OrderController::class, 'creditNoteOwn'])->whereNumber('note')->name('orders.credit-note');
             Route::post('hesabim/siparisler/{orderNo}/iade', [Front\ReturnController::class, 'storeOwn'])->middleware(['throttle:10,1,orders.return', 'store.bot'])->name('orders.return');
+            Route::post('hesabim/siparisler/{orderNo}/iade/{returnNo}/kargo', [Front\ReturnController::class, 'shipOwn'])->middleware('throttle:10,1,orders.return.ship')->name('orders.return.ship');
+            Route::post('hesabim/siparisler/{orderNo}/iptal', [Front\OrderController::class, 'cancelOwn'])->middleware(['throttle:10,1,orders.cancel', 'store.bot'])->name('orders.cancel');
         });
 
         // Sepet (M5)

@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Orders\InvoiceService;
+use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreReturn;
+use DomainException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -13,6 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Sipariş görüntüleme: üye kendi siparişini hesabından, misafir (ve e-postadaki bağlantı) sipariş numarası +
  * gizli belirteçle görür. Belirteç sabit zamanlı karşılaştırılır; başka siparişe erişim 404'tür.
+ * Kargoya verilmemiş siparişi müşteri buradan iptal eder (OrderService::cancelByCustomer).
  */
 class OrderController extends Controller
 {
@@ -37,6 +42,16 @@ class OrderController extends Controller
             fn (int $note) => route('store.order.credit-note', $params + ['note' => $note]));
     }
 
+    public function cancelOwn(Request $request, string $orderNo, OrderService $orders): RedirectResponse
+    {
+        return $this->cancel($request, $this->own($request, $orderNo), $orders);
+    }
+
+    public function cancelByToken(Request $request, string $orderNo, string $token, OrderService $orders): RedirectResponse
+    {
+        return $this->cancel($request, $this->byToken($orderNo, $token), $orders);
+    }
+
     public function invoiceOwn(Request $request, string $orderNo, InvoiceService $invoices): StreamedResponse
     {
         return $invoices->download($this->own($request, $orderNo));
@@ -57,6 +72,19 @@ class OrderController extends Controller
         return $invoices->downloadCreditNote($this->byToken($orderNo, $token), $note);
     }
 
+    private function cancel(Request $request, StoreOrder $order, OrderService $orders): RedirectResponse
+    {
+        try {
+            $cancelled = $orders->cancelByCustomer($order, $request->only(['reason', 'note', 'iban', 'account_name']), $request->ip());
+        } catch (DomainException $e) {
+            return back()->withErrors(['cancel' => $e->getMessage()])->withInput();
+        }
+
+        return back()->with('status', $cancelled
+            ? 'Siparişiniz iptal edildi.'.($order->fresh()->payment_status === 'refunded' ? ' Ödemeniz kartınıza iade edildi; hesabınıza yansıması bankanıza göre birkaç gün sürebilir.' : '')
+            : 'İptal talebiniz alındı. Ödemenizi bildirdiğiniz hesaba gönderip siparişinizi iptal edeceğiz.');
+    }
+
     private function own(Request $request, string $orderNo): StoreOrder
     {
         return StoreOrder::where('order_no', $orderNo)->where('customer_id', $request->user('customer')->id)->firstOrFail();
@@ -72,7 +100,7 @@ class OrderController extends Controller
 
     private function render(StoreOrder $order, ReturnService $returns, string $returnUrl, string $invoiceUrl, \Closure $creditNoteUrl): View
     {
-        $order->load(['items', 'events', 'consents', 'returns.items', 'invoice', 'creditNotes']);
+        $order->load(['items', 'events', 'consents', 'returns.items', 'returns.photos', 'invoice', 'creditNotes']);
         $refusal = $returns->refusal($order);
 
         return view('store.front.order', [
@@ -83,6 +111,11 @@ class OrderController extends Controller
             'canReturn' => $refusal === null,
             'returnable' => $refusal === null ? $returns->returnableQuantities($order) : [],
             'returnDeadline' => ReturnService::deadline($order),
+            'cancelUrl' => $order->customer_id && auth('customer')->id() === $order->customer_id
+                ? route('store.orders.cancel', $order->order_no) : route('store.order.cancel', ['orderNo' => $order->order_no, 'token' => $order->access_token]),
+            'shipUrl' => fn (StoreReturn $r) => $order->customer_id && auth('customer')->id() === $order->customer_id
+                ? route('store.orders.return.ship', [$order->order_no, $r->return_no])
+                : route('store.order.return.ship', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'returnNo' => $r->return_no]),
         ]);
     }
 }

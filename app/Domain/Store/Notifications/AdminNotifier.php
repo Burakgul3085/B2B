@@ -104,6 +104,38 @@ class AdminNotifier
     }
 
     /** @param  list<array{0: string, 1: string}>  $rows */
+    public function returnShipped(StoreReturn $return, StoreOrder $order): void
+    {
+        if (! StoreSetting::flag('notify_returns')) {
+            return;
+        }
+        $rows = [['Müşteri', $order->shipping_name], ['Kargo', $return->cargo_company.' · '.$return->cargo_tracking]];
+        if ($return->cargo_fee !== null) {
+            $rows[] = ['Müşterinin ödediği kargo', Money::format($return->cargo_fee)];
+        }
+        $this->send("İade kargoya verildi {$return->return_no}", 'İade kargoya verildi',
+            "{$order->order_no} numaralı siparişin iadesi ({$return->return_no}) müşteri tarafından kargoya verildi. Ürünler gelince \"Teslim alındı, iade et\" ile kapatın.",
+            $rows, route('store_admin.returns.show', $return), 'İadeyi aç');
+    }
+
+    /** Müşteri siparişini kendisi iptal etti (kargodan önce) ya da havalesi alınmış siparişte iptal istedi. */
+    public function customerCancelled(StoreOrder $order, bool $requestOnly, ?string $previousStatus = null): void
+    {
+        if (! StoreSetting::flag('notify_orders')) {
+            return;
+        }
+        $intro = $requestOnly
+            ? "Müşteri havalesi alınmış {$order->order_no} numaralı siparişin iptalini istedi. Tutarı bildirdiği hesaba gönderip \"Para iadesi\" ile kaydedin, sonra siparişi iptal edin."
+            : "Müşteri {$order->order_no} numaralı siparişini kargoya verilmeden iptal etti. Ürünler stoğa döndü".($order->payment_status === 'refunded' ? ', ödeme kartına iade edildi.' : '.')
+                .($previousStatus === 'preparing' ? ' Sipariş hazırlanıyordu: paketlediyseniz ürünleri rafa geri koyun.' : '');
+        $rows = [['Müşteri', $order->shipping_name], ['Neden', (string) ($requestOnly ? $order->cancel_request_reason : $order->cancel_reason)], ['Tutar', Money::format($order->total)]];
+        if ($requestOnly) {
+            $rows[] = ['İade hesabı', trim(chunk_split((string) $order->cancel_refund_iban, 4, ' ')).' · '.$order->cancel_refund_name];
+        }
+        $this->send(($requestOnly ? 'İptal talebi ' : 'Müşteri iptali ').$order->order_no, $requestOnly ? 'Müşteri iptal istedi' : 'Müşteri siparişi iptal etti',
+            $intro, $rows, route('store_admin.orders.show', $order), 'Siparişi aç');
+    }
+
     private function send(string $subject, string $title, string $intro, array $rows, string $url, string $label): void
     {
         $recipients = $this->recipients();

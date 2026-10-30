@@ -75,6 +75,40 @@
         @endif
 
         @error('return')<p role="alert" class="mt-6 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</p>@enderror
+        @error('cancel')<p role="alert" class="mt-6 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</p>@enderror
+
+        @if ($order->cancel_requested_at && $order->status !== 'cancelled')
+            <section class="mt-6 rounded-2xl border border-amber-200 bg-warning-soft p-5 text-sm text-amber-900">
+                <h2 class="font-semibold">İptal talebiniz alındı</h2>
+                <p class="mt-1">{{ $order->cancel_requested_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} tarihli talebiniz işleniyor. Ödemeniz
+                    <span class="font-mono">{{ trim(chunk_split((string) $order->cancel_refund_iban, 4, ' ')) }}</span> hesabına gönderilip siparişiniz iptal edilecek.</p>
+            </section>
+        @elseif ($order->customerCancellable())
+            @php $transferPaid = $order->payment_method === 'transfer' && bccomp($order->refundableAmount(), '0', 2) > 0; @endphp
+            <details class="mt-6 rounded-2xl border border-line p-5 text-sm" @if ($errors->has('reason') && old('cancel_form')) open @endif>
+                <summary class="cursor-pointer font-semibold text-ink">Siparişi iptal et</summary>
+                <p class="mt-2 text-muted">Siparişiniz kargoya verilmeden iptal edebilirsiniz.
+                    @if ($order->payment_method === 'card' && $order->isSettled()) Ödemeniz ({{ Money::format($order->refundableAmount()) }}) kartınıza otomatik iade edilir.
+                    @elseif ($transferPaid) Ödemeniz havaleyle alındığı için tutar yazdığınız hesaba gönderilir; iptal bu işlemden sonra tamamlanır.
+                    @else Ödemeniz alınmadığı için siparişiniz hemen iptal edilir. @endif</p>
+                <form method="POST" action="{{ $cancelUrl }}" class="mt-4 space-y-4" data-confirm="{{ $order->order_no }} numaralı sipariş iptal edilsin mi?">
+                    @csrf
+                    <x-store.bot-trap />
+                    <input type="hidden" name="cancel_form" value="1">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-field name="reason" label="İptal nedeni" :options="['' => 'Seçin'] + StoreOrder::CANCEL_REASONS" required />
+                        <x-field name="note" label="Açıklama (isteğe bağlı)" maxlength="200" />
+                    </div>
+                    @if ($transferPaid)
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="iban" label="İade için IBAN" required maxlength="40" placeholder="TR00 0000 0000 0000 0000 0000 00" />
+                            <x-field name="account_name" label="Hesap sahibi" required maxlength="120" />
+                        </div>
+                    @endif
+                    <x-button variant="danger">{{ $transferPaid ? 'İptal talebi gönder' : 'Siparişi iptal et' }}</x-button>
+                </form>
+            </details>
+        @endif
 
         <div class="mt-8 grid gap-6 lg:grid-cols-3">
             <section class="rounded-2xl border border-line lg:col-span-2">
@@ -101,18 +135,54 @@
                 </dl>
 
                 @if ($order->returns->isNotEmpty())
-                    <div class="border-t border-line px-5 py-4">
+                    <div class="space-y-4 border-t border-line px-5 py-4">
                         <h3 class="text-sm font-semibold">İade talepleriniz</h3>
-                        <ul class="mt-2 space-y-2 text-sm">
-                            @foreach ($order->returns as $return)
-                                <li class="flex flex-wrap items-center justify-between gap-2">
-                                    <span>{{ $return->return_no }} <span class="text-muted">· {{ $return->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }} · {{ $return->items->sum('quantity') }} ürün</span>
-                                        @if ($return->status === 'rejected' && $return->admin_note)<span class="block text-xs text-muted">Gerekçe: {{ $return->admin_note }}</span>@endif
-                                        @if ($return->refund_amount)<span class="block text-xs text-muted">İade edilen: {{ Money::format($return->refund_amount) }}</span>@endif</span>
+                        @foreach ($order->returns as $return)
+                            @php
+                                $stepKeys = array_keys(StoreReturn::STEPS);
+                                $at = array_search($return->status, $stepKeys, true);
+                            @endphp
+                            <div class="rounded-xl border border-line p-4 text-sm">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="font-medium">{{ $return->return_no }} <span class="font-normal text-muted">· {{ $return->created_at->timezone('Europe/Istanbul')->format('d.m.Y') }} · {{ $return->items->sum('quantity') }} ürün · {{ StoreReturn::REASONS[$return->reason] ?? '' }}</span></span>
                                     <x-badge :tone="$return->statusTone()">{{ $return->statusLabel() }}</x-badge>
-                                </li>
-                            @endforeach
-                        </ul>
+                                </div>
+                                @if ($at !== false)
+                                    <ol class="mt-3 grid grid-cols-5 gap-1 text-center text-[11px]">
+                                        @foreach (StoreReturn::STEPS as $key => $label)
+                                            <li><span @class(['block h-1.5 rounded-full', 'bg-primary' => $loop->index <= $at, 'bg-slate-200' => $loop->index > $at])></span>
+                                                <span @class(['mt-1 block', 'font-semibold text-ink' => $loop->index === $at, 'text-muted' => $loop->index !== $at])>{{ $label }}</span></li>
+                                        @endforeach
+                                    </ol>
+                                @endif
+                                @if (in_array($return->status, ['rejected', 'expired'], true) && $return->admin_note)<p class="mt-2 text-xs text-muted">Gerekçe: {{ $return->admin_note }}</p>@endif
+                                @if ($return->refund_amount)<p class="mt-2 text-xs text-muted">İade edilen: {{ Money::format($return->refund_amount) }}</p>@endif
+                                @if ($return->photos->isNotEmpty())
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        @foreach (\App\Domain\Store\Returns\ReturnService::photoUrls($return) as $url)
+                                            <a href="{{ $url }}" target="_blank" rel="noopener" class="block size-14 overflow-hidden rounded-lg ring-1 ring-line"><img src="{{ $url }}" alt="İade fotoğrafı" class="size-full object-cover"></a>
+                                        @endforeach
+                                    </div>
+                                @endif
+                                @if ($return->status === 'approved')
+                                    <div class="mt-3 rounded-lg bg-warning-soft p-3 text-amber-900">
+                                        <p>{{ \App\Domain\Store\Returns\ReturnService::shippingInstructions($return) }}</p>
+                                        @if ($return->admin_note)<p class="mt-1">Not: {{ $return->admin_note }}</p>@endif
+                                    </div>
+                                    <form method="POST" action="{{ $shipUrl($return) }}" class="mt-3 grid gap-3 sm:grid-cols-3 sm:items-end">
+                                        @csrf
+                                        <x-field name="cargo_company" label="Kargo firması" required maxlength="40" placeholder="ör. Aras Kargo" />
+                                        <x-field name="cargo_tracking" label="Takip numarası" required maxlength="60" />
+                                        @if ($return->sellerFault())
+                                            <x-field name="cargo_fee" label="Ödediğiniz kargo ücreti (₺)" inputmode="decimal" maxlength="12" hint="İade tutarına eklenir." />
+                                        @endif
+                                        <div><x-button>Kargoya verdim</x-button></div>
+                                    </form>
+                                @elseif ($return->cargo_tracking)
+                                    <p class="mt-2 text-xs text-muted">İade kargosu: {{ $return->cargo_company }} · {{ $return->cargo_tracking }}@if ($return->cargo_fee !== null) · ödenen kargo {{ Money::format($return->cargo_fee) }}@endif</p>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
                 @endif
 
@@ -120,7 +190,7 @@
                     <details class="border-t border-line px-5 py-4" @if ($errors->any()) open @endif>
                         <summary class="cursor-pointer text-sm font-semibold text-primary">İade talebi oluştur</summary>
                         <p class="mt-2 text-xs text-muted">Teslimden sonraki {{ \App\Domain\Store\Returns\ReturnService::returnDays() }} gün içinde (son gün {{ $returnDeadline->format('d.m.Y') }}) cayma hakkınızı kullanabilirsiniz. Talebiniz onaylandığında ürünleri nereye göndereceğinizi e-postayla bildireceğiz.</p>
-                        <form method="POST" action="{{ $returnUrl }}" class="mt-4 space-y-4">
+                        <form method="POST" action="{{ $returnUrl }}" class="mt-4 space-y-4" enctype="multipart/form-data">
                             @csrf
                             <x-store.bot-trap />
                             <fieldset>
@@ -143,6 +213,14 @@
                             </fieldset>
                             <x-field name="reason" label="İade nedeni" :options="['' => 'Seçin'] + StoreReturn::REASONS" required />
                             <x-field name="note" label="Açıklama (isteğe bağlı)" textarea maxlength="500" />
+                            <div>
+                                <label for="iade_foto" class="mb-1.5 block text-sm font-medium">Ürün fotoğrafları</label>
+                                <input id="iade_foto" type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" class="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium">
+                                <p class="mt-1 text-xs text-muted">En fazla {{ StoreReturn::MAX_PHOTOS }} fotoğraf (JPG, PNG; her biri en fazla 10 MB). Ürün hasarlı, yanlış veya açıklamadaki gibi değilse en az 1 fotoğraf zorunludur.</p>
+                                @error('photos')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
+                                @if ($errors->has('photos.*'))<p class="mt-1.5 text-sm text-danger">{{ collect($errors->get('photos.*'))->flatten()->first() }}</p>@endif
+                            </div>
+                            <p class="rounded-lg bg-surface p-3 text-xs text-muted">Talebiniz onaylanınca ürünü kargo şubesinden <b>gönderici ödemeli</b> olarak gönderirsiniz. "Vazgeçtim" iadelerinde kargo ücreti size aittir; ürün hasarlı, yanlış veya açıklamadaki gibi değilse ödediğiniz kargo ücretini iade tutarına ekleriz.</p>
                             @if ($order->refundsToBank())
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <x-field name="iban" label="İade için IBAN" required maxlength="40" placeholder="TR00 0000 0000 0000 0000 0000 00" hint="İade tutarı bu hesaba havale edilir." />

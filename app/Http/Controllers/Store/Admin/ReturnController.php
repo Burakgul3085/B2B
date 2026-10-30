@@ -8,10 +8,12 @@ use App\Models\Store\StoreReturn;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
-/** İade talepleri: liste, ayrıntı; onay, ret, ürünün teslim alınması (stoğa dönüş) ve para iadesi. */
+/** İade talepleri: liste, ayrıntı (fotoğraflar, iade kargosu); onay, ret, ürünün teslim alınması (stoğa dönüş) ve para iadesi. */
 class ReturnController extends Controller
 {
     public function __construct(private ReturnService $returns) {}
@@ -33,11 +35,11 @@ class ReturnController extends Controller
 
     public function show(StoreReturn $storeReturn): View
     {
-        $storeReturn->load(['order', 'items.orderItem', 'refunds']);
+        $storeReturn->load(['order', 'items.orderItem', 'refunds', 'photos']);
 
         return view('store.admin.returns.show', [
             'return' => $storeReturn,
-            'maxRefund' => $storeReturn->status === 'received' ? $this->returns->maxRefund($storeReturn) : null,
+            'maxRefund' => in_array($storeReturn->status, ['approved', 'shipped', 'received'], true) ? $this->returns->maxRefund($storeReturn) : null,
         ]);
     }
 
@@ -69,6 +71,29 @@ class ReturnController extends Controller
 
         return $this->attempt(fn () => $this->returns->refund($storeReturn, $data['amount'], $data['note'] ?? null, $request->ip()),
             'Para iadesi yapıldı; müşteriye e-posta gönderildi.');
+    }
+
+    /** Tek adımda: ürünler teslim alınır (sağlam adetler stoğa) ve para iade edilir. */
+    public function receiveAndRefund(Request $request, StoreReturn $storeReturn): RedirectResponse
+    {
+        $data = $request->validate([
+            'resellable' => ['nullable', 'array'], 'resellable.*' => ['integer', 'min:0'],
+            'amount' => ['required', 'string', 'max:20'], 'note' => ['nullable', 'string', 'max:300'],
+        ], [], ['amount' => 'iade tutarı', 'note' => 'açıklama']);
+        if ($storeReturn->order->payment_method !== 'card' && blank($data['note'] ?? null)) {
+            return back()->withErrors(['note' => 'Havale bilgisini yazın (ör. tarih ve dekont no).'])->withInput();
+        }
+
+        return $this->attempt(fn () => $this->returns->receiveAndRefund($storeReturn, array_map('intval', $data['resellable'] ?? []), $data['amount'], $data['note'] ?? null, $request->ip()),
+            'Ürünler teslim alındı, sağlam olanlar stoğa döndü ve para iadesi yapıldı; müşteriye e-posta gönderildi.');
+    }
+
+    public function photo(StoreReturn $storeReturn, int $photo): Response
+    {
+        $photo = $storeReturn->photos()->findOrFail($photo);
+        abort_unless(Storage::disk('local')->exists($photo->path), 404);
+
+        return Storage::disk('local')->response($photo->path, null, ['Cache-Control' => 'private, max-age=600', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     private function attempt(callable $action, string $message): RedirectResponse

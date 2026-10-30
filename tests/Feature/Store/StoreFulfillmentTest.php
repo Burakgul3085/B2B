@@ -246,7 +246,7 @@ class StoreFulfillmentTest extends TestCase
         $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'yok'])->assertSessionHasErrors('reason');
         $this->post(route('store.order.return', ['orderNo' => $order->order_no, 'token' => str_repeat('x', 40)]), ['items' => [$penItem->id => 1], 'reason' => 'damaged'])->assertNotFound();
 
-        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'damaged', 'note' => 'Uçları kırık'])->assertSessionHasNoErrors();
+        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'damaged', 'note' => 'Uçları kırık', 'photos' => [UploadedFile::fake()->image('kirik.jpg', 800, 600)]])->assertSessionHasNoErrors();
         $return = StoreReturn::sole();
         $this->assertSame(['requested', 'IA'.(100000 + $return->id)], [$return->status, $return->return_no]);
         $this->post($returnUrl, ['items' => [$noteItem->id => 1], 'reason' => 'changed_mind'])->assertSessionHasErrors('return'); // açık talep var
@@ -333,6 +333,108 @@ class StoreFulfillmentTest extends TestCase
         $this->assertSame([], $this->refundRequests(), 'kapıda ödemede iyzico çağrılmaz');
         $this->assertSame(['manual', '100.00'], [StoreRefund::sole()->method, StoreRefund::sole()->amount]);
         $this->assertSame(['refunded', '100.00'], [$order->fresh()->payment_status, $order->fresh()->refunded_total]);
+    }
+
+    public function test_customer_cancels_before_shipping_card_refund_and_transfer_request(): void
+    {
+        $order = $this->paidCardOrder();
+        $cancelUrl = route('store.order.cancel', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
+        $orderUrl = route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
+        $this->get($orderUrl)->assertSee('Siparişi iptal et')->assertSee('kartınıza otomatik iade edilir');
+
+        $this->post($cancelUrl, ['reason' => 'yok'])->assertSessionHasErrors('reason');
+        $this->post(route('store.order.cancel', ['orderNo' => $order->order_no, 'token' => str_repeat('x', 40)]), ['reason' => 'changed_mind'])->assertNotFound();
+        $this->post($cancelUrl, ['reason' => 'changed_mind', 'note' => 'Yanlışlıkla verdim'])->assertSessionHasNoErrors();
+        $order->refresh();
+        $this->assertSame(['cancelled', 'refunded'], [$order->status, $order->payment_status]);
+        $this->assertSame('280.00', number_format(collect($this->refundRequests())->sum(fn ($r) => (float) $r[1]), 2, '.', ''));
+        $this->assertSame([10, 10], [$this->pen->fresh()->stock_quantity, $this->notebook->fresh()->stock_quantity]);
+        $this->assertStringContainsString('Müşteri iptali: Vazgeçtim', $order->cancel_reason);
+        $this->get($orderUrl)->assertDontSee('Siparişi iptal et');
+
+        // Kargoya verilmiş sipariş iptal edilemez.
+        $shipped = $this->paidCardOrder();
+        $this->post(route('store_admin.orders.ship', $shipped), ['carrier_id' => StoreCarrier::where('name', 'Aras Kargo')->value('id'), 'tracking_number' => 'ARS9']);
+        $this->post(route('store.order.cancel', ['orderNo' => $shipped->order_no, 'token' => $shipped->access_token]), ['reason' => 'changed_mind'])->assertSessionHasErrors('cancel');
+        $this->assertSame('shipped', $shipped->fresh()->status);
+
+        // Havalesi alınmış sipariş: para elle döneceği için IBAN ile iptal talebi olur, sipariş açık kalır.
+        $transfer = $this->paidCardOrder();
+        $transfer->forceFill(['payment_method' => 'transfer'])->save();
+        $url = route('store.order.cancel', ['orderNo' => $transfer->order_no, 'token' => $transfer->access_token]);
+        $this->post($url, ['reason' => 'too_slow'])->assertSessionHasErrors('iban');
+        $this->post($url, ['reason' => 'too_slow', 'iban' => 'TR33 0006 1005 1978 6457 8413 26', 'account_name' => 'Ayşe Yılmaz'])->assertSessionHasNoErrors();
+        $transfer->refresh();
+        $this->assertSame(['paid', 'TR330006100519786457841326'], [$transfer->status, $transfer->cancel_refund_iban]);
+        $this->assertNotNull($transfer->cancel_requested_at);
+        $this->post($url, ['reason' => 'too_slow', 'iban' => 'TR330006100519786457841326', 'account_name' => 'Ayşe Yılmaz'])->assertSessionHasErrors('cancel');
+        $this->get(route('store_admin.orders.show', $transfer))->assertSee('Müşteri iptal istedi')->assertSee('TR33 0006 1005 1978 6457 8413 26');
+    }
+
+    public function test_return_photos_customer_shipping_and_one_step_refund(): void
+    {
+        Storage::fake('local');
+        $order = $this->paidCardOrder();
+        $this->deliver($order);
+        $orderUrl = route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
+        $returnUrl = route('store.order.return', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
+        $penItem = $order->items()->firstOrFail();
+
+        // Mağazadan kaynaklı nedende fotoğraf zorunlu; en fazla 5; resim olmayan dosya reddedilir.
+        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'wrong_item'])->assertSessionHasErrors('photos');
+        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'wrong_item', 'photos' => array_fill(0, 6, UploadedFile::fake()->image('a.jpg'))])->assertSessionHasErrors('photos');
+        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'wrong_item', 'photos' => [UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')]])->assertSessionHasErrors('photos.0');
+        $this->post($returnUrl, ['items' => [$penItem->id => 2], 'reason' => 'wrong_item', 'photos' => [UploadedFile::fake()->image('a.jpg', 1200, 900), UploadedFile::fake()->image('b.png', 400, 300)]])
+            ->assertSessionHasNoErrors();
+        $return = StoreReturn::sole();
+        $this->assertSame(2, $return->photos()->count());
+        Storage::disk('local')->assertExists($return->photos()->value('path'));
+
+        // Fotoğraflar: yönetimde ve müşteriye yalnızca imzalı bağlantıyla.
+        $photo = $return->photos()->firstOrFail();
+        $this->get(route('store_admin.returns.photo', [$return, $photo->id]))->assertOk();
+        $this->get(self::HOST.'/iade-fotografi/'.$photo->id)->assertForbidden();
+        $this->get($orderUrl)->assertOk()->assertSee('iade-fotografi/'.$photo->id.'?expires=', false);
+
+        // Onay: müşteri talimatı ve kargo formunu görür; mağaza kaynaklı olduğu için kargo ücretini yazabilir.
+        $this->post(route('store_admin.returns.approve', $return))->assertSessionHasNoErrors();
+        $shipUrl = route('store.order.return.ship', ['orderNo' => $order->order_no, 'token' => $order->access_token, 'returnNo' => $return->return_no]);
+        $this->get($orderUrl)->assertSee('Kargoya verdim')->assertSee('kargo ücretini size iade edeceğiz');
+        $this->post($shipUrl, ['cargo_company' => 'Aras Kargo'])->assertSessionHasErrors('cargo_tracking');
+        $this->post($shipUrl, ['cargo_company' => 'Aras Kargo', 'cargo_tracking' => 'ARS 777', 'cargo_fee' => '20,00'])->assertSessionHasNoErrors();
+        $return->refresh();
+        $this->assertSame(['shipped', 'ARS777', '20.00'], [$return->status, $return->cargo_tracking, (string) $return->cargo_fee]);
+        $this->post($shipUrl, ['cargo_company' => 'Aras', 'cargo_tracking' => 'X1'])->assertSessionHasErrors('return'); // ikinci kez değil
+
+        // Tek adım: teslim al (1 sağlam) ve iade et; ürün payı 200 + iade kargosu 20.
+        $this->assertSame('220.00', app(ReturnService::class)->maxRefund($return));
+        $this->get(route('store_admin.returns.show', $return))->assertOk()->assertSee('Teslim alındı, karta iade et')->assertSee('ARS777')->assertSee('220,00');
+        $this->post(route('store_admin.returns.receive-refund', $return), ['resellable' => [$return->items()->value('id') => 1], 'amount' => '220,00'])
+            ->assertSessionHasNoErrors();
+        $return->refresh();
+        $this->assertSame(['refunded', '220.00'], [$return->status, (string) $return->refund_amount]);
+        $this->assertSame(9, $this->pen->fresh()->stock_quantity);
+        $this->assertSame('220.00', (string) $order->fresh()->refunded_total);
+    }
+
+    public function test_unshipped_approved_returns_get_reminded_then_expire(): void
+    {
+        $order = $this->paidCardOrder();
+        $this->deliver($order);
+        $this->post(route('store.order.return', ['orderNo' => $order->order_no, 'token' => $order->access_token]), ['items' => [$order->items()->value('id') => 1], 'reason' => 'changed_mind']);
+        $return = StoreReturn::sole();
+        $this->post(route('store_admin.returns.approve', $return));
+        $this->get(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]))->assertSee('Kargo ücreti size aittir')->assertDontSee('Ödediğiniz kargo ücreti');
+
+        $this->travel(StoreReturn::REMIND_DAYS + 1)->days();
+        $this->artisan('store:return-reminders')->expectsOutputToContain('1 hatırlatma, 0 kapanan')->assertSuccessful();
+        $this->artisan('store:return-reminders')->expectsOutputToContain('0 hatırlatma, 0 kapanan'); // tek hatırlatma
+        $this->assertNotNull($return->fresh()->reminded_at);
+
+        $this->travel(StoreReturn::EXPIRE_DAYS)->days();
+        $this->artisan('store:return-reminders')->expectsOutputToContain('0 hatırlatma, 1 kapanan');
+        $this->assertSame('expired', $return->fresh()->status);
+        $this->assertSame(2, app(ReturnService::class)->returnableQuantities($order)[$order->items()->value('id')], 'kapanan talebin adedi yeniden istenebilir');
     }
 
     public function test_invoice_upload_and_customer_download(): void

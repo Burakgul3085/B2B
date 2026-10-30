@@ -82,7 +82,7 @@
                 ['label' => 'Siparişler', 'route' => 'store_admin.orders.index', 'icon' => 'file', 'active' => 'store_admin.orders.*',
                     'badge' => \App\Models\Store\StoreOrder::whereIn('status', ['awaiting_approval', 'paid'])->count()],
                 ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
-                    'badge' => \App\Models\Store\StoreReturn::where('status', 'requested')->count()],
+                    'badge' => \App\Models\Store\StoreReturn::whereIn('status', ['requested', 'shipped'])->count()],
                 ['label' => 'Faturalar', 'route' => 'store_admin.invoices.index', 'icon' => 'file', 'active' => 'store_admin.invoices.*',
                     'badge' => \App\Domain\Store\Invoicing\EInvoiceService::awaitingSale()->count()],
                 ['label' => 'Mesajlar', 'route' => 'store_admin.messages.index', 'icon' => 'message-circle', 'active' => 'store_admin.messages.*',

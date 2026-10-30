@@ -9,6 +9,7 @@ use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\RefundService;
 use App\Domain\Support\Money;
+use App\Domain\Support\Payments\Iban;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreCodBlock;
@@ -17,6 +18,8 @@ use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreStockMovement;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Sipariş durum geçişleri (docs/13-magaza-mimarisi.md §8.3). Her geçiş:
@@ -279,6 +282,58 @@ class OrderService
             }
         });
         $this->mailer->cancelled($order->fresh());
+    }
+
+    /**
+     * Müşterinin kendi iptali (kargoya verilmeden önce: onay bekliyor, havale bekleniyor, ödendi, hazırlanıyor).
+     * Kartla ödenmişse tutar iyzico'dan karta iade edilir; kapıda ödeme ve ödenmemiş havale doğrudan iptal olur.
+     * Havalesi alınmış siparişte para elle iade edileceği için iptal talebi kaydedilir (IBAN ile); yönetici tamamlar.
+     *
+     * @return bool true: iptal edildi, false: iptal talebi alındı
+     *
+     * @throws ValidationException|DomainException
+     */
+    public function cancelByCustomer(StoreOrder $order, array $input, ?string $ip): bool
+    {
+        $data = Validator::make($input, [
+            'reason' => ['required', 'in:'.implode(',', array_keys(StoreOrder::CANCEL_REASONS))],
+            'note' => ['nullable', 'string', 'max:200'],
+            'iban' => ['nullable', 'string', 'max:40'],
+            'account_name' => ['nullable', 'string', 'max:120'],
+        ], [], ['reason' => 'iptal nedeni', 'note' => 'açıklama', 'iban' => 'IBAN', 'account_name' => 'hesap sahibi'])->validate();
+
+        if (! $order->customerCancellable()) {
+            throw new DomainException($order->cancel_requested_at ? 'İptal talebiniz alındı; işleme alınmasını bekleyin.' : 'Siparişiniz kargoya verildiği için iptal edilemez. Teslim aldıktan sonra iade talebi oluşturabilirsiniz.');
+        }
+        $reason = StoreOrder::CANCEL_REASONS[$data['reason']].(filled($data['note'] ?? null) ? ': '.trim($data['note']) : '');
+
+        if ($order->payment_method === 'transfer' && bccomp($order->refundableAmount(), '0', 2) > 0) {
+            $iban = Iban::normalize($data['iban'] ?? null);
+            if (! $iban || blank($data['account_name'] ?? null)) {
+                throw ValidationException::withMessages(['iban' => 'Ödemeniz havaleyle alındığı için iade edilecek hesabın IBAN\'ını ve hesap sahibini yazın.']);
+            }
+            DB::transaction(function () use ($order, $reason, $iban, $data) {
+                $locked = $this->lock($order);
+                if ($locked->cancel_requested_at || ! in_array($locked->status, StoreOrder::CUSTOMER_CANCELLABLE, true)) {
+                    throw new DomainException('Bu sipariş için iptal talebi alınamıyor.');
+                }
+                $locked->forceFill(['cancel_requested_at' => now(), 'cancel_request_reason' => mb_substr($reason, 0, 300),
+                    'cancel_refund_iban' => $iban, 'cancel_refund_name' => mb_substr(trim($data['account_name']), 0, 120)])->save();
+                $order->setRawAttributes($locked->getAttributes(), true);
+                $this->event($locked, 'cancel_request', 'Müşteri iptal istedi: '.$reason);
+                $this->audit->log('store.order_cancel_requested', $locked, [], ['order_no' => $locked->order_no, 'reason' => $reason]);
+            });
+            $this->mailer->cancelRequested($order);
+            $this->notifier->customerCancelled($order, true);
+
+            return false;
+        }
+
+        $from = $order->status;
+        $this->cancel($order, 'Müşteri iptali: '.$reason, $ip);
+        $this->notifier->customerCancelled($order->refresh(), false, $from);
+
+        return true;
     }
 
     /** @param  list<string>  $from */

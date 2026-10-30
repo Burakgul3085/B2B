@@ -23,7 +23,7 @@
                         @case('requested')
                             <form method="POST" action="{{ route('store_admin.returns.approve', $return) }}" class="space-y-3 rounded-xl bg-surface p-4">
                                 @csrf
-                                <x-field name="note" label="Müşteriye not (isteğe bağlı)" textarea maxlength="500" hint="Onay e-postasında iade adresiyle birlikte gönderilir (ör. anlaşmalı kargo kodu)." />
+                                <x-field name="note" label="Müşteriye not (isteğe bağlı)" textarea maxlength="500" hint="Onay e-postasında iade adresi, kargo ücreti kuralı ve kargolama süresiyle birlikte gönderilir." />
                                 <x-button icon="check">İadeyi onayla</x-button>
                             </form>
                             <form method="POST" action="{{ route('store_admin.returns.reject', $return) }}" class="flex flex-wrap items-end gap-3" data-confirm="İade talebi reddedilsin mi? Müşteriye gerekçeyle birlikte e-posta gönderilir.">
@@ -33,17 +33,44 @@
                             </form>
                             @break
                         @case('approved')
-                            <form method="POST" action="{{ route('store_admin.returns.receive', $return) }}" class="space-y-3 rounded-xl bg-surface p-4" data-confirm="Ürünler teslim alındı olarak işaretlensin mi? Sağlam adetler stoğa eklenir.">
+                        @case('shipped')
+                            @if ($return->status === 'approved')
+                                <p class="rounded-lg bg-surface p-3 text-muted">Müşterinin ürünü kargolaması bekleniyor (en geç {{ $return->shipDeadline()?->timezone('Europe/Istanbul')->format('d.m.Y') }}; kargo bilgisi girilmezse {{ \App\Models\Store\StoreReturn::REMIND_DAYS }}. günde hatırlatma gider, {{ \App\Models\Store\StoreReturn::EXPIRE_DAYS }}. günde talep kapanır). Ürün kargo bilgisi girilmeden elinize ulaştıysa yine teslim alabilirsiniz.</p>
+                            @endif
+                            <form method="POST" action="{{ route('store_admin.returns.receive-refund', $return) }}" class="space-y-3 rounded-xl bg-surface p-4"
+                                data-confirm="{{ $isCard ? 'Ürünler teslim alınsın ve tutar iyzico üzerinden karta iade edilsin mi? Bu işlem geri alınamaz.' : 'Ürünler teslim alınsın ve havaleyle yaptığınız para iadesi kaydedilsin mi?' }}">
                                 @csrf
-                                <p class="text-muted">Ürünler elinize ulaştığında kontrol edin. Satılabilir durumdaki adetler stoğa geri eklenir; hasarlı adetleri 0 bırakın.</p>
+                                <p class="font-medium text-ink">Teslim alındı, iade et</p>
+                                <p class="text-muted">Ürünleri kontrol edin: satılabilir adetler stoğa döner (hasarlı adetleri 0 yapın). Para iadesi aynı anda yapılır.</p>
                                 @foreach ($return->items as $item)
                                     <div class="flex flex-wrap items-center justify-between gap-3">
                                         <span>{{ $item->orderItem->product_name }}@if ($item->orderItem->option_label) <span class="text-muted">({{ $item->orderItem->option_label }})</span>@endif · {{ $item->quantity }} adet</span>
                                         <x-field :name="'resellable['.$item->id.']'" label="Stoğa dönecek adet" type="number" min="0" :max="$item->quantity" :value="$item->quantity" class="w-40" />
                                     </div>
                                 @endforeach
-                                <x-button icon="check-circle">Ürünler teslim alındı</x-button>
+                                @unless ($isCard)
+                                    <p class="rounded-lg bg-white p-3 ring-1 ring-line">Tutarı bu hesaba gönderin: <span class="font-mono">{{ trim(chunk_split((string) $return->refund_iban, 4, ' ')) }}</span><span class="block text-muted">{{ $return->refund_account_name }}</span></p>
+                                @endunless
+                                <div class="flex flex-wrap items-end gap-3">
+                                    <x-field name="amount" label="İade tutarı (₺)" required inputmode="decimal" :value="number_format((float) $maxRefund, 2, ',', '')" class="w-48"
+                                        :hint="'Hesaplanan: '.Money::format($maxRefund).($return->sellerFault() && $return->cargo_fee !== null ? ' (müşterinin ödediği '.Money::format($return->cargo_fee).' iade kargosu dahil)' : '').'. Gerekirse düşürebilirsiniz.'" />
+                                    <x-field name="note" :label="$isCard ? 'Açıklama (isteğe bağlı)' : 'Havale bilgisi'" :required="! $isCard" maxlength="300" class="min-w-64 flex-1" :placeholder="$isCard ? null : 'ör. 21.10.2026 EFT, dekont no 12345'" />
+                                </div>
+                                <x-button icon="check-circle">{{ $isCard ? 'Teslim alındı, karta iade et' : 'Teslim alındı, iadeyi kaydet' }}</x-button>
                             </form>
+                            <details class="text-sm">
+                                <summary class="cursor-pointer text-muted">Yalnızca teslim al (para iadesini sonra yap)</summary>
+                                <form method="POST" action="{{ route('store_admin.returns.receive', $return) }}" class="mt-3 space-y-3" data-confirm="Ürünler teslim alındı olarak işaretlensin mi? Sağlam adetler stoğa eklenir.">
+                                    @csrf
+                                    @foreach ($return->items as $item)
+                                        <div class="flex flex-wrap items-center justify-between gap-3">
+                                            <span>{{ $item->orderItem->product_name }} · {{ $item->quantity }} adet</span>
+                                            <x-field :name="'resellable['.$item->id.']'" label="Stoğa dönecek adet" type="number" min="0" :max="$item->quantity" :value="$item->quantity" class="w-40" />
+                                        </div>
+                                    @endforeach
+                                    <x-button variant="secondary" size="sm">Ürünler teslim alındı</x-button>
+                                </form>
+                            </details>
                             @break
                         @case('received')
                             <form method="POST" action="{{ route('store_admin.returns.refund', $return) }}" class="space-y-3 rounded-xl bg-surface p-4"
@@ -68,6 +95,18 @@
                     @endswitch
                 </div>
             </x-card>
+
+            @if ($return->photos->isNotEmpty())
+                <x-card title="Müşterinin fotoğrafları">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                        @foreach ($return->photos as $photo)
+                            <a href="{{ route('store_admin.returns.photo', [$return, $photo->id]) }}" target="_blank" rel="noopener" class="block aspect-square overflow-hidden rounded-lg ring-1 ring-line">
+                                <img src="{{ route('store_admin.returns.photo', [$return, $photo->id]) }}" alt="İade fotoğrafı {{ $loop->iteration }}" class="size-full object-cover">
+                            </a>
+                        @endforeach
+                    </div>
+                </x-card>
+            @endif
 
             <x-card title="İade edilen ürünler" :padding="false">
                 <table class="table-base">
@@ -112,6 +151,11 @@
                 <p class="text-sm font-medium">{{ $order->shipping_name }}</p>
                 <p class="text-sm"><a href="tel:{{ $order->phone }}" class="text-primary hover:underline">{{ PhoneNumber::format($order->phone) }}</a> · <a href="mailto:{{ $order->email }}" class="break-all text-primary hover:underline">{{ $order->email }}</a></p>
                 @if ($return->customer_note)<p class="mt-3 rounded-lg bg-warning-soft p-3 text-sm text-amber-900">Müşteri notu: {{ $return->customer_note }}</p>@endif
+                <p class="mt-3 text-sm"><span class="text-muted">İade kargosu:</span>
+                    @if ($return->cargo_tracking){{ $return->cargo_company }} · <span class="font-mono">{{ $return->cargo_tracking }}</span>
+                        <span class="block text-xs text-muted">{{ $return->shipped_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}@if ($return->cargo_fee !== null) · müşterinin ödediği: {{ Money::format($return->cargo_fee) }}@endif</span>
+                    @else <span class="text-muted">{{ $return->status === 'approved' ? 'henüz girilmedi' : '—' }}</span>@endif</p>
+                <p class="mt-1 text-xs text-muted">{{ $return->sellerFault() ? 'Neden mağazadan kaynaklı: iade kargosu müşteriye ödenir.' : 'Vazgeçme iadesi: iade kargosu müşteriye aittir.' }}</p>
                 @if ($return->admin_note)<p class="mt-3 rounded-lg bg-surface p-3 text-sm">Yönetici notu: {{ $return->admin_note }}</p>@endif
             </x-card>
         </div>
