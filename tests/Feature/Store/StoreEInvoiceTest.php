@@ -70,7 +70,7 @@ class StoreEInvoiceTest extends TestCase
             $this->soap[] = $m[1] ?? '?';
 
             return Http::response(match ($m[1] ?? '') {
-                'WhoAmI' => $this->soapResult('WhoAmI', '<Value Title="EBRU BİRBİLEN"/>'),
+                'WhoAmI' => $this->soapResult('WhoAmI', '<Value><Customer><Name>EBRU BİRBİLEN</Name><VkTckNo>18508621764</VkTckNo></Customer></Value>'),
                 'IsEInvoiceUser' => $this->soapResult('IsEInvoiceUser', '', 'Value="false"'),
                 'SendInvoice' => $this->soapResult('SendInvoice', '<Value Id="11111111-2222-3333-4444-555555555555" Number="YAP2026000000001"/>'),
                 'GetOutboxInvoicePdf' => $this->soapResult('GetOutboxInvoicePdf', '<Value><Data>'.base64_encode('%PDF-1.4 uyumsoft').'</Data></Value>'),
@@ -318,7 +318,7 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame('gizli', StoreSetting::secret('uyumsoft_password'));
         $this->get(self::ADMIN.'/ayarlar/fatura')->assertDontSee('gizli');
 
-        $this->post(self::ADMIN.'/ayarlar/fatura/dene')->assertSessionHas('status', fn ($s) => str_contains($s, 'EBRU BİRBİLEN'));
+        $this->post(self::ADMIN.'/ayarlar/fatura/dene')->assertSessionHas('status', fn ($s) => str_contains($s, 'EBRU BİRBİLEN') && ! str_contains($s, 'DİKKAT'));
 
         // Uyumsoft ile gönderim: UBL içinde satıcı TCKN'si ve e-Arşiv profili, numara ve PDF Uyumsoft'tan gelir.
         $order = $this->paidOrder(['billing_type' => 'individual']);
@@ -330,7 +330,13 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame(['WhoAmI', 'SendInvoice', 'GetOutboxInvoicePdf'], $this->soap);
         Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'efatura-test.uyumsoft.com.tr') && str_contains($r->body(), '<cbc:ProfileID>EARSIVFATURA</cbc:ProfileID>')
             && str_contains($r->body(), 'schemeID="TCKN">18508621764') && str_contains($r->body(), '<tem:Scenario>eArchive</tem:Scenario>')
-            && str_contains($r->body(), 'PaymentType="KREDIKARTI/BANKAKARTI"') && ! str_contains($r->body(), 'gizli"/><tem:userInfo'));
+            && str_contains($r->body(), '<tem:PaymentType>KREDIKARTI/BANKAKARTI</tem:PaymentType>') && str_contains($r->body(), '<tem:CreateDateUtc>')
+            // Kimlik WS-Security başlığında; gövdede şifre yok.
+            && str_contains($r->body(), '<wsse:Username>Uyumsoft</wsse:Username>') && ! str_contains($r->body(), 'userInfo'));
+
+        // Gönderici kimliği Uyumsoft hesabındakinden farklıysa bağlantı denemesi uyarır.
+        StoreSetting::put(['invoice_sender_id' => '1770247133']);
+        $this->post(self::ADMIN.'/ayarlar/fatura/dene')->assertSessionHas('status', fn ($s) => str_contains($s, 'DİKKAT') && str_contains($s, '18508621764'));
 
         // Süper admin olmayan yönetici ayarları göremez, faturaları görür.
         $this->flushSession();

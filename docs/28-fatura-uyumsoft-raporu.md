@@ -40,25 +40,42 @@
 - Görünümler: `resources/views/store/admin/invoices/`. Alpine bileşenleri: `invoiceEditor`, `pickList`.
 - Test: `tests/Feature/Store/StoreEInvoiceTest.php` (11 test).
 
-## Uyumsoft: bilgiler gelince yapılacaklar
+## Uyumsoft: test ortamında doğrulandı (31.10.2026)
 
-`UyumsoftProvider` Uyumsoft'un SOAP Integration servisine göre yazıldı ama gerçek hesapla **denenmedi**. Kullandığı işlemler:
-- WhoAmI
-- IsEInvoiceUser
-- GetUserAliasses
-- SendInvoice
-- GetOutboxInvoice
-- GetOutboxInvoicePdf
-- CancelEArchiveInvoice
+`UyumsoftProvider` Uyumsoft'un WSDL'ine (`https://efatura-test.uyumsoft.com.tr/Services/Integration?singleWsdl`) göre düzeltildi ve Uyumsoft'un ortak test hesabıyla (kullanıcı `Uyumsoft`, VKN 9000068418) uçtan uca denendi:
 
-Bilgiler gelince sırayla:
+- Bağlantı (WhoAmI)
+- Bireysel e-Arşiv: numara (BOX…), ETTN, PDF
+- Sorgu
+- e-Arşiv iade faturası
+- Kurumsal alıcıya e-Fatura (DRP…)
+- e-Arşiv iptali
 
-1. Fatura Ayarları'nda Sağlayıcı = Uyumsoft, Ortam = Test seçin. Kullanıcı adı, şifre ve gönderici VKN/TCKN'yi girin, ardından "Bağlantıyı dene". Yapboz şahıs firmasıdır; e-Fatura kaydı sahibin TCKN'si ile yapılmışsa gönderici kimliğine TCKN yazılır (Uyumsoft'a sorun).
-2. Test ortamında üç fatura deneyin: bireysel e-Arşiv, kurumsal e-Fatura mükellefi ve iade faturası. Uyumsoft'un yanıt alanlarını (fatura numarası, PDF, iptal) kontrol edin; gerekirse `UyumsoftProvider`'da işlem ve alan adlarını düzeltin.
-3. Mali müşavirle teyit edin:
-   - Seri ve numaralandırma (numarayı Uyumsoft verir)
+Düzeltilenler:
+
+- **Kimlik doğrulama:** WS-Security UsernameToken başlığıyla yapılır. Eskiden gövdede `userInfo` gönderiliyordu ve servis bunu "InvalidSecurity" diye reddediyordu.
+- **`InvoiceInfo`:**
+  - Zorunlu `CreateDateUtc` eklendi.
+  - Öğe sırası: Invoice, TargetCustomer, EArchiveInvoiceInfo, Scenario, CreateDateUtc.
+  - `InternetSalesInfo` öğeleri öznitelik değil, alt öğedir. `ShipmentInfo` (`SendDate` + `Carier`) bunun içindedir.
+- **İptal:** `CancelEArchiveInvoice` isteği `<request InvoiceId CancelDate/>` biçimindedir.
+- **Alıcı posta kutusu:** `GetUserAliasses` → `ReceiverboxAliases/@Alias`. Açık olan ve tercihen `urn:mail:` ile başlayan etiket seçilir.
+- **Bağlantı denemesi:** Hesabın unvanını ve VKN/TCKN'sini gösterir. Gönderici kimliği hesaptakinden farklıysa uyarır.
+
+Not: Yerel Windows PHP'sinde CA sertifika paketi tanımlı değildir. Gerçek servise yerelden bağlanmak için `php -d curl.cainfo=… -d openssl.cafile=…` gerekir. Sunucuda gerekmez.
+
+## Canlıya geçiş
+
+1. Uyumsoft'tan **web servis (Integration) kullanıcısı** istenir. Portal kullanıcısıyla aynı olmayabilir. Canlı servis: `https://efatura.uyumsoft.com.tr/Services/Integration`. IP kısıtlaması varsa sunucu IP'si (187.126.9.129) tanımlatılır.
+2. Fatura Ayarları:
+   - Sağlayıcı = Uyumsoft, Ortam = Canlı.
+   - Web servis kullanıcı adı ve şifresi girilir.
+   - Gönderici VKN/TCKN = Uyumsoft hesabındaki kimlik. "Bağlantıyı dene" bunu gösterir ve farklıysa uyarır.
+   - "Bağlantıyı dene" çalıştırılır.
+3. Mağaza ayarlarında firma unvanı, adres ve vergi dairesi doğru olmalıdır, çünkü faturada satıcı bilgisi olarak bunlar çıkar.
+4. Mali müşavirle teyit edin:
    - %0 KDV istisna kodu (şimdilik 351)
    - Kargo kaleminin KDV oranı
-   - Bireysel müşterinin iadesinde e-Arşiv iade faturası mı, gider pusulası mı kullanılacağı
-   - Kimliği bilinmeyen bireysel alıcıda (11111111111) tutar sınırı
-4. Ortam = Canlı.
+   - Bireysel iadede e-Arşiv iade faturası mı, gider pusulası mı kesilecek
+   - 11111111111 için tutar sınırı
+5. İlk gerçek siparişte faturayı kesip PDF'i ve Uyumsoft portalındaki kaydı kontrol edin.

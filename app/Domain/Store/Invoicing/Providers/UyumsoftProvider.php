@@ -18,10 +18,12 @@ use Throwable;
  *   test: https://efatura-test.uyumsoft.com.tr/Services/Integration
  *   canlı: https://efatura.uyumsoft.com.tr/Services/Integration
  *
+ * Kimlik doğrulaması WS-Security UsernameToken başlığıyla yapılır (Uyumsoft web servis kullanıcısı; portal kullanıcısından
+ * ayrı olabilir). İstek yapısı servisin WSDL'ine göredir (?singleWsdl); test ortamında Uyumsoft'un ortak test hesabıyla
+ * (VKN 9000068418) uçtan uca denendi.
+ *
  * Kullanılan işlemler: WhoAmI (bağlantı denemesi), IsEInvoiceUser + GetUserAliasses (alıcı e-Fatura mükellefi mi,
  * posta kutusu etiketi), SendInvoice, GetOutboxInvoice (ETTN ile sorgu), GetOutboxInvoicePdf, CancelEArchiveInvoice.
- * NOT: İşlem ve alan adları Uyumsoft'un Integration servisine göre yazıldı; Uyumsoft test hesabı bilgileri gelince
- * test ortamında uçtan uca doğrulanmalıdır (docs/26-fatura-uyumsoft.md).
  */
 final class UyumsoftProvider implements EInvoiceProvider
 {
@@ -30,6 +32,10 @@ final class UyumsoftProvider implements EInvoiceProvider
     public const LIVE_URL = 'https://efatura.uyumsoft.com.tr/Services/Integration';
 
     private const NS = 'http://tempuri.org/';
+
+    private const NS_WSSE = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd';
+
+    private const PASSWORD_TEXT = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText';
 
     public function __construct(private UblBuilder $ubl) {}
 
@@ -55,11 +61,15 @@ final class UyumsoftProvider implements EInvoiceProvider
             return ['registered' => false, 'alias' => null, 'title' => null];
         }
 
-        // Alıcının posta kutusu (PK) etiketi: e-Fatura bu etikete gönderilir.
+        // Alıcının posta kutusu (PK) etiketi: e-Fatura bu etikete gönderilir. Açık etiketlerden "urn:mail:" ile başlayan
+        // (GİB'deki tam etiket) tercih edilir.
         $aliases = $this->call('GetUserAliasses', '<tem:vknTckn>'.$this->e($taxNumber).'</tem:vknTckn>');
-        $box = $this->first($aliases, 'Receiverboxes') ?? $this->first($aliases, 'ReceiverboxAlias');
+        $boxes = collect($this->all($aliases, 'ReceiverboxAliases'))
+            ->filter(fn (DOMElement $box) => strtolower($box->getAttribute('Enabled')) !== 'false' && $box->getAttribute('Alias') !== '')
+            ->map(fn (DOMElement $box) => $box->getAttribute('Alias'));
+        $alias = $boxes->first(fn ($a) => str_starts_with($a, 'urn:mail:')) ?? $boxes->first();
 
-        return ['registered' => true, 'alias' => $box?->getAttribute('Alias') ?: ($box?->textContent ?: null), 'title' => $this->first($aliases, 'Value')?->getAttribute('Title') ?: null];
+        return ['registered' => true, 'alias' => $alias, 'title' => $this->first($aliases, 'Definition')?->getAttribute('Title') ?: null];
     }
 
     public function send(StoreEInvoice $invoice, string $documentType, ?string $alias): array
@@ -74,10 +84,12 @@ final class UyumsoftProvider implements EInvoiceProvider
         $target = $documentType === 'e_fatura'
             ? '<tem:TargetCustomer VknTckn="'.$this->e((string) $invoice->buyer_tax_number).'" Alias="'.$this->e((string) $alias).'" Title="'.$this->e($invoice->buyer_name).'"/>'
             : '';
+        // Öğe sırası WSDL'deki gibidir: Invoice, TargetCustomer, EArchiveInvoiceInfo, Scenario, CreateDateUtc.
         $body = '<tem:invoices><tem:InvoiceInfo LocalDocumentId="'.$this->e($invoice->local_id).'">'
             .'<tem:Invoice xmlns:cac="'.UblBuilder::NS_CAC.'" xmlns:cbc="'.UblBuilder::NS_CBC.'">'.$inner.'</tem:Invoice>'
             .$target.$earchive
             .'<tem:Scenario>'.($documentType === 'e_fatura' ? 'eInvoice' : 'eArchive').'</tem:Scenario>'
+            .'<tem:CreateDateUtc>'.now('UTC')->format('Y-m-d\TH:i:s').'</tem:CreateDateUtc>'
             .'</tem:InvoiceInfo></tem:invoices>';
 
         $result = $this->call('SendInvoice', $body, reject: true);
@@ -111,15 +123,26 @@ final class UyumsoftProvider implements EInvoiceProvider
 
     public function cancel(StoreEInvoice $invoice, string $reason): void
     {
-        $this->call('CancelEArchiveInvoice', '<tem:invoiceId>'.$this->e((string) $invoice->ettn).'</tem:invoiceId>', reject: true);
+        $result = $this->call('CancelEArchiveInvoice', '<tem:request InvoiceId="'.$this->e((string) $invoice->ettn).'" CancelDate="'.now('Europe/Istanbul')->format('Y-m-d\TH:i:s').'"/>', reject: true);
+        if (strtolower($result->getAttribute('Value')) === 'false') {
+            throw new EInvoiceRejected('Uyumsoft e-Arşiv faturayı iptal etmedi'.($result->getAttribute('Message') ? ': '.mb_substr($result->getAttribute('Message'), 0, 300) : '.'));
+        }
     }
 
     public function test(): string
     {
         $result = $this->call('WhoAmI', '', reject: true);
-        $title = $this->first($result, 'Value')?->getAttribute('Title') ?: $this->first($result, 'Title')?->textContent;
+        $customer = $this->first($result, 'Customer');
+        $title = trim((string) ($customer ? $this->first($customer, 'Name')?->textContent : ''));
+        $taxNumber = trim((string) ($customer ? $this->first($customer, 'VkTckNo')?->textContent : ''));
+        $message = 'Uyumsoft bağlantısı başarılı ('.(StoreSetting::get('uyumsoft_mode') === 'live' ? 'canlı' : 'test').' ortam)'
+            .($title !== '' ? ": {$title}" : '').($taxNumber !== '' ? ", VKN/TCKN {$taxNumber}" : '').'.';
+        $sender = (string) preg_replace('/\D/', '', (string) (StoreSetting::get('invoice_sender_id') ?: StoreSetting::get('company_tax_number')));
+        if ($taxNumber !== '' && $sender !== $taxNumber) {
+            $message .= " DİKKAT: Gönderici VKN/TCKN ({$sender}) Uyumsoft hesabındakiyle aynı değil; faturalar reddedilir. Fatura Ayarları'nda {$taxNumber} yazın.";
+        }
 
-        return 'Uyumsoft bağlantısı başarılı ('.(StoreSetting::get('uyumsoft_mode') === 'live' ? 'canlı' : 'test').' ortam)'.($title ? ": {$title}" : '').'.';
+        return $message;
     }
 
     /** İade faturasında dayanılan satış faturası (numara ve tarih). */
@@ -144,9 +167,15 @@ final class UyumsoftProvider implements EInvoiceProvider
             default => 'DIGER',
         };
 
-        return '<tem:InternetSalesInfo WebAddress="'.$this->e('https://'.config('store.domain')).'" PaymentMidierName="'.($order->payment_method === 'card' ? 'iyzico' : '').'"'
-            .' PaymentType="'.$type.'" PaymentDate="'.($order->paid_at ?? $order->created_at)->timezone('Europe/Istanbul')->format('Y-m-d').'"/>'
-            .'<tem:ShipmentInfo SendDate="'.($order->shipped_at ?? now())->timezone('Europe/Istanbul')->format('Y-m-d').'" Carrier="'.$this->e((string) ($order->carrier ?: 'Mağaza teslimatı')).'"/>';
+        // WSDL: InternetSalesInfo öğeleri (WebAddress, PaymentMidierName, PaymentType, PaymentDate, ShipmentInfo) bu sırayla.
+        return '<tem:InternetSalesInfo>'
+            .'<tem:WebAddress>'.$this->e('https://'.config('store.domain')).'</tem:WebAddress>'
+            .'<tem:PaymentMidierName>'.($order->payment_method === 'card' ? 'iyzico' : '').'</tem:PaymentMidierName>'
+            .'<tem:PaymentType>'.$type.'</tem:PaymentType>'
+            .'<tem:PaymentDate>'.($order->paid_at ?? $order->created_at)->timezone('Europe/Istanbul')->format('Y-m-d\TH:i:s').'</tem:PaymentDate>'
+            .'<tem:ShipmentInfo><tem:SendDate>'.($order->shipped_at ?? now())->timezone('Europe/Istanbul')->format('Y-m-d\TH:i:s').'</tem:SendDate>'
+            .'<tem:Carier SenderName="'.$this->e(mb_substr((string) ($order->carrier ?: 'Mağaza teslimatı'), 0, 100)).'"/></tem:ShipmentInfo>'
+            .'</tem:InternetSalesInfo>';
     }
 
     private function pdf(string $ettn): string
@@ -172,10 +201,13 @@ final class UyumsoftProvider implements EInvoiceProvider
         if (! $this->isConfigured()) {
             throw new EInvoiceRejected('Uyumsoft kullanıcı adı ve şifresi girilmemiş (Ayarlar → Fatura).');
         }
-        $user = '<tem:userInfo Username="'.$this->e((string) StoreSetting::get('uyumsoft_username')).'" Password="'.$this->e((string) StoreSetting::secret('uyumsoft_password')).'"/>';
+        $security = '<wsse:Security xmlns:wsse="'.self::NS_WSSE.'"><wsse:UsernameToken>'
+            .'<wsse:Username>'.$this->e((string) StoreSetting::get('uyumsoft_username')).'</wsse:Username>'
+            .'<wsse:Password Type="'.self::PASSWORD_TEXT.'">'.$this->e((string) StoreSetting::secret('uyumsoft_password')).'</wsse:Password>'
+            .'</wsse:UsernameToken></wsse:Security>';
         $envelope = '<?xml version="1.0" encoding="utf-8"?>'
             .'<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="'.self::NS.'">'
-            .'<soapenv:Header/><soapenv:Body><tem:'.$method.'>'.$user.$args.'</tem:'.$method.'></soapenv:Body></soapenv:Envelope>';
+            .'<soapenv:Header>'.$security.'</soapenv:Header><soapenv:Body><tem:'.$method.'>'.$args.'</tem:'.$method.'></soapenv:Body></soapenv:Envelope>';
 
         try {
             $response = Http::timeout(60)->withHeaders([
@@ -204,6 +236,14 @@ final class UyumsoftProvider implements EInvoiceProvider
         }
 
         return $result;
+    }
+
+    /** @return list<DOMElement> */
+    private function all(DOMElement $node, string $name): array
+    {
+        $found = (new DOMXPath($node->ownerDocument))->query('.//*[local-name()="'.$name.'"]', $node);
+
+        return array_values(array_filter(iterator_to_array($found), fn ($n) => $n instanceof DOMElement));
     }
 
     private function first(DOMElement $node, string $name): ?DOMElement
