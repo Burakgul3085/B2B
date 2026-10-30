@@ -6,12 +6,14 @@ use App\Domain\Store\Orders\CodPolicy;
 use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\NewOrderAlerts;
 use App\Domain\Store\Orders\OrderService;
+use App\Domain\Store\Payments\RefundService;
 use App\Domain\Store\Returns\ReturnService;
 use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreRefund;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -147,6 +149,16 @@ class OrderController extends Controller
 
         return $this->attempt(fn () => $this->orders->refundWithoutReturn($storeOrder, $data['amount'], $data['method'] ?? 'iyzico', $data['refund_reason'], $request->ip()),
             'Para iadesi yapıldı; müşteriye e-posta gönderildi.');
+    }
+
+    /** Sonucu belirsiz iade: iyzico panelinde yapıldı / yapılmadı. */
+    public function resolveRefund(Request $request, StoreOrder $storeOrder, StoreRefund $storeRefund, RefundService $refunds): RedirectResponse
+    {
+        abort_unless($storeRefund->order_id === $storeOrder->id, 404);
+        $done = $request->validate(['result' => ['required', 'in:done,not_done']])['result'] === 'done';
+
+        return $this->attempt(fn () => $refunds->resolveUncertain($storeRefund, $done),
+            $done ? 'İade yapıldı olarak işlendi.' : 'İade yapılmadı olarak işaretlendi; yeniden iade yapabilirsiniz.');
     }
 
     public function storeCreditNote(Request $request, StoreOrder $storeOrder, InvoiceService $invoices): RedirectResponse

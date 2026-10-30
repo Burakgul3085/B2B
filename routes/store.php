@@ -130,6 +130,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::post('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'storeInvoice'])->name('orders.invoice.store');
             Route::post('siparisler/{storeOrder}/iade', [Admin\OrderController::class, 'storeReturn'])->name('orders.return');
             Route::post('siparisler/{storeOrder}/para-iadesi', [Admin\OrderController::class, 'refund'])->name('orders.refund');
+            Route::post('siparisler/{storeOrder}/para-iadesi/{storeRefund}/sonuc', [Admin\OrderController::class, 'resolveRefund'])->name('orders.refund-resolve');
             Route::post('siparisler/{storeOrder}/iade-faturasi', [Admin\OrderController::class, 'storeCreditNote'])->name('orders.credit-note.store');
             Route::get('siparisler/{storeOrder}/iade-faturasi/{note}', [Admin\OrderController::class, 'creditNote'])->whereNumber('note')->name('orders.credit-note');
             Route::get('siparisler/{storeOrder}/fatura', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
@@ -351,6 +352,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::get('siparis/{orderNo}/{token}/fatura', [Front\OrderController::class, 'invoiceByToken'])->middleware('throttle:30,1,order.invoice')->name('order.invoice');
         Route::post('siparis/{orderNo}/{token}/iade', [Front\ReturnController::class, 'storeByToken'])->middleware(['throttle:10,1,order.return', 'store.bot'])->name('order.return');
         Route::post('siparis/{orderNo}/{token}/iade/{returnNo}/kargo', [Front\ReturnController::class, 'shipByToken'])->middleware('throttle:10,1,order.return.ship')->name('order.return.ship');
+        Route::get('siparis/{orderNo}/{token}/odeme-durumu', [Front\OrderController::class, 'paymentStatus'])->middleware('throttle:40,1,order.payment-status')->name('order.payment-status');
         Route::post('siparis/{orderNo}/{token}/iptal', [Front\OrderController::class, 'cancelByToken'])->middleware(['throttle:10,1,order.cancel', 'store.bot'])->name('order.cancel');
         // İade fotoğrafı: müşterinin sipariş sayfasındaki imzalı (1 saatlik) bağlantı
         Route::get('iade-fotografi/{photo}', [Front\ReturnController::class, 'photo'])->whereNumber('photo')->middleware(['signed', 'throttle:120,1,return.photo'])->name('return-photo');

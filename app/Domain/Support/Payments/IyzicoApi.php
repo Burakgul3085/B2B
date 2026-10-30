@@ -20,7 +20,41 @@ final class IyzicoApi
 
     public const LIVE_URL = 'https://api.iyzipay.com';
 
+    /** Son yanıtın ham gövdesi (imza doğrulamasında fiyatlar yazıldığı gibi kullanılır). */
+    private string $lastBody = '';
+
     public function __construct(private ?string $apiKey, private ?string $secretKey, private string $mode = 'sandbox') {}
+
+    public function mode(): string
+    {
+        return $this->mode === 'live' ? 'live' : 'sandbox';
+    }
+
+    /**
+     * Ödeme formu sonucunun iyzico imzası: HMAC-SHA256(paymentStatus:paymentId:currency:basketId:conversationId:paidPrice:price:token,
+     * gizli anahtar). Yanıt zaten HTTPS ile doğrudan iyzico'dan alınır; imza ek bir doğrulamadır.
+     *
+     * @return bool|null null: yanıtta imza yok (doğrulanamadı)
+     */
+    public function checkoutSignatureValid(array $result, string $token): ?bool
+    {
+        if (empty($result['signature']) || ! is_string($result['signature'])) {
+            return null;
+        }
+        $parts = [
+            $result['paymentStatus'] ?? '', $result['paymentId'] ?? '', $result['currency'] ?? '', $result['basketId'] ?? '',
+            $result['conversationId'] ?? '', $this->rawNumber('paidPrice') ?? ($result['paidPrice'] ?? ''), $this->rawNumber('price') ?? ($result['price'] ?? ''), $token,
+        ];
+        $expected = hash_hmac('sha256', implode(':', array_map('strval', $parts)), (string) $this->secretKey);
+
+        return hash_equals($expected, strtolower($result['signature']));
+    }
+
+    /** Ham yanıttaki sayı, yazıldığı biçimde (ör. "6.0"); JSON'a çevrilince biçim kaybolmasın. */
+    private function rawNumber(string $key): ?string
+    {
+        return preg_match('/"'.preg_quote($key, '/').'"\s*:\s*"?(-?[0-9]+(?:\.[0-9]+)?)"?/', $this->lastBody, $m) ? $m[1] : null;
+    }
 
     public function isConfigured(): bool
     {
@@ -72,7 +106,7 @@ final class IyzicoApi
         ]);
     }
 
-    /** @throws DomainException */
+    /** @throws DomainException|IyzicoUnreachable */
     private function post(string $path, array $body): array
     {
         if (! $this->isConfigured()) {
@@ -91,12 +125,13 @@ final class IyzicoApi
                 'Accept' => 'application/json',
             ])->withBody($json, 'application/json')->post($this->baseUrl().$path);
         } catch (Throwable) {
-            throw new DomainException('Ödeme sağlayıcısına bağlanılamadı. Lütfen tekrar deneyin.');
+            throw new IyzicoUnreachable('Ödeme sağlayıcısına bağlanılamadı. Lütfen tekrar deneyin.');
         }
 
-        $data = $response->json();
+        $this->lastBody = (string) $response->body();
+        $data = json_decode($this->lastBody, true);
         if (! is_array($data)) {
-            throw new DomainException('Ödeme sağlayıcısından geçersiz yanıt alındı.');
+            throw new IyzicoUnreachable('Ödeme sağlayıcısından geçersiz yanıt alındı.');
         }
 
         return $data;

@@ -147,6 +147,19 @@ class Notifier
             ['siparis_no' => $order->order_no, 'tutar' => $total, 'degisiklik' => $change], ['url' => $url, 'label' => 'Siparişi görüntüle ve öde'], $details, 'order', $order->id);
     }
 
+    /** Fazla / geç kart ödemesi: otomatik iade edildi veya edilemedi (toptancıya e-posta + bildirim, bayiye bildirim). */
+    public function duplicatePayment(Order $order, string $amount, bool $refunded): void
+    {
+        $dealer = $order->relationship->dealer->legal_name;
+        $total = Money::format($amount);
+        $state = $refunded ? 'Otomatik olarak karta iade edildi.' : 'Otomatik iade EDİLEMEDİ; iyzico panelinden iade edin.';
+        $this->toBusiness('order', ($refunded ? 'Fazla ödeme iade edildi: ' : 'DİKKAT, fazla ödeme iade edilemedi: ').$order->order_no, "{$dealer} · {$total}", route('business.orders.show', $order));
+        $this->mailBusiness('payment_duplicate', ['bayi' => $dealer, 'siparis_no' => $order->order_no, 'tutar' => $total, 'durum' => $state],
+            ['url' => route('business.orders.show', $order), 'label' => 'Siparişi görüntüle'], ['Tutar' => $total, 'Durum' => $state], $order);
+        $this->toDealer($order->relationship, 'order', "Fazla ödemeniz: {$order->order_no}",
+            $refunded ? "{$total} tutarındaki ikinci ödemeniz kartınıza iade edildi." : "{$total} tutarındaki ikinci ödemeniz en kısa sürede iade edilecek.", route('dealer.orders.show', $order));
+    }
+
     /** Ödeme alındı: toptancıya bildirim + e-posta, bayiye uygulama içi bildirim. */
     public function orderPaid(Order $order, string $method): void
     {

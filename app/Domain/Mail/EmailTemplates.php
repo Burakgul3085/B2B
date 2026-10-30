@@ -102,6 +102,13 @@ final class EmailTemplates
             'intro' => "{siparis_no} numaralı siparişiniz onaylandı.\n\nÖdenecek tutar: {tutar}\n{degisiklik}\nSiparişiniz ödemeniz alındıktan sonra hazırlanır. Aşağıdaki düğmeyle siparişinize gidip kartla ödeyebilir veya havale bilgilerini görebilirsiniz.",
             'note' => 'Yalnızca onaylanan tutarı ödersiniz. Değişen kalemleri sipariş ekranında istenen ve onaylanan miktarlarıyla görebilirsiniz.',
         ],
+        'payment_duplicate' => [
+            'label' => 'Fazla / geç kart ödemesi iade edildi (size)',
+            'eyebrow' => 'Ödeme uyarısı',
+            'subject' => 'Fazla ödeme: {siparis_no} — {bayi}',
+            'intro' => "{bayi}, {siparis_no} numaralı sipariş için ikinci (veya süresi dolduktan sonra) bir kart ödemesi yaptı.\n\nTutar: {tutar}\nDurum: {durum}\n\nSiparişin tutarı ve bayinin carisi değişmedi.",
+            'note' => 'İade edilemediyse ödemeyi iyzico panelinden iade edin.',
+        ],
         'order_paid' => [
             'label' => 'Sipariş ödemesi alındı (size)',
             'eyebrow' => 'Ödeme alındı',

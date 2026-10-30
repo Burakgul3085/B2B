@@ -172,6 +172,7 @@ class StoreOrder extends Model
         return self::STATUSES[$status] ?? match ($status) {
             'return' => 'İade',
             'cancel_request' => 'İptal talebi',
+            'payment_duplicate' => 'Fazla ödeme',
             'refund' => 'Para iadesi',
             'invoice' => 'Fatura',
             default => $status,

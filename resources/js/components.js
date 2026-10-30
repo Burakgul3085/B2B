@@ -680,6 +680,38 @@ export function tabs(initial) {
     };
 }
 
+/**
+ * Ödeme bekleyen sipariş: birkaç saniyede bir sunucuya sonucu sorar (sunucu iyzico'dan sorgular); durum değişince sayfa
+ * yenilenir. x-data="paymentWatcher(url)" — en fazla 10 dakika.
+ */
+export function paymentWatcher(url) {
+    return {
+        tries: 0,
+        timer: null,
+        init() {
+            this.timer = setInterval(() => this.check(), 5000);
+        },
+        async check() {
+            this.tries++;
+            if (this.tries > 120) {
+                clearInterval(this.timer);
+                return;
+            }
+            try {
+                const res = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.status && data.status !== 'pending_payment' && data.status !== 'awaiting') {
+                    clearInterval(this.timer);
+                    window.location.reload();
+                }
+            } catch (e) {
+                // bağlantı koptu: bir sonraki denemede tekrar sorulur
+            }
+        },
+    };
+}
+
 /** Ürün sayfası değerlendirme / soru sekmeleri: adres #sorular ile gelinirse Soru & Cevap açılır. */
 export function feedbackTabs(initial) {
     return {

@@ -14,6 +14,7 @@ use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CurrentAccountMovement;
 use App\Models\Order;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -106,6 +107,14 @@ class OrderController extends Controller
         $order->status === 'cancelled' ? $notifier->orderCancelledByDealer($order) : $notifier->cancelRequested($order);
 
         return back()->with('status', $order->status === 'cancelled' ? 'Siparişiniz iptal edildi.' : 'İptal talebiniz toptancıya iletildi.');
+    }
+
+    /** Sipariş ekranındaki canlı kontrol: açık kart ödemesini iyzico'dan sorgular. */
+    public function paymentStatus(Order $order, OrderPaymentService $payments): JsonResponse
+    {
+        $this->assertOwn($order);
+
+        return response()->json(['status' => $payments->poll($order)->payment_status ?? 'none']);
     }
 
     /** Kartla öde: iyzico ödeme sayfasına yönlendirir (onaylanan tutar). */

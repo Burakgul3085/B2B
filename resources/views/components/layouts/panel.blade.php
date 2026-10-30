@@ -257,6 +257,7 @@
 
     <main @class(['mx-auto px-4 py-8 sm:px-6', 'max-w-[1840px] lg:px-8' => $wide, 'max-w-7xl' => ! $wide])>
         <x-flash />
+        <x-payment-test-banner :area="$area" />
         {{ $slot }}
     </main>
 @else
@@ -344,6 +345,7 @@
             <main class="flex-1 px-4 py-8 sm:px-6 lg:px-8">
                 <div class="mx-auto max-w-6xl">
                     <x-flash />
+                    <x-payment-test-banner :area="$area" />
                     {{ $slot }}
                 </div>
             </main>

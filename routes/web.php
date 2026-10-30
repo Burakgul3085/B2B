@@ -380,6 +380,7 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::get('siparislerim/{order}/odeme-durumu', [Dealer\OrderController::class, 'paymentStatus'])->middleware('throttle:40,1,orders.payment-status')->name('orders.payment-status');
         Route::post('siparislerim/{order}/ode', [Dealer\OrderController::class, 'pay'])->middleware('throttle:10,1,orders.pay')->name('orders.pay');
         Route::post('siparislerim/{order}/odeme-yontemi', [Dealer\OrderController::class, 'changePaymentMethod'])->name('orders.payment-method');
         Route::post('siparislerim/{order}/tekrar', [Dealer\OrderController::class, 'reorder'])->middleware('throttle:20,1,orders.reorder')->name('orders.reorder');

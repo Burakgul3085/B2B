@@ -16,6 +16,20 @@ class IyzicoClient
 
     public const LIVE_URL = IyzicoApi::LIVE_URL;
 
+    /** Aynı istekteki sorgu ve imza doğrulaması aynı bağlantı nesnesini (son yanıtı) kullanır. */
+    private ?IyzicoApi $api = null;
+
+    public function mode(): string
+    {
+        return $this->api()->mode();
+    }
+
+    /** @return bool|null null: yanıtta imza yok */
+    public function checkoutSignatureValid(array $result, string $token): ?bool
+    {
+        return $this->api()->checkoutSignatureValid($result, $token);
+    }
+
     public function isConfigured(): bool
     {
         return $this->api()->isConfigured();
@@ -50,6 +64,6 @@ class IyzicoClient
 
     private function api(): IyzicoApi
     {
-        return new IyzicoApi(StoreSetting::secret('iyzico_api_key'), StoreSetting::secret('iyzico_secret_key'), (string) StoreSetting::get('iyzico_mode'));
+        return $this->api ??= new IyzicoApi(StoreSetting::secret('iyzico_api_key'), StoreSetting::secret('iyzico_secret_key'), (string) StoreSetting::get('iyzico_mode'));
     }
 }

@@ -146,7 +146,7 @@
                                 <li class="flex justify-between gap-3">
                                     <span>{{ $p->label() }} · {{ $p->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}
                                         @if ($p->error_message)<span class="block text-danger">{{ $p->error_message }}</span>@endif</span>
-                                    <span class="shrink-0 tabular-nums">{{ Money::format($p->amount) }} · {{ ['initialized' => 'Başlatıldı', 'succeeded' => 'Başarılı', 'failed' => 'Başarısız', 'refunded' => 'İade edildi'][$p->status] ?? $p->status }}</span>
+                                    <span @class(['shrink-0 tabular-nums', 'font-bold text-danger' => $p->status === 'refund_failed'])>{{ Money::format($p->amount) }} · {{ ['initialized' => 'Başlatıldı', 'succeeded' => 'Başarılı', 'failed' => 'Başarısız', 'refunded' => 'İade edildi', 'expired' => 'Kapatıldı', 'auto_refunded' => 'Fazla ödeme, iade edildi', 'refund_failed' => 'Fazla ödeme, İADE EDİLEMEDİ'][$p->status] ?? $p->status }}@if ($p->mode === 'sandbox') · <b class="text-danger">TEST</b>@endif</span>
                                 </li>
                             @endforeach
                         </ul>

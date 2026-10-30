@@ -99,6 +99,8 @@ class StoreSetting extends Model
         'iyzico_mode' => 'sandbox',
         'iyzico_api_key' => null,
         'iyzico_secret_key' => null,
+        // iyzico yanıt imzası: monitor (tutmazsa yönetici uyarılır, ödeme kabul edilir) | enforce (tutmazsa kabul edilmez)
+        'iyzico_signature' => 'monitor',
         // iyzico Korumalı Alışveriş rozeti (vitrin): iyzico panelindeki script'in token'ı (herkese açık) ve konumu.
         'iyzico_badge_token' => null,
         'iyzico_badge_position' => 'bottomLeft',

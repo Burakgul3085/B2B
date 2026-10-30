@@ -22,8 +22,10 @@
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Siparişi tamamla</h1>
 
         <form method="POST" action="{{ route('store.checkout.store') }}" class="mt-6 grid gap-8 lg:grid-cols-3"
-            x-data="checkout(@alpine($alpine))">
+            x-data="checkout(@alpine($alpine))" @submit="lock()">
             @csrf
+            {{-- Tek kullanımlık gönderim anahtarı: çift tıklama / yeniden gönderim yeni sipariş açmaz --}}
+            <input type="hidden" name="submit_token" value="{{ old('submit_token', $submitToken) }}">
             <x-store.bot-trap />
             <div class="space-y-6 lg:col-span-2">
                 @if ($errors->has('coupon') || $couponError)
@@ -245,7 +247,7 @@
                 </label>
                 @error('consent')<p class="text-sm text-danger">{{ $message }}</p>@enderror
 
-                <button class="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:opacity-50" :disabled="! payment">
+                <button class="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:opacity-50" :disabled="! payment || submitting">
                     <span x-text="submitLabel">Ödemeye geç</span>
                 </button>
                 <p class="text-center text-xs text-muted" x-text="submitHint"></p>

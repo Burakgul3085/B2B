@@ -52,7 +52,11 @@
         @endif
 
         @if ($order->status === 'pending_payment')
-            <p class="mt-6 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900">Ödemeniz henüz onaylanmadı. Ödeme sayfasından ayrıldıysanız birkaç dakika içinde sonuçlanacaktır.</p>
+            <div class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-warning-soft px-4 py-3 text-sm text-amber-900" role="status"
+                x-data="paymentWatcher(@alpine(route('store.order.payment-status', ['orderNo' => $order->order_no, 'token' => $order->access_token])))">
+                <span class="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" aria-hidden="true"></span>
+                <p>Ödemeniz kontrol ediliyor… Sonuç gelince bu sayfa kendiliğinden yenilenir. <b>Lütfen tekrar ödeme yapmayın.</b> Ödeme sayfasından ayrıldıysanız birkaç dakika içinde sonuçlanır.</p>
+            </div>
         @elseif ($closed)
             <p class="mt-6 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">
                 {{ $order->status === 'payment_failed' ? 'Ödeme alınamadığı için sipariş tamamlanmadı. Ürünler sepetinizde duruyor; yeniden deneyebilirsiniz.' : 'Bu sipariş iptal edildi.' }}

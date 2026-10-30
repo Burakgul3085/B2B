@@ -308,7 +308,11 @@ class StoreCheckoutTest extends TestCase
         ]);
         $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'cargo', 'payment_method' => 'card']));
 
+        // Ödeme formu (30 dk) açıkken sipariş kapatılmaz; süresi geçince kapanır ve stok serbest kalır.
         $this->travel(31)->minutes();
+        $this->artisan('store:expire-pending-payments')->assertSuccessful();
+        $this->assertSame('pending_payment', StoreOrder::value('status'));
+        $this->travel(5)->minutes();
         $this->artisan('store:expire-pending-payments')->assertSuccessful();
         $this->assertSame('payment_failed', StoreOrder::value('status'));
         $this->assertSame([$this->pen->id => 10], app(StoreStockService::class)->available([$this->pen->id]));

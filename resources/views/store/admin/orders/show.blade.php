@@ -219,8 +219,15 @@
                             <li class="flex flex-wrap justify-between gap-2 px-5 py-3">
                                 <span>Para iadesi · {{ $refund->method === 'iyzico' ? 'karta (iyzico)' : 'elle' }}@if ($refund->note)<span class="block text-xs text-muted">{{ $refund->note }}</span>@endif
                                     @if ($refund->error_message)<span class="block text-xs text-danger">{{ $refund->error_message }}</span>@endif</span>
-                                <span class="text-right"><span @class(['font-medium tabular-nums', 'text-danger line-through' => $refund->status === 'failed'])>{{ Money::format($refund->amount) }}</span>
-                                    <span class="block text-xs text-muted">{{ $refund->status === 'failed' ? 'Başarısız' : 'Yapıldı' }} · {{ $refund->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span></span>
+                                <span class="text-right"><span @class(['font-medium tabular-nums', 'text-danger line-through' => in_array($refund->status, ['failed', 'resolved'], true), 'text-amber-700' => $refund->status === 'uncertain'])>{{ Money::format($refund->amount) }}</span>
+                                    <span class="block text-xs text-muted">{{ ['failed' => 'Başarısız', 'uncertain' => 'Sonucu belirsiz', 'resolved' => 'Belirsizdi, doğrulandı'][$refund->status] ?? 'Yapıldı' }} · {{ $refund->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</span>
+                                    @if ($refund->status === 'uncertain')
+                                        <span class="mt-2 block rounded-lg bg-warning-soft p-2 text-left text-xs text-amber-900">iyzico'dan yanıt alınamadı. iyzico panelinde bu iadeyi kontrol edin:
+                                            <span class="mt-1.5 flex gap-2">
+                                                <form method="POST" action="{{ route('store_admin.orders.refund-resolve', [$order, $refund]) }}" data-confirm="İade iyzico panelinde YAPILMIŞ olarak işlensin mi?">@csrf<input type="hidden" name="result" value="done"><button class="rounded bg-green-700 px-2 py-1 font-semibold text-white">Yapıldı</button></form>
+                                                <form method="POST" action="{{ route('store_admin.orders.refund-resolve', [$order, $refund]) }}" data-confirm="İade yapılmadı olarak işaretlensin mi? Sonra yeniden iade yapabilirsiniz.">@csrf<input type="hidden" name="result" value="not_done"><button class="rounded bg-white px-2 py-1 font-semibold ring-1 ring-line">Yapılmadı</button></form>
+                                            </span></span>
+                                    @endif</span>
                             </li>
                         @endforeach
                     </ul>
@@ -333,8 +340,11 @@
             <x-card title="Ödeme">
                 <p class="text-sm">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }} · <span class="font-medium">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span>
                     @if ($order->collected_method) ({{ $order->collected_method === 'cash' ? 'nakit' : 'kapıda kart' }})@endif</p>
+                @if ($order->payments->where('driver', 'iyzico')->where('status', 'succeeded')->contains('mode', 'sandbox'))
+                    <p class="mt-2 rounded-lg bg-danger-soft px-3 py-2 text-xs font-bold text-red-900">TEST ÖDEMESİ – para alınmadı (iyzico test ortamı). Bu siparişi göndermeyin.</p>
+                @endif
                 @foreach ($order->payments->where('driver', 'iyzico') as $payment)
-                    <p class="mt-2 text-xs text-muted">iyzico #{{ $payment->provider_payment_id ?? '—' }} · {{ $payment->status }}
+                    <p @class(['mt-2 text-xs text-muted', 'rounded-lg bg-danger-soft p-2 text-red-900' => $payment->status === 'refund_failed'])>iyzico #{{ $payment->provider_payment_id ?? '—' }} · {{ ['initialized' => 'başlatıldı', 'succeeded' => 'başarılı', 'failed' => 'başarısız', 'expired' => 'kapatıldı', 'auto_refunded' => 'fazla ödeme, otomatik iade edildi', 'refund_failed' => 'fazla ödeme, İADE EDİLEMEDİ'][$payment->status] ?? $payment->status }}@if ($payment->mode === 'sandbox') · <b>test</b>@endif
                         @if ($payment->card_last_four) · {{ $payment->card_family }} **** {{ $payment->card_last_four }}@endif
                         @if ($payment->installment && $payment->installment > 1) · {{ $payment->installment }} taksit @endif
                         @if ($payment->error_message)<span class="block text-danger">{{ $payment->error_message }}</span>@endif</p>

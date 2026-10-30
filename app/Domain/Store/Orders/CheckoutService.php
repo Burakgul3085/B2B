@@ -12,6 +12,7 @@ use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
+use App\Domain\Store\Payments\PaymentService;
 use App\Domain\Store\Print\PrintFiles;
 use App\Domain\Store\Print\PrintSettings;
 use App\Domain\Support\Decimal;
@@ -40,7 +41,8 @@ use Illuminate\Validation\ValidationException;
  */
 class CheckoutService
 {
-    public const HOLD_MINUTES = 20;
+    /** Kart siparişinde stok, iyzico ödeme formu açık kaldığı sürece ayrılır. */
+    public const HOLD_MINUTES = PaymentService::FORM_MINUTES;
 
     /** Teslimat ve kapıda ödeme bedeline uygulanan KDV oranı. */
     public const SERVICE_VAT_RATE = '20';
@@ -282,6 +284,7 @@ class CheckoutService
             $order = StoreOrder::create([
                 'order_no' => 'TMP-'.Str::random(12),
                 'access_token' => Str::random(40),
+                'submit_token' => $draft['submit_token'] ?? null,
                 'customer_id' => $customer?->id,
                 'email' => $draft['email'],
                 'phone' => $draft['phone'],

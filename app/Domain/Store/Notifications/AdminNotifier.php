@@ -8,6 +8,7 @@ use App\Domain\Support\Money;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreContactMessage;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StorePayment;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductQuestion;
 use App\Models\Store\StoreProductVariant;
@@ -115,6 +116,27 @@ class AdminNotifier
         $this->send("Yeni ürün yorumu: {$product->name}", 'Onay bekleyen yorum',
             "{$product->name} için {$review->rating} yıldızlı yeni bir yorum geldi".($review->photos()->exists() ? ' (fotoğraflı)' : '').'. Yayımlamak için inceleyin.',
             [['Müşteri', $review->author_name], ['Puan', str_repeat('★', $review->rating)]], route('store_admin.reviews.index'), 'Yorumları aç');
+    }
+
+    /** Fazla / geç gelen kart ödemesi (her zaman gönderilir: para işi). */
+    public function duplicatePayment(StoreOrder $order, StorePayment $payment, bool $refunded): void
+    {
+        $this->send(($refunded ? 'Fazla ödeme iade edildi ' : 'DİKKAT: fazla ödeme iade edilemedi ').$order->order_no,
+            $refunded ? 'Fazla ödeme otomatik iade edildi' : 'Fazla ödeme iade EDİLEMEDİ',
+            $refunded ? "{$order->order_no} için gelen ikinci / geç kart ödemesi otomatik olarak iyzico'dan iade edildi. Bir işlem yapmanız gerekmez."
+                : "{$order->order_no} için gelen ikinci / geç kart ödemesi iyzico'dan otomatik iade edilemedi. iyzico panelinden bu ödemeyi iade edin.",
+            [['Tutar', Money::format($payment->amount)], ['iyzico ödeme no', (string) $payment->provider_payment_id], ['Durum', (string) $payment->error_message]],
+            route('store_admin.orders.show', $order), 'Siparişi aç');
+    }
+
+    /** iyzico yanıt imzası tutmadı (veya yok). */
+    public function signatureMismatch(StoreOrder $order, bool $missing, bool $enforced): void
+    {
+        $this->send("iyzico imza uyarısı {$order->order_no}", 'iyzico yanıt imzası doğrulanamadı',
+            ($missing ? 'iyzico yanıtında imza bulunamadı. ' : 'iyzico yanıtındaki imza beklenen değerle eşleşmedi. ')
+            .($enforced ? 'Zorunlu imza açık olduğu için ödeme otomatik kabul edilmedi; iyzico panelinden kontrol edin.'
+                : 'İzleme modunda olduğu için ödeme kabul edildi. Bu uyarı sürekli geliyorsa imza ayarını "İzle" modunda bırakın ve teknik destek alın.'),
+            [['Sipariş', $order->order_no]], route('store_admin.orders.show', $order), 'Siparişi aç');
     }
 
     public function questionAsked(StoreProductQuestion $question, StoreProduct $product): void

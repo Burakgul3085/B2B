@@ -79,7 +79,7 @@ Artisan::command('demo:videolar', function () {
 })->purpose('Demo vitrin videolarını üretir (yerel)');
 
 // Mağaza: geri dönüşü gelmeyen kart ödemelerini iyzico'dan sorgulayıp sonuçlandırır, süresi dolanları kapatır (stok serbest kalır).
-Schedule::command('store:expire-pending-payments')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('store:expire-pending-payments')->everyTwoMinutes()->withoutOverlapping();
 
 // Mağaza: süresinde ödenmeyen havale / EFT siparişlerini iptal eder (stok geri döner, müşteriye e-posta gider).
 Schedule::command('store:expire-transfers')->hourly()->withoutOverlapping();
@@ -93,7 +93,7 @@ Artisan::command('store:expire-pending-payments', function (PaymentService $paym
 })->purpose('Mağaza: 30 dakikayı geçen ödeme bekleyen siparişleri sonuçlandırır');
 
 // B2B: bayinin geri dönüşü gelmeyen kart ödemelerini iyzico'dan sorgulayıp sonuçlandırır (sipariş ödeme beklemeye devam eder).
-Schedule::command('b2b:expire-pending-payments')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('b2b:expire-pending-payments')->everyTwoMinutes()->withoutOverlapping();
 
 Artisan::command('b2b:expire-pending-payments', function (OrderPaymentService $payments) {
     $this->info($payments->expireStale().' bekleyen bayi kart ödemesi işlendi.');

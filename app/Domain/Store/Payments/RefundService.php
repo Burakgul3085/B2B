@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Support\Decimal;
 use App\Domain\Support\Money;
+use App\Domain\Support\Payments\IyzicoUnreachable;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StorePayment;
 use App\Models\Store\StoreRefund;
@@ -47,6 +48,9 @@ class RefundService
             throw new DomainException('Bu sipariş için iade yöntemi geçersiz.');
         }
 
+        if (StoreRefund::where('order_id', $order->id)->where('status', 'uncertain')->exists()) {
+            throw new DomainException('Bu siparişte sonucu belirsiz bir iade var. Önce iyzico panelinden kontrol edip sipariş ekranında "Yapıldı" veya "Yapılmadı" olarak işaretleyin.');
+        }
         $lock = Cache::lock("store-refund:{$order->id}", 60);
         if (! $lock->get()) {
             throw new DomainException('Bu sipariş için başka bir iade işlemi sürüyor. Biraz sonra tekrar deneyin.');
@@ -78,21 +82,28 @@ class RefundService
         $results = [];
         $succeeded = '0.00';
         $failed = '0.00';
+        $uncertain = '0.00';
         $error = null;
         foreach ($plan as $index => $part) {
+            $state = 'failed';
             try {
                 $response = $this->iyzico->refund($transactions[$index]['transaction_id'], $part, $order->order_no, $ip);
-                $ok = ($response['status'] ?? null) === 'success';
-                $message = $ok ? null : mb_substr((string) ($response['errorMessage'] ?? 'iyzico iadeyi kabul etmedi.'), 0, 200);
+                $state = ($response['status'] ?? null) === 'success' ? 'succeeded' : 'failed';
+                $message = $state === 'succeeded' ? null : mb_substr((string) ($response['errorMessage'] ?? 'iyzico iadeyi kabul etmedi.'), 0, 200);
+            } catch (IyzicoUnreachable $e) {
+                // Yanıt alınamadı: iade iyzico'da yapılmış olabilir. Tekrar denenmez; yönetici iyzico panelinden kontrol eder.
+                $state = 'uncertain';
+                $message = $e->getMessage();
             } catch (DomainException $e) {
-                $ok = false;
                 $message = $e->getMessage();
             }
 
-            $results[] = ['transaction_id' => $transactions[$index]['transaction_id'], 'amount' => $part, 'status' => $ok ? 'succeeded' : 'failed', 'error' => $message];
-            if ($ok) {
+            $results[] = ['index' => $index, 'transaction_id' => $transactions[$index]['transaction_id'], 'amount' => $part, 'status' => $state, 'error' => $message];
+            if ($state === 'succeeded') {
                 $transactions[$index]['refunded'] = bcadd($transactions[$index]['refunded'] ?? '0.00', $part, 2);
                 $succeeded = bcadd($succeeded, $part, 2);
+            } elseif ($state === 'uncertain') {
+                $uncertain = bcadd($uncertain, $part, 2);
             } else {
                 $failed = bcadd($failed, $part, 2);
                 $error ??= $message;
@@ -103,6 +114,12 @@ class RefundService
         $refund = null;
         if (bccomp($succeeded, '0', 2) > 0) {
             $refund = $this->record($order, $return, 'iyzico', 'succeeded', $succeeded, $note, array_values(array_filter($results, fn ($r) => $r['status'] === 'succeeded')), null);
+        }
+        if (bccomp($uncertain, '0', 2) > 0) {
+            $this->record($order, $return, 'iyzico', 'uncertain', $uncertain, $note, array_values(array_filter($results, fn ($r) => $r['status'] === 'uncertain')),
+                'iyzico\'ya ulaşılamadı; iade yapılmış olabilir.');
+            throw new DomainException(($refund ? Money::format($succeeded).' iade edildi; ' : '').Money::format($uncertain)
+                .' için iyzico\'dan yanıt alınamadı, iade yapılmış olabilir. iyzico panelinden kontrol edip sipariş ekranında "Yapıldı" veya "Yapılmadı" olarak işaretleyin; tekrar denemeyin.');
         }
         if (bccomp($failed, '0', 2) > 0) {
             $this->record($order, $return, 'iyzico', 'failed', $failed, $note, array_values(array_filter($results, fn ($r) => $r['status'] === 'failed')), $error);
@@ -182,6 +199,52 @@ class RefundService
                 ['order_no' => $order->order_no, 'amount' => $amount, 'method' => $method, 'error' => $error]);
 
             return $refund;
+        });
+    }
+
+    /**
+     * Sonucu belirsiz iadeyi yönetici iyzico panelinden kontrol edip işaretler: yapıldıysa siparişe işlenir (tutar ve
+     * işlem kalanları), yapılmadıysa başarısız sayılır ve iade yeniden yapılabilir.
+     *
+     * @throws DomainException
+     */
+    public function resolveUncertain(StoreRefund $refund, bool $done): void
+    {
+        DB::transaction(function () use ($refund, $done) {
+            $refund = StoreRefund::whereKey($refund->id)->lockForUpdate()->firstOrFail();
+            if ($refund->status !== 'uncertain') {
+                throw new DomainException('Bu iade zaten sonuçlandırılmış.');
+            }
+            $order = StoreOrder::findOrFail($refund->order_id);
+            $actor = $this->actor->get();
+
+            if (! $done) {
+                $refund->forceFill(['status' => 'failed', 'error_message' => 'iyzico panelinde yapılmadığı görüldü (yönetici).'])->save();
+                $this->audit->log('store.refund_uncertain_failed', $order, [], ['order_no' => $order->order_no, 'amount' => (string) $refund->amount]);
+
+                return;
+            }
+
+            $payment = StorePayment::where('order_id', $order->id)->where('driver', 'iyzico')->where('status', 'succeeded')->latest('id')->first();
+            if ($payment) {
+                $transactions = $payment->item_transactions ?? [];
+                foreach ($refund->transactions ?? [] as $t) {
+                    foreach ($transactions as $i => $pt) {
+                        if ($pt['transaction_id'] === $t['transaction_id']) {
+                            $transactions[$i]['refunded'] = bcadd($pt['refunded'] ?? '0.00', (string) $t['amount'], 2);
+                        }
+                    }
+                }
+                $payment->forceFill(['item_transactions' => $transactions])->save();
+            }
+            $refund->forceFill(['status' => 'resolved', 'error_message' => 'Sonuç belirsizdi; iyzico panelinde yapıldığı doğrulandı (aşağıdaki kayıt).'])->save();
+            $this->record($order, $refund->return_id ? StoreReturn::find($refund->return_id) : null, 'iyzico', 'succeeded', (string) $refund->amount,
+                trim(($refund->note ? $refund->note.' · ' : '').'iyzico panelinde doğrulandı'), $refund->transactions, null);
+            if ($refund->return_id && ($return = StoreReturn::find($refund->return_id)) && $return->status === 'received') {
+                $return->forceFill(['status' => 'refunded', 'refund_amount' => $refund->amount, 'refunded_at' => now(), 'closed_at' => now()])->save();
+            }
+            $this->audit->log('store.refund_uncertain_done', $order, [], ['order_no' => $order->order_no, 'amount' => (string) $refund->amount,
+                'actor' => $actor['type']]);
         });
     }
 

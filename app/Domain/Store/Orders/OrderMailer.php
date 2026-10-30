@@ -88,6 +88,16 @@ class OrderMailer
             false, $member ? [route('store.reviews'), 'Ürünleri değerlendir'] : null);
     }
 
+    /** Fazla / geç gelen kart ödemesi: otomatik iade edildi (veya edilemedi, mağaza elle iade edecek). */
+    public function duplicatePayment(StoreOrder $order, string $amount, bool $refunded): void
+    {
+        $this->send($order, "Ödemeniz iade edildi — {$order->order_no}", 'Fazla ödemeniz iade edildi',
+            "{$order->order_no} numaralı siparişiniz için kartınızdan ".Money::format($amount).' tutarında ikinci (veya süresi dolduktan sonra gelen) bir ödeme alındı. '
+            .($refunded ? 'Bu tutar kartınıza otomatik olarak iade edildi; hesabınıza yansıması bankanıza göre birkaç gün sürebilir.'
+                : 'Bu tutarı en kısa sürede kartınıza iade edeceğiz.')
+            .' Siparişinizin durumunu aşağıdaki bağlantıdan görebilirsiniz.', false);
+    }
+
     public function cancelRequested(StoreOrder $order): void
     {
         $this->send($order, "İptal talebiniz alındı — {$order->order_no}", 'İptal talebiniz alındı',

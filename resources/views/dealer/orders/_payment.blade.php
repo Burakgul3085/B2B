@@ -32,6 +32,12 @@
         </div>
 
         <div class="space-y-5 px-5 py-5 sm:px-6">
+            @if ($order->payments->where('driver', 'iyzico')->where('status', 'initialized')->where('created_at', '>', now()->subMinutes(30))->isNotEmpty())
+                <div class="flex items-start gap-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-amber-900" role="status" x-data="paymentWatcher(@alpine(route('dealer.orders.payment-status', $order)))">
+                    <span class="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" aria-hidden="true"></span>
+                    <p>Açık bir kart ödemeniz var; sonucu kontrol ediliyor. Ödemeyi tamamladıysanız <b>tekrar ödeme yapmayın</b>, bu ekran kendiliğinden yenilenir.</p>
+                </div>
+            @endif
             @if ($order->payment_method === 'card')
                 <form method="POST" action="{{ route('dealer.orders.pay', $order) }}" class="flex flex-wrap items-center gap-3" x-data="{ sending: false }" @submit="sending = true">
                     @csrf

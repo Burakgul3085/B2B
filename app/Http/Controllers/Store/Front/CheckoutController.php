@@ -19,11 +19,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\Province;
 use App\Models\Store\StoreLegalDocument;
+use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreSetting;
 use DomainException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -32,10 +35,17 @@ use Illuminate\View\View;
  *  - Kapıda ödeme: taslak oturuma alınır → telefona SMS kodu → kod doğrulanınca sepet ve tutar yeniden denetlenir
  *    ve sipariş oluşur.
  *  - Havale / EFT: sipariş hemen oluşur; sipariş sayfasında hesap bilgileri ve son ödeme zamanı gösterilir.
+ *
+ * Çift gönderim koruması: form her açılışta tek kullanımlık bir anahtar (submit_token) taşır; aynı anahtarla gelen ikinci
+ * istek (çift tıklama, geri tuşu, yanıtı kaybolan istek) yeni sipariş açmaz, ilk siparişe (kartta ödeme sayfasına) döner.
+ * Kartta aynı sepetin bekleyen siparişi önce iyzico'dan sorgulanır; ödenmişse yeni ödeme alınmaz.
  */
 class CheckoutController extends Controller
 {
     private const DRAFT_KEY = 'checkout.cod_draft';
+
+    /** Aynı IP veya e-postadan aynı anda en fazla bu kadar ödenmemiş kart siparişi (stok kilitlenmesine karşı). */
+    private const MAX_PENDING_CARD = 3;
 
     public function __construct(private CheckoutService $checkout, private CartService $carts, private CurrentCart $current) {}
 
@@ -86,6 +96,7 @@ class CheckoutController extends Controller
                 'transferAvailable' => BankTransfer::available(),
             ],
             'legal' => collect(StoreLegalDocument::CHECKOUT_KEYS)->mapWithKeys(fn ($key) => [$key => StoreLegalDocument::current($key)]),
+            'submitToken' => (string) Str::uuid(),
         ]);
     }
 
@@ -94,11 +105,18 @@ class CheckoutController extends Controller
         $customer = $request->user('customer');
         $cart = $this->current->find($request) ?? abort(404);
 
+        $token = $request->input('submit_token');
+        $token = is_string($token) && Str::isUuid($token) ? strtolower($token) : (string) Str::uuid();
+        if ($existing = StoreOrder::where('submit_token', $token)->first()) {
+            return $this->resume($existing, $payments); // aynı gönderim ikinci kez geldi
+        }
+
         try {
             $draft = $this->checkout->validate($request->all(), $customer, $this->carts->summary($cart), $cart->coupon_code);
         } catch (DomainException $e) {
             return redirect()->route('store.cart')->withErrors(['cart' => $e->getMessage()]);
         }
+        $draft['submit_token'] = $token;
 
         if ($draft['payment_method'] === 'cod') {
             try {
@@ -114,6 +132,8 @@ class CheckoutController extends Controller
         if ($draft['payment_method'] === 'transfer') {
             try {
                 $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
+            } catch (UniqueConstraintViolationException) {
+                return $this->resume(StoreOrder::where('submit_token', $token)->firstOrFail(), $payments);
             } catch (InsufficientStoreStock) {
                 return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
             } catch (DomainException $e) {
@@ -123,9 +143,22 @@ class CheckoutController extends Controller
             return redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token])->with('order_placed', true);
         }
 
+        // Aynı sepetin bekleyen kart siparişi: ödendiyse ona dönülür; ödenmediyse kapatılır (stok bırakılır).
+        if ($paid = $payments->settlePendingForCart($cart->id)) {
+            return $this->orderRedirect($paid)->with('status', 'Bu sepet için ödemeniz zaten alınmış; yeni ödeme yapılmadı.');
+        }
+        $pending = StoreOrder::where('status', 'pending_payment')->where('payment_method', 'card')
+            ->where('created_at', '>', now()->subMinutes(PaymentService::FORM_MINUTES + 5))
+            ->where(fn ($q) => $q->where('ip', $request->ip())->orWhere('email', $draft['email']))->count();
+        if ($pending >= self::MAX_PENDING_CARD) {
+            return back()->withErrors(['payment_method' => 'Tamamlanmamış ödemeleriniz var. Birkaç dakika sonra tekrar deneyin veya açık siparişinizin ödemesini tamamlayın.'])->withInput();
+        }
+
         try {
             $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
-            $url = $payments->start($order, route('store.payment.callback'), $request->ip());
+            $url = $payments->start($order, $this->callbackUrl(), $request->ip());
+        } catch (UniqueConstraintViolationException) {
+            return $this->resume(StoreOrder::where('submit_token', $token)->firstOrFail(), $payments);
         } catch (InsufficientStoreStock) {
             return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
         } catch (DomainException $e) {
@@ -179,8 +212,18 @@ class CheckoutController extends Controller
             return redirect()->route('store.cart')->withErrors(['cart' => 'Sepetiniz veya sipariş koşulları değişti. Lütfen kontrol edip yeniden onaylayın.']);
         }
 
+        if (! empty($draft['submit_token']) && ($existing = StoreOrder::where('submit_token', $draft['submit_token'])->first())) {
+            $request->session()->forget(self::DRAFT_KEY);
+
+            return $this->orderRedirect($existing); // aynı doğrulama ikinci kez gönderildi
+        }
+
         try {
             $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
+        } catch (UniqueConstraintViolationException) {
+            $request->session()->forget(self::DRAFT_KEY);
+
+            return $this->orderRedirect(StoreOrder::where('submit_token', $draft['submit_token'])->firstOrFail());
         } catch (InsufficientStoreStock) {
             return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
         } catch (DomainException $e) { // ör. kupon kullanım sınırı bu arada doldu
@@ -245,6 +288,29 @@ class CheckoutController extends Controller
             'name' => '(Alıcı adı)', 'address' => '(Teslimat adresi)', 'phone' => '(Telefon)', 'email' => '(E-posta)', 'lines' => [],
             'shipping_fee' => '0', 'cod_fee' => '0', 'total' => '0', 'payment' => '(Ödeme yöntemi)', 'delivery' => '(Teslimat yöntemi)',
         ]))]);
+    }
+
+    /** Aynı gönderim yinelendi: kartta hâlâ geçerli ödeme sayfasına, aksi hâlde sipariş sayfasına. */
+    private function resume(StoreOrder $order, PaymentService $payments): RedirectResponse
+    {
+        if ($order->status === 'pending_payment' && ($url = $payments->resumeUrl($order))) {
+            return redirect()->away($url);
+        }
+
+        return $this->orderRedirect($order);
+    }
+
+    private function orderRedirect(StoreOrder $order): RedirectResponse
+    {
+        return redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]);
+    }
+
+    /** iyzico dönüş adresi canlıda sabit mağaza alan adından üretilir (gelen isteğin Host başlığından değil). */
+    private function callbackUrl(): string
+    {
+        return app()->isProduction()
+            ? 'https://'.config('store.domain').route('store.payment.callback', absolute: false)
+            : route('store.payment.callback');
     }
 
     private function draft(Request $request): ?array

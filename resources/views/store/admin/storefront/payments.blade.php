@@ -65,6 +65,8 @@
                             @if ($secrets[$key])<button form="sil-{{ $key }}" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
                         </div>
                     @endforeach
+                    <x-field name="iyzico_signature" label="iyzico yanıt imzası" :options="['monitor' => 'İzle (tutmazsa uyar, ödemeyi kabul et)', 'enforce' => 'Zorunlu (tutmazsa ödemeyi kabul etme)']" :value="$s['iyzico_signature']"
+                        hint="Ödeme sonucu zaten doğrudan iyzico'dan sorgulanır; imza ek bir kontroldür. Bir deneme ödemesinde imza uyarısı gelmediyse Zorunlu yapabilirsiniz." />
                     <div class="grid gap-5 sm:grid-cols-[1fr_auto]">
                         <x-field name="iyzico_badge_token" label="Korumalı Alışveriş token" :value="$s['iyzico_badge_token']" autocomplete="off" spellcheck="false" placeholder="2e548140-482d-…"
                             hint="iyzico panelinde Korumalı Alışveriş → Korumalı Alışveriş Script bölümündeki koddaki token: '…' değeri. Girilince vitrinin her sayfasında iyzico Korumalı Alışveriş rozeti görünür; boş bırakırsanız gösterilmez." />

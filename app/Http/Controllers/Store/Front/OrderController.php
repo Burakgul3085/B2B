@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Orders\InvoiceService;
 use App\Domain\Store\Orders\OrderService;
+use App\Domain\Store\Payments\PaymentService;
 use App\Domain\Store\Returns\ReturnService;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,6 +42,14 @@ class OrderController extends Controller
 
         return $this->render($this->byToken($orderNo, $token), $returns, route('store.order.return', $params), route('store.order.invoice', $params),
             fn (int $note) => route('store.order.credit-note', $params + ['note' => $note]));
+    }
+
+    /** Ödeme bekleyen sipariş sayfasının canlı kontrolü: iyzico'dan sonucu sorgular (en fazla 10 sn'de bir). */
+    public function paymentStatus(string $orderNo, string $token, PaymentService $payments): JsonResponse
+    {
+        $order = $payments->poll($this->byToken($orderNo, $token));
+
+        return response()->json(['status' => $order->status]);
     }
 
     public function cancelOwn(Request $request, string $orderNo, OrderService $orders): RedirectResponse
