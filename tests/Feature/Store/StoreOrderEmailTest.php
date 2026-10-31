@@ -55,7 +55,7 @@ class StoreOrderEmailTest extends TestCase
         $mail = collect($this->mails)->firstWhere('to', 'ayse@ornek.com');
         $this->assertNotNull($mail, 'sipariş e-postası gönderildi');
         $titles = array_column($mail['content']['documents'], 'title');
-        $this->assertSame(['Ön Bilgilendirme Formu (sürüm 2)', 'Mesafeli Satış Sözleşmesi (sürüm 2)'], $titles);
+        $this->assertSame(['Ön Bilgilendirme Formu (sürüm 3)', 'Mesafeli Satış Sözleşmesi (sürüm 3)'], $titles);
         // Siparişte saklanan doldurulmuş metin gönderilir (alıcı adı, ürün, satıcı unvanı yerleşmiş).
         $this->assertStringContainsString('Ayşe Yılmaz', $mail['content']['documents'][1]['html']);
         $this->assertStringContainsString('Jel Kalem', $mail['content']['documents'][1]['html']);
@@ -70,7 +70,7 @@ class StoreOrderEmailTest extends TestCase
         $this->assertStringContainsString('src="cid:figur-siparis-alindi"', $html);
         $gif = collect($rendered['inline'])->firstWhere('cid', 'figur-siparis-alindi');
         $this->assertSame(['image/gif', 'GIF89a'], [$gif['mime'], substr($gif['data'], 0, 6)]);
-        $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 2)', $html);
+        $this->assertStringContainsString('Mesafeli Satış Sözleşmesi (sürüm 3)', $html);
         $this->assertStringContainsString('<h2', $html);
         $this->assertStringContainsString($order->order_no, $html);
 

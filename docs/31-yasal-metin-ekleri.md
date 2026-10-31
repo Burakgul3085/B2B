@@ -1,5 +1,7 @@
 # Yasal metinlere eklenecek cümleler (iade ve iptal yenilikleri)
 
+> **Durum (31.10.2026):** Mağaza ve bayi bölümü dışındaki tüm cümleler `2026_12_05_000100_add_return_clauses_to_store_legal_documents` güncellemesiyle metinlere yeni sürüm olarak eklendi. Beklenen cümlesi yönetimde değiştirilmiş bir metin olursa o metne dokunulmaz; o durumda aşağıdakiler elle eklenir.
+
 Mağaza yönetimi → **Yasal Metinler** ekranından ilgili metni açıp aşağıdaki cümleleri belirtilen yere ekleyin. Her kayıt yeni sürüm açar; eski siparişler onayladıkları sürümle kalır. Mevcut maddeleri değiştirmiyoruz; yalnızca netleştiren cümleler ekleniyor. Yayına almadan önce bir uzmana teyit ettirin.
 
 Bu cümleler sistemin bugünkü davranışını anlatır: müşteri kargodan önce siparişini kendisi iptal eder, iade talebine fotoğraf ekler, ürünü 10 gün içinde gönderip takip numarasını girer, iade kargosu mağazanın bildirdiği firmayla ücretsizdir.

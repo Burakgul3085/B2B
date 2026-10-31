@@ -167,14 +167,39 @@ class StoreComplianceTest extends TestCase
         // Eski kurulum: ilk sürüm tema satırı olmadan; yönetimde değiştirilmemiş
         $policy()->first()->update(['body' => str_replace($row, '', str_replace(chr(13).chr(10), chr(10), $policy()->first()->body))]);
         $migration->up();
-        $this->assertSame(2, $policy()->first()->version);
+        $this->assertSame(3, $policy()->first()->version);
         $this->assertStringContainsString('`tema`', $policy()->first()->body);
 
         // Yönetimde düzenlenmiş metne dokunulmaz
-        StoreLegalDocument::where('key', 'gizlilik-cerez')->where('version', 2)->delete();
+        StoreLegalDocument::where('key', 'gizlilik-cerez')->where('version', 3)->delete();
         $policy()->first()->update(['body' => 'Kendi metnimiz']);
         $migration->up();
-        $this->assertSame(1, $policy()->first()->version);
+        $this->assertSame(2, $policy()->first()->version);
+    }
+
+    public function test_return_clauses_are_added_to_legal_documents_once_and_changed_texts_are_left_alone(): void
+    {
+        $migration = require database_path('migrations/2026_12_05_000100_add_return_clauses_to_store_legal_documents.php');
+        $current = fn (string $key) => StoreLegalDocument::where('key', $key)->orderByDesc('version')->first();
+
+        $this->assertStringContainsString('ödemeniz kartınıza otomatik olarak iade edilir', $current('iptal-iade')->body);
+        $this->assertStringContainsString('Fotokopi ve belge baskıları gibi', $current('iptal-iade')->body);
+        $this->assertStringContainsString('{IADE_ADRESI}', $current('iptal-iade')->body);
+        $this->assertStringContainsString('iade kodu dışında bir taşıyıcıyla', $current('mesafeli-satis')->body);
+        $this->assertStringContainsString('(fotokopi ve belge baskıları dahil;', $current('on-bilgilendirme')->body);
+        $this->assertStringContainsString('| **Ürün soruları** |', $current('kvkk')->body);
+        $this->assertStringContainsString('iyzico Korumalı Alışveriş rozeti', $current('gizlilik-cerez')->body);
+
+        // Yeniden çalışınca yeni sürüm açılmaz
+        $versions = StoreLegalDocument::count();
+        $migration->up();
+        $this->assertSame($versions, StoreLegalDocument::count());
+
+        // Beklenen cümlesi değiştirilmiş metne dokunulmaz
+        StoreLegalDocument::where('key', 'mesafeli-satis')->where('id', $current('mesafeli-satis')->id)->delete();
+        $current('mesafeli-satis')->update(['body' => 'Kendi metnimiz']);
+        $migration->up();
+        $this->assertSame('Kendi metnimiz', $current('mesafeli-satis')->body);
     }
 
     public function test_legal_documents_can_be_marked_reviewed_without_a_new_version(): void
