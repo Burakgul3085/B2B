@@ -77,6 +77,7 @@ class CheckoutController extends Controller
             'addresses' => $customer ? $customer->addresses()->with(['province', 'district'])->get() : collect(),
             'provinces' => Province::orderBy('name')->pluck('name', 'id'),
             'cargoCutoff' => StoreSetting::get('cargo_cutoff'),
+            'cargoDeliveryTime' => StoreSetting::get('cargo_delivery_time'),
             // Ekrandaki tutar önizlemesi için kurallar; sipariş tutarı sunucuda yeniden hesaplanır.
             'rules' => [
                 'subtotal' => $net,

@@ -114,7 +114,9 @@ class StoreCheckoutTest extends TestCase
     {
         $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Siparişi tamamla')->assertSee('Mesafeli Satış Sözleşmesi')
             ->assertSee('KVKK Aydınlatma Metni</a> kapsamında işlenir', false);
-        $this->get(self::HOST.'/odeme')->assertSee('en geç 30 gün içinde teslim edilir')->assertDontSee('aynı gün kargoya verilir');
+        $this->get(self::HOST.'/odeme')->assertSee('genellikle <strong>2–3 iş günü</strong> içinde teslim edilir', false)->assertDontSee('aynı gün kargoya verilir')->assertDontSee('en geç 30 gün');
+        StoreSetting::put(['cargo_delivery_time' => null]);
+        $this->get(self::HOST.'/odeme')->assertSee('en geç 30 gün içinde teslim edilir');
         StoreSetting::put(['cargo_cutoff' => '16:00']);
         $this->get(self::HOST.'/odeme')->assertSee('Hafta içi saat <strong>16:00</strong> öncesi verilen siparişler aynı gün kargoya verilir.', false);
         $this->get(self::HOST.'/yasal/mesafeli-satis')->assertOk()->assertSee('Yapboz Kırtasiye Ltd. Şti.');

@@ -10,6 +10,7 @@
                     <x-field name="shipping_cargo_fee" label="Yedek kargo ücreti (₺)" :value="$money($s['shipping_cargo_fee'])" inputmode="decimal" hint="Yalnızca hiçbir kargo firmasına ücret girilmemişse uygulanır." />
                     <x-field name="shipping_free_threshold" label="Ücretsiz kargo sınırı (₺)" :value="$money($s['shipping_free_threshold'])" inputmode="decimal" hint="Bu tutar ve üzeri siparişlerde kargo ücretsiz; müşteri firma seçmez, gönderirken siz seçersiniz. Boşsa uygulanmaz." />
                     <x-field name="cargo_cutoff" type="time" label="Aynı gün kargo saati" :value="$s['cargo_cutoff']" hint="Hafta içi bu saatten önce verilen siparişler aynı gün kargoya verilir; ürün sayfasında yazılır. Boşsa gösterilmez." />
+                    <x-field name="cargo_delivery_time" label="Tahmini teslim süresi" :value="$s['cargo_delivery_time']" maxlength="40" placeholder="2–3 iş günü" hint="Kargoya verildikten sonra teslim süresi; ürün ve ödeme sayfasında “genellikle … içinde teslim edilir” diye yazılır. Boşsa yasal en geç 30 gün yazılır." />
                 </div>
             </x-card>
 

@@ -66,6 +66,7 @@ class StoreSetting extends Model
         'shipping_cargo_fee' => '0.00',
         'shipping_free_threshold' => null,   // bu tutar ve üzeri kargo ücretsiz
         'cargo_cutoff' => null,              // SS:DD; hafta içi bu saatten önceki siparişler aynı gün kargoda (boşsa gösterilmez)
+        'cargo_delivery_time' => '2–3 iş günü', // kargoya verildikten sonra tahmini teslim süresi (boşsa yasal en geç 30 gün yazılır)
         'local_delivery_enabled' => '1',     // Eskişehir'de kendi aracımızla teslimat
         'local_delivery_fee' => '0.00',
         'local_districts' => null,           // virgülle ilçe kimlikleri; boşsa Eskişehir'in tüm ilçeleri

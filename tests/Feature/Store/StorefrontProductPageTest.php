@@ -74,6 +74,7 @@ class StorefrontProductPageTest extends TestCase
         $this->get(self::HOST.'/urun/'.$product->slug)->assertOk()
             ->assertSee('₺750,00')->assertSee('Altında kargo ücreti ₺59,90')
             ->assertDontSee('aynı gün kargoya verilir')           // saat ayarlanmamışsa söz verilmez
+            ->assertSee('genellikle <strong>2–3 iş günü</strong> içinde teslim edilir', false)
             ->assertSee('14 gün içinde iade hakkı')
             ->assertSee('https://wa.me/905321234567?text=', false)->assertSee('WhatsApp ile sor')
             ->assertSee('Teslimat ve iade')->assertSee('Jel Kalem açıklaması');
@@ -90,9 +91,11 @@ class StorefrontProductPageTest extends TestCase
         $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox', 'sms_driver' => 'log'];
 
         $this->put(route('store_admin.payments.update'), $base + ['cargo_cutoff' => '25:00'])->assertSessionHasErrors('cargo_cutoff');
-        $this->put(route('store_admin.payments.update'), $base + ['cargo_cutoff' => '14:30'])->assertSessionHasNoErrors();
+        $this->put(route('store_admin.payments.update'), $base + ['cargo_cutoff' => '14:30', 'cargo_delivery_time' => ' 1–2 iş günü '])->assertSessionHasNoErrors();
         $this->assertSame('14:30', StoreSetting::get('cargo_cutoff'));
+        $this->assertSame('1–2 iş günü', StoreSetting::get('cargo_delivery_time'));
         $this->put(route('store_admin.payments.update'), $base)->assertSessionHasNoErrors();
         $this->assertNull(StoreSetting::get('cargo_cutoff'));
+        $this->assertNull(StoreSetting::get('cargo_delivery_time'));
     }
 }

@@ -28,6 +28,7 @@ class PaymentSettings
             'shipping_cargo_fee' => ['nullable', 'string', 'max:20'],
             'shipping_free_threshold' => ['nullable', 'string', 'max:20'],
             'cargo_cutoff' => ['nullable', 'date_format:H:i'],
+            'cargo_delivery_time' => ['nullable', 'string', 'max:40'],
             'local_delivery_fee' => ['nullable', 'string', 'max:20'],
             'local_districts' => ['nullable', 'array'],
             'local_districts.*' => ['integer'],
@@ -56,7 +57,7 @@ class PaymentSettings
             'netgsm_password' => ['nullable', 'string', 'max:100'],
             'netgsm_header' => ['nullable', 'string', 'max:20'],
         ], [], [
-            'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'cargo_cutoff' => 'kargo saati', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
+            'shipping_cargo_fee' => 'kargo ücreti', 'shipping_free_threshold' => 'ücretsiz kargo sınırı', 'cargo_cutoff' => 'kargo saati', 'cargo_delivery_time' => 'tahmini teslim süresi', 'local_delivery_fee' => 'mağaza teslimatı ücreti',
             'cod_min' => 'en düşük tutar', 'cod_max' => 'en yüksek tutar', 'cod_fee' => 'kapıda ödeme bedeli', 'cod_max_open' => 'açık sipariş sınırı',
             'return_days' => 'iade süresi', 'return_address' => 'iade adresi', 'return_carrier' => 'iade kargo firması', 'return_code' => 'iade anlaşma kodu',
             'transfer_accounts' => 'banka hesapları', 'transfer_days' => 'ödeme süresi',
@@ -108,6 +109,7 @@ class PaymentSettings
             // Tüm ilçeler seçiliyse boş bırakılır (yeni ilçe eklenirse kendiliğinden kapsar).
             'local_districts' => count($districts) === count($eskisehir) ? null : implode(',', $districts),
             'cargo_cutoff' => $data['cargo_cutoff'] ?? null,
+            'cargo_delivery_time' => trim((string) ($data['cargo_delivery_time'] ?? '')) ?: null,
             'cod_max_open' => (string) $data['cod_max_open'],
             'return_days' => (string) $data['return_days'],
             'return_address' => trim((string) ($data['return_address'] ?? '')) ?: null,

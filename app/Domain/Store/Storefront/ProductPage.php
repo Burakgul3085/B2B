@@ -16,7 +16,7 @@ class ProductPage
     /**
      * cargo_fee: firma fiyatlarının en düşüğü (birden çok firma fiyatlıysa cargo_from ile "…'den başlayan" yazılır).
      *
-     * @return array{free_threshold: ?string, cargo_fee: ?string, cargo_from: bool, cutoff: ?string, local: bool, return_days: int, perks: array, whatsapp: ?string}
+     * @return array{free_threshold: ?string, cargo_fee: ?string, cargo_from: bool, cutoff: ?string, delivery_time: ?string, local: bool, return_days: int, perks: array, whatsapp: ?string}
      */
     public static function info(): array
     {
@@ -28,6 +28,7 @@ class ProductPage
             'cargo_fee' => bccomp($fee, '0', 2) > 0 ? $fee : null,
             'cargo_from' => $delivery->carrierChoices()->pluck('fee')->unique()->count() > 1,
             'cutoff' => StoreSetting::get('cargo_cutoff'),
+            'delivery_time' => StoreSetting::get('cargo_delivery_time'),
             'local' => StoreSetting::flag('local_delivery_enabled'),
             'return_days' => (int) StoreSetting::get('return_days'),
             'perks' => StoreFooter::config()['strip'],

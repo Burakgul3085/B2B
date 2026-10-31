@@ -189,8 +189,9 @@
 
                 {{-- Teslimat özeti: yalnızca ayarlanmış bilgiler --}}
                 <ul class="mt-6 divide-y divide-line rounded-2xl border border-line text-sm">
-                    @if ($info['cutoff'])
-                        <li class="flex gap-3 px-4 py-3"><x-icon name="clock" class="size-5 shrink-0 text-puzzle-blue" /><span>Hafta içi saat <strong>{{ $info['cutoff'] }}</strong> öncesi verilen siparişler aynı gün kargoya verilir.</span></li>
+                    @if ($info['cutoff'] || $info['delivery_time'])
+                        <li class="flex gap-3 px-4 py-3"><x-icon name="clock" class="size-5 shrink-0 text-puzzle-blue" /><span>@if ($info['cutoff'])Hafta içi saat <strong>{{ $info['cutoff'] }}</strong> öncesi verilen siparişler aynı gün kargoya verilir.@endif
+                            @if ($info['delivery_time'])Kargoya verilen siparişler genellikle <strong>{{ $info['delivery_time'] }}</strong> içinde teslim edilir.@endif</span></li>
                     @endif
                     <li class="flex gap-3 px-4 py-3"><x-icon name="truck" class="size-5 shrink-0 text-puzzle-orange" /><span>
                         @if ($info['free_threshold'])<strong>{{ Money::format($info['free_threshold']) }}</strong> ve üzeri siparişlerde kargo ücretsiz.@if ($info['cargo_fee']) Altında kargo ücreti {{ Money::format($info['cargo_fee']) }}{{ $info['cargo_from'] ? "'den başlar" : '' }}.@endif
