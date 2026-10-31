@@ -122,6 +122,9 @@
                         </label>
                     </div>
                     @error('delivery_method')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+                    {{-- Tahmini teslim (Ön Bilgilendirme Formu: süreler ürün ve ödeme sayfalarında belirtilir) --}}
+                    <p class="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted"><x-icon name="clock" class="mt-0.5 size-4 shrink-0" />
+                        <span>@if ($cargoCutoff)Hafta içi saat <strong>{{ $cargoCutoff }}</strong> öncesi verilen siparişler aynı gün kargoya verilir. @endif Siparişiniz en geç 30 gün içinde teslim edilir; kargo takip numarası e-postayla gönderilir.</span></p>
 
                     @if ($rules['carriers'] && ! $rules['cargoFree'])
                         <fieldset class="mt-5" x-show="needsCarrier">
