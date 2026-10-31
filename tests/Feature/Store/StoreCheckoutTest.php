@@ -112,7 +112,8 @@ class StoreCheckoutTest extends TestCase
 
     public function test_checkout_page_requires_a_valid_cart(): void
     {
-        $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Siparişi tamamla')->assertSee('Mesafeli Satış Sözleşmesi');
+        $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Siparişi tamamla')->assertSee('Mesafeli Satış Sözleşmesi')
+            ->assertSee('KVKK Aydınlatma Metni</a> kapsamında işlenir', false);
         $this->get(self::HOST.'/yasal/mesafeli-satis')->assertOk()->assertSee('Yapboz Kırtasiye Ltd. Şti.');
 
         $this->cart->items()->delete();

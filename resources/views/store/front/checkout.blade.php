@@ -246,6 +246,7 @@
                         <a href="{{ route('store.legal', 'mesafeli-satis') }}" target="_blank" rel="noopener" class="font-medium text-primary underline">Mesafeli Satış Sözleşmesi</a>'ni okudum, onaylıyorum.</span>
                 </label>
                 @error('consent')<p class="text-sm text-danger">{{ $message }}</p>@enderror
+                <p class="text-xs leading-relaxed text-muted">Siparişiniz için verdiğiniz bilgiler <a href="{{ route('store.legal', 'kvkk') }}" target="_blank" rel="noopener" class="font-medium text-primary underline">KVKK Aydınlatma Metni</a> kapsamında işlenir.</p>
 
                 <button class="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover disabled:opacity-50" :disabled="! payment || submitting">
                     <span x-text="submitLabel">Ödemeye geç</span>

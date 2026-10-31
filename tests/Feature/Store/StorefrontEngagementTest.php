@@ -248,7 +248,8 @@ class StorefrontEngagementTest extends TestCase
         $inStock = $this->product('Kurşun Kalem', 5);
         $variant = $pen->variants()->sole();
 
-        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Stoğa gelince haber verelim');
+        $this->get(self::HOST.'/urun/jel-kalem')->assertSee('Stoğa gelince haber verelim')
+            ->assertSee('gönderimden sonra silinir. <a href="'.route('store.legal', 'kvkk').'"', false);
         $this->post(self::HOST.'/stok-bildirimi', ['variant_id' => $variant->id, 'email' => 'yanlis'])->assertSessionHasErrors('email');
         $this->post(self::HOST.'/stok-bildirimi', ['variant_id' => $inStock->variants()->value('id'), 'email' => 'ali@ornek.com'])->assertSessionHasErrors('email');
         $this->post(self::HOST.'/stok-bildirimi', ['variant_id' => $variant->id, 'email' => 'Ali@Ornek.com'])->assertRedirect(route('store.product', 'jel-kalem').'#stok-bildirimi');

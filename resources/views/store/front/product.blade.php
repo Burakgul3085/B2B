@@ -169,7 +169,7 @@
                                 <x-button size="sm" variant="secondary">Haber ver</x-button>
                             </div>
                             @error('email')<p class="mt-2 text-xs text-danger">{{ $message }}</p>@enderror
-                            <p class="mt-2 text-xs text-muted">Adresiniz yalnızca bu bildirim için kullanılır ve gönderimden sonra silinir.</p>
+                            <p class="mt-2 text-xs text-muted">Adresiniz yalnızca bu bildirim için kullanılır ve gönderimden sonra silinir. <a href="{{ route('store.legal', 'kvkk') }}" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-ink">Aydınlatma Metni</a></p>
                         </form>
                     @endif
                 </div>
