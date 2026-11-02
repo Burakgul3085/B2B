@@ -81,6 +81,7 @@ class OrderController extends Controller
         $this->assertOwn($order);
         $order->load(['items.product.primaryImage', 'history', 'payments']);
         $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing', 'shipped'], true);
+        $requestable = $order->status === 'completed' ? ReturnRequestService::requestable($order) : [];
 
         return view('dealer.orders.show', [
             'order' => $order,
@@ -92,7 +93,8 @@ class OrderController extends Controller
             'canCancel' => in_array($order->status, Order::PENDING, true),
             'canRequestCancel' => OrderStateMachine::can($order->status, 'cancel_requested'),
             'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->with(['items.orderItem', 'photos', 'orderReturn'])->latest('id')->get(),
-            'requestable' => $order->status === 'completed' ? ReturnRequestService::requestable($order) : [],
+            'requestable' => $requestable,
+            'canRequestReturn' => collect($requestable)->contains(fn ($q) => bccomp($q, '0', 3) > 0),
         ]);
     }
 

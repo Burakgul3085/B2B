@@ -9,7 +9,8 @@
         <div role="status" class="mb-5 flex items-start gap-3 rounded-xl border border-green-200 bg-success-soft px-4 py-3 text-sm text-green-900">
             <x-icon name="check-circle" class="mt-0.5 size-4 shrink-0" /><p>Ödemeniz alındı, teşekkür ederiz. Siparişiniz hazırlanacak.</p>
         </div>
-    @else
+    @elseif ($order->awaitingPayment() && ! in_array($order->status, ['rejected', 'cancelled'], true))
+        {{-- Ödeme dönüşünden kalan bağlantı sonradan açılırsa (ör. iptal ve iade sonrası) yanlış uyarı gösterilmez. --}}
         <div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">Ödeme alınamadı. Kart bilgilerinizi kontrol edip yeniden deneyebilir veya havale ile ödeyebilirsiniz.</div>
     @endif
 @endif

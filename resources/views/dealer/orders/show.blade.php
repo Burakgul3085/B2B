@@ -15,6 +15,9 @@
         @if ($currentBusiness->moduleEnabled('messaging'))
             <span class="print:hidden"><x-button variant="secondary" size="sm" icon="inbox" :href="route('dealer.messages.create', ['context' => 'order', 'id' => $order->id])">Mesaj gönder</x-button></span>
         @endif
+        @if ($canRequestReturn)
+            <span class="print:hidden"><x-button variant="secondary" size="sm" icon="arrows" :href="route('dealer.orders.show', [$order, 'iade' => 1]).'#iade'">İade talebi</x-button></span>
+        @endif
         <form method="POST" action="{{ route('dealer.orders.reorder', $order) }}" class="print:hidden">
             @csrf
             <x-button size="sm" icon="refresh">Tekrar sipariş ver</x-button>

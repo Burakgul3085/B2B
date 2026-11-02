@@ -1,12 +1,11 @@
-{{-- Siparişin iade talepleri ve (tamamlanmış siparişte) yeni talep formu: $order, $returnRequests, $requestable --}}
+{{-- Siparişin iade talepleri ve (tamamlanmış siparişte) yeni talep formu: $order, $returnRequests, $requestable, $canRequestReturn --}}
 @php
     use App\Domain\Inventory\Quantity;
     use App\Domain\Support\Money;
     use App\Models\OrderReturnRequest;
 
-    $canRequest = $order->status === 'completed' && collect($requestable)->contains(fn ($q) => bccomp($q, '0', 3) > 0);
 @endphp
-@if ($returnRequests->isNotEmpty() || $canRequest)
+@if ($returnRequests->isNotEmpty() || $canRequestReturn)
     <section id="iade" class="mt-6 space-y-4 print:hidden">
         @error('return')<div role="alert" class="rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
@@ -44,8 +43,8 @@
             </x-card>
         @endforeach
 
-        @if ($canRequest)
-            <details class="rounded-2xl border border-line bg-white shadow-xs" @if ($errors->has('return') || $errors->has('reason') || $errors->has('photos') || $errors->has('photos.*')) open @endif>
+        @if ($canRequestReturn)
+            <details class="rounded-2xl border border-line bg-white shadow-xs" @if (request('iade') || $errors->has('return') || $errors->has('reason') || $errors->has('photos') || $errors->has('photos.*')) open @endif>
                 <summary class="cursor-pointer px-5 py-4 text-sm font-semibold text-ink">İade talebi oluştur</summary>
                 <form method="POST" action="{{ route('dealer.returns.store', $order) }}" enctype="multipart/form-data" class="space-y-4 border-t border-line px-5 py-4">
                     @csrf

@@ -4,6 +4,8 @@
     $last = count($steps) - 1;
     $index = ['submitted' => 0, 'in_review' => 1, 'approved' => 2, 'preparing' => 3, 'shipped' => 4, 'cancel_requested' => 2, 'completed' => $last][$order->status] ?? null;
     $compact ??= false;
+    // "Yola çıktı" isteğe bağlı: kullanılmadan tamamlanan siparişte bu adım işaretlenmez.
+    $skipped = fn (string $key) => $key === 'shipped' && $order->shipped_at === null && $index !== null && $index >= 4;
 @endphp
 @if ($compact)
     @if ($index === null)
@@ -11,7 +13,7 @@
     @else
         <div class="flex w-28 gap-0.5" aria-label="İlerleme: {{ $index + 1 }}/{{ $last + 1 }}">
             @foreach ($steps as $i => $label)
-                <span @class(['h-1.5 flex-1 rounded-full', $loop->index <= $index ? ($index === $last ? 'bg-emerald-500' : 'bg-primary') : 'bg-slate-200'])></span>
+                <span @class(['h-1.5 flex-1 rounded-full', $loop->index <= $index && ! $skipped($i) ? ($index === $last ? 'bg-emerald-500' : 'bg-primary') : 'bg-slate-200'])></span>
             @endforeach
         </div>
     @endif
@@ -36,7 +38,7 @@
     @else
         <ol class="grid grid-cols-6">
             @foreach ($steps as $key => $label)
-                @php $done = $loop->index <= $index; $current = $loop->index === $index; $final = $index === $last; @endphp
+                @php $done = $loop->index <= $index && ! $skipped($key); $current = $loop->index === $index; $final = $index === $last; @endphp
                 <li class="relative flex flex-col items-center text-center">
                     @unless ($loop->first)
                         <span @class(['absolute top-4 right-1/2 -z-0 h-0.5 w-full', $loop->index <= $index ? 'bg-primary' : 'bg-slate-200'])></span>
@@ -51,7 +53,7 @@
                         @if ($done)<x-icon name="check" class="size-4" />@else{{ $loop->iteration }}@endif
                     </span>
                     <span @class(['mt-2 text-xs font-semibold sm:text-sm', 'text-primary' => $current && ! $final, 'text-ink' => $done && ! $current, 'text-emerald-700' => $current && $final, 'text-slate-400' => ! $done])>{{ $label }}</span>
-                    <span class="text-[11px] text-muted tabular-nums">{{ isset($dates[$key]) && $loop->index <= $index ? $dates[$key]->format('d.m.Y') : ' ' }}</span>
+                    <span class="text-[11px] text-muted tabular-nums">{{ $skipped($key) ? 'Kullanılmadı' : (isset($dates[$key]) && $loop->index <= $index ? $dates[$key]->format('d.m.Y') : ' ') }}</span>
                 </li>
             @endforeach
         </ol>

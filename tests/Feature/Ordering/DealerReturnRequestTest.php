@@ -74,7 +74,12 @@ class DealerReturnRequestTest extends TestCase
         $item = $this->db(fn () => $order->items()->first());
 
         $this->actingAs($rel->dealer->user, 'dealer');
-        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('İade talebi oluştur');
+        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('İade talebi oluştur')
+            ->assertSee('iade=1#iade', false)->assertSee('Kullanılmadı'); // üstte düğme; atlanan "Yola çıktı" işaretlenmez
+        $this->get(route('dealer.orders.show', [$order, 'iade' => 1]))->assertSee('<details class="rounded-2xl border border-line bg-white shadow-xs"  open', false);
+
+        // Ödeme dönüş bağlantısı ödemesi beklenmeyen siparişte "Ödeme alınamadı" göstermez.
+        $this->get(route('dealer.orders.show', [$order, 'odeme' => 'sonuc']))->assertDontSee('Ödeme alınamadı');
 
         // Hasarlı ürün iadesinde fotoğraf zorunlu; iade edilebilir miktar aşılamaz.
         $this->post(route('dealer.returns.store', $order), ['qty' => [$item->id => '2'], 'reason' => 'damaged'])->assertSessionHasErrors('return');
