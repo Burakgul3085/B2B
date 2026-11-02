@@ -84,7 +84,7 @@
                 ['label' => 'İadeler', 'route' => 'store_admin.returns.index', 'icon' => 'refresh', 'active' => 'store_admin.returns.*',
                     'badge' => \App\Models\Store\StoreReturn::whereIn('status', ['requested', 'shipped'])->count()],
                 ['label' => 'Faturalar', 'route' => 'store_admin.invoices.index', 'icon' => 'file', 'active' => 'store_admin.invoices.*',
-                    'badge' => \App\Domain\Store\Invoicing\EInvoiceService::awaitingSale()->count()],
+                    'badge' => \App\Domain\Store\Invoicing\EInvoiceService::awaitingSale()->count() + \App\Models\Store\StoreEInvoice::where('status', 'draft')->count()],
                 ['label' => 'Mesajlar', 'route' => 'store_admin.messages.index', 'icon' => 'message-circle', 'active' => 'store_admin.messages.*',
                     'badge' => \App\Models\Store\StoreContactMessage::where('status', 'new')->count()],
                 ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],

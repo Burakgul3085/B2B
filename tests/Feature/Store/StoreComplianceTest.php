@@ -109,7 +109,7 @@ class StoreComplianceTest extends TestCase
         $cart = $carts->forCustomer($customer);
         $carts->add($cart, $pen->id, 1);
         $checkout = app(CheckoutService::class);
-        $order = $checkout->place($checkout->validate(['address_id' => $customer->addresses()->value('id'), 'billing_type' => 'individual', 'billing_same' => '1',
+        $order = $checkout->place($checkout->validate(['address_id' => $customer->addresses()->value('id'), 'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1',
             'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1'], $customer, $carts->summary($cart)), $customer, $cart, null, null);
 
         $this->actingAs($customer, 'customer');

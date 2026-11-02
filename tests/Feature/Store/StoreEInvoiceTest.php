@@ -9,6 +9,7 @@ use App\Domain\Store\Invoicing\InvoiceMath;
 use App\Domain\Store\Invoicing\Providers\DenemeProvider;
 use App\Domain\Store\Invoicing\Providers\EInvoiceUncertain;
 use App\Domain\Store\Invoicing\UblBuilder;
+use App\Domain\Store\Orders\OrderService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
 use App\Models\Store\StoreAdmin;
@@ -107,7 +108,7 @@ class StoreEInvoiceTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 6,
                 'district_id' => District::where('province_id', 6)->where('name', 'Çankaya')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
+            'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
         ])->assertRedirect('https://sandbox.iyzico.test/odeme');
         $order = StoreOrder::latest('id')->firstOrFail();
         $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-'.$order->id]);
@@ -142,13 +143,35 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame(['20', '10'], array_map('strval', array_keys($totals['by_rate'])));
     }
 
-    public function test_payment_does_not_issue_invoice_order_waits_in_list(): void
+    public function test_payment_creates_unsent_draft_admin_reviews_and_sends(): void
     {
+        // Kart ödemesi alınınca taslak hazırlanır; gönderilmez, müşteriye fatura kaydı oluşmaz.
         $order = $this->paidOrder();
+        $draft = StoreEInvoice::sole();
+        $this->assertSame([$order->id, 'sale', 'draft', null, '280.00'], [$draft->order_id, $draft->kind, $draft->status, $draft->invoice_no, $draft->total]);
         $this->assertFalse($order->invoice()->exists());
-        $this->assertSame(0, StoreEInvoice::count());
+        $this->assertNotContains($order->id, EInvoiceService::awaitingSale()->pluck('id')->all());
+        $this->get(self::ADMIN.'/faturalar?tab=taslak')->assertOk()->assertSee($order->order_no)->assertSee('Deneme sürücüsü açık');
 
-        $this->get(self::ADMIN.'/faturalar')->assertOk()->assertSee('Fatura bekleyen')->assertSee($order->order_no)->assertSee('Deneme sürücüsü açık');
+        // Aynı sipariş için ikinci taslak açılmaz.
+        app(EInvoiceService::class)->draftOnPayment($order);
+        $this->assertSame(1, StoreEInvoice::count());
+
+        // Havale onaylanınca ve kapıda ödemede teslimde (tahsilatla) taslak hazırlanır.
+        $orders = app(OrderService::class);
+        StoreEInvoice::query()->delete();
+        $order->forceFill(['status' => 'awaiting_transfer', 'payment_method' => 'transfer', 'payment_status' => 'pending', 'paid_at' => null])->save();
+        $orders->markTransferReceived($order);
+        $this->assertSame(['preparing', 'draft'], [$order->fresh()->status, StoreEInvoice::where('order_id', $order->id)->sole()->status]);
+
+        StoreEInvoice::query()->delete();
+        $order->forceFill(['status' => 'shipped', 'payment_method' => 'cod', 'payment_status' => 'pending'])->save();
+        $orders->deliver($order, 'cash');
+        $this->assertSame(['delivered', 'draft'], [$order->fresh()->status, StoreEInvoice::where('order_id', $order->id)->sole()->status]);
+
+        // Taslağı silinmiş / hazırlanamamış sipariş "Fatura bekleyen"de görünür, taslak elle açılır.
+        StoreEInvoice::query()->delete();
+        $this->get(self::ADMIN.'/faturalar')->assertOk()->assertSee('Fatura bekleyen')->assertSee($order->order_no);
         $this->get(self::ADMIN.'/siparisler/'.$order->id)->assertOk()->assertSee(route('store_admin.invoices.create-sale', $order));
     }
 
@@ -231,12 +254,20 @@ class StoreEInvoiceTest extends TestCase
         $second = $this->paidOrder();
         $doc = $service->send($service->createSale($second));
         $this->assertSame('e_arsiv', $doc->document_type);
+        $this->get(self::ADMIN.'/faturalar/'.$doc->id)->assertOk()->assertSee('Son iptal tarihi: '.now('Europe/Istanbul')->addDays(7)->format('d.m.Y'));
         $this->post(self::ADMIN.'/faturalar/'.$doc->id.'/iptal', ['cancel_reason' => ''])->assertSessionHasErrors('cancel_reason');
         $this->post(self::ADMIN.'/faturalar/'.$doc->id.'/iptal', ['cancel_reason' => 'Alıcı bilgisi hatalı'])->assertSessionHasNoErrors();
         $this->assertSame('cancelled', $doc->fresh()->status);
         $this->assertFalse($second->invoice()->exists());
         $this->assertContains($second->id, EInvoiceService::awaitingSale()->pluck('id')->all());
         $this->assertNotSame($doc->id, $service->createSale($second->fresh())->id);
+
+        // e-Arşiv faturası 7 günden sonra iptal edilemez.
+        $late = $service->send($service->createSale($this->paidOrder()));
+        $this->travel(8)->days();
+        $this->get(self::ADMIN.'/faturalar/'.$late->id)->assertOk()->assertSee('tarihinde doldu')->assertDontSee('name="cancel_reason"', false);
+        $this->post(self::ADMIN.'/faturalar/'.$late->id.'/iptal', ['cancel_reason' => 'Geç'])->assertSessionHasErrors('invoice');
+        $this->assertSame('sent', $late->fresh()->status);
     }
 
     public function test_uncertain_send_is_not_resent_until_checked(): void
@@ -313,7 +344,9 @@ class StoreEInvoiceTest extends TestCase
         $this->get(self::ADMIN.'/ayarlar/fatura')->assertOk()->assertSee('Uyumsoft kullanıcı adı');
         $this->put(self::ADMIN.'/ayarlar/fatura', ['invoice_driver' => 'uyumsoft', 'uyumsoft_mode' => 'test', 'invoice_shipping_vat' => '20'])->assertSessionHasErrors('uyumsoft_username');
         $this->put(self::ADMIN.'/ayarlar/fatura', ['invoice_driver' => 'uyumsoft', 'uyumsoft_mode' => 'test', 'uyumsoft_username' => 'Uyumsoft', 'uyumsoft_password' => 'gizli',
-            'invoice_sender_id' => '18508621764', 'invoice_shipping_vat' => '20', 'invoice_notify' => '1'])->assertSessionHasNoErrors();
+            'invoice_sender_id' => '18508621764', 'invoice_seller_name' => ' EBRU BİRBİLEN ', 'invoice_tax_office' => 'Eskişehir Defterdarlığı',
+            'invoice_shipping_vat' => '20', 'invoice_notify' => '1'])->assertSessionHasNoErrors();
+        $this->assertSame(['EBRU BİRBİLEN', 'Eskişehir Defterdarlığı'], [StoreSetting::get('invoice_seller_name'), StoreSetting::get('invoice_tax_office')]);
         $this->assertNotSame('gizli', StoreSetting::get('uyumsoft_password'));
         $this->assertSame('gizli', StoreSetting::secret('uyumsoft_password'));
         $this->get(self::ADMIN.'/ayarlar/fatura')->assertDontSee('gizli');
@@ -327,9 +360,12 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame(['sent', 'uyumsoft', 'e_arsiv', 'YAP2026000000001', '11111111-2222-3333-4444-555555555555'],
             [$invoice->status, $invoice->provider, $invoice->document_type, $invoice->invoice_no, $invoice->ettn]);
         $this->assertSame('%PDF-1.4 uyumsoft', Storage::disk('local')->get($invoice->pdf_path));
-        $this->assertSame(['WhoAmI', 'SendInvoice', 'GetOutboxInvoicePdf'], $this->soap);
+        // Bireysel alıcının TCKN'si de e-Fatura kaydı için sorgulanır (mükellef değil: e-Arşiv).
+        $this->assertSame(['WhoAmI', 'IsEInvoiceUser', 'SendInvoice', 'GetOutboxInvoicePdf'], $this->soap);
         Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'efatura-test.uyumsoft.com.tr') && str_contains($r->body(), '<cbc:ProfileID>EARSIVFATURA</cbc:ProfileID>')
-            && str_contains($r->body(), 'schemeID="TCKN">18508621764') && str_contains($r->body(), '<tem:Scenario>eArchive</tem:Scenario>')
+            && str_contains($r->body(), 'schemeID="TCKN">18508621764') && str_contains($r->body(), '<cbc:Name>EBRU BİRBİLEN</cbc:Name>')
+            && str_contains($r->body(), '<cbc:FirstName>EBRU</cbc:FirstName>') && str_contains($r->body(), '<cbc:Name>Eskişehir Defterdarlığı</cbc:Name>')
+            && ! str_contains($r->body(), 'Yapboz Kırtasiye</cbc:Name>') && str_contains($r->body(), '<tem:Scenario>eArchive</tem:Scenario>')
             && str_contains($r->body(), '<tem:PaymentType>KREDIKARTI/BANKAKARTI</tem:PaymentType>') && str_contains($r->body(), '<tem:CreateDateUtc>')
             // Kimlik WS-Security başlığında; gövdede şifre yok.
             && str_contains($r->body(), '<wsse:Username>Uyumsoft</wsse:Username>') && ! str_contains($r->body(), 'userInfo'));
@@ -362,7 +398,7 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame('280.00', $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:PayableAmount)'));
         $this->assertSame('1770247133', $x->evaluate('string(//cac:AccountingSupplierParty//cac:PartyIdentification/cbc:ID)'));
         $this->assertSame('ESKİŞEHİR', $x->evaluate('string(//cac:AccountingSupplierParty//cbc:CityName)'));
-        $this->assertSame('11111111111', $x->evaluate('string(//cac:AccountingCustomerParty//cac:PartyIdentification/cbc:ID)'));
+        $this->assertSame('10000000146', $x->evaluate('string(//cac:AccountingCustomerParty//cac:PartyIdentification/cbc:ID)'));
         $this->assertSame('Yılmaz', $x->evaluate('string(//cac:AccountingCustomerParty//cac:Person/cbc:FamilyName)'));
         $this->assertSame(2.0, $x->evaluate('count(/*/cac:TaxTotal/cac:TaxSubtotal)'));
         // UBL-TR'de zorunlu imza bilgisi, taraflardan önce.
@@ -379,6 +415,21 @@ class StoreEInvoiceTest extends TestCase
         // Fatura tarihi siparişten önce olamaz.
         $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['issue_date' => now('Europe/Istanbul')->subDays(3)->toDateString()]) + ['action' => 'save'])
             ->assertSessionHasErrors('issue_date');
+
+        // Bireysel alıcıda geçerli T.C. kimlik numarası zorunlu (11111111111 kullanılmaz).
+        foreach (['', '11111111111', '12345678901'] as $tckn) {
+            $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => $tckn]) + ['action' => 'save'])->assertSessionHasErrors('buyer_tax_number');
+        }
+        // Kimliksiz eski taslak (ör. zorunluluktan önceki sipariş) gönderilmez; numara yazılınca gönderilir.
+        $invoice->forceFill(['buyer_tax_number' => null])->save();
+        try {
+            $service->send($invoice->fresh());
+            $this->fail('Kimliksiz bireysel fatura gönderilmemeli.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('T.C. kimlik numarası eksik', $e->getMessage());
+        }
+        $this->assertSame('draft', $invoice->fresh()->status);
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => '10000000146']) + ['action' => 'save'])->assertSessionHasNoErrors();
 
         // Şahıs firması: kurumsal alıcı 11 haneli TCKN ile; UBL'de kişi adı da yazılır.
         $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_type' => 'corporate', 'buyer_name' => 'Ali Veli',

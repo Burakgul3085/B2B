@@ -5,6 +5,7 @@ namespace App\Domain\Store\Orders;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\Invoicing\EInvoiceService;
 use App\Domain\Store\Notifications\AdminNotifier;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\RefundService;
@@ -37,6 +38,7 @@ class OrderService
         private RefundService $refunds,
         private AdminNotifier $notifier,
         private NewOrderAlerts $alerts,
+        private EInvoiceService $invoices,
     ) {}
 
     /** Kart ödemesi doğrulandı: ayrılan stok satışa çevrilir. */
@@ -74,6 +76,7 @@ class OrderService
             $this->alerts->raise($order);
             $this->notifier->newOrder($order);
             $this->notifier->lowStock($sold);
+            $this->invoices->draftOnPayment($order);
         }
 
         return $order;
@@ -109,6 +112,7 @@ class OrderService
             'Havale / EFT alındı; sipariş hazırlanıyor.', 'store.order_transfer_received');
         $order->payments()->where('driver', 'transfer')->where('status', 'initialized')->update(['status' => 'succeeded']);
         $this->mailer->transferReceived($order->fresh());
+        $this->invoices->draftOnPayment($order);
     }
 
     /**
@@ -183,6 +187,9 @@ class OrderService
             $order->payment_method === 'cod' ? 'Teslim edildi, ödeme tahsil edildi ('.($collectedMethod === 'cash' ? 'nakit' : 'kapıda kart').').' : 'Teslim edildi.',
             'store.order_delivered');
         $this->mailer->delivered($order);
+        if ($order->payment_method === 'cod') {
+            $this->invoices->draftOnPayment($order); // kapıda ödemede ödeme teslimde alınır
+        }
     }
 
     /**

@@ -257,7 +257,7 @@ class StorePrintTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '0532 123 45 67', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Odunpazarı')->value('id'), 'neighborhood' => 'Arifiye', 'address_line' => 'Hamamyolu Cad. No 12'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
         ])->assertRedirect(route('store.checkout.verify'));
         preg_match('/\b(\d{6})\b/', $gateway::$last, $m);
         $this->post(self::HOST.'/odeme/dogrulama', ['code' => $m[1]]);

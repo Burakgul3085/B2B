@@ -24,10 +24,12 @@ class EInvoiceSettings
             'uyumsoft_username' => ['nullable', 'string', 'max:100'],
             'uyumsoft_password' => ['nullable', 'string', 'max:200'],
             'invoice_sender_id' => ['nullable', 'regex:/^(\d{10}|\d{11})$/'],
+            'invoice_seller_name' => ['nullable', 'string', 'max:150'],
+            'invoice_tax_office' => ['nullable', 'string', 'max:100'],
             'invoice_shipping_vat' => ['required', 'in:'.implode(',', InvoiceMath::VAT_RATES)],
         ], ['invoice_sender_id.regex' => 'Gönderici kimliği 10 haneli VKN veya 11 haneli TCKN olmalı.'], [
             'invoice_driver' => 'sağlayıcı', 'uyumsoft_mode' => 'ortam', 'uyumsoft_username' => 'kullanıcı adı', 'uyumsoft_password' => 'şifre',
-            'invoice_shipping_vat' => 'kargo KDV oranı',
+            'invoice_shipping_vat' => 'kargo KDV oranı', 'invoice_seller_name' => 'satıcı adı', 'invoice_tax_office' => 'vergi dairesi',
         ])->validate();
 
         $username = trim((string) ($data['uyumsoft_username'] ?? '')) ?: null;
@@ -42,6 +44,8 @@ class EInvoiceSettings
             'uyumsoft_mode' => $data['uyumsoft_mode'],
             'uyumsoft_username' => $username,
             'invoice_sender_id' => $data['invoice_sender_id'] ?? null,
+            'invoice_seller_name' => trim((string) ($data['invoice_seller_name'] ?? '')) ?: null,
+            'invoice_tax_office' => trim((string) ($data['invoice_tax_office'] ?? '')) ?: null,
             'invoice_shipping_vat' => $data['invoice_shipping_vat'],
             'invoice_notify' => filter_var($input['invoice_notify'] ?? false, FILTER_VALIDATE_BOOL) ? '1' : '0',
         ]);
@@ -50,7 +54,7 @@ class EInvoiceSettings
         }
 
         $new = StoreSetting::values();
-        $keys = ['invoice_driver', 'uyumsoft_mode', 'uyumsoft_username', 'invoice_sender_id', 'invoice_shipping_vat', 'invoice_notify'];
+        $keys = ['invoice_driver', 'uyumsoft_mode', 'uyumsoft_username', 'invoice_sender_id', 'invoice_seller_name', 'invoice_tax_office', 'invoice_shipping_vat', 'invoice_notify'];
         $changed = array_values(array_filter($keys, fn ($k) => (string) $new[$k] !== (string) ($old[$k] ?? '')));
         $this->audit->log('store.invoice_settings_updated', null, [], ['changed' => $changed, 'password_renewed' => filled($data['uyumsoft_password'] ?? null)]);
     }

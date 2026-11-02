@@ -323,14 +323,14 @@
                             </form>
                         </details>
                     @endif
-                    @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true) && $manualInvoice && $eInvoices->where('kind', 'sale')->isEmpty())
+                    @if (! in_array($order->status, ['pending_payment', 'payment_failed'], true) && $manualInvoice && ! $eInvoices->where('kind', 'sale')->contains(fn ($d) => $d->status !== 'draft' || $d->ettn))
                         <details class="mt-3" @if ($errors->hasAny(['invoice_no', 'issued_on', 'file'])) open @endif>
                             <summary class="cursor-pointer text-sm font-medium text-muted hover:text-primary">{{ $order->invoice ? 'Elle eklenen faturayı değiştir' : 'Başka yerde kesilen faturayı elle ekle (PDF)' }}</summary>
                             <form method="POST" action="{{ route('store_admin.orders.invoice.store', $order) }}" enctype="multipart/form-data" class="mt-3 space-y-3">
                                 @csrf
                                 <x-field name="invoice_no" label="Fatura numarası" required maxlength="30" :value="$order->invoice?->invoice_no" />
                                 <x-field name="issued_on" label="Fatura tarihi" type="date" required :value="$order->invoice?->issued_on?->toDateString() ?? now('Europe/Istanbul')->toDateString()" />
-                                <x-field name="file" label="PDF" type="file" accept="application/pdf" :required="! $order->invoice" :hint="$order->invoice ? 'Boş bırakılırsa mevcut PDF korunur.' : 'En fazla 5 MB. Müşteri sipariş sayfasından indirir.'" />
+                                <x-field name="file" label="PDF" type="file" accept="application/pdf" :required="! $order->invoice" :hint="$order->invoice ? 'Boş bırakılırsa mevcut PDF korunur.' : 'En fazla 5 MB. Müşteri sipariş sayfasından indirir.'.($eInvoices->where('kind', 'sale')->isNotEmpty() ? ' Kaydedince bu siparişin gönderilmemiş fatura taslağı silinir.' : '')" />
                                 <x-button>Kaydet</x-button>
                             </form>
                         </details>

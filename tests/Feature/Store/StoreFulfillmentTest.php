@@ -96,7 +96,7 @@ class StoreFulfillmentTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 6,
                 'district_id' => District::where('province_id', 6)->where('name', 'Çankaya')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
         ])->assertRedirect('https://sandbox.iyzico.test/odeme');
         $order = StoreOrder::latest('id')->firstOrFail();
         $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-'.$order->id]);
@@ -117,7 +117,7 @@ class StoreFulfillmentTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 6,
                 'district_id' => District::where('province_id', 6)->where('name', 'Çankaya')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'card', 'consent' => '1',
         ])->assertRedirect('https://sandbox.iyzico.test/odeme');
         $order = StoreOrder::latest('id')->firstOrFail();
         $this->assertSame('pending_payment', $order->status);
@@ -309,7 +309,7 @@ class StoreFulfillmentTest extends TestCase
             'email' => 'ali@ornek.com',
             'address' => ['first_name' => 'Ali', 'last_name' => 'Kaya', 'phone' => '05329998877', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id'), 'address_line' => 'İki Eylül Cad. No 1'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
         ], null, $carts->summary($cart)), null, $cart, '127.0.0.1', 'test');
         $this->post(route('store_admin.orders.ship', $order));
         $this->post(route('store_admin.orders.deliver', $order), ['collected_method' => 'cash']);
@@ -457,6 +457,14 @@ class StoreFulfillmentTest extends TestCase
 
         $invoice = $order->invoice()->firstOrFail();
         $this->assertSame('YBZ2026000000001', $invoice->invoice_no);
+        // Ödemede hazırlanan, gönderilmemiş fatura taslağı elle fatura eklenince silinir (çift fatura olmaz).
+        $this->assertSame(0, $order->eInvoices()->count());
+        // Gönderimi denenmiş (sonucu belirsiz) taslak varken elle fatura eklenemez.
+        $other = $this->paidCardOrder();
+        $other->eInvoices()->sole()->update(['status' => 'unknown', 'ettn' => 'aaaa-bbbb']);
+        $this->post(route('store_admin.orders.invoice.store', $other), ['invoice_no' => 'YBZ2026000000009', 'issued_on' => now('Europe/Istanbul')->toDateString(), 'file' => $pdf()])
+            ->assertSessionHasErrors();
+        $this->assertFalse($other->invoice()->exists());
         Storage::disk('local')->assertExists($invoice->file_path);
         $this->assertStringStartsWith('store/invoices/'.$order->id.'/', $invoice->file_path);
 

@@ -55,7 +55,7 @@ class ResetStoreCatalogTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
         ], null, $carts->summary($cart));
         $order = $checkout->place($draft, null, $cart, '127.0.0.1', 'test');
         DB::table('store_cod_blocklist')->insert(['phone' => '05321234567', 'order_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);

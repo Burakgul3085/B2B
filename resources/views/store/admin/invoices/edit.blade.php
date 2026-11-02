@@ -105,10 +105,13 @@
         </x-card>
 
         @if ($invoice->status === 'sent')
-            <x-card title="Faturayı iptal et" class="mt-6" :description="$invoice->document_type === 'e_arsiv'
-                ? 'e-Arşiv faturası iptal edilir; müşterinin sipariş sayfasındaki fatura kaldırılır ve yeni taslak hazırlanabilir. GİB\'in iptal süresine dikkat edin.'
-                : 'e-Fatura sistemden iptal edilemez. Düzeltme için iade faturası kesin ya da alıcıyla GİB portalından iptal sürecini yürütün.'">
-                @if ($invoice->document_type === 'e_arsiv')
+            @php($cancelDeadline = $invoice->document_type === 'e_arsiv' ? \App\Domain\Store\Invoicing\EInvoiceService::cancelDeadline($invoice) : null)
+            <x-card title="Faturayı iptal et" class="mt-6" :description="match (true) {
+                $invoice->document_type !== 'e_arsiv' => 'e-Fatura sistemden iptal edilemez. Düzeltme için iade faturası kesin ya da alıcıyla GİB portalından iptal sürecini yürütün.',
+                now()->gt($cancelDeadline) => 'e-Arşiv faturası düzenlendiği tarihten itibaren 7 gün içinde iptal edilebilir; bu süre '.$cancelDeadline->format('d.m.Y').' tarihinde doldu. Düzeltme için iade faturası kesin.',
+                default => 'e-Arşiv faturası iptal edilir; müşterinin sipariş sayfasındaki fatura kaldırılır ve yeni taslak hazırlanabilir. Son iptal tarihi: '.$cancelDeadline->format('d.m.Y').' (fatura tarihinden itibaren 7 gün).',
+            }">
+                @if (\App\Domain\Store\Invoicing\EInvoiceService::cancellable($invoice))
                     <form method="POST" action="{{ route('store_admin.invoices.cancel', $invoice) }}" class="flex flex-wrap items-end gap-3" data-confirm="Fatura iptal edilsin mi? Bu işlem geri alınamaz.">
                         @csrf
                         <x-field name="cancel_reason" label="İptal nedeni" required maxlength="300" class="min-w-72 flex-1" />
@@ -193,7 +196,7 @@
                             </div>
                             <x-field name="buyer_name" label="Ad soyad / unvan" :value="$invoice->buyer_name" required maxlength="160" />
                             <x-field name="buyer_tax_number" label="VKN / TCKN" :value="$invoice->buyer_tax_number" maxlength="11" inputmode="numeric"
-                                hint="Kurumsalda 10 haneli VKN. Bireyselde TCKN; boşsa 11111111111. e-Fatura mükellefi olan alıcıya kendiliğinden e-Fatura kesilir." />
+                                hint="Kurumsalda 10 haneli VKN (şahıs firmasında TCKN). Bireyselde 11 haneli TCKN zorunlu. e-Fatura mükellefi olan alıcıya kendiliğinden e-Fatura kesilir." />
                             <div x-show="isCorporate()">
                                 <x-field name="buyer_tax_office" label="Vergi dairesi" :value="$invoice->buyer_tax_office" maxlength="80" />
                             </div>

@@ -189,12 +189,12 @@
                             <label class="flex items-center gap-2"><input type="radio" name="billing_type" value="corporate" x-model="billingType" class="size-4 text-primary"> Kurumsal</label>
                         </div>
                         <div class="mt-4 grid gap-4 sm:grid-cols-2" x-show="billingType === 'individual'">
-                            <x-field name="billing_tckn" label="T.C. kimlik no (isteğe bağlı)" inputmode="numeric" maxlength="11" hint="Fatura için; boş bırakılabilir." />
+                            <x-field name="billing_tckn" label="T.C. kimlik no" inputmode="numeric" maxlength="11" hint="e-Arşiv faturanız bu numarayla düzenlenir." />
                         </div>
                         <div class="mt-4 grid gap-4 sm:grid-cols-2" x-show="billingType === 'corporate'" x-cloak>
                             <x-field name="billing_company" label="Firma unvanı" maxlength="160" class="sm:col-span-2" />
                             <x-field name="billing_tax_office" label="Vergi dairesi" maxlength="80" />
-                            <x-field name="billing_tax_number" label="Vergi numarası" inputmode="numeric" maxlength="10" />
+                            <x-field name="billing_tax_number" label="Vergi numarası" inputmode="numeric" maxlength="11" hint="Şahıs firmasında T.C. kimlik no." />
                         </div>
                         <label class="mt-4 flex items-center gap-2 text-sm">
                             <input type="hidden" name="billing_same" value="0">

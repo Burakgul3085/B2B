@@ -84,7 +84,7 @@ class StoreCampaignTest extends TestCase
             'email' => 'misafir@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Kaya', 'phone' => '05321234567', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
         ];
     }
 

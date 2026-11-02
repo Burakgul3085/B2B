@@ -88,7 +88,7 @@ class StoreDiscountTest extends TestCase
             'email' => $email,
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => $phone, 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => $delivery, 'payment_method' => 'cod', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => $delivery, 'payment_method' => 'cod', 'consent' => '1',
         ];
     }
 

@@ -32,7 +32,9 @@ class InvoiceService
     public function attach(StoreOrder $order, array $input, ?UploadedFile $file): StoreInvoice
     {
         $existing = $order->invoice()->first();
-        if (($existing && $existing->provider !== 'manual') || $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')->exists()) {
+        // Ödemede kendiliğinden hazırlanan, hiç gönderilmemiş taslak elle faturayı engellemez (kayıtta silinir);
+        // gönderilmiş, gönderimde veya sonucu belirsiz fatura engeller.
+        if (($existing && $existing->provider !== 'manual') || $this->blockingEInvoices($order)->exists()) {
             throw new DomainException('Bu siparişin faturası Faturalar ekranından hazırlanıyor veya kesildi; elle değiştirilemez.');
         }
         $data = Validator::make($input + ['file' => $file], [
@@ -52,6 +54,14 @@ class InvoiceService
         $oldPath = $existing?->file_path;
 
         $invoice = DB::transaction(function () use ($order, $data, $path, $existing, $actor) {
+            $drafts = $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')->lockForUpdate()->get();
+            if ($drafts->contains(fn ($d) => $d->status !== 'draft' || $d->ettn !== null)) {
+                throw new DomainException('Bu siparişin faturası Faturalar ekranından hazırlanıyor veya kesildi; elle değiştirilemez.');
+            }
+            foreach ($drafts as $draft) {
+                $draft->delete();
+                $this->audit->log('store.e_invoice_draft_deleted', $order, ['local_id' => $draft->local_id], ['reason' => 'manual_invoice']);
+            }
             $values = ['invoice_no' => strtoupper($data['invoice_no']), 'issued_on' => $data['issued_on'], 'file_path' => $path, 'provider' => 'manual'];
             if ($existing) {
                 $old = $existing->only(['invoice_no', 'issued_on']);
@@ -76,6 +86,12 @@ class InvoiceService
         }
 
         return $invoice;
+    }
+
+    private function blockingEInvoices(StoreOrder $order)
+    {
+        return $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')
+            ->where(fn ($q) => $q->where('status', '!=', 'draft')->orWhereNotNull('ettn'));
     }
 
     /**

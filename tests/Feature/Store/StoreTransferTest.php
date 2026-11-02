@@ -70,7 +70,7 @@ class StoreTransferTest extends TestCase
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '05321234567', 'province_id' => 6,
                 'district_id' => District::where('province_id', 6)->where('name', 'Çankaya')->value('id'), 'address_line' => 'Atatürk Bulvarı No 5 D 2'],
-            'billing_type' => 'individual', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'transfer', 'consent' => '1',
+            'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'cargo', 'payment_method' => 'transfer', 'consent' => '1',
         ], $override);
     }
 

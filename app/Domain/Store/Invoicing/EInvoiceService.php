@@ -9,6 +9,7 @@ use App\Domain\Store\Invoicing\Providers\EInvoiceProvider;
 use App\Domain\Store\Invoicing\Providers\EInvoiceRejected;
 use App\Domain\Store\Invoicing\Providers\EInvoiceUncertain;
 use App\Domain\Store\Invoicing\Providers\UyumsoftProvider;
+use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\OrderMailer;
 use App\Domain\Support\Decimal;
 use App\Models\Store\StoreCreditNote;
@@ -17,12 +18,15 @@ use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
 use App\Models\Store\StoreSetting;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -69,6 +73,22 @@ class EInvoiceService
             ->whereDoesntHave('creditNotes')
             ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'refund')->where('status', '!=', 'cancelled'))
             ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->where('status', 'sent')->where('document_type', 'e_fatura'));
+    }
+
+    /**
+     * Ödeme alındığında satış faturası taslağı hazırlanır; gönderilmez, yönetici kontrol edip Faturalar ekranından gönderir.
+     * Faturası (elle veya taslak) olan siparişe ikinci taslak açılmaz. Hata ödeme işlemini etkilemez; sipariş "Fatura bekleyen"de kalır.
+     */
+    public function draftOnPayment(StoreOrder $order): void
+    {
+        try {
+            $order = $order->fresh();
+            if ($order && in_array($order->status, self::BILLABLE, true) && ! $order->invoice()->exists() && ! $order->eInvoices()->where('kind', 'sale')->exists()) {
+                $this->createSale($order);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** @throws DomainException */
@@ -196,6 +216,10 @@ class EInvoiceService
         }
         if ($invoice->kind === 'sale' && ! in_array($invoice->order->status, self::BILLABLE, true)) {
             throw new DomainException('Sipariş iptal edilmiş veya ödemesi alınmamış; satış faturası kesilemez. Taslağı silebilirsiniz.');
+        }
+        // Bireysel alıcıya satış faturası T.C. kimlik numarasıyla kesilir (11111111111 kullanılmaz). İade faturası satış faturasındaki kimlikle kesilir.
+        if ($invoice->kind === 'sale' && $invoice->buyer_type === 'individual' && ! self::validBuyerTckn((string) $invoice->buyer_tax_number)) {
+            throw new DomainException('Bireysel alıcının T.C. kimlik numarası eksik veya geçersiz. Taslakta alıcı bilgilerine 11 haneli T.C. kimlik numarasını yazıp kaydedin.');
         }
         $provider = $this->provider();
         if (! $provider->isConfigured()) {
@@ -329,6 +353,10 @@ class EInvoiceService
         if ($invoice->document_type !== 'e_arsiv') {
             throw new DomainException('e-Fatura buradan iptal edilemez: iptali alıcıyla GİB portalından yürütün veya alıcı size iade faturası kessin.');
         }
+        if (! self::cancellable($invoice)) {
+            throw new DomainException('e-Arşiv faturası düzenlendiği tarihten itibaren 7 gün içinde iptal edilebilir; bu süre '
+                .self::cancelDeadline($invoice)->format('d.m.Y').' tarihinde doldu. Düzeltme için iade faturası kesin.');
+        }
         if ($invoice->kind === 'sale' && $invoice->order->eInvoices()->where('kind', 'refund')->where('status', 'sent')->exists()) {
             throw new DomainException('Bu satış faturasına dayanan bir iade faturası var; önce iade faturasını iptal edin.');
         }
@@ -351,6 +379,17 @@ class EInvoiceService
             $invoice->order->events()->create(['status' => 'invoice', 'note' => "Fatura iptal edildi: {$invoice->invoice_no} ({$reason})", 'actor_type' => $actor['type'], 'actor_id' => $actor['id']]);
         });
         $this->audit->log('store.e_invoice_cancelled', $invoice->order, [], ['invoice_no' => $invoice->invoice_no, 'reason' => $reason]);
+    }
+
+    /** e-Arşiv faturasının iptal edilebileceği son an: fatura tarihinden itibaren 7. günün sonu (İstanbul saati). */
+    public static function cancelDeadline(StoreEInvoice $invoice): CarbonInterface
+    {
+        return CarbonImmutable::parse($invoice->issue_date->toDateString(), 'Europe/Istanbul')->addDays(7)->endOfDay();
+    }
+
+    public static function cancellable(StoreEInvoice $invoice): bool
+    {
+        return $invoice->status === 'sent' && $invoice->document_type === 'e_arsiv' && now()->lte(self::cancelDeadline($invoice));
     }
 
     public function deleteDraft(StoreEInvoice $invoice): void
@@ -503,6 +542,11 @@ class EInvoiceService
         $invoice->total = $totals['total'];
     }
 
+    private static function validBuyerTckn(string $digits): bool
+    {
+        return strlen($digits) === 11 && CheckoutService::validTckn($digits);
+    }
+
     /** @throws ValidationException */
     private function validate(StoreEInvoice $invoice, array $input): array
     {
@@ -510,12 +554,12 @@ class EInvoiceService
             'buyer_type' => ['required', 'in:individual,corporate'],
             'buyer_name' => ['required', 'string', 'max:160'],
             'buyer_tax_office' => ['nullable', 'required_if:buyer_type,corporate', 'string', 'max:80'],
-            'buyer_tax_number' => ['nullable', 'string', 'max:14', function ($attribute, $value, $fail) use ($input) {
+            'buyer_tax_number' => [Rule::requiredIf($invoice->kind === 'sale' && ($input['buyer_type'] ?? null) === 'individual'), 'nullable', 'string', 'max:14', function ($attribute, $value, $fail) use ($input, $invoice) {
                 $digits = preg_replace('/\D/', '', (string) $value);
                 if (($input['buyer_type'] ?? null) === 'corporate' && ! in_array(strlen($digits), [10, 11], true)) {
                     $fail('Kurumsal faturada 10 haneli VKN (şahıs firmasında 11 haneli TCKN) gerekir.');
-                } elseif (($input['buyer_type'] ?? null) === 'individual' && $digits !== '' && strlen($digits) !== 11) {
-                    $fail('TC kimlik numarası 11 hanelidir (boş bırakılırsa 11111111111 kullanılır).');
+                } elseif (($input['buyer_type'] ?? null) === 'individual' && ($invoice->kind === 'sale' || $digits !== '') && ! self::validBuyerTckn($digits)) {
+                    $fail('Bireysel alıcının geçerli 11 haneli T.C. kimlik numarasını yazın.');
                 }
             }],
             'buyer_address' => ['required', 'string', 'max:500'],
@@ -535,6 +579,7 @@ class EInvoiceService
             'lines.*.vat_rate' => ['required'],
         ], [
             'buyer_tax_office.required_if' => 'Kurumsal faturada vergi dairesi gerekir.',
+            'buyer_tax_number.required' => 'Bireysel alıcının geçerli 11 haneli T.C. kimlik numarasını yazın.',
             'issue_date.after_or_equal' => 'Fatura tarihi en fazla 7 gün geriye verilebilir.',
             'lines.required' => 'Faturada en az bir kalem olmalı.',
         ], [

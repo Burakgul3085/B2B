@@ -478,8 +478,10 @@ class CheckoutService
 
         if ($type === 'individual') {
             $tckn = preg_replace('/\D/', '', (string) ($input['billing_tckn'] ?? ''));
-            if ($tckn !== '' && ! self::validTckn($tckn)) {
-                $errors['billing_tckn'] = 'Geçerli bir T.C. kimlik numarası girin veya boş bırakın.';
+            if ($tckn === '') {
+                $errors['billing_tckn'] = 'Fatura için T.C. kimlik numaranızı girin.';
+            } elseif (! self::validTckn($tckn)) {
+                $errors['billing_tckn'] = 'Geçerli bir T.C. kimlik numarası girin.';
             }
 
             return ['type' => 'individual', 'name' => null, 'tax_office' => null, 'tax_number' => $tckn ?: null, 'address' => $address];
@@ -488,8 +490,10 @@ class CheckoutService
         $data = Validator::make($input, [
             'billing_company' => ['required', 'string', 'max:160'],
             'billing_tax_office' => ['required', 'string', 'max:80'],
-            'billing_tax_number' => ['required', 'regex:/^\d{10}$/'],
-        ], ['billing_tax_number.regex' => 'Vergi numarası 10 haneli olmalıdır.'], [
+            // Şahıs firmasında vergi numarası sahibin T.C. kimlik numarasıdır (11 hane).
+            'billing_tax_number' => ['required', 'regex:/^(\d{10}|\d{11})$/', fn ($a, $v, $fail) => strlen((string) $v) === 11 && ! self::validTckn((string) $v)
+                ? $fail('Şahıs firmasında geçerli bir T.C. kimlik numarası girin.') : null],
+        ], ['billing_tax_number.regex' => 'Vergi numarası 10 haneli (şahıs firmasında 11 haneli T.C. kimlik no) olmalıdır.'], [
             'billing_company' => 'firma unvanı', 'billing_tax_office' => 'vergi dairesi', 'billing_tax_number' => 'vergi numarası',
         ]);
         foreach ($data->errors()->messages() as $key => $messages) {

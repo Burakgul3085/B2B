@@ -43,7 +43,7 @@ final class UblBuilder
         $this->cbc($root, 'UBLVersionID', '2.1');
         $this->cbc($root, 'CustomizationID', 'TR1.2');
         $this->cbc($root, 'ProfileID', $documentType === 'e_fatura' ? 'TEMELFATURA' : 'EARSIVFATURA');
-        $this->cbc($root, 'ID', (string) $invoice->invoice_no); // boş: numarayı entegratör verir
+        $this->cbc($root, 'ID', (string) $invoice->invoice_no); // boş: numarayı entegratör portalda tanımlı varsayılan seriden verir
         $this->cbc($root, 'CopyIndicator', 'false');
         $this->cbc($root, 'UUID', (string) $invoice->ettn);
         $this->cbc($root, 'IssueDate', $invoice->issue_date->format('Y-m-d'));
@@ -130,10 +130,10 @@ final class UblBuilder
         $id = $this->senderId();
         $party = $this->cac($this->cac($root, 'AccountingSupplierParty'), 'Party');
         $this->identification($party, $id);
-        $this->cbc($this->cac($party, 'PartyName'), 'Name', $s['company_title'] ?: config('store.name'));
+        $this->cbc($this->cac($party, 'PartyName'), 'Name', self::sellerName());
         [$district, $city] = $this->supplierCity((string) $s['address']);
         $this->address($party, (string) $s['address'], $district, $city);
-        $this->taxScheme($party, $s['company_tax_office']);
+        $this->taxScheme($party, $s['invoice_tax_office'] ?: $s['company_tax_office']);
         $contact = $this->cac($party, 'Contact');
         if ($s['phone']) {
             $this->cbc($contact, 'Telephone', $s['phone']);
@@ -142,7 +142,7 @@ final class UblBuilder
             $this->cbc($contact, 'ElectronicMail', $s['email']);
         }
         if (strlen($id) === 11) {
-            $this->person($party, (string) ($s['company_title'] ?: config('store.name')));
+            $this->person($party, self::sellerName());
         }
     }
 
@@ -185,6 +185,14 @@ final class UblBuilder
         $this->cbc($this->cac($address, 'Country'), 'Name', 'Türkiye');
     }
 
+    /** Faturadaki satıcı adı: Fatura Ayarları'ndaki ad soyad / unvan; yoksa mağaza unvanı. */
+    public static function sellerName(): string
+    {
+        $s = StoreSetting::values();
+
+        return trim((string) ($s['invoice_seller_name'] ?: $s['company_title'] ?: config('store.name')));
+    }
+
     private function taxScheme(DOMElement $party, ?string $office): void
     {
         $scheme = $this->cac($this->cac($party, 'PartyTaxScheme'), 'TaxScheme');
@@ -193,7 +201,8 @@ final class UblBuilder
 
     private function person(DOMElement $party, string $name): void
     {
-        $parts = preg_split('/\s+/u', trim($name)) ?: [];
+        // "Ad Soyad – İşletme adı" biçimindeki unvandan yalnızca ad soyad alınır.
+        $parts = preg_split('/\s+/u', trim(preg_split('/\s+[–—-]\s+/u', trim($name))[0])) ?: [];
         $family = count($parts) > 1 ? array_pop($parts) : '-';
         $person = $this->cac($party, 'Person');
         $this->cbc($person, 'FirstName', implode(' ', $parts) ?: $name);

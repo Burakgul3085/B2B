@@ -124,6 +124,8 @@ class StoreSetting extends Model
         'uyumsoft_username' => null,
         'uyumsoft_password' => null,
         'invoice_sender_id' => null,         // gönderici VKN / TCKN (boşsa vergi numarası)
+        'invoice_seller_name' => null,       // faturadaki satıcı adı soyadı / unvanı (boşsa şirket unvanı)
+        'invoice_tax_office' => null,        // faturadaki vergi dairesi (boşsa mağaza ayarlarındaki)
         'invoice_shipping_vat' => '20',      // kargo ve kapıda ödeme bedeli kaleminin KDV oranı
         'invoice_notify' => '1',             // gönderilen faturayı müşteriye e-postayla bildir (varsayılan)
     ];
