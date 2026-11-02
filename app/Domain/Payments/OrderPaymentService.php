@@ -361,7 +361,7 @@ class OrderPaymentService
     /** @throws DomainException */
     private function assertPayable(Order $order): void
     {
-        if (! $order->awaitingPayment() || ! in_array($order->status, ['approved', 'preparing'], true)) {
+        if (! $order->awaitingPayment() || ! in_array($order->status, ['approved', 'preparing', 'shipped'], true)) {
             throw new DomainException('Bu sipariş için ödeme beklenmiyor.');
         }
     }

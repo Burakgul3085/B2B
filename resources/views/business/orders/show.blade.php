@@ -81,6 +81,20 @@
         <div class="space-y-6 lg:col-span-2">
             <x-card :title="$canApprove ? 'Sipariş tutarı (istenen miktarlarla)' : 'Ürünler'" :padding="false">@include('partials.order-items', ['order' => $order])</x-card>
 
+            @if ($returnRequests->isNotEmpty())
+                <x-card title="Bayinin iade talepleri" :padding="false">
+                    <ul class="divide-y divide-line text-sm">
+                        @foreach ($returnRequests as $rr)
+                            <li class="flex items-center justify-between gap-3 px-5 py-3">
+                                <a href="{{ route('business.returns.show', $rr) }}" class="font-medium text-primary hover:underline">{{ $rr->request_no }}</a>
+                                <span class="text-muted">{{ $rr->reasonLabel() }}</span>
+                                <x-badge :tone="$rr->statusColor()">{{ $rr->statusLabel() }}</x-badge>
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-card>
+            @endif
+
             @if ($returns->isNotEmpty())
                 <x-card title="İadeler" :padding="false">
                     <ul class="divide-y divide-line text-sm">
@@ -177,13 +191,14 @@
                         <p><span class="text-muted">Teslim alacak:</span> {{ $order->delivery_recipient }} · {{ $order->delivery_phone }}</p>
                         @if ($order->delivery_planned_on)<p><span class="text-muted">Planlanan teslim:</span> {{ $order->delivery_planned_on->format('d.m.Y') }}</p>@endif
                         @if ($order->delivery_note)<p><span class="text-muted">Not:</span> {{ $order->delivery_note }}</p>@endif
+                        @if ($order->shipped_at)<p><span class="text-muted">Yola çıktı:</span> {{ $order->shipped_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}@if ($order->shipping_note) · {{ $order->shipping_note }}@endif</p>@endif
                         <p><span class="text-muted">Depo:</span> {{ $order->warehouse->name }}</p>
                     </div>
                 @endif
                 @if ($order->dealer_note)<p class="mt-4 border-t border-line pt-3 text-sm"><span class="text-muted">Bayi notu:</span> {{ $order->dealer_note }}</p>@endif
             </x-card>
 
-            @if ($can('preparing') || $can('completed') || $can('cancelled') || $can('rejected'))
+            @if ($can('preparing') || $can('shipped') || $can('completed') || $can('cancelled') || $can('rejected'))
                 <x-card title="İşlemler">
                     <div class="flex flex-wrap gap-2">
                         @if ($can('preparing') && $order->status === 'approved' && ! ($order->awaitingPayment() && in_array($order->payment_method, ['card', 'transfer'], true)))
@@ -193,6 +208,13 @@
                             <form method="POST" action="{{ route('business.orders.complete', $order) }}" data-confirm="Sipariş tamamlandı olarak kapatılsın mı?">@csrf<x-button size="sm" icon="check">Tamamlandı</x-button></form>
                         @endif
                     </div>
+                    @if ($can('shipped') && $order->status !== 'cancel_requested' && ! ($order->awaitingPayment() && in_array($order->payment_method, ['card', 'transfer'], true)))
+                        <form method="POST" action="{{ route('business.orders.ship', $order) }}" class="mt-4 flex flex-wrap items-end gap-2">
+                            @csrf
+                            <x-field name="shipping_note" label="Sevk notu (isteğe bağlı)" maxlength="300" class="min-w-64 flex-1" hint="Bayiye gösterilir: araç, sürücü telefonu, kargo takip no vb." />
+                            <x-button variant="secondary" size="sm" icon="truck">Yola çıktı</x-button>
+                        </form>
+                    @endif
                     @if ($can('rejected'))
                         <details class="mt-4">
                             <summary class="cursor-pointer text-sm font-medium text-danger">Siparişi reddet</summary>

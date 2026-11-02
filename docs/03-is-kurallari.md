@@ -68,6 +68,7 @@ stateDiagram-v2
 | `approved` | Onaylandı (+ "Kısmi" işareti) | Toptancı |
 | `rejected` | Reddedildi | Toptancı |
 | `preparing` | Hazırlanıyor | Toptancı |
+| `shipped` | Yola çıktı (isteğe bağlı; sevk notu bayiye gösterilir) | Toptancı |
 | `completed` | Tamamlandı | Toptancı |
 | `cancel_requested` | İptal talebi | Bayi |
 | `cancelled` | İptal edildi | Bayi (onay öncesi) / Toptancı |
@@ -86,7 +87,12 @@ stateDiagram-v2
   approved --> completed: hazırlık adımı atlanabilir
   approved --> cancel_requested: bayi
   approved --> cancelled: toptancı (ters kayıtlar)
+  approved --> shipped
+  preparing --> shipped
   preparing --> completed
+  shipped --> completed
+  shipped --> cancel_requested: bayi
+  shipped --> cancelled: toptancı (ters kayıtlar)
   preparing --> cancel_requested: bayi
   preparing --> cancelled: toptancı (ters kayıtlar)
   cancel_requested --> cancelled: toptancı kabul (ters kayıtlar)
@@ -182,6 +188,13 @@ Ters kayıt transaction'ı (onaydaki ile aynı kilit sırası):
 ### 3.6 İade (tamamlanmış sipariş)
 
 Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalemde satılan − daha önce iade edilen miktarı aşamaz). Tek transaction: `return_in` stok hareketi + `return_credit` cari alacak (kalemin anlık fiyatı ve KDV'siyle). Siparişin durumu değişmez; sipariş detayında iade geçmişi görünür.
+
+### 3.7 Bayinin iade talebi
+
+- Bayi **tamamlanmış** siparişte "İade talebi oluştur" ile kalem, miktar, neden ve açıklama girer; en fazla 4 fotoğraf (JPG/PNG) ekler. Hasarlı, kusurlu ve yanlış ürün nedenlerinde fotoğraf, "Diğer"de açıklama zorunludur. Talep edilebilir miktar = satılan − iade edilen − açık taleplerdeki miktar. Teslim edilmemiş sipariş için iade değil iptal talebi kullanılır (§3.5).
+- Talep numarası `IADE-YYYY-NNNNNN` (işletme ve yıl bazında). Durumlar: `requested` (değerlendiriliyor) → `approved` (ürün bekleniyor) → `received`; ayrıca `rejected` (gerekçe zorunlu) ve `cancelled` (bayi, yalnızca değerlendirilmeden önce geri çeker).
+- Toptancı ürünleri **teslim alınca** her kalem için gelen ve tekrar satılabilir miktarı girer. §3.6'daki iade kaydı oluşur: gelen miktarın tamamı için `return_credit`, yalnızca tekrar satılabilir miktar için `return_in` (hasarlı ürün stoğa girmez; fire modülü olmadığından stoktan ayrıca düşülmez). İade bedeli bayinin **carisine alacak** yazılır; kart ödemesi otomatik iade edilmez.
+- Talep ve sipariş satırları kilitlenir; bir talep yalnızca bir kez teslim alınır (`order_return_id` UNIQUE). Her adımda karşı tarafa bildirim / e-posta gider; işlemler denetim kaydına yazılır.
 
 ## 4. Fiyatlandırma
 

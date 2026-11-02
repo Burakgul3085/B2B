@@ -68,7 +68,7 @@ class DashboardController extends Controller
             'pending_orders' => Order::whereIn('status', [...Order::PENDING, 'cancel_requested'])->count(),
             'today_orders' => Order::where('created_at', '>=', LocalTime::utc(LocalTime::now()->startOfDay()))->count(),
             // Satış = onaylanmış ve iptal edilmemiş siparişlerin tutarı (onay tarihine göre).
-            'month_sales' => (string) Order::whereIn('status', ['approved', 'preparing', 'completed', 'cancel_requested'])
+            'month_sales' => (string) Order::whereIn('status', ['approved', 'preparing', 'shipped', 'completed', 'cancel_requested'])
                 ->where('approved_at', '>=', LocalTime::utc(LocalTime::now()->startOfMonth()))->sum('grand_total'),
             'open_requests' => ProductRequest::whereIn('status', ProductRequest::OPEN)->count(),
             'new_applications' => DealerApplication::whereIn('status', ['new', 'waiting_info'])->count(),

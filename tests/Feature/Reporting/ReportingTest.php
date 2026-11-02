@@ -262,7 +262,7 @@ class ReportingTest extends TestCase
         $this->assertCount(20, $series['labels']);
         $this->assertSame(144.0, array_sum($series['current']));
         $this->assertSame(144.0, $series['current'][2]); // 03.06
-        $this->assertSame(['Karar bekleyen' => 1, 'Onaylandı / hazırlanıyor' => 2, 'Tamamlandı' => 0, 'Reddedildi / iptal' => 0], $status);
+        $this->assertSame(['Karar bekleyen' => 1, 'Onaylandı / hazırlanıyor / yolda' => 2, 'Tamamlandı' => 0, 'Reddedildi / iptal' => 0], $status);
         $this->assertSame([144.0], array_values($dealers));
 
         $twelve = $this->inTenant($business, fn () => $metrics->kpis($metrics->range('12m'), ['period' => '12m']));

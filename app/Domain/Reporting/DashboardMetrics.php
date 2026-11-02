@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  */
 class DashboardMetrics
 {
-    public const FULFILLED = ['approved', 'preparing', 'completed', 'cancel_requested'];
+    public const FULFILLED = ['approved', 'preparing', 'shipped', 'completed', 'cancel_requested'];
 
     public const PERIODS = ['month' => 'Bu ay', '30d' => 'Son 30 gün', '90d' => 'Son 90 gün', '12m' => 'Son 12 ay', 'custom' => 'Özel aralık'];
 
@@ -145,7 +145,7 @@ class DashboardMetrics
     {
         $groups = [
             'Karar bekleyen' => ['submitted', 'in_review', 'cancel_requested'],
-            'Onaylandı / hazırlanıyor' => ['approved', 'preparing'],
+            'Onaylandı / hazırlanıyor / yolda' => ['approved', 'preparing', 'shipped'],
             'Tamamlandı' => ['completed'],
             'Reddedildi / iptal' => ['rejected', 'cancelled'],
         ];

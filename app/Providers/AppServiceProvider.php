@@ -8,6 +8,7 @@ use App\Domain\Tenancy\TenantContext;
 use App\Models\Announcement;
 use App\Models\DealerApplication;
 use App\Models\Message;
+use App\Models\OrderReturnRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -47,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
             'announcement' => Announcement::class,
             'dealer_application' => DealerApplication::class,
             'message' => Message::class,
+            'order_return_request' => OrderReturnRequest::class,
         ]);
     }
 }

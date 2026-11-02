@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
  * Tamamlanmış sipariş iadesi (docs/03-is-kurallari.md §3.6): kalem bazında satılan − daha önce iade edilen
  * miktarı aşamaz. Tek transaction: iade kaydı + return_in stok hareketi + return_credit cari alacak.
  * Tutar, siparişteki birim fiyat, indirim ve KDV ile hesaplanır. Siparişin durumu değişmez.
+ * Bayinin iade talebinden gelen kayıtta yalnızca tekrar satılabilir miktar depoya girer ($restock); alacak tüm miktar içindir.
  */
 class ReturnService
 {
@@ -32,10 +33,13 @@ class ReturnService
         ])->all();
     }
 
-    /** @param  array<int, string>  $quantities  kalem ID'si → iade miktarı */
-    public function create(Order $order, array $quantities, ?string $note, int $userId): OrderReturn
+    /**
+     * @param  array<int, string>  $quantities  kalem ID'si → iade miktarı
+     * @param  array<int, string>|null  $restock  kalem ID'si → depoya geri girecek miktar (null: tamamı)
+     */
+    public function create(Order $order, array $quantities, ?string $note, int $userId, ?array $restock = null): OrderReturn
     {
-        return DB::transaction(function () use ($order, $quantities, $note, $userId) {
+        return DB::transaction(function () use ($order, $quantities, $note, $userId, $restock) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if ($order->status !== 'completed') {
                 throw new DomainException('İade yalnızca tamamlanmış siparişler için kaydedilir. Henüz tamamlanmamış sipariş için iptal kullanın.');
@@ -60,7 +64,14 @@ class ReturnService
                 if (! $item->product->unit->allows_fraction && ! Quantity::isWhole($qty)) {
                     throw new DomainException("\"{$item->name}\" için küsuratlı iade girilemez.");
                 }
-                $lines[] = ['item' => $item, 'qty' => $qty, 'amounts' => LineCalculator::line((string) $item->unit_price, $qty, (string) $item->discount_percent, (string) $item->vat_rate)];
+                $back = $qty;
+                if ($restock !== null) {
+                    $back = Quantity::parse((string) ($restock[$item->id] ?? '0')) ?? '0';
+                    if (bccomp($back, '0', 3) < 0 || bccomp($back, $qty, 3) > 0 || (! $item->product->unit->allows_fraction && ! Quantity::isWhole($back))) {
+                        throw new DomainException("\"{$item->name}\" için depoya girecek miktar 0 ile iade miktarı arasında olmalıdır.");
+                    }
+                }
+                $lines[] = ['item' => $item, 'qty' => $qty, 'restock' => $back, 'amounts' => LineCalculator::line((string) $item->unit_price, $qty, (string) $item->discount_percent, (string) $item->vat_rate)];
             }
 
             if ($lines === []) {
@@ -75,14 +86,18 @@ class ReturnService
 
             foreach ($lines as $l) {
                 $return->items()->create([
-                    'order_item_id' => $l['item']->id, 'quantity' => $l['qty'],
+                    'order_item_id' => $l['item']->id, 'quantity' => $l['qty'], 'restocked_quantity' => $l['restock'],
                     'line_net' => $l['amounts']['line_net'], 'line_vat' => $l['amounts']['line_vat'], 'line_total' => $l['amounts']['line_total'],
                 ]);
             }
 
-            $this->stock->applyMany($order->warehouse_id, 'return_in', array_map(fn ($l) => [
-                'product' => $l['item']->product, 'qty' => $l['qty'], 'source_key' => "return:{$return->id}:{$l['item']->id}",
-            ], $lines), ['reference_type' => 'order_return', 'reference_id' => $return->id]);
+            // Hasarlı / satılamaz miktar depoya girmez (fire modülü yok; stoktan ayrıca düşülmez).
+            $stockLines = array_values(array_filter($lines, fn ($l) => bccomp($l['restock'], '0', 3) > 0));
+            if ($stockLines !== []) {
+                $this->stock->applyMany($order->warehouse_id, 'return_in', array_map(fn ($l) => [
+                    'product' => $l['item']->product, 'qty' => $l['restock'], 'source_key' => "return:{$return->id}:{$l['item']->id}",
+                ], $stockLines), ['reference_type' => 'order_return', 'reference_id' => $return->id]);
+            }
 
             if ($order->ledger_applied_at !== null) {
                 $this->ledger->postReturnCredit($return, $order);

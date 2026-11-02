@@ -13,9 +13,10 @@ final class OrderStateMachine
     public const TRANSITIONS = [
         'submitted' => ['in_review', 'approved', 'rejected', 'cancelled'],
         'in_review' => ['approved', 'rejected', 'cancelled'],
-        'approved' => ['preparing', 'cancel_requested', 'cancelled', 'completed'],
-        'preparing' => ['completed', 'cancel_requested', 'cancelled'],
-        'cancel_requested' => ['cancelled', 'approved', 'preparing'],
+        'approved' => ['preparing', 'shipped', 'cancel_requested', 'cancelled', 'completed'],
+        'preparing' => ['shipped', 'completed', 'cancel_requested', 'cancelled'],
+        'shipped' => ['completed', 'cancel_requested', 'cancelled'],
+        'cancel_requested' => ['cancelled', 'approved', 'preparing', 'shipped'],
         'completed' => [],
         'rejected' => [],
         'cancelled' => [],

@@ -154,10 +154,17 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('siparisler/{order}/onayla', [Business\OrderController::class, 'approve'])->name('orders.approve');
         Route::post('siparisler/{order}/reddet', [Business\OrderController::class, 'reject'])->name('orders.reject');
         Route::post('siparisler/{order}/hazirlaniyor', [Business\OrderController::class, 'prepare'])->name('orders.prepare');
+        Route::post('siparisler/{order}/yola-cikti', [Business\OrderController::class, 'ship'])->name('orders.ship');
         Route::post('siparisler/{order}/tamamla', [Business\OrderController::class, 'complete'])->name('orders.complete');
         Route::post('siparisler/{order}/iptal', [Business\OrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('siparisler/{order}/iptal-talebi', [Business\OrderController::class, 'resolveCancel'])->name('orders.resolve-cancel');
         Route::post('siparisler/{order}/iade', [Business\OrderReturnController::class, 'store'])->name('orders.returns.store');
+        Route::get('iade-talepleri', [Business\ReturnRequestController::class, 'index'])->name('returns.index');
+        Route::get('iade-talepleri/{returnRequest}', [Business\ReturnRequestController::class, 'show'])->whereNumber('returnRequest')->name('returns.show');
+        Route::post('iade-talepleri/{returnRequest}/onayla', [Business\ReturnRequestController::class, 'approve'])->whereNumber('returnRequest')->name('returns.approve');
+        Route::post('iade-talepleri/{returnRequest}/reddet', [Business\ReturnRequestController::class, 'reject'])->whereNumber('returnRequest')->name('returns.reject');
+        Route::post('iade-talepleri/{returnRequest}/teslim-al', [Business\ReturnRequestController::class, 'receive'])->whereNumber('returnRequest')->name('returns.receive');
+        Route::get('iade-talepleri/{returnRequest}/foto/{attachment}', [Business\ReturnRequestController::class, 'photo'])->whereNumber(['returnRequest', 'attachment'])->name('returns.photo');
         Route::post('siparisler/{order}/odeme', [Business\OrderPaymentController::class, 'store'])->name('orders.payments.store');
 
         // İletişim
@@ -380,6 +387,9 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('siparislerim/{order}/iade-talebi', [Dealer\ReturnRequestController::class, 'store'])->middleware('throttle:10,1,returns.store')->name('returns.store');
+        Route::post('iade-talepleri/{returnRequest}/geri-cek', [Dealer\ReturnRequestController::class, 'cancel'])->whereNumber('returnRequest')->name('returns.cancel');
+        Route::get('iade-talepleri/{returnRequest}/foto/{attachment}', [Dealer\ReturnRequestController::class, 'photo'])->whereNumber(['returnRequest', 'attachment'])->name('returns.photo');
         Route::get('siparislerim/{order}/odeme-durumu', [Dealer\OrderController::class, 'paymentStatus'])->middleware('throttle:40,1,orders.payment-status')->name('orders.payment-status');
         Route::post('siparislerim/{order}/ode', [Dealer\OrderController::class, 'pay'])->middleware('throttle:10,1,orders.pay')->name('orders.pay');
         Route::post('siparislerim/{order}/odeme-yontemi', [Dealer\OrderController::class, 'changePaymentMethod'])->name('orders.payment-method');

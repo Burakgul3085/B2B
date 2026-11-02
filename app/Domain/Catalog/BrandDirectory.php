@@ -44,7 +44,7 @@ class BrandDirectory
 
         $sold = OrderItem::query()
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->whereHas('order', fn ($q) => $q->whereIn('status', ['approved', 'preparing', 'completed'])->where('approved_at', '>=', now()->subDays(90)))
+            ->whereHas('order', fn ($q) => $q->whereIn('status', ['approved', 'preparing', 'shipped', 'completed'])->where('approved_at', '>=', now()->subDays(90)))
             ->whereNotNull('products.brand_id')
             ->selectRaw('products.brand_id, SUM(order_items.quantity_approved) as qty')
             ->groupBy('products.brand_id')

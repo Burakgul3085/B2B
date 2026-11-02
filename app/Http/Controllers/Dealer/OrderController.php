@@ -6,6 +6,7 @@ use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReorderService;
+use App\Domain\Ordering\ReturnRequestService;
 use App\Domain\Payments\OrderPaymentService;
 use App\Domain\Payments\PaymentSettings;
 use App\Domain\Support\LocalTime;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CurrentAccountMovement;
 use App\Models\Order;
+use App\Models\OrderReturnRequest;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -78,7 +80,7 @@ class OrderController extends Controller
     {
         $this->assertOwn($order);
         $order->load(['items.product.primaryImage', 'history', 'payments']);
-        $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing'], true);
+        $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing', 'shipped'], true);
 
         return view('dealer.orders.show', [
             'order' => $order,
@@ -89,6 +91,8 @@ class OrderController extends Controller
             'dueDate' => CurrentAccountMovement::where('order_id', $order->id)->where('type', 'order_debit')->whereNull('reverses_movement_id')->value('due_date'),
             'canCancel' => in_array($order->status, Order::PENDING, true),
             'canRequestCancel' => OrderStateMachine::can($order->status, 'cancel_requested'),
+            'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->with(['items.orderItem', 'photos', 'orderReturn'])->latest('id')->get(),
+            'requestable' => $order->status === 'completed' ? ReturnRequestService::requestable($order) : [],
         ]);
     }
 

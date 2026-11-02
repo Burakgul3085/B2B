@@ -154,6 +154,24 @@ class OrderService
         $this->simpleTransition($order, 'preparing');
     }
 
+    /** Sipariş yola çıktı (isteğe bağlı aşama): kart / havalede ödeme alınmış olmalı. Not (araç, sürücü, takip vb.) bayiye gösterilir. */
+    public function markShipped(Order $order, ?string $note): void
+    {
+        DB::transaction(function () use ($order, $note) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            OrderStateMachine::assert($locked->status, 'shipped');
+            if ($locked->awaitingPayment() && in_array($locked->payment_method, ['card', 'transfer'], true)) {
+                throw new DomainException('Bayinin ödemesi alınmadan sipariş yola çıkarılamaz. Havale geldiyse önce "Ödeme alındı" ile kaydedin.');
+            }
+            $note = trim((string) $note) ?: null;
+            $from = $locked->status;
+            $locked->update(['status' => 'shipped', 'shipped_at' => now(), 'shipping_note' => $note]);
+            $this->history($locked, $from, 'shipped', $note);
+            $this->audit->log('order.shipped', $locked, ['status' => $from], ['note' => $note]);
+            $order->setRawAttributes($locked->getAttributes(), true);
+        });
+    }
+
     /**
      * Toptancı onayı (§3.3). $approvedQty: [order_item_id => miktar]; istenenden az girilirse kısmi onaydır (K2).
      *

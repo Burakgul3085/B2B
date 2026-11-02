@@ -16,6 +16,7 @@ class Order extends Model
         'in_review' => 'İnceleniyor',
         'approved' => 'Onaylandı',
         'preparing' => 'Hazırlanıyor',
+        'shipped' => 'Yola çıktı',
         'completed' => 'Tamamlandı',
         'rejected' => 'Reddedildi',
         'cancel_requested' => 'İptal talebi',
@@ -36,7 +37,7 @@ class Order extends Model
     public const PENDING = ['submitted', 'in_review'];
 
     /** Stoğu düşülmüş, henüz kapanmamış durumlar. */
-    public const ACTIVE_FULFILMENT = ['approved', 'preparing', 'cancel_requested'];
+    public const ACTIVE_FULFILMENT = ['approved', 'preparing', 'shipped', 'cancel_requested'];
 
     protected $guarded = ['id', 'business_id'];
 
@@ -48,7 +49,7 @@ class Order extends Model
             'vat_total' => 'decimal:2', 'grand_total' => 'decimal:2', 'delivery_fee' => 'decimal:2', 'requested_total' => 'decimal:2',
             'paid_at' => 'datetime',
             'delivery_planned_on' => 'date',
-            'approved_at' => 'datetime', 'stock_applied_at' => 'datetime', 'stock_reversed_at' => 'datetime',
+            'approved_at' => 'datetime', 'shipped_at' => 'datetime', 'stock_applied_at' => 'datetime', 'stock_reversed_at' => 'datetime',
             'ledger_applied_at' => 'datetime', 'ledger_reversed_at' => 'datetime',
             'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
         ];
@@ -108,13 +109,13 @@ class Order extends Model
 
     public function statusLabel(): string
     {
-        return self::STATUSES[$this->status].($this->is_partial && in_array($this->status, ['approved', 'preparing', 'completed'], true) ? ' · Kısmi' : '');
+        return self::STATUSES[$this->status].($this->is_partial && in_array($this->status, ['approved', 'preparing', 'shipped', 'completed'], true) ? ' · Kısmi' : '');
     }
 
     public function statusTone(): string
     {
         return [
-            'submitted' => 'info', 'in_review' => 'primary', 'approved' => 'success', 'preparing' => 'primary',
+            'submitted' => 'info', 'in_review' => 'primary', 'approved' => 'success', 'preparing' => 'primary', 'shipped' => 'primary',
             'completed' => 'success', 'rejected' => 'danger', 'cancel_requested' => 'warning', 'cancelled' => 'neutral',
         ][$this->status];
     }

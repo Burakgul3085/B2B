@@ -20,7 +20,7 @@ class DashboardController extends Controller
     use UsesDealerContext;
 
     /** Alım sayılan durumlar (onaylanmış ve iptal edilmemiş). */
-    private const PURCHASED = ['approved', 'preparing', 'completed', 'cancel_requested'];
+    private const PURCHASED = ['approved', 'preparing', 'shipped', 'completed', 'cancel_requested'];
 
     public function __invoke(DashboardMetrics $metrics, AccountAnalysis $analysis): View
     {
@@ -47,7 +47,7 @@ class DashboardController extends Controller
         ];
 
         $topProducts = OrderItem::query()
-            ->whereHas('order', fn ($q) => $q->where('dealer_relationship_id', $relationship->id)->whereIn('status', ['approved', 'preparing', 'completed']))
+            ->whereHas('order', fn ($q) => $q->where('dealer_relationship_id', $relationship->id)->whereIn('status', ['approved', 'preparing', 'shipped', 'completed']))
             ->selectRaw('product_id, MAX(name) as name, SUM(quantity_approved) as qty, MAX(unit_name) as unit_name, COUNT(*) as times')
             ->groupBy('product_id')->orderByDesc('qty')->limit(5)->get();
         $images = Product::whereIn('id', $topProducts->pluck('product_id'))->with('primaryImage')->get()->keyBy('id');

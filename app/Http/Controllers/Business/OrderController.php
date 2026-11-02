@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DealerRelationship;
 use App\Models\Order;
 use App\Models\OrderReturn;
+use App\Models\OrderReturnRequest;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Rules\NotBefore;
@@ -74,6 +75,7 @@ class OrderController extends Controller
             'canApprove' => in_array($order->status, Order::PENDING, true),
             'returnable' => $order->status === 'completed' ? ReturnService::returnable($order) : [],
             'returns' => OrderReturn::where('order_id', $order->id)->with('items')->latest('id')->get(),
+            'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->latest('id')->get(),
             'can' => fn (string $to) => OrderStateMachine::can($order->status, $to),
         ]);
     }
@@ -125,6 +127,14 @@ class OrderController extends Controller
     public function prepare(Order $order): RedirectResponse
     {
         return $this->run($order, fn () => $this->orders->markPreparing($order), 'Sipariş "Hazırlanıyor" olarak işaretlendi.');
+    }
+
+    public function ship(Request $request, Order $order): RedirectResponse
+    {
+        $note = $request->validate(['shipping_note' => ['nullable', 'string', 'max:300']], [], ['shipping_note' => 'sevk notu'])['shipping_note'] ?? null;
+
+        return $this->run($order, fn () => $this->orders->markShipped($order, $note), 'Sipariş "Yola çıktı" olarak işaretlendi; bayiye bildirildi.',
+            filled($note) ? 'Sevk notu: '.trim($note) : null);
     }
 
     public function complete(Order $order): RedirectResponse

@@ -101,8 +101,9 @@
                         @if ($order->ship_note)<p class="pt-1 text-muted">Adres notu: {{ $order->ship_note }}</p>@endif
                     </div>
                 </div>
-                @if ($order->delivery_note || $order->dealer_note)
+                @if ($order->delivery_note || $order->dealer_note || $order->shipped_at)
                     <div class="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+                        @if ($order->shipped_at)<p><span class="block text-xs font-semibold text-muted uppercase">Yola çıktı</span>{{ $order->shipped_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}@if ($order->shipping_note) · {{ $order->shipping_note }}@endif</p>@endif
                         @if ($order->dealer_note)<p><span class="block text-xs font-semibold text-muted uppercase">Sizin notunuz</span>{{ $order->dealer_note }}</p>@endif
                         @if ($order->delivery_note)<p><span class="block text-xs font-semibold text-muted uppercase">Toptancı notu</span>{{ $order->delivery_note }}</p>@endif
                     </div>
@@ -130,4 +131,6 @@
             @endif
         </div>
     </div>
+
+    @include('dealer.orders._returns')
 </x-layouts.panel>

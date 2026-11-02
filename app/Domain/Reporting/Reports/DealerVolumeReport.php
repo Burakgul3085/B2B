@@ -61,7 +61,7 @@ class DealerVolumeReport extends Report
     {
         [$from, $to] = array_map(fn ($t) => $t->format('Y-m-d H:i:s'),
             LocalTime::dayRange($f['from'] ?? LocalTime::now()->startOfYear()->toDateString(), $f['to'] ?? LocalTime::today()));
-        $ok = "('approved','preparing','completed','cancel_requested')";
+        $ok = "('approved','preparing','shipped','completed','cancel_requested')";
         $case = 'CASE dealer_relationships.status '.collect(DealerRelationship::STATUSES)->map(fn ($l, $k) => "WHEN '{$k}' THEN '{$l}'")->implode(' ').' END';
 
         return DealerRelationship::query()

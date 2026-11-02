@@ -4,7 +4,7 @@
 
     <nav class="mb-4 flex flex-wrap gap-2" aria-label="Durum">
         @php $pendingCount = ($counts['submitted'] ?? 0) + ($counts['in_review'] ?? 0) + ($counts['cancel_requested'] ?? 0); @endphp
-        @foreach (['pending' => 'Karar bekleyen', 'awaiting_payment' => 'Ödeme bekleyen', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'completed' => 'Tamamlandı', 'rejected' => 'Reddedildi', 'cancelled' => 'İptal'] as $key => $label)
+        @foreach (['pending' => 'Karar bekleyen', 'awaiting_payment' => 'Ödeme bekleyen', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yola çıktı', 'completed' => 'Tamamlandı', 'rejected' => 'Reddedildi', 'cancelled' => 'İptal'] as $key => $label)
             <a href="{{ route('business.orders.index', ['status' => $key]) }}" @class([
                 'rounded-full px-3 py-1.5 text-sm font-medium',
                 'bg-primary text-white' => $status === $key,

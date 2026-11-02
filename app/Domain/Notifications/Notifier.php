@@ -16,6 +16,7 @@ use App\Models\DealerUser;
 use App\Models\EmailLog;
 use App\Models\Message;
 use App\Models\Order;
+use App\Models\OrderReturnRequest;
 use App\Models\ProductRequest;
 use Illuminate\Support\Str;
 
@@ -177,6 +178,41 @@ class Notifier
         $url = route('business.orders.show', $order);
         $this->toBusiness('order', "İptal talebi: {$order->order_no}", "{$dealer}: {$order->cancel_reason}", $url);
         $this->mailBusiness('cancel_requested', ['bayi' => $dealer, 'siparis_no' => $order->order_no, 'neden' => $order->cancel_reason], ['url' => $url, 'label' => 'Talebi değerlendir'], [], $order);
+    }
+
+    /* ---------------- İade talebi ---------------- */
+
+    public function returnRequested(OrderReturnRequest $r): void
+    {
+        $r->loadMissing('order', 'relationship.dealer');
+        $dealer = $r->relationship->dealer->legal_name;
+        $url = route('business.returns.show', $r);
+        $this->toBusiness('return', "İade talebi {$r->request_no}: {$r->order->order_no}", "{$dealer} · {$r->reasonLabel()}", $url);
+        $this->mailBusiness('return_requested', ['bayi' => $dealer, 'siparis_no' => $r->order->order_no, 'talep_no' => $r->request_no, 'neden' => $r->reasonLabel()],
+            ['url' => $url, 'label' => 'Talebi incele'], ['Kalem' => (string) $r->items()->count()] + ($r->dealer_note ? ['Bayi açıklaması' => $r->dealer_note] : []), $r);
+    }
+
+    public function returnWithdrawn(OrderReturnRequest $r): void
+    {
+        $r->loadMissing('order', 'relationship.dealer');
+        $this->toBusiness('return', "İade talebi geri çekildi: {$r->request_no}", $r->relationship->dealer->legal_name.' · '.$r->order->order_no, route('business.returns.show', $r));
+    }
+
+    /** Onay, ret veya teslim alma: bayiye bildirim ve e-posta. */
+    public function returnStatusChanged(OrderReturnRequest $r): void
+    {
+        $r->loadMissing('order', 'relationship', 'orderReturn');
+        $url = route('dealer.orders.show', $r->order);
+        $text = match ($r->status) {
+            'approved' => 'Ürünleri toptancınıza gönderebilirsiniz.'.($r->business_note ? ' Toptancı notu: '.$r->business_note : ''),
+            'rejected' => 'Ret nedeni: '.$r->reject_reason,
+            'received' => 'Ürünler teslim alındı; carinize '.Money::format($r->orderReturn?->grand_total ?? 0).' alacak yazıldı.',
+            default => '',
+        };
+        $this->toDealer($r->relationship, 'return', "İade talebi {$r->request_no}: {$r->statusLabel()}", Str::limit($text, 200), $url);
+        $this->mailer->queue('return_status', $this->dealerEmail($r->relationship),
+            ['siparis_no' => $r->order->order_no, 'talep_no' => $r->request_no, 'durum' => $r->statusLabel(), 'aciklama' => $text],
+            ['url' => $url, 'label' => 'Siparişi görüntüle'], [], 'order_return_request', $r->id);
     }
 
     public function orderCancelledByDealer(Order $order): void

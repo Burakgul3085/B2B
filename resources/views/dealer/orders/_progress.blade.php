@@ -1,16 +1,17 @@
 {{-- Sipariş ilerlemesi: $order, $compact (listede ince çubuk). Ret ve iptal ayrı gösterilir. --}}
 @php
-    $steps = ['submitted' => 'Gönderildi', 'in_review' => 'İnceleniyor', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'completed' => 'Tamamlandı'];
-    $index = ['submitted' => 0, 'in_review' => 1, 'approved' => 2, 'preparing' => 3, 'cancel_requested' => 2, 'completed' => 4][$order->status] ?? null;
+    $steps = ['submitted' => 'Gönderildi', 'in_review' => 'İnceleniyor', 'approved' => 'Onaylandı', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yola çıktı', 'completed' => 'Tamamlandı'];
+    $last = count($steps) - 1;
+    $index = ['submitted' => 0, 'in_review' => 1, 'approved' => 2, 'preparing' => 3, 'shipped' => 4, 'cancel_requested' => 2, 'completed' => $last][$order->status] ?? null;
     $compact ??= false;
 @endphp
 @if ($compact)
     @if ($index === null)
         <div class="flex h-1.5 w-28 overflow-hidden rounded-full bg-slate-100"><span class="w-full {{ $order->status === 'rejected' ? 'bg-red-300' : 'bg-slate-300' }}"></span></div>
     @else
-        <div class="flex w-28 gap-0.5" aria-label="İlerleme: {{ $index + 1 }}/5">
+        <div class="flex w-28 gap-0.5" aria-label="İlerleme: {{ $index + 1 }}/{{ $last + 1 }}">
             @foreach ($steps as $i => $label)
-                <span @class(['h-1.5 flex-1 rounded-full', $loop->index <= $index ? ($index === 4 ? 'bg-emerald-500' : 'bg-primary') : 'bg-slate-200'])></span>
+                <span @class(['h-1.5 flex-1 rounded-full', $loop->index <= $index ? ($index === $last ? 'bg-emerald-500' : 'bg-primary') : 'bg-slate-200'])></span>
             @endforeach
         </div>
     @endif
@@ -33,9 +34,9 @@
             </div>
         </div>
     @else
-        <ol class="grid grid-cols-5">
+        <ol class="grid grid-cols-6">
             @foreach ($steps as $key => $label)
-                @php $done = $loop->index <= $index; $current = $loop->index === $index; $final = $index === 4; @endphp
+                @php $done = $loop->index <= $index; $current = $loop->index === $index; $final = $index === $last; @endphp
                 <li class="relative flex flex-col items-center text-center">
                     @unless ($loop->first)
                         <span @class(['absolute top-4 right-1/2 -z-0 h-0.5 w-full', $loop->index <= $index ? 'bg-primary' : 'bg-slate-200'])></span>

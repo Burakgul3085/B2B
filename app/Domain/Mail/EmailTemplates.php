@@ -123,6 +123,27 @@ final class EmailTemplates
             'intro' => "{bayi}, {siparis_no} numaralı sipariş için iptal talep etti.\n\nGerekçe: {neden}\n\nTalebi panelinizden kabul edebilir veya reddedebilirsiniz. Kabul ederseniz stok ve cari kayıtları otomatik olarak düzeltilir.",
             'note' => 'Talep yanıtlanana kadar sipariş mevcut aşamasında bekler.',
         ],
+        'return_requested' => [
+            'label' => 'Bayi iade talebi (size)',
+            'eyebrow' => 'İade talebi',
+            'subject' => 'İade talebi {talep_no}: {siparis_no} — {bayi}',
+            'intro' => '{bayi}, {siparis_no} numaralı sipariş için iade talebi açtı.
+
+Neden: {neden}
+
+Talebi panelinizden inceleyip onaylayabilir veya reddedebilirsiniz. Ürünler size ulaştığında "Teslim al" ile işlediğinizde bayinin carisine alacak yazılır.',
+            'note' => 'Talepteki ürün fotoğraflarını iade talebi ekranında görebilirsiniz.',
+        ],
+        'return_status' => [
+            'label' => 'İade talebi durumu (bayiye)',
+            'eyebrow' => 'İade talebi',
+            'subject' => 'İade talebiniz {talep_no}: {durum}',
+            'intro' => '{siparis_no} numaralı siparişiniz için açtığınız {talep_no} numaralı iade talebinin durumu güncellendi.
+
+Yeni durum: {durum}
+{aciklama}',
+            'note' => 'İade taleplerinizi Siparişlerim ekranında, ilgili siparişin altından takip edebilirsiniz.',
+        ],
         'new_message' => [
             'label' => 'Yeni mesaj',
             'eyebrow' => 'Yeni mesaj',

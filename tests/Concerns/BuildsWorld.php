@@ -20,6 +20,7 @@ use App\Models\DiscountRule;
 use App\Models\EmailLog;
 use App\Models\HomeBanner;
 use App\Models\ImportJob;
+use App\Models\OrderReturnRequest;
 use App\Models\PlatformAdmin;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
@@ -84,6 +85,8 @@ trait BuildsWorld
                 'item' => PriceListItem::create(['price_list_id' => $list->id, 'product_id' => $product->id, 'price' => '4'])->id,
                 'rule' => DiscountRule::create(['name' => 'Kural', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'all', 'percent' => '5'])->id,
                 'order' => $order->id,
+                'returnRequest' => $returnRequestId = OrderReturnRequest::create(['order_id' => $order->id, 'dealer_relationship_id' => $rel->id, 'request_no' => 'IADE-'.Str::random(8), 'reason' => 'other'])->id,
+                'return_attachment' => $this->attachment('order_return_request', $returnRequestId),
                 'productRequest' => ProductRequest::create(['dealer_relationship_id' => $rel->id, 'product_id' => $product->id, 'quantity' => '1'])->id,
                 'application' => $application->id,
                 'application_attachment' => $this->attachment('dealer_application', $application->id),
@@ -137,6 +140,7 @@ trait BuildsWorld
             'attachment' => match (true) {
                 str_contains($routeName, 'applications') => $ids['application_attachment'],
                 str_contains($routeName, 'announcements') => $ids['announcement_attachment'],
+                str_contains($routeName, 'returns') => $ids['return_attachment'],
                 default => $ids['message_attachment'],
             },
             'notification' => $dealerSide ? $ids['dealer_notification'] : $ids['business_notification'],

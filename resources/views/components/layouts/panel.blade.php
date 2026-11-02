@@ -32,6 +32,8 @@
             ['label' => 'Satış', 'items' => array_values(array_filter([
                 ['label' => 'Siparişler', 'route' => 'business.orders.index', 'icon' => 'file', 'active' => 'business.orders.*',
                     'badge' => \App\Models\Order::whereIn('status', ['submitted', 'cancel_requested'])->count()],
+                ['label' => 'İade Talepleri', 'route' => 'business.returns.index', 'icon' => 'refresh', 'active' => 'business.returns.*',
+                    'badge' => \App\Models\OrderReturnRequest::where('status', 'requested')->count()],
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Ürün Talepleri', 'route' => 'business.product-requests.index', 'icon' => 'inbox', 'active' => 'business.product-requests.*',
                     'badge' => \App\Models\ProductRequest::where('status', 'new')->count()] : null,
             ]))],

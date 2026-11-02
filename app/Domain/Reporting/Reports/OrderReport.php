@@ -78,7 +78,7 @@ class OrderReport extends Report
             ->when($context->relationshipId, fn ($q, $r) => $q->where('orders.dealer_relationship_id', $r))
             ->when($f['dealer'] ?? null, fn ($q, $d) => $q->where('orders.dealer_relationship_id', $d))
             ->when(($f['status'] ?? null) === 'pending', fn ($q) => $q->whereIn('orders.status', [...Order::PENDING, 'cancel_requested']))
-            ->when(($f['status'] ?? null) === 'fulfilled', fn ($q) => $q->whereIn('orders.status', ['approved', 'preparing', 'completed', 'cancel_requested']))
+            ->when(($f['status'] ?? null) === 'fulfilled', fn ($q) => $q->whereIn('orders.status', ['approved', 'preparing', 'shipped', 'completed', 'cancel_requested']))
             ->when(isset(Order::STATUSES[$f['status'] ?? '']), fn ($q) => $q->where('orders.status', $f['status']));
     }
 
