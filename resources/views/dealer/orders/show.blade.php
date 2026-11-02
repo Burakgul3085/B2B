@@ -115,17 +115,17 @@
 
             <x-card title="Durum geçmişi" class="print:hidden">@include('partials.order-history', ['order' => $order])</x-card>
 
-            @if ($canCancel || $canRequestCancel)
+            @if ($canCancel)
                 <div x-data="{ open: {{ $errors->has('reason') ? 'true' : 'false' }} }" class="print:hidden">
                     <button type="button" x-show="!open" @click="open = true" class="w-full rounded-xl border border-dashed border-line px-4 py-3 text-sm font-medium text-muted transition hover:border-red-300 hover:text-red-700">
-                        {{ $canCancel ? 'Siparişi iptal et' : 'İptal talebi gönder' }}
+                        Siparişi iptal et
                     </button>
-                    <x-card x-cloak x-show="open" :title="$canCancel ? 'Siparişi iptal et' : 'İptal talebi'" :description="$canCancel ? 'Sipariş henüz onaylanmadı; doğrudan iptal edebilirsiniz.' : 'Sipariş onaylandı; iptal için toptancınızın onayı gerekir.'">
-                        <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" data-confirm="Emin misiniz?">
+                    <x-card x-cloak x-show="open" title="Siparişi iptal et" :description="'Sipariş henüz yola çıkmadı; doğrudan iptal edebilirsiniz.'.($order->payment_status === 'paid' && $order->payments->contains(fn ($p) => $p->driver === 'iyzico' && $p->status === 'succeeded') ? ' Kart ödemeniz otomatik olarak iade edilir.' : '')">
+                        <form method="POST" action="{{ route('dealer.orders.cancel', $order) }}" class="space-y-3" data-confirm="Sipariş iptal edilsin mi? Bu işlem geri alınamaz.">
                             @csrf
                             <x-field name="reason" label="İptal nedeni" textarea required />
                             <div class="flex items-center gap-3">
-                                <x-button variant="danger" size="sm">{{ $canCancel ? 'İptal et' : 'İptal talebi gönder' }}</x-button>
+                                <x-button variant="danger" size="sm">İptal et</x-button>
                                 <button type="button" @click="open = false" class="text-sm text-muted hover:text-ink">Vazgeç</button>
                             </div>
                         </form>

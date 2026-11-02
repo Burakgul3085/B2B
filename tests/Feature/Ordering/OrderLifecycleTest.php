@@ -6,6 +6,7 @@ use App\Domain\Inventory\InsufficientStock;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
+use App\Domain\Ordering\OrderStateMachine;
 use App\Models\CartItem;
 use App\Models\CurrentAccountMovement;
 use App\Models\Order;
@@ -210,7 +211,7 @@ class OrderLifecycleTest extends TestCase
         $this->assertLedgerInvariant();
     }
 
-    public function test_dealer_cancel_request_flow(): void
+    public function test_dealer_cancels_directly_until_shipped(): void
     {
         $business = $this->makeBusiness();
         $rel = $this->orderingDealer($business);
@@ -222,21 +223,27 @@ class OrderLifecycleTest extends TestCase
         $this->inTenant($business, fn () => $this->service()->cancelByDealer($pending, 'Yanlış ürün'));
         $this->assertSame('cancelled', $pending->fresh()->status);
 
-        // Onay sonrası: iptal talebi → reddedilirse önceki duruma döner, kabul edilirse ters kayıt.
+        // Onaylanmış / hazırlanan sipariş: toptancı onayı gerekmeden iptal, ters kayıtlar.
         $order = $this->approve($business, $this->placeOrder($business, $rel, [$product->id => '4']));
         $this->inTenant($business, fn () => $this->service()->markPreparing($order));
-        $this->inTenant($business, fn () => $this->service()->cancelByDealer($order, 'Erken geldi'));
-        $this->assertSame('cancel_requested', $order->fresh()->status);
-
-        $this->inTenant($business, fn () => $this->service()->resolveCancelRequest($order, false, 'Yola çıktı'));
-        $this->assertSame('preparing', $order->fresh()->status);
         $this->assertSame('6.000', $this->stockQty($business, $product));
-
-        $this->inTenant($business, fn () => $this->service()->cancelByDealer($order, 'Yine de iptal'));
-        $this->inTenant($business, fn () => $this->service()->resolveCancelRequest($order, true));
+        $this->inTenant($business, fn () => $this->service()->cancelByDealer($order, 'Erken geldi'));
         $this->assertSame('cancelled', $order->fresh()->status);
         $this->assertSame('10.000', $this->stockQty($business, $product));
         $this->assertSame('0.00', $this->balance($business, $rel));
+
+        // Yola çıkmış sipariş bayi tarafından iptal edilemez (iade talebi açılır); eski iptal talebi durumu da açılmaz.
+        $shipped = $this->approve($business, $this->placeOrder($business, $rel, [$product->id => '1']));
+        $this->inTenant($business, fn () => $this->service()->markShipped($shipped, null));
+        try {
+            $this->inTenant($business, fn () => $this->service()->cancelByDealer($shipped, 'Vazgeçtim'));
+            $this->fail('Yoldaki sipariş bayi tarafından iptal edildi.');
+        } catch (DomainException $e) {
+            $this->assertStringContainsString('iade talebi', $e->getMessage());
+        }
+        $this->assertSame('shipped', $shipped->fresh()->status);
+        $this->assertFalse(OrderStateMachine::can('approved', 'cancel_requested'));
+        $this->assertLedgerInvariant();
     }
 
     public function test_ledger_can_be_posted_on_completion_instead_of_approval(): void

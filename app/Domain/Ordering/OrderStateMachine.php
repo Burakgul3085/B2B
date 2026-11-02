@@ -13,10 +13,13 @@ final class OrderStateMachine
     public const TRANSITIONS = [
         'submitted' => ['in_review', 'approved', 'rejected', 'cancelled'],
         'in_review' => ['approved', 'rejected', 'cancelled'],
-        'approved' => ['preparing', 'shipped', 'cancel_requested', 'cancelled', 'completed'],
-        'preparing' => ['shipped', 'completed', 'cancel_requested', 'cancelled'],
-        'shipped' => ['completed', 'cancel_requested', 'cancelled'],
+        // Bayi yola çıkana kadar kendisi iptal eder, sonrası iade talebidir (§3.5, §3.7). cancel_requested artık
+        // açılmaz; eski kayıtlar için kabul / ret geçişleri korunur.
+        'approved' => ['preparing', 'shipped', 'cancelled', 'completed'],
+        'preparing' => ['shipped', 'completed', 'cancelled'],
+        'shipped' => ['completed', 'cancelled'],
         'cancel_requested' => ['cancelled', 'approved', 'preparing', 'shipped'],
+        // Tamamlanmış sipariş iptal edilemez; yalnızca tamamı iade edilince OrderService::closeAsFullyReturned ile kapanır.
         'completed' => [],
         'rejected' => [],
         'cancelled' => [],

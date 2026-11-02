@@ -1,13 +1,31 @@
-{{-- Siparişin iade talepleri ve (tamamlanmış siparişte) yeni talep formu: $order, $returnRequests, $requestable, $canRequestReturn --}}
+{{-- Siparişin iadeleri, iade talepleri ve (yola çıkmış / teslim edilmiş siparişte) yeni talep formu: $order, $returns, $returnRequests, $requestable, $canRequestReturn --}}
 @php
     use App\Domain\Inventory\Quantity;
     use App\Domain\Support\Money;
     use App\Models\OrderReturnRequest;
 
 @endphp
-@if ($returnRequests->isNotEmpty() || $canRequestReturn)
+@if ($returns->isNotEmpty() || $returnRequests->isNotEmpty() || $canRequestReturn)
     <section id="iade" class="mt-6 space-y-4 print:hidden">
         @error('return')<div role="alert" class="rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
+
+        @if ($returns->isNotEmpty())
+            <x-card title="İadeler" :description="$canRequestReturn ? null : 'Bu siparişte iade edilebilecek ürün kalmadı.'" :padding="false">
+                <ul class="divide-y divide-line text-sm">
+                    @foreach ($returns as $ret)
+                        @php $toCard = (string) $ret->refunded_to_card; $toAccount = bcsub((string) $ret->grand_total, $toCard, 2); @endphp
+                        <li class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+                            <span>{{ $ret->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $ret->items->count() }} kalem</span>
+                            <span class="tabular-nums">
+                                <b>{{ Money::format($ret->grand_total) }}</b>
+                                @if (bccomp($toCard, '0', 2) > 0)<span class="text-muted">· {{ Money::format($toCard) }} kartınıza iade edildi</span>@endif
+                                @if (bccomp($toAccount, '0', 2) > 0)<span class="text-muted">· {{ Money::format($toAccount) }} carinize alacak yazıldı</span>@endif
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            </x-card>
+        @endif
 
         @foreach ($returnRequests as $r)
             <x-card :title="'İade talebi '.$r->request_no" :description="$r->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i').' · '.$r->reasonLabel()">
@@ -27,11 +45,15 @@
                         </div>
                     @endif
                     @if ($r->status === 'approved')
-                        <p class="rounded-lg bg-primary-soft px-3 py-2 text-ink">Talebiniz onaylandı. Ürünleri toptancınıza gönderin; ulaştığında carinize alacak yazılır.@if ($r->business_note)<br><span class="font-medium">Toptancı notu:</span> {{ $r->business_note }}@endif</p>
+                        <p class="rounded-lg bg-primary-soft px-3 py-2 text-ink">Talebiniz onaylandı. Ürünleri toptancınıza gönderin; ulaştığında iade tutarı kartla ödediyseniz kartınıza, değilse carinize işlenir.@if ($r->business_note)<br><span class="font-medium">Toptancı notu:</span> {{ $r->business_note }}@endif</p>
                     @elseif ($r->status === 'rejected')
                         <p class="rounded-lg bg-danger-soft px-3 py-2 text-red-900"><span class="font-medium">Ret nedeni:</span> {{ $r->reject_reason }}</p>
                     @elseif ($r->status === 'received' && $r->orderReturn)
-                        <p class="rounded-lg bg-success-soft px-3 py-2 text-ink">Ürünler teslim alındı; carinize <b>{{ Money::format($r->orderReturn->grand_total) }}</b> alacak yazıldı. <a href="{{ route('dealer.account.statement') }}" class="text-primary hover:underline">Cari hesap</a></p>
+                        @php $toCard = (string) $r->orderReturn->refunded_to_card; @endphp
+                        <p class="rounded-lg bg-success-soft px-3 py-2 text-ink">Ürünler teslim alındı ({{ Money::format($r->orderReturn->grand_total) }}).
+                            @if (bccomp($toCard, '0', 2) > 0) <b>{{ Money::format($toCard) }}</b> kartınıza iade edildi; kartınıza yansıması bankanıza göre birkaç gün sürebilir.@endif
+                            @if (bccomp(bcsub((string) $r->orderReturn->grand_total, $toCard, 2), '0', 2) > 0) Kalan tutar carinize alacak yazıldı. <a href="{{ route('dealer.account.statement') }}" class="text-primary hover:underline">Cari hesap</a>@endif
+                        </p>
                     @endif
                     @if ($r->status === 'requested')
                         <form method="POST" action="{{ route('dealer.returns.cancel', $r) }}" data-confirm="İade talebi geri çekilsin mi?">
@@ -48,7 +70,7 @@
                 <summary class="cursor-pointer px-5 py-4 text-sm font-semibold text-ink">İade talebi oluştur</summary>
                 <form method="POST" action="{{ route('dealer.returns.store', $order) }}" enctype="multipart/form-data" class="space-y-4 border-t border-line px-5 py-4">
                     @csrf
-                    <p class="text-sm text-muted">İade etmek istediğiniz ürünlerin miktarını girin. Toptancınız talebi onaylayınca ürünleri gönderirsiniz; ürünler ulaştığında tutar carinize alacak olarak yazılır.</p>
+                    <p class="text-sm text-muted">İade etmek istediğiniz ürünlerin miktarını girin. Toptancınız talebi onaylayınca ürünleri gönderirsiniz. Ürünler ulaştığında kartla ödediyseniz tutar kartınıza iade edilir, diğer ödemelerde carinize alacak yazılır. Siparişin tamamını iade ederseniz sipariş iptal edilmiş olur.</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead><tr class="text-left text-muted"><th class="py-2">Ürün</th><th class="py-2 text-right">İade edilebilir</th><th class="py-2 text-right">İade miktarı</th></tr></thead>

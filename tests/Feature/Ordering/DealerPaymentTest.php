@@ -14,12 +14,15 @@ use App\Models\DealerRelationship;
 use App\Models\EmailLog;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\OrderReturn;
+use App\Models\OrderReturnRequest;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\Concerns\CreatesOrders;
 use Tests\TestCase;
 
@@ -292,5 +295,91 @@ class DealerPaymentTest extends TestCase
         $this->artisan('b2b:expire-pending-payments')->assertSuccessful();
         $this->assertSame('paid', $this->inTenant($this->business, fn () => $order->fresh()->payment_status));
         $this->assertSame(0, $this->inTenant($this->business, fn () => OrderPayment::where('status', 'initialized')->count()));
+    }
+
+    /** Kartla ödenmiş, onaylanmış sipariş (10 × 10,00 + %20 KDV = 120,00). */
+    private function paidByCard(array $refund = ['status' => 'success', 'paymentTransactionId' => 'tx-55']): Order
+    {
+        $order = $this->approve($this->submit('10', 'card'));
+        $this->fakeIyzico('120.00', refund: $refund);
+        $this->actingAs($this->rel->dealer->user, 'dealer')->post(route('dealer.orders.pay', $order));
+        $this->flushSession();
+        auth()->forgetGuards();
+        $this->post('/bayi/odeme/iyzico/donus', ['token' => 'tok-1']);
+        $this->flushSession();
+
+        return $this->inTenant($this->business, fn () => $order->fresh(['items', 'payments']));
+    }
+
+    /** Bayi iade talebi açar, toptancı onaylayıp teslim alır. */
+    private function returnViaRequest(Order $order, string $qty): TestResponse
+    {
+        $itemId = $order->items->first()->id;
+        $this->flushSession();
+        $this->actingAs($this->rel->dealer->user, 'dealer')
+            ->post(route('dealer.returns.store', $order), ['qty' => [$itemId => $qty], 'reason' => 'excess'])->assertSessionHasNoErrors();
+        $request = $this->inTenant($this->business, fn () => OrderReturnRequest::latest('id')->first());
+        $requestItemId = $this->inTenant($this->business, fn () => $request->items()->value('id'));
+        $this->flushSession();
+        $this->actingAs($this->business->user, 'business')->post(route('business.returns.approve', $request))->assertSessionHasNoErrors();
+
+        return $this->post(route('business.returns.receive', $request), ['received' => [$requestItemId => $qty], 'resellable' => [$requestItemId => $qty]]);
+    }
+
+    public function test_dealer_cancels_paid_order_before_shipping_and_card_is_refunded(): void
+    {
+        $order = $this->paidByCard();
+        $this->actingAs($this->business->user, 'business')->post(route('business.orders.prepare', $order))->assertSessionHasNoErrors();
+
+        $this->flushSession();
+        $this->actingAs($this->rel->dealer->user, 'dealer');
+        $this->get(route('dealer.orders.show', $order))->assertSee('Siparişi iptal et')->assertSee('Kart ödemeniz otomatik olarak iade edilir');
+        $this->post(route('dealer.orders.cancel', $order), ['reason' => 'Vazgeçtim'])->assertSessionHasNoErrors()->assertSessionHas('status');
+
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), '/payment/refund') && $r['price'] === '120.00');
+        $order = $this->inTenant($this->business, fn () => $order->fresh('payments'));
+        $this->assertSame(['cancelled', 'refunded', 'refunded', '120.00'], [$order->status, $order->payment_status, $order->payments->first()->status, (string) $order->payments->first()->refunded_amount]);
+        $this->assertSame('0.00', $this->balance($this->business, $this->rel));
+        $this->assertSame('100.000', $this->stockQty($this->business, $this->product));
+    }
+
+    public function test_partial_then_full_return_refunds_card_and_closes_order(): void
+    {
+        $order = $this->paidByCard();
+        $this->actingAs($this->business->user, 'business')->post(route('business.orders.ship', $order))->assertSessionHasNoErrors();
+
+        // Yoldaki siparişten 2 adet iade: teslim alınınca sipariş tamamlanır, 24,00 karta geri ödenir.
+        $this->returnViaRequest($order, '2')->assertSessionHasNoErrors();
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), '/payment/refund') && $r['price'] === '24.00' && $r['paymentTransactionId'] === 'tx-55');
+        $order = $this->inTenant($this->business, fn () => $order->fresh(['payments', 'items']));
+        $payment = $order->payments->first();
+        $this->assertSame(['completed', 'paid', 'succeeded', '24.00'], [$order->status, $order->payment_status, $payment->status, (string) $payment->refunded_amount]);
+        $this->assertSame('24.00', (string) $this->inTenant($this->business, fn () => OrderReturn::latest('id')->value('refunded_to_card')));
+        $this->assertSame('0.00', $this->balance($this->business, $this->rel)); // borç 120 − tahsilat 120 − iade 24 + karta ödenen 24
+
+        $this->flushSession();
+        $this->actingAs($this->rel->dealer->user, 'dealer')->get(route('dealer.orders.show', $order))->assertSee('₺24,00 kartınıza iade edildi', false);
+
+        // Kalan 8 adet: 96,00 karta; ödeme tamamen iade, sipariş iptal edildi.
+        $this->returnViaRequest($order, '8')->assertSessionHasNoErrors();
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), '/payment/refund') && $r['price'] === '96.00');
+        $order = $this->inTenant($this->business, fn () => $order->fresh('payments'));
+        $this->assertSame(['cancelled', 'refunded', 'refunded', '120.00'], [$order->status, $order->payment_status, $order->payments->first()->status, (string) $order->payments->first()->refunded_amount]);
+        $this->assertSame('0.00', $this->balance($this->business, $this->rel));
+        $this->assertSame('100.000', $this->stockQty($this->business, $this->product));
+    }
+
+    public function test_card_refund_failure_on_return_keeps_request_open_and_writes_nothing(): void
+    {
+        $order = $this->paidByCard(['status' => 'failure', 'errorMessage' => 'Banka reddetti']);
+        $this->actingAs($this->business->user, 'business')->post(route('business.orders.complete', $order))->assertSessionHasNoErrors();
+
+        $this->returnViaRequest($order, '3')->assertSessionHasErrors('return');
+        $this->assertSame('approved', $this->inTenant($this->business, fn () => OrderReturnRequest::latest('id')->value('status')));
+        $this->assertSame(0, $this->inTenant($this->business, fn () => OrderReturn::count()));
+        $order = $this->inTenant($this->business, fn () => $order->fresh('payments'));
+        $this->assertSame(['completed', 'paid', '0.00'], [$order->status, $order->payment_status, (string) $order->payments->first()->refunded_amount]);
+        $this->assertSame('0.00', $this->balance($this->business, $this->rel));
+        $this->assertSame('90.000', $this->stockQty($this->business, $this->product));
     }
 }

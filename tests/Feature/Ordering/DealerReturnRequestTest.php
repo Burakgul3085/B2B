@@ -37,11 +37,11 @@ class DealerReturnRequestTest extends TestCase
         return [$order, $product];
     }
 
-    public function test_order_can_be_marked_shipped_then_completed_and_cancel_request_returns_to_shipped(): void
+    public function test_shipped_order_cannot_be_cancelled_by_dealer_and_full_return_closes_it(): void
     {
         $business = $this->makeBusiness();
         $rel = $this->orderingDealer($business);
-        [$order] = $this->approvedOrder($business, $rel);
+        [$order, $product] = $this->approvedOrder($business, $rel);
 
         $this->actingAs($business->user, 'business');
         $this->get(route('business.orders.show', $order))->assertOk()->assertSee('Yola çıktı');
@@ -51,17 +51,32 @@ class DealerReturnRequestTest extends TestCase
         $this->assertNotNull($order->shipped_at);
         $this->post(route('business.orders.ship', $order))->assertSessionHasErrors('order'); // ikinci kez olmaz
 
-        // Bayi yoldaki siparişi görür, iptal talebi gönderebilir; reddedilirse sipariş yine "Yola çıktı"dır.
+        // Bayi yoldaki siparişi iptal edemez; iade talebi formu açıktır.
         $this->actingAs($rel->dealer->user, 'dealer');
-        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('Yola çıktı')->assertSee('Araç 26 ABC 123, sürücü Ali');
-        $this->post(route('dealer.orders.cancel', $order), ['reason' => 'Gerek kalmadı'])->assertSessionHasNoErrors();
-        $this->assertSame('cancel_requested', $this->db(fn () => $order->fresh())->status);
+        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('Yola çıktı')->assertSee('Araç 26 ABC 123, sürücü Ali')
+            ->assertSee('İade talebi oluştur')->assertDontSee('Siparişi iptal et');
+        $this->post(route('dealer.orders.cancel', $order), ['reason' => 'Gerek kalmadı'])->assertSessionHasErrors('order');
+        $this->assertSame('shipped', $this->db(fn () => $order->fresh())->status);
+
+        // Siparişin tamamı iade: teslim alınınca sipariş teslim edilmiş sayılır, iade yazılır ve "İptal edildi" olur.
+        $itemId = $this->db(fn () => $order->items()->value('id'));
+        $this->post(route('dealer.returns.store', $order), ['qty' => [$itemId => '5'], 'reason' => 'excess'])->assertSessionHasNoErrors();
+        $request = $this->db(fn () => OrderReturnRequest::latest('id')->first());
+        $requestItemId = $this->db(fn () => $request->items()->value('id'));
 
         $this->actingAs($business->user, 'business');
-        $this->post(route('business.orders.resolve-cancel', $order), ['decision' => 'decline'])->assertSessionHasNoErrors();
-        $this->assertSame('shipped', $this->db(fn () => $order->fresh())->status);
-        $this->post(route('business.orders.complete', $order))->assertSessionHasNoErrors();
-        $this->assertSame('completed', $this->db(fn () => $order->fresh())->status);
+        $this->post(route('business.returns.approve', $request))->assertSessionHasNoErrors();
+        $this->post(route('business.returns.receive', $request), ['received' => [$requestItemId => '5'], 'resellable' => [$requestItemId => '5']])->assertSessionHasNoErrors();
+
+        $order = $this->db(fn () => $order->fresh('history'));
+        $this->assertSame('cancelled', $order->status);
+        $this->assertNotNull($order->completed_at);
+        $this->assertSame(['shipped', 'completed', 'cancelled'], $order->history->pluck('to_status')->slice(-3)->values()->all());
+        $this->assertSame('0.00', $this->balance($business, $rel));
+        $this->assertSame('100.000', $this->stockQty($business, $product));
+
+        $this->actingAs($rel->dealer->user, 'dealer');
+        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('Siparişin tamamı iade edildi')->assertSee('₺60,00 carinize alacak yazıldı', false);
     }
 
     public function test_dealer_requests_return_business_approves_and_receives_with_partial_restock(): void
@@ -101,7 +116,7 @@ class DealerReturnRequestTest extends TestCase
         // Toptancı talebi görür, onaylar.
         $this->actingAs($business->user, 'business');
         $this->get(route('business.returns.index'))->assertOk()->assertSee($request->request_no);
-        $this->get(route('business.returns.show', $request))->assertOk()->assertSee('Kutular ezik')->assertSee('Teslim al ve cariye işle');
+        $this->get(route('business.returns.show', $request))->assertOk()->assertSee('Kutular ezik')->assertSee('Teslim al ve iadeyi öde');
         $this->get(route('business.returns.photo', [$request, $photo]))->assertOk();
         $this->post(route('business.returns.approve', $request), ['business_note' => 'Perşembe günü araçla alınacak'])->assertSessionHasNoErrors();
         $this->assertSame('approved', $this->db(fn () => $request->fresh())->status);
@@ -128,7 +143,7 @@ class DealerReturnRequestTest extends TestCase
 
         // Bayi sonucu görür; kalan 2 adet için yeni talep açabilir.
         $this->actingAs($rel->dealer->user, 'dealer');
-        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('Teslim alındı, cariye işlendi')->assertSee('36,00');
+        $this->get(route('dealer.orders.show', $order))->assertOk()->assertSee('Teslim alındı, iade edildi')->assertSee('36,00');
         $this->post(route('dealer.returns.store', $order), ['qty' => [$item->id => '2'], 'reason' => 'unsold'])->assertSessionHasNoErrors();
     }
 

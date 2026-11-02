@@ -28,6 +28,7 @@ class ReturnRequestService
 {
     public function __construct(
         private ReturnService $returns,
+        private OrderService $orders,
         private DocumentUploader $documents,
         private AuditLogger $audit,
         private TenantContext $tenant,
@@ -74,8 +75,8 @@ class ReturnRequestService
                 if ($order->dealer_relationship_id !== $relationshipId) {
                     throw new DomainException('Sipariş bulunamadı.');
                 }
-                if ($order->status !== 'completed') {
-                    throw new DomainException('İade talebi teslim edilmiş (tamamlanmış) siparişler için açılır. Henüz teslim edilmemiş sipariş için iptal talebi gönderin.');
+                if (! in_array($order->status, Order::RETURNABLE, true)) {
+                    throw new DomainException('İade talebi yola çıkmış veya teslim edilmiş siparişler için açılır. Henüz yola çıkmamış siparişi "Siparişi iptal et" ile iptal edebilirsiniz.');
                 }
 
                 $order->load('items.product.unit');
@@ -189,6 +190,10 @@ class ReturnRequestService
             }
 
             $note = trim((string) $note) ?: null;
+            // Yoldaki sipariş geri gönderildiyse önce teslim edilmiş sayılır (iade kaydı tamamlanmış siparişe yazılır).
+            if ($order->status === 'shipped') {
+                $this->orders->completeForReturn($order, $request->request_no);
+            }
             $return = $this->returns->create($order, $quantities, mb_substr("İade talebi {$request->request_no}".($note ? " · {$note}" : ''), 0, 500), $userId, $restock);
             $request->update(['status' => 'received', 'received_at' => now(), 'order_return_id' => $return->id, 'decided_by' => $userId]
                 + ($note ? ['business_note' => mb_substr(trim($request->business_note."\n".$note), 0, 1000)] : []));

@@ -82,6 +82,40 @@ class LedgerService
     /**
      * Açılış bakiyesi: ilişki başına bir kez. Pozitif tutar bayinin borcu, negatif tutar bayinin alacağıdır.
      */
+    /** Siparişin tamamı iade edilince teslimat ücreti de alacak yazılır. */
+    public function postReturnDeliveryFeeCredit(OrderReturn $return, Order $order, string $fee): CurrentAccountMovement
+    {
+        $this->assertInTransaction();
+        $account = $this->lockAccount($order->dealer_relationship_id);
+
+        return $this->write($account, [
+            'type' => 'return_credit',
+            'debit' => '0',
+            'credit' => $fee,
+            'movement_date' => LocalTime::today(),
+            'order_id' => $order->id,
+            'description' => "Sipariş {$order->order_no} iadesi · teslimat ücreti",
+            'source_key' => "return:{$return->id}:delivery_fee",
+        ]);
+    }
+
+    /** İadenin karta geri ödenen kısmı: iade alacağını karşılayan borç (para bayiye karttan döndü). */
+    public function postReturnCardRefund(OrderReturn $return, Order $order, int $paymentId, string $amount, ?string $cardLastFour): CurrentAccountMovement
+    {
+        $this->assertInTransaction();
+        $account = $this->lockAccount($order->dealer_relationship_id);
+
+        return $this->write($account, [
+            'type' => 'adjustment_debit',
+            'debit' => $amount,
+            'credit' => '0',
+            'movement_date' => LocalTime::today(),
+            'order_id' => $order->id,
+            'description' => "Sipariş {$order->order_no} iadesi karta geri ödendi".($cardLastFour ? " (**** {$cardLastFour})" : ''),
+            'source_key' => "return:{$return->id}:card_refund:{$paymentId}",
+        ]);
+    }
+
     public function setOpening(CurrentAccount $account, string $amount, string $date, ?string $note): CurrentAccountMovement
     {
         if (bccomp($amount, '0', 2) === 0) {

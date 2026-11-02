@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\OrderService;
-use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReorderService;
 use App\Domain\Ordering\ReturnRequestService;
 use App\Domain\Payments\OrderPaymentService;
@@ -14,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CurrentAccountMovement;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\OrderReturnRequest;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -81,7 +81,7 @@ class OrderController extends Controller
         $this->assertOwn($order);
         $order->load(['items.product.primaryImage', 'history', 'payments']);
         $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing', 'shipped'], true);
-        $requestable = $order->status === 'completed' ? ReturnRequestService::requestable($order) : [];
+        $requestable = in_array($order->status, Order::RETURNABLE, true) ? ReturnRequestService::requestable($order) : [];
 
         return view('dealer.orders.show', [
             'order' => $order,
@@ -90,10 +90,10 @@ class OrderController extends Controller
             'paymentMethods' => $payable ? $payments->methodsFor($this->relationship()) : [],
             'accounts' => $payable && $payments->transferAvailable() ? $payments->accounts() : [],
             'dueDate' => CurrentAccountMovement::where('order_id', $order->id)->where('type', 'order_debit')->whereNull('reverses_movement_id')->value('due_date'),
-            'canCancel' => in_array($order->status, Order::PENDING, true),
-            'canRequestCancel' => OrderStateMachine::can($order->status, 'cancel_requested'),
+            'canCancel' => in_array($order->status, Order::DEALER_CANCELLABLE, true),
             'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->with(['items.orderItem', 'photos', 'orderReturn'])->latest('id')->get(),
             'requestable' => $requestable,
+            'returns' => OrderReturn::where('order_id', $order->id)->with('items')->latest('id')->get(),
             'canRequestReturn' => collect($requestable)->contains(fn ($q) => bccomp($q, '0', 3) > 0),
         ]);
     }
@@ -109,10 +109,9 @@ class OrderController extends Controller
             return back()->withErrors(['order' => $e->getMessage()]);
         }
 
-        $notifier = app(Notifier::class);
-        $order->status === 'cancelled' ? $notifier->orderCancelledByDealer($order) : $notifier->cancelRequested($order);
+        app(Notifier::class)->orderCancelledByDealer($order);
 
-        return back()->with('status', $order->status === 'cancelled' ? 'Siparişiniz iptal edildi.' : 'İptal talebiniz toptancıya iletildi.');
+        return back()->with('status', 'Siparişiniz iptal edildi.'.($order->payment_status === 'refunded' ? ' Kart ödemeniz iade edildi; kartınıza yansıması bankanıza göre birkaç gün sürebilir.' : ''));
     }
 
     /** Sipariş ekranındaki canlı kontrol: açık kart ödemesini iyzico'dan sorgular. */

@@ -16,7 +16,7 @@ class OrderReturnRequest extends Model
     public const STATUSES = [
         'requested' => 'Değerlendiriliyor',
         'approved' => 'Onaylandı, ürün bekleniyor',
-        'received' => 'Teslim alındı, cariye işlendi',
+        'received' => 'Teslim alındı, iade edildi',
         'rejected' => 'Reddedildi',
         'cancelled' => 'Geri çekildi',
     ];

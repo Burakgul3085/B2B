@@ -101,7 +101,7 @@
                         @foreach ($returns as $r)
                             <li class="flex justify-between gap-3 px-5 py-3">
                                 <span>{{ $r->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $r->items->count() }} kalem @if ($r->note)<span class="text-muted">· {{ $r->note }}</span>@endif</span>
-                                <span class="font-medium tabular-nums">{{ Money::format($r->grand_total) }}</span>
+                                <span class="font-medium tabular-nums">{{ Money::format($r->grand_total) }}@if (bccomp((string) $r->refunded_to_card, '0', 2) > 0)<span class="block text-xs font-normal text-muted">{{ Money::format($r->refunded_to_card) }} karta iade</span>@endif</span>
                             </li>
                         @endforeach
                     </ul>
@@ -109,9 +109,9 @@
             @endif
 
             @if ($order->status === 'completed' && collect($returnable)->contains(fn ($q) => bccomp($q, '0', 3) > 0))
-                <x-card title="İade kaydı" description="İade edilen miktar sevk deposuna girer ve bayinin carisine sipariş fiyatıyla alacak yazılır." :padding="false">
+                <x-card title="İade kaydı" description="İade edilen miktar sevk deposuna girer. Tutar sipariş fiyatıyla hesaplanır: kartla ödendiyse iyzico'dan karta iade edilir, değilse bayinin carisine alacak yazılır. Bayi iade talebi açtıysa İade Talepleri ekranını kullanın." :padding="false">
                     @error('return')<div role="alert" class="mx-5 mt-4 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
-                    <form method="POST" action="{{ route('business.orders.returns.store', $order) }}" data-confirm="İade kaydedilsin mi? Stok girişi ve cari alacak yazılacak.">
+                    <form method="POST" action="{{ route('business.orders.returns.store', $order) }}" data-confirm="İade kaydedilsin mi? Stok girişi yazılacak, tutar (kartla ödendiyse karta) iade edilecek.">
                         @csrf
                         <table class="table-base">
                             <thead><tr><th>Ürün</th><th class="text-right">İade edilebilir</th><th class="text-right">İade miktarı</th></tr></thead>

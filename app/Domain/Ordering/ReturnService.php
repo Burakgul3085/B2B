@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
+use App\Domain\Payments\OrderPaymentService;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Models\OrderReturnItem;
@@ -15,12 +16,20 @@ use Illuminate\Support\Facades\DB;
 /**
  * Tamamlanmış sipariş iadesi (docs/03-is-kurallari.md §3.6): kalem bazında satılan − daha önce iade edilen
  * miktarı aşamaz. Tek transaction: iade kaydı + return_in stok hareketi + return_credit cari alacak.
- * Tutar, siparişteki birim fiyat, indirim ve KDV ile hesaplanır. Siparişin durumu değişmez.
+ * Tutar, siparişteki birim fiyat, indirim ve KDV ile hesaplanır.
  * Bayinin iade talebinden gelen kayıtta yalnızca tekrar satılabilir miktar depoya girer ($restock); alacak tüm miktar içindir.
+ * Para: kartla ödenmişse iade tutarı iyzico'dan karta geri ödenir (cariye karşılık borç yazılır); diğer ödemelerde
+ * carisinde alacak kalır. Siparişin tamamı iade edilince teslimat ücreti de iade edilir ve sipariş "İptal edildi" olur.
  */
 class ReturnService
 {
-    public function __construct(private StockService $stock, private LedgerService $ledger, private AuditLogger $audit) {}
+    public function __construct(
+        private StockService $stock,
+        private LedgerService $ledger,
+        private AuditLogger $audit,
+        private OrderPaymentService $payments,
+        private OrderService $orders,
+    ) {}
 
     /** @return array<int, string> kalem ID'si → iade edilebilir kalan miktar */
     public static function returnable(Order $order): array
@@ -103,7 +112,33 @@ class ReturnService
                 $this->ledger->postReturnCredit($return, $order);
             }
 
-            $this->audit->log('order.returned', $return, [], ['order_id' => $order->id, 'grand_total' => (string) $return->grand_total]);
+            // Siparişin tamamı iade edildiyse teslimat ücreti de iade edilir.
+            $order->unsetRelation('items')->load('items');
+            $full = collect(self::returnable($order))->every(fn ($q) => bccomp($q, '0', 3) <= 0);
+            $refundable = (string) $return->grand_total;
+            $fee = (string) ($order->delivery_fee ?? '0');
+            if ($full && bccomp($fee, '0', 2) > 0) {
+                if ($order->ledger_applied_at !== null) {
+                    $this->ledger->postReturnDeliveryFeeCredit($return, $order, $fee);
+                }
+                $refundable = bcadd($refundable, $fee, 2);
+            }
+
+            // Kartla ödenen kısım karta geri ödenir; iyzico kabul etmezse istisna, iade kaydı geri alınır.
+            $toCard = $this->payments->refundReturn($order, $return, $refundable);
+            if (bccomp($toCard, '0', 2) > 0) {
+                $return->update(['refunded_to_card' => $toCard]);
+            }
+
+            if ($full) {
+                $this->orders->closeAsFullyReturned($order, $return);
+            } elseif ($order->isDirty('payment_status')) {
+                $order->save();
+            }
+
+            $this->audit->log('order.returned', $return, [], [
+                'order_id' => $order->id, 'grand_total' => (string) $return->grand_total, 'refunded_to_card' => $toCard, 'full' => $full,
+            ]);
 
             return $return;
         });

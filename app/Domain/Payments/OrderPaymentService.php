@@ -12,6 +12,7 @@ use App\Models\CollectionEntry;
 use App\Models\CurrentAccount;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\OrderReturn;
 use DomainException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -201,6 +202,7 @@ class OrderPaymentService
         $payment->update([
             'status' => $ok ? 'auto_refunded' : 'refund_failed',
             'refunded_at' => $ok ? now() : null,
+            'refunded_amount' => $ok ? $payment->amount : '0',
             'error_message' => mb_substr($ok ? 'Fazla / geç ödeme otomatik iade edildi.' : 'Fazla / geç ödeme iade EDİLEMEDİ: '.$error.' — iyzico panelinden iade edin.', 0, 300),
         ]);
         $this->audit->log($ok ? 'order.payment_auto_refunded' : 'order.payment_auto_refund_failed', $order, [],
@@ -293,8 +295,13 @@ class OrderPaymentService
             if (! $payment->transaction_id) {
                 throw new DomainException('Kart ödemesinin işlem kimliği bulunamadı; iadeyi iyzico panelinden yapıp tahsilatı elle iptal edin.');
             }
+            // Daha önce iadeyle kısmen geri ödendiyse yalnızca kalan tutar iade edilir.
+            $remaining = bcsub((string) $payment->amount, (string) $payment->refunded_amount, 2);
+            if (bccomp($remaining, '0', 2) <= 0) {
+                continue;
+            }
             try {
-                $result = $this->settings->iyzico()->refund($payment->transaction_id, bcadd((string) $payment->amount, '0', 2), $order->order_no, $ip);
+                $result = $this->settings->iyzico()->refund($payment->transaction_id, $remaining, $order->order_no, $ip);
             } catch (IyzicoUnreachable) {
                 throw new DomainException("iyzico'ya ulaşılamadı; kart iadesi yapılmış olabilir. Sipariş iptal edilmedi. iyzico panelinden bu ödemeyi kontrol edin; iade görünmüyorsa iptali yeniden deneyin.");
             }
@@ -304,7 +311,7 @@ class OrderPaymentService
             if ($payment->collection_id && ($collection = CollectionEntry::find($payment->collection_id)) && ! $collection->isCancelled()) {
                 $this->ledger->cancelCollection($collection, 'Sipariş iptali, kart iadesi: '.$reason);
             }
-            $payment->update(['status' => 'refunded', 'refunded_at' => now()]);
+            $payment->update(['status' => 'refunded', 'refunded_at' => now(), 'refunded_amount' => $payment->amount]);
             $refunded = true;
         }
 
@@ -322,6 +329,61 @@ class OrderPaymentService
      *
      * @return int kapatılan deneme sayısı
      */
+    /**
+     * Bayinin iadesi teslim alınınca kartla ödenen tutardan iade edilen kısım iyzico'dan karta geri ödenir.
+     * Cariye aynı tutarda borç yazılır (iade alacağını karşılar; para karta döndü). Kart dışı ödemede bir şey yapılmaz,
+     * iade tutarı carisinde alacak olarak kalır. Sipariş satırı kilitli, transaction içinde çağrılır.
+     * iyzico iadeyi kabul etmezse istisna fırlatılır ve iade kaydı geri alınır (para kaybı olmaz).
+     *
+     * @return string karta geri ödenen toplam
+     *
+     * @throws DomainException
+     */
+    public function refundReturn(Order $order, OrderReturn $return, string $amount, ?string $ip = null): string
+    {
+        $left = bcadd($amount, '0', 2);
+        $total = '0.00';
+        $payments = OrderPayment::where('order_id', $order->id)->where('driver', 'iyzico')->where('status', 'succeeded')->orderBy('id')->lockForUpdate()->get();
+        foreach ($payments as $payment) {
+            if (bccomp($left, '0', 2) <= 0) {
+                break;
+            }
+            $part = bcsub((string) $payment->amount, (string) $payment->refunded_amount, 2);
+            if (bccomp($part, $left, 2) > 0) {
+                $part = $left;
+            }
+            if (bccomp($part, '0', 2) <= 0) {
+                continue;
+            }
+            if (! $payment->transaction_id) {
+                throw new DomainException('Kart ödemesinin işlem kimliği bulunamadı; iade kaydedilmedi. İadeyi iyzico panelinden yapıp tutarı cariye elle işleyin.');
+            }
+            try {
+                $result = $this->settings->iyzico()->refund($payment->transaction_id, $part, $order->order_no, $ip);
+            } catch (IyzicoUnreachable) {
+                throw new DomainException("iyzico'ya ulaşılamadı; kart iadesi yapılmış olabilir. İade kaydedilmedi. iyzico panelinden bu ödemeyi kontrol edin; iade görünmüyorsa yeniden deneyin.");
+            }
+            if (($result['status'] ?? null) !== 'success') {
+                throw new DomainException('Kart iadesi yapılamadı: '.($result['errorMessage'] ?? 'bilinmeyen hata').'. İade kaydedilmedi.');
+            }
+            $refunded = bcadd((string) $payment->refunded_amount, $part, 2);
+            $full = bccomp($refunded, (string) $payment->amount, 2) >= 0;
+            $payment->update(['refunded_amount' => $refunded] + ($full ? ['status' => 'refunded', 'refunded_at' => now()] : []));
+            $this->ledger->postReturnCardRefund($return, $order, $payment->id, $part, $payment->card_last_four);
+            $left = bcsub($left, $part, 2);
+            $total = bcadd($total, $part, 2);
+        }
+
+        if (bccomp($total, '0', 2) > 0) {
+            if (! OrderPayment::where('order_id', $order->id)->where('status', 'succeeded')->exists()) {
+                $order->payment_status = 'refunded';
+            }
+            $this->audit->log('order.payment_partially_refunded', $order, [], ['order_return_id' => $return->id, 'amount' => $total]);
+        }
+
+        return $total;
+    }
+
     public function expireStale(int $minutes = self::FORM_MINUTES + 5): int
     {
         $count = 0;

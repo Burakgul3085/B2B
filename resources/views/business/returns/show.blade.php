@@ -14,8 +14,8 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             @if (in_array($r->status, ['requested', 'approved'], true))
-                <x-card title="Ürünleri teslim al" description="Gelen miktar bayinin carisine sipariş fiyatıyla alacak yazılır. Yalnızca tekrar satılabilir miktar depoya girer; hasarlı ürün stoğa eklenmez." :padding="false">
-                    <form method="POST" action="{{ route('business.returns.receive', $r) }}" data-confirm="Ürünler teslim alınsın mı? Cari alacak ve stok girişi yazılacak; bu işlem geri alınamaz.">
+                <x-card title="Ürünleri teslim al" description="Gelen miktarın tutarı sipariş fiyatıyla hesaplanır: sipariş kartla ödendiyse iyzico'dan bayinin kartına iade edilir, diğer ödemelerde bayinin carisine alacak yazılır. Siparişin tamamı gelirse sipariş iptal edilmiş olur. Yalnızca tekrar satılabilir miktar depoya girer; hasarlı ürün stoğa eklenmez." :padding="false">
+                    <form method="POST" action="{{ route('business.returns.receive', $r) }}" data-confirm="Ürünler teslim alınsın mı? İade tutarı (kartla ödendiyse karta) ödenecek ve stok girişi yazılacak; bu işlem geri alınamaz.">
                         @csrf
                         <div class="overflow-x-auto">
                             <table class="table-base">
@@ -35,7 +35,7 @@
                         </div>
                         <div class="flex flex-wrap items-end gap-3 border-t border-line p-4">
                             <x-field name="note" label="Not (isteğe bağlı)" maxlength="500" class="min-w-64 flex-1" />
-                            <x-button icon="check">Teslim al ve cariye işle</x-button>
+                            <x-button icon="check">Teslim al ve iadeyi öde</x-button>
                         </div>
                     </form>
                 </x-card>
@@ -60,7 +60,11 @@
                         </table>
                     </div>
                     @if ($r->orderReturn)
-                        <p class="border-t border-line p-4 text-sm">Bayinin carisine <b>{{ Money::format($r->orderReturn->grand_total) }}</b> alacak yazıldı ({{ $r->received_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}).</p>
+                        @php $toCard = (string) $r->orderReturn->refunded_to_card; $toAccount = bcsub((string) $r->orderReturn->grand_total, $toCard, 2); @endphp
+                        <p class="border-t border-line p-4 text-sm">İade tutarı <b>{{ Money::format($r->orderReturn->grand_total) }}</b> ({{ $r->received_at?->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}):
+                            @if (bccomp($toCard, '0', 2) > 0) {{ Money::format($toCard) }} iyzico'dan karta iade edildi.@endif
+                            @if (bccomp($toAccount, '0', 2) > 0) {{ Money::format($toAccount) }} bayinin carisine alacak yazıldı.@endif
+                        </p>
                     @endif
                 </x-card>
             @endif

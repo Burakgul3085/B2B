@@ -36,6 +36,12 @@ class Order extends Model
     /** Toptancının kararını bekleyen durumlar. */
     public const PENDING = ['submitted', 'in_review'];
 
+    /** Bayinin kendisinin iptal edebildiği durumlar: yola çıkana kadar (kartla ödendiyse iyzico'dan iade edilir). */
+    public const DEALER_CANCELLABLE = ['submitted', 'in_review', 'approved', 'preparing'];
+
+    /** Bayinin iade talebi açabildiği durumlar: yola çıktıktan sonra. */
+    public const RETURNABLE = ['shipped', 'completed'];
+
     /** Stoğu düşülmüş, henüz kapanmamış durumlar. */
     public const ACTIVE_FULFILMENT = ['approved', 'preparing', 'shipped', 'cancel_requested'];
 

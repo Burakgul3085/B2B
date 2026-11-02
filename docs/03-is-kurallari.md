@@ -70,8 +70,8 @@ stateDiagram-v2
 | `preparing` | Hazırlanıyor | Toptancı |
 | `shipped` | Yola çıktı (isteğe bağlı; sevk notu bayiye gösterilir) | Toptancı |
 | `completed` | Tamamlandı | Toptancı |
-| `cancel_requested` | İptal talebi | Bayi |
-| `cancelled` | İptal edildi | Bayi (onay öncesi) / Toptancı |
+| `cancel_requested` | İptal talebi (artık açılmaz; eski kayıtlar için kabul / ret korunur) | — |
+| `cancelled` | İptal edildi | Bayi (yola çıkana kadar) / Toptancı / tamamı iade edilen sipariş |
 
 ```mermaid
 stateDiagram-v2
@@ -85,19 +85,16 @@ stateDiagram-v2
   in_review --> cancelled: bayi iptal eder (etkisiz)
   approved --> preparing
   approved --> completed: hazırlık adımı atlanabilir
-  approved --> cancel_requested: bayi
-  approved --> cancelled: toptancı (ters kayıtlar)
+  approved --> cancelled: bayi veya toptancı (ters kayıtlar, kart iadesi)
   approved --> shipped
   preparing --> shipped
   preparing --> completed
   shipped --> completed
-  shipped --> cancel_requested: bayi
   shipped --> cancelled: toptancı (ters kayıtlar)
-  preparing --> cancel_requested: bayi
-  preparing --> cancelled: toptancı (ters kayıtlar)
-  cancel_requested --> cancelled: toptancı kabul (ters kayıtlar)
-  cancel_requested --> approved: reddedildi (önceki duruma döner)
-  cancel_requested --> preparing: reddedildi (önceki duruma döner)
+  preparing --> cancelled: bayi veya toptancı (ters kayıtlar, kart iadesi)
+  cancel_requested --> cancelled: eski kayıt, toptancı kabul
+  cancel_requested --> approved: eski kayıt, reddedildi
+  completed --> cancelled: siparişin tamamı iade edildi (§3.7; ters kayıt yok, iade kayıtları düzeltir)
   completed --> [*]
   rejected --> [*]
   cancelled --> [*]
@@ -173,9 +170,11 @@ Yalnızca `submitted` / `in_review` durumunda. Stok ve cari hareketi **oluşmaz*
 | Sipariş durumu | Kim | Etki |
 |---|---|---|
 | `submitted`, `in_review` | Bayi doğrudan / Toptancı | Yalnızca durum. Stok/cari hareketi yok. |
-| `approved`, `preparing` | Bayi → `cancel_requested`; toptancı kabul ederse `cancelled` | Ters kayıtlar (aşağıda) |
-| `approved`, `preparing` | Toptancı doğrudan | Ters kayıtlar |
-| `completed` | İptal yok | İade kaydı kullanılır (§3.6) |
+| `approved`, `preparing` | Bayi doğrudan / Toptancı | Ters kayıtlar (aşağıda); kartla ödendiyse tutar iyzico'dan karta iade edilir |
+| `shipped` | Bayi iptal edemez → iade talebi (§3.7); toptancı doğrudan iptal edebilir | Ters kayıtlar |
+| `completed` | İptal yok | İade (§3.6, §3.7); tamamı iade edilirse sipariş `cancelled` olur |
+
+Kart iadesi alınamazsa (iyzico reddeder / ulaşılamaz) iptal geri alınır, sipariş eski durumunda kalır.
 
 Ters kayıt transaction'ı (onaydaki ile aynı kilit sırası):
 
@@ -187,13 +186,17 @@ Ters kayıt transaction'ı (onaydaki ile aynı kilit sırası):
 
 ### 3.6 İade (tamamlanmış sipariş)
 
-Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalemde satılan − daha önce iade edilen miktarı aşamaz). Tek transaction: `return_in` stok hareketi + `return_credit` cari alacak (kalemin anlık fiyatı ve KDV'siyle). Siparişin durumu değişmez; sipariş detayında iade geçmişi görünür.
+Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalemde satılan − daha önce iade edilen miktarı aşamaz). Tek transaction: `return_in` stok hareketi + `return_credit` cari alacak (kalemin anlık fiyatı ve KDV'siyle). Sipariş detayında (toptancı ve bayi) iade geçmişi görünür.
+
+- **Para:** sipariş kartla ödendiyse iade tutarı iyzico'dan karta geri ödenir (kısmi iade desteklenir; `order_payments.refunded_amount` geri ödenen toplamı tutar) ve cariye aynı tutarda borç (`adjustment_debit`, "karta geri ödendi") yazılır; net etki sıfırdır. Kart dışı ödemede tutar carisinde alacak kalır. Karta ödenen kısım `order_returns.refunded_to_card`'dadır.
+- **Tam iade:** iade sonrası hiçbir kalemde iade edilebilir miktar kalmazsa teslimat ücreti de iade edilir (`return_credit`, kartla ödendiyse karta) ve sipariş `cancelled` olur. Stok ve cari iade kayıtlarıyla zaten düzeltildiği için ters kayıt yazılmaz.
+- iyzico iadeyi kabul etmezse tüm iade kaydı geri alınır (para kaybı yok).
 
 ### 3.7 Bayinin iade talebi
 
-- Bayi **tamamlanmış** siparişte "İade talebi oluştur" ile kalem, miktar, neden ve açıklama girer; en fazla 4 fotoğraf (JPG/PNG) ekler. Hasarlı, kusurlu ve yanlış ürün nedenlerinde fotoğraf, "Diğer"de açıklama zorunludur. Talep edilebilir miktar = satılan − iade edilen − açık taleplerdeki miktar. Teslim edilmemiş sipariş için iade değil iptal talebi kullanılır (§3.5).
+- Bayi **yola çıkmış** (`shipped`) veya **teslim edilmiş** (`completed`) siparişte "İade talebi" ile kalem, miktar, neden ve açıklama girer; en fazla 4 fotoğraf (JPG/PNG) ekler. Hasarlı, kusurlu ve yanlış ürün nedenlerinde fotoğraf, "Diğer"de açıklama zorunludur. Talep edilebilir miktar = satılan − iade edilen − açık taleplerdeki miktar. Yola çıkmamış sipariş iade edilmez, bayi doğrudan iptal eder (§3.5).
 - Talep numarası `IADE-YYYY-NNNNNN` (işletme ve yıl bazında). Durumlar: `requested` (değerlendiriliyor) → `approved` (ürün bekleniyor) → `received`; ayrıca `rejected` (gerekçe zorunlu) ve `cancelled` (bayi, yalnızca değerlendirilmeden önce geri çeker).
-- Toptancı ürünleri **teslim alınca** her kalem için gelen ve tekrar satılabilir miktarı girer. §3.6'daki iade kaydı oluşur: gelen miktarın tamamı için `return_credit`, yalnızca tekrar satılabilir miktar için `return_in` (hasarlı ürün stoğa girmez; fire modülü olmadığından stoktan ayrıca düşülmez). İade bedeli bayinin **carisine alacak** yazılır; kart ödemesi otomatik iade edilmez.
+- Toptancı ürünleri **teslim alınca** her kalem için gelen ve tekrar satılabilir miktarı girer. Sipariş hâlâ `shipped` ise önce `completed` olur (ürün bayiye ulaşmıştır). §3.6'daki iade kaydı oluşur: gelen miktarın tamamı için `return_credit`, yalnızca tekrar satılabilir miktar için `return_in` (hasarlı ürün stoğa girmez; fire modülü olmadığından stoktan ayrıca düşülmez). Para §3.6'daki gibi döner: kartla ödendiyse karta, değilse cariye alacak; siparişin tamamı döndüyse sipariş `cancelled` olur.
 - Talep ve sipariş satırları kilitlenir; bir talep yalnızca bir kez teslim alınır (`order_return_id` UNIQUE). Her adımda karşı tarafa bildirim / e-posta gider; işlemler denetim kaydına yazılır.
 
 ## 4. Fiyatlandırma

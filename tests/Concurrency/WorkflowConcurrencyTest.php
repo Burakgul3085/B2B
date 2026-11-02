@@ -48,8 +48,8 @@ class WorkflowConcurrencyTest extends TestCase
             match ($order->status) {
                 // İptal önce geldi (onay reddedildi) ya da onaydan sonra ters kayıtla iptal edildi.
                 'cancelled' => [$this->assertSame('10.000', $stock), $this->assertSame('0.00', $balance)],
-                // Onay önce geldi; bayi iptali talebe dönüştü.
-                'cancel_requested', 'approved' => [$this->assertSame('6.000', $stock), $this->assertSame('48.00', $balance)],
+                // İptal işlenmedi; onaylı sipariş olduğu gibi kaldı.
+                'approved' => [$this->assertSame('6.000', $stock), $this->assertSame('48.00', $balance)],
             };
             $this->assertConsistent($business, $order);
         }

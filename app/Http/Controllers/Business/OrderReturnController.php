@@ -28,6 +28,11 @@ class OrderReturnController extends Controller
             return back()->withErrors(['return' => $e->getMessage()])->withInput();
         }
 
-        return back()->with('status', 'İade kaydedildi: stok girişi yapıldı ve bayinin carisine '.Money::format($return->grand_total).' alacak yazıldı.');
+        $toCard = (string) $return->refunded_to_card;
+        $toAccount = bcsub((string) $return->grand_total, $toCard, 2);
+
+        return back()->with('status', 'İade kaydedildi, stok girişi yapıldı.'
+            .(bccomp($toCard, '0', 2) > 0 ? ' '.Money::format($toCard)." iyzico'dan bayinin kartına iade edildi." : '')
+            .(bccomp($toAccount, '0', 2) > 0 ? ' Bayinin carisine '.Money::format($toAccount).' alacak yazıldı.' : ''));
     }
 }

@@ -23,16 +23,16 @@
         $dates['submitted'] = $order->created_at->timezone('Europe/Istanbul');
     @endphp
     @if ($index === null)
-        @php $rejected = $order->status === 'rejected'; @endphp
+        @php $rejected = $order->status === 'rejected'; $returned = ! $rejected && $order->completed_at !== null; @endphp
         <div @class(['flex items-start gap-4 rounded-2xl border px-5 py-4', 'border-red-200 bg-red-50' => $rejected, 'border-slate-200 bg-slate-50' => ! $rejected])>
             <span @class(['flex size-10 shrink-0 items-center justify-center rounded-full', 'bg-red-100 text-red-700' => $rejected, 'bg-slate-200 text-slate-600' => ! $rejected])><x-icon name="x" class="size-5" /></span>
             <div class="text-sm">
-                <p @class(['text-base font-semibold', 'text-red-800' => $rejected, 'text-ink' => ! $rejected])>{{ $rejected ? 'Sipariş toptancınız tarafından reddedildi' : 'Sipariş iptal edildi' }}</p>
+                <p @class(['text-base font-semibold', 'text-red-800' => $rejected, 'text-ink' => ! $rejected])>{{ $rejected ? 'Sipariş toptancınız tarafından reddedildi' : ($returned ? 'Siparişin tamamı iade edildi' : 'Sipariş iptal edildi') }}</p>
                 @if (isset($dates[$order->status]))<p class="text-muted">{{ $dates[$order->status]->format('d.m.Y H:i') }}</p>@endif
                 @if ($rejected ? $order->rejected_reason : $order->cancel_reason)
                     <p class="mt-1 text-slate-700"><span class="font-medium">Neden:</span> {{ $rejected ? $order->rejected_reason : $order->cancel_reason }}</p>
                 @endif
-                <p class="mt-1 text-muted">Bu siparişten borç kaydı oluşmaz. İsterseniz aynı ürünleri tekrar sepete ekleyebilirsiniz.</p>
+                <p class="mt-1 text-muted">{{ $returned ? 'İade tutarları aşağıda “İadeler” bölümünde.' : 'Bu siparişten borç kaydı oluşmaz.' }} İsterseniz aynı ürünleri tekrar sepete ekleyebilirsiniz.</p>
             </div>
         </div>
     @else

@@ -20,6 +20,7 @@ use App\Models\DealerAddress;
 use App\Models\DealerRelationship;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderReturn;
 use App\Models\OrderStatusHistory;
 use App\Models\Warehouse;
 use DomainException;
@@ -295,23 +296,21 @@ class OrderService
         });
     }
 
-    /** Bayinin iptali: onay öncesi doğrudan; onaydan sonra toptancıya iptal talebi. */
+    /**
+     * Bayinin iptali: yola çıkana kadar doğrudan (stok ve cari ters kayıt, kart ödemesi iyzico'dan iade).
+     * Yola çıkmış / teslim edilmiş sipariş iptal edilmez; bayi iade talebi açar.
+     */
     public function cancelByDealer(Order $order, string $reason): Order
     {
         return DB::transaction(function () use ($order, $reason) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-
-            if (in_array($order->status, Order::PENDING, true)) {
-                return $this->doCancel($order, $reason);
+            if (! in_array($order->status, Order::DEALER_CANCELLABLE, true)) {
+                throw new DomainException(in_array($order->status, Order::RETURNABLE, true)
+                    ? 'Sipariş yola çıktı; iptal yerine iade talebi oluşturun.'
+                    : 'Sipariş bu durumdayken iptal edilemez.');
             }
 
-            OrderStateMachine::assert($order->status, 'cancel_requested');
-            $from = $order->status;
-            $order->update(['status' => 'cancel_requested', 'cancel_requested_from' => $from, 'cancel_reason' => $reason]);
-            $this->history($order, $from, 'cancel_requested', $reason);
-            $this->audit->log('order.cancel_requested', $order, ['status' => $from], ['reason' => $reason]);
-
-            return $order;
+            return $this->doCancel($order, $reason);
         });
     }
 
@@ -345,6 +344,47 @@ class OrderService
 
             return $this->doCancel($order, $reason);
         });
+    }
+
+    /**
+     * Yolda iken iade için geri gönderilen sipariş: ürün bayiye ulaştığı için teslim edilmiş sayılır (iade kaydı yalnızca
+     * tamamlanmış siparişe yazılır). Ödeme bekleniyorsa (teslimde ödeme) borç carisinde kalır; iade alacağı onu karşılar.
+     * Sipariş satırı kilitli, transaction içinde çağrılır.
+     */
+    public function completeForReturn(Order $order, string $requestNo): Order
+    {
+        if ($order->status !== 'shipped') {
+            return $order;
+        }
+        if ($this->ledgerPostOn() === 'completion' && $order->ledger_applied_at === null) {
+            $this->ledger->postOrderDebit($order);
+            $order->ledger_applied_at = now();
+        }
+        $order->fill(['status' => 'completed', 'completed_at' => now()])->save();
+        $this->history($order, 'shipped', 'completed', "Bayi ürünleri iade için geri gönderdi ({$requestNo}).");
+        $this->audit->log('order.completed', $order, ['status' => 'shipped'], ['return_request' => $requestNo]);
+
+        return $order;
+    }
+
+    /**
+     * Tamamı iade edilen sipariş "İptal edildi" olur. Stok ve cari iade kaydıyla zaten düzeltildiği için ters kayıt yazılmaz
+     * (durum makinesinde completed → cancelled yoktur; tamamlanmış sipariş yalnızca bu yolla kapanır).
+     */
+    public function closeAsFullyReturned(Order $order, OrderReturn $return): Order
+    {
+        if ($order->status !== 'completed') {
+            throw new DomainException('Yalnızca tamamlanmış sipariş iade ile kapatılabilir.');
+        }
+        if ($order->payment_status === 'awaiting') {
+            $order->payment_status = null; // ürünlerin tamamı döndü; beklenen ödeme kalmadı
+        }
+        $reason = 'Siparişin tamamı iade edildi';
+        $order->fill(['status' => 'cancelled', 'cancel_reason' => $reason, 'cancelled_at' => now(), 'cancel_requested_from' => null])->save();
+        $this->history($order, 'completed', 'cancelled', $reason.' · '.Money::format($return->grand_total));
+        $this->audit->log('order.cancelled', $order, ['status' => 'completed'], ['reason' => $reason, 'order_return_id' => $return->id]);
+
+        return $order;
     }
 
     /** İptal ve gerekiyorsa ters kayıtlar. Sipariş satırı kilitli, transaction içinde çağrılır. */

@@ -20,7 +20,7 @@ class OrderPayment extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'raw' => 'array', 'installment' => 'integer', 'refunded_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'refunded_amount' => 'decimal:2', 'raw' => 'array', 'installment' => 'integer', 'refunded_at' => 'datetime'];
     }
 
     public function order(): BelongsTo
