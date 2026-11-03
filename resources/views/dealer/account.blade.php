@@ -17,6 +17,9 @@
     $total = (float) $aging['open'];
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" title="Cari Hesap">
+    @include('partials.statement-print', ['business' => $currentBusiness, 'account' => $account, 'aging' => $aging,
+        'statementArgs' => ['action' => route('dealer.account.statement'), 'orderRoute' => null, 'forDealer' => true]])
+    <div class="print:hidden">
     <x-page-header title="Cari hesabım" :subtitle="$currentBusiness->display_name.' ile hesabınız · cari kodu '.$account->code" />
 
     {{-- Durum: tek bakışta ne kadar borç var, gecikme var mı, sıradaki ödeme ne zaman --}}
@@ -133,5 +136,6 @@
                 <p class="border-t border-line px-5 py-3 text-xs text-muted">Ödemelerinizi toptancınız kaydeder. Eksik veya hatalı bir kayıt görürseniz toptancınıza <a href="{{ route('dealer.messages.index') }}" class="font-medium text-primary hover:underline">mesaj gönderin</a>.</p>
             </x-card>
         </div>
+    </div>
     </div>
 </x-layouts.panel>

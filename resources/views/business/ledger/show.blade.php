@@ -1,5 +1,8 @@
 @php use App\Domain\Support\Money; use App\Models\CollectionEntry; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="'Cari '.$account->code">
+    @include('partials.statement-print', ['business' => $currentBusiness, 'account' => $account, 'aging' => $aging,
+        'statementArgs' => ['action' => route('business.accounts.show', $account), 'orderRoute' => null]])
+    <div class="print:hidden">
     <x-page-header :title="$account->relationship->dealer->legal_name" :subtitle="'Cari kodu '.$account->code.' · vade '.$account->relationship->payment_term_days.' gün'">
         <x-slot:breadcrumb><a href="{{ route('business.accounts.index') }}" class="hover:underline">Cari Hesaplar</a></x-slot:breadcrumb>
         <x-button variant="secondary" size="sm" :href="route('business.dealers.show', $account->relationship)">Bayi</x-button>
@@ -85,5 +88,6 @@
                 </form>
             </x-card>
         </div>
+    </div>
     </div>
 </x-layouts.panel>

@@ -1,8 +1,11 @@
 @php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; use App\Models\Order; use App\Models\OrderPayment; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="$order->order_no">
+    @include('partials.order-print', ['order' => $order, 'business' => $currentBusiness])
+    <div class="print:hidden">
     <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->relationship->dealer->legal_name.' · '.$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i')">
         <x-slot:breadcrumb><a href="{{ route('business.orders.index') }}" class="hover:underline">Siparişler</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
+        <x-button variant="secondary" size="sm" icon="file" type="button" data-print>Yazdır</x-button>
         <x-button variant="secondary" size="sm" :href="route('business.dealers.show', $order->relationship)">Bayi</x-button>
         @if ($currentBusiness->moduleEnabled('messaging'))
             <x-button variant="secondary" size="sm" icon="inbox" :href="route('business.messages.create', ['dealer' => $order->dealer_relationship_id, 'context' => 'order', 'id' => $order->id])">Mesaj</x-button>
@@ -240,5 +243,6 @@
 
             <x-card title="Durum geçmişi">@include('partials.order-history', ['order' => $order])</x-card>
         </div>
+    </div>
     </div>
 </x-layouts.panel>

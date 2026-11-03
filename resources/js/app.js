@@ -48,3 +48,15 @@ document.addEventListener('click', (event) => {
         window.print();
     }
 });
+
+// Koyu temada yazdırırken açık temaya geçilir (beyaz kâğıtta açık renkli yazı kalmasın); baskıdan sonra geri dönülür.
+let printedDark = false;
+window.addEventListener('beforeprint', () => {
+    printedDark = document.documentElement.classList.contains('dark');
+    document.documentElement.classList.remove('dark');
+});
+window.addEventListener('afterprint', () => {
+    if (printedDark) {
+        document.documentElement.classList.add('dark');
+    }
+});

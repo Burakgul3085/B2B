@@ -8,6 +8,8 @@
     $pieces = $order->items->reduce(fn ($c, $i) => bcadd($c, $i->effectiveQuantity(), 3), '0');
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Dealer" :title="$order->order_no">
+    @include('partials.order-print', ['order' => $order, 'business' => $currentBusiness, 'dueDate' => $dueDate])
+    <div class="print:hidden">
     <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$placed->translatedFormat('d F Y, H:i').' tarihinde verildi'">
         <x-slot:breadcrumb><a href="{{ route('dealer.orders.index') }}" class="hover:underline">Siparişlerim</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge>
@@ -136,4 +138,5 @@
     </div>
 
     @include('dealer.orders._returns')
+    </div>
 </x-layouts.panel>

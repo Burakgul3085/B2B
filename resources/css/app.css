@@ -335,6 +335,13 @@
     #iyzi-root { display: none !important; }
     html.dark, html.dark body { background: #fff !important; color: #0f172a !important; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* B2B yazdırma belgesi (components/print-document): sıkı tablo, sayfa bölünmesinde başlık tekrarlanır. */
+    .print-document .table-base { font-size: 8.5pt; }
+    .print-document .table-base th { padding: 5px 8px; font-size: 7pt; background: #f1f5f9; color: #475569; }
+    .print-document .table-base td { padding: 5px 8px; }
+    .print-document thead { display: table-header-group; }
+    .print-document tr, .print-document dl { break-inside: avoid; }
 }
 
 /* Mağaza yönetimi sesli sipariş alarmı (components/store/order-alarm): şerit nabız gibi parlar, zil sallanır. */

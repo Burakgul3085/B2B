@@ -177,7 +177,7 @@
     <title>{{ $title }} · {{ $brand }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-surface" x-data="{ nav: false }">
+<body class="min-h-screen bg-surface print:bg-white" x-data="{ nav: false }">
 
 @if ($area === Area::Dealer)
     {{-- Bayi: katalog odaklı üst menü --}}
@@ -257,7 +257,7 @@
         </nav>
     </header>
 
-    <main @class(['mx-auto px-4 py-8 sm:px-6', 'max-w-[1840px] lg:px-8' => $wide, 'max-w-7xl' => ! $wide])>
+    <main @class(['mx-auto px-4 py-8 sm:px-6 print:max-w-none! print:p-0!', 'max-w-[1840px] lg:px-8' => $wide, 'max-w-7xl' => ! $wide])>
         <x-flash />
         <x-payment-test-banner :area="$area" />
         {{ $slot }}
@@ -346,8 +346,8 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-4 py-8 sm:px-6 lg:px-8">
-                <div class="mx-auto max-w-6xl">
+            <main class="flex-1 px-4 py-8 sm:px-6 lg:px-8 print:p-0!">
+                <div class="mx-auto max-w-6xl print:max-w-none">
                     <x-flash />
                     <x-payment-test-banner :area="$area" />
                     {{ $slot }}

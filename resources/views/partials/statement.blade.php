@@ -1,11 +1,12 @@
 {{-- Cari ekstre: $statement, $from, $to, $action (filtre formu hedefi), $orderRoute (sipariş linki için rota adı),
-     $forDealer (bayi görünümü: sade dil). Bakiye işaretsiz yazılır, yanında B (borç) / A (alacak) etiketi bulunur. --}}
+     $forDealer (bayi görünümü: sade dil), $bare (yazdırma belgesi: filtre çubuğu yok). Bakiye işaretsiz yazılır, yanında B (borç) / A (alacak) etiketi bulunur. --}}
 @php
     use App\Domain\Support\Money;
     use App\Models\CurrentAccountMovement;
     use Illuminate\Support\Carbon;
 
     $forDealer ??= false;
+    $bare ??= false;
     $labels = $forDealer
         ? ['collection' => 'Ödeme', 'adjustment_debit' => 'Düzeltme (borç)', 'adjustment_credit' => 'Düzeltme (alacak)', 'reversal' => 'İptal kaydı'] + CurrentAccountMovement::TYPES
         : CurrentAccountMovement::TYPES;
@@ -15,7 +16,8 @@
         'Bu yıl' => [now('Europe/Istanbul')->startOfYear(), now('Europe/Istanbul')],
     ];
 @endphp
-<div class="flex flex-wrap items-end justify-between gap-3 border-b border-line p-4 print:hidden">
+@unless ($bare)
+<div class="flex flex-wrap items-end justify-between gap-3 border-b border-line p-4">
     <form method="GET" action="{{ $action }}" class="flex flex-wrap items-end gap-3">
         <x-field name="from" label="Başlangıç" type="date" :value="$from" />
         <x-field name="to" label="Bitiş" type="date" :value="$to" />
@@ -35,7 +37,7 @@
         </button>
     </div>
 </div>
-<p class="hidden px-1 pb-3 text-sm print:block">Dönem: {{ Carbon::parse($from)->format('d.m.Y') }} – {{ Carbon::parse($to)->format('d.m.Y') }}</p>
+@endunless
 <div class="overflow-x-auto">
     <table class="table-base">
         <thead>
