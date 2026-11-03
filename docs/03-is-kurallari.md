@@ -270,6 +270,10 @@ Cari modül resmî muhasebe veya yasal defter değildir; bu not ekstre ve rapor 
 - "Bağlantıyı test et": adres doğrulanır → SMTP bağlantı + kimlik doğrulama denenir → kullanıcıya anlaşılır sonuç ("Google uygulama şifresini kabul etmedi", "Sunucuya bağlanılamadı") → ham sunucu yanıtı ve şifre hiçbir yere yazılmaz. Başarılıysa kullanıcının kendi adresine test e-postası.
 - Kayıtlı şifre geri gösterilmez: ekranda "E-posta yapılandırıldı ✓ — son test: …" ve "Yeni uygulama şifresi gir" alanı.
 
+### 8.1 Sesli sipariş alarmı (toptancı paneli)
+
+Bayi sipariş verince toptancı panelinin her sayfasında kırmızı şerit çıkar ve alarm çalar (mağaza yönetimindeki alarmın B2B karşılığı; sunucu kodu ayrıdır: `App\Domain\Ordering\NewOrderAlerts`). Panel 15 saniyede bir sorar; sayım `business_users.orders_seen_at`'ten sonra oluşan siparişlerdir ve işletme kapsamındadır. Toptancı Siparişler sayfasını açınca susar. Ayarlar → "Panelde sesli sipariş alarmı" (varsayılan açık). E-posta bildirimi ayrıca gider.
+
 ## 9. Eşzamanlılık ve tekrar koruması — özet tablo
 
 | Risk | Koruma |
