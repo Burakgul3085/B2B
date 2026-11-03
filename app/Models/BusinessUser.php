@@ -19,6 +19,7 @@ class BusinessUser extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'activated_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'orders_seen_at' => 'datetime',
         ];
     }
 

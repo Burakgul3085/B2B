@@ -940,7 +940,8 @@ function audioContext() {
 }
 
 /**
- * Mağaza yönetimi sesli yeni sipariş alarmı: x-data="orderAlarm({url, ordersUrl, state: {count, latest}})".
+ * Sesli yeni sipariş alarmı (mağaza yönetimi ve toptancı paneli): x-data="orderAlarm({url, ordersUrl, state: {count, latest}, noun?, tag?})".
+ * noun: başlıktaki sipariş adı ("sipariş" / "bayi siparişi"); tag: masaüstü bildirim etiketi.
  * 15 saniyede bir görülmemiş sipariş sayısını sorar; varken alarm 3 saniyede bir çalar, sekme başlığı yanıp söner,
  * sekme arkadaysa (izin verildiyse) masaüstü bildirimi çıkar. Siparişler sayfası açılınca sunucu sayacı sıfırlar.
  * Tarayıcı sesi ancak sayfaya bir kez tıklanınca çaldırır: ilk tıklamada ses açılır, o zamana kadar "Sesi aç" görünür.
@@ -959,7 +960,8 @@ export function orderAlarm(config) {
             return this.count > 0;
         },
         get heading() {
-            return this.count === 1 ? 'Yeni sipariş geldi!' : this.count + ' yeni sipariş geldi!';
+            const noun = config.noun || 'sipariş';
+            return this.count === 1 ? 'Yeni ' + noun + ' geldi!' : this.count + ' yeni ' + noun + ' geldi!';
         },
         init() {
             this.unlock = () => this.resume();
@@ -1069,7 +1071,7 @@ export function orderAlarm(config) {
             if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') {
                 return;
             }
-            const n = new Notification('Yeni sipariş geldi', { body: this.latest || '', tag: 'magaza-siparis', requireInteraction: true });
+            const n = new Notification('Yeni ' + (config.noun || 'sipariş') + ' geldi', { body: this.latest || '', tag: config.tag || 'magaza-siparis', requireInteraction: true });
             n.onclick = () => {
                 window.focus();
                 window.location.href = config.ordersUrl;
@@ -1078,7 +1080,7 @@ export function orderAlarm(config) {
     };
 }
 
-/** Mağaza Ayarları'ndaki "Alarmı dene" düğmesi: alarm sesini iki kez çalar ve masaüstü bildirimi izni ister. */
+/** Mağaza Ayarları ve toptancı Ayarları'ndaki "Alarmı dene" düğmesi: alarm sesini iki kez çalar ve masaüstü bildirimi izni ister. */
 export function alarmPreview() {
     return {
         play() {

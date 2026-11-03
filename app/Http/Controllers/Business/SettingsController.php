@@ -43,6 +43,7 @@ class SettingsController extends Controller
             'price_display' => ['required', Rule::in(['excl_vat', 'incl_vat'])],
             'new_product_days' => ['sometimes', 'integer', Rule::in(NewProducts::DAY_OPTIONS)],
             'new_products_since' => ['nullable', 'date', 'before_or_equal:'.LocalTime::today()],
+            'order_alarm' => ['sometimes', 'boolean'],
         ], [], [
             'display_name' => 'görünen ad', 'accent_color' => 'vurgu rengi',
             'default_payment_term_days' => 'varsayılan vade (gün)',
@@ -50,7 +51,7 @@ class SettingsController extends Controller
         ]);
 
         $businessFields = ['display_name', 'phone', 'email', 'city', 'district', 'address', 'accent_color'];
-        $settingFields = ['stock_display', 'ledger_post_on', 'default_payment_term_days', 'price_display', 'new_product_days', 'new_products_since'];
+        $settingFields = ['stock_display', 'ledger_post_on', 'default_payment_term_days', 'price_display', 'new_product_days', 'new_products_since', 'order_alarm'];
 
         $old = $business->only($businessFields) + $business->settings->only($settingFields);
 

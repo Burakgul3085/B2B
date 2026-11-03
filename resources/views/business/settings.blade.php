@@ -58,6 +58,11 @@
                     hint="Her sipariş için cari borç yalnızca bir kez oluşur." />
                 <x-field name="default_payment_term_days" label="Varsayılan vade (gün)" type="number" min="0" max="365" :value="$settings->default_payment_term_days" required />
             </div>
+            <div class="mt-5 flex flex-wrap items-start justify-between gap-3 border-t border-line pt-5">
+                <x-toggle name="order_alarm" label="Panelde sesli sipariş alarmı" :checked="$settings->order_alarm"
+                    hint="Bayi sipariş verince panelin her sayfasında kırmızı şerit çıkar ve alarm çalar; Siparişler sayfası açılınca susar. Ses için panele girişte sayfaya bir kez tıklamak yeterlidir. E-posta bildirimi ayrıca gider." />
+                <div x-data="alarmPreview"><x-button type="button" variant="secondary" size="sm" @click="play()">🔊 Alarmı dene</x-button></div>
+            </div>
         </x-card>
 
         <x-card title="Yeni ürünler" description="Bayi panelindeki “Yeni Ürünler” sayfası ve ürünlerdeki “Yeni” rozeti.">

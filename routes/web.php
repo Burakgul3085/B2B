@@ -149,6 +149,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
 
         // Siparişler
         Route::get('siparisler', [Business\OrderController::class, 'index'])->name('orders.index');
+        Route::get('siparisler/alarm', [Business\OrderController::class, 'alarm'])->middleware('throttle:20,1,business.orders.alarm')->name('orders.alarm');
         Route::get('siparisler/{order}', [Business\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparisler/{order}/incele', [Business\OrderController::class, 'review'])->name('orders.review');
         Route::post('siparisler/{order}/onayla', [Business\OrderController::class, 'approve'])->name('orders.approve');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 
 use App\Domain\Inventory\InsufficientStock;
 use App\Domain\Notifications\Notifier;
+use App\Domain\Ordering\NewOrderAlerts;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReturnService;
@@ -17,6 +18,7 @@ use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Rules\NotBefore;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,8 +28,10 @@ class OrderController extends Controller
 {
     public function __construct(private OrderService $orders, private Notifier $notifier) {}
 
-    public function index(Request $request): View
+    public function index(Request $request, NewOrderAlerts $alerts): View
     {
+        $alerts->acknowledge($request->user()); // sesli yeni sipariş alarmı susar
+
         $filters = $request->validate([
             'status' => ['nullable', Rule::in([...array_keys(Order::STATUSES), 'pending', 'awaiting_payment'])],
             'dealer' => ['nullable', 'integer'],
@@ -57,6 +61,12 @@ class OrderController extends Controller
             'awaitingPayment' => Order::where('payment_status', 'awaiting')->whereIn('status', Order::ACTIVE_FULFILMENT)->count(),
             'dealers' => DealerRelationship::with('dealer:id,legal_name')->orderBy('dealer_code')->get()->mapWithKeys(fn ($r) => [$r->id => $r->dealer_code.' · '.$r->dealer->legal_name]),
         ]);
+    }
+
+    /** Paneldeki sesli alarm için 15 saniyede bir sorulur: görülmemiş yeni bayi siparişi sayısı. */
+    public function alarm(Request $request, NewOrderAlerts $alerts): JsonResponse
+    {
+        return response()->json($alerts->pending($request->user()));
     }
 
     public function show(Order $order): View
