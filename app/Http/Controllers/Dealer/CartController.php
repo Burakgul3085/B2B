@@ -34,7 +34,7 @@ class CartController extends Controller
             'paymentMethods' => $payments->methodsFor($relationship),
             'deliveryFee' => $payments->deliveryFee((string) $summary['totals']['grand_total']),
             'addresses' => $relationship->addresses,
-            'campaigns' => $promotions->visibleFor($relationship),
+            'campaigns' => $promotions->visibleFor($relationship)->pluck('promotion')->filter(fn ($p) => ! $p->isCoupon())->values(),
             'settings' => $settings,
             'submitToken' => (string) Str::uuid(), // çift gönderim koruması
         ]);
@@ -86,7 +86,8 @@ class CartController extends Controller
         $data = $request->validate(['code' => ['required', 'string', 'max:40']], [], ['code' => 'kupon kodu']);
         $this->carts->setPromotionCode($this->relationship(), $data['code']);
 
-        return back();
+        // Kampanyalar sayfasından uygulanınca sonuç sepette görünsün (sabit rota; açık yönlendirme yok).
+        return $request->boolean('to_cart') ? redirect()->route('dealer.cart') : back();
     }
 
     public function removePromotion(): RedirectResponse

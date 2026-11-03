@@ -103,6 +103,7 @@
                             </ul>
                         </div>
                     @endif
+                    <a href="{{ route('dealer.promotions.index') }}" class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">Tüm kampanya ve kuponlar <x-icon name="arrow-right" class="size-3.5" /></a>
                     @if ($promo['next'])
                         <p class="mt-3 rounded-lg bg-primary-soft/60 px-3 py-2 text-sm">{{ Money::format($promo['next']['missing']) }} (KDV hariç) daha ekleyin, <b>{{ $promo['next']['promotion']->name }}</b> kampanyasından yararlanın: {{ $promo['next']['promotion']->summary() }}.</p>
                     @endif

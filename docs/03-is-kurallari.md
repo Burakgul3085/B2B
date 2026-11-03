@@ -235,7 +235,7 @@ Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırınd
 
 Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bayi sepette girer; otomatik kampanya kodsuzdur ve koşulu tutan siparişe kendiliğinden uygulanır. Kurallar `App\Domain\Pricing\PromotionService` içindedir.
 
-- **Tür:** yüzde (isteğe bağlı "en fazla ₺" sınırıyla) veya tutar (₺, KDV hariç).
+- **Tür:** yüzde (isteğe bağlı "en fazla ₺" sınırıyla) veya tutar (₺, KDV hariç). Tutar indiriminde en düşük sipariş tutarı zorunludur ve indirimden büyük olmalıdır (küçük sipariş neredeyse bedavaya gitmesin).
 - **Kime:** tüm bayiler, bir bayi grubu veya seçili bayiler.
 - **Koşullar:** en düşük sipariş tutarı (KDV hariç), başlangıç/bitiş, toplam ve bayi başına kullanım sınırı, isteğe bağlı kapsam (kategori alt kategorileriyle, stok koduyla ürün).
 - **Siparişte tek indirim:** kod girildiyse kupon, girilmediyse en avantajlı kampanya. Geçersiz kod sepette nedeniyle gösterilir; kod kaldırılmadan sipariş gönderilemez.
@@ -246,6 +246,7 @@ Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bay
 - **Kullanım:** `promotion_redemptions` (sipariş başına bir). Gönderimde kampanya satırı `FOR UPDATE` ile kilitlenir; kullanım sayısı kilitli okumayla yeniden denetlenir. Red ve iptalde `released_at` dolar ve kullanım sayılmaz.
 - **İade:** kupon payı iade miktarıyla orantılı (birikimli) düşülür. Bayiye ödediğinden fazlası iade edilmez.
 - **Değişiklik:** kullanılmış kuponun kodu ve türü değiştirilemez, silinemez (pasife alınır).
+- **Bayi Kampanyalar sayfası** (`/bayi/kampanyalar`, menüde sayıyla; ana sayfada "Aktif kampanyalar" kutusu): yayında, bayiyi hedefleyen ve toplam / bayi başına hakkı bitmemiş olanlar listelenir (`PromotionService::visibleFor`). Otomatik kampanya her zaman görünür; kupon yalnızca toptancı "kodu göster" seçtiyse (`show_to_dealers`) kodu ve "Sepete uygula" düğmesiyle görünür. Kişiye özel verilen kod gizli kalır. Bitmiş, başlamamış, pasif, sınırı dolmuş ve başka bayiye ait olanlar görünmez.
 
 ## 5. Stokta olmayan ürün talebi
 

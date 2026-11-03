@@ -5,6 +5,10 @@
     /** @var Area $area */
     $user = auth($area->guard())->user();
     $currentBusiness ??= null;
+    // Bayi menüsündeki Kampanyalar sayısı için: bağlam yalnızca oturumdan (dealer.context) kurulur.
+    $dealerRelationshipId = $area === Area::Dealer && app(\App\Domain\Tenancy\TenantContext::class)->hasBusiness()
+        ? app(\App\Domain\Tenancy\TenantContext::class)->dealerRelationshipId() : null;
+    $dealerRelationship = $dealerRelationshipId ? \App\Models\DealerRelationship::find($dealerRelationshipId) : null;
     $dealerRelationships ??= collect();
     $currentRelationship ??= null;
 
@@ -145,6 +149,8 @@
                 $currentBusiness ? ['label' => 'Yeni Ürünler', 'route' => 'dealer.catalog', 'params' => ['yeni' => 1], 'icon' => 'plus', 'active' => 'dealer.catalog',
                     'current' => request()->routeIs('dealer.catalog') && request()->boolean('yeni'),
                     'badge' => \App\Domain\Catalog\NewProducts::count($currentBusiness->settings()->first())] : null,
+                $dealerRelationship ? ['label' => 'Kampanyalar', 'route' => 'dealer.promotions.index', 'icon' => 'gift', 'active' => 'dealer.promotions.*',
+                    'badge' => app(\App\Domain\Pricing\PromotionService::class)->visibleFor($dealerRelationship)->count() ?: null] : null,
                 ['label' => 'Siparişlerim', 'route' => 'dealer.orders.index', 'icon' => 'file', 'active' => 'dealer.orders.*'],
                 ['label' => 'Cari Hesap', 'route' => 'dealer.account.statement', 'icon' => 'list', 'active' => 'dealer.account.statement'],
             ]))],

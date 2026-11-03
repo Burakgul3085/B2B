@@ -177,12 +177,32 @@ class PromotionService
     }
 
     /** Uygulanabilir kampanyaların bayiye görünenleri (bayi panelinde "Size özel kampanyalar"). */
+    /**
+     * Bayinin Kampanyalar sayfası: yayında, bayiye gösterilen (otomatik kampanya her zaman; kupon toptancı seçerse)
+     * ve bu bayiyi hedefleyen; toplam veya bayi başına kullanım hakkı bitmemiş olanlar. `remaining`: bayinin kalan
+     * kullanım hakkı (sınırsızsa null).
+     *
+     * @return Collection<int, array{promotion: Promotion, remaining: int|null}>
+     */
     public function visibleFor(DealerRelationship $relationship): Collection
     {
-        return Promotion::live()->whereNull('code')->orderBy('id')->get()
-            ->filter(fn (Promotion $p) => $this->targets($p, $relationship)
-                && ($p->usage_limit === null || $p->usedCount() < $p->usage_limit))
-            ->values();
+        $promotions = Promotion::live()->where('show_to_dealers', true)->orderByRaw('ends_at IS NULL, ends_at')->orderBy('id')->get()
+            ->filter(fn (Promotion $p) => $this->targets($p, $relationship));
+        $ids = $promotions->modelKeys();
+        $used = PromotionRedemption::whereIn('promotion_id', $ids)->whereNull('released_at')
+            ->selectRaw('promotion_id, COUNT(*) AS total, SUM(dealer_relationship_id = ?) AS mine', [$relationship->id])
+            ->groupBy('promotion_id')->get()->keyBy('promotion_id');
+
+        return $promotions->map(function (Promotion $p) use ($used) {
+            $total = (int) ($used[$p->id]->total ?? 0);
+            $mine = (int) ($used[$p->id]->mine ?? 0);
+            $remaining = $p->per_dealer_limit !== null ? $p->per_dealer_limit - $mine : null;
+            if ($p->usage_limit !== null) {
+                $remaining = min($remaining ?? PHP_INT_MAX, $p->usage_limit - $total);
+            }
+
+            return ['promotion' => $p, 'remaining' => $remaining];
+        })->filter(fn (array $row) => $row['remaining'] === null || $row['remaining'] > 0)->values();
     }
 
     private function apply(Promotion $promotion, array $lines): ?AppliedPromotion

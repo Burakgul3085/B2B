@@ -69,6 +69,13 @@ class PromotionAdmin
                 $errors[$key] = 'Geçerli bir tutar girin (ör. 250,00).';
             }
         }
+        // Tutar indirimi en düşük sipariş tutarı olmadan küçük siparişi neredeyse bedava yapar.
+        if ($data['type'] === 'fixed' && $value !== null && ! isset($errors['value'])) {
+            $min = $money('min_subtotal');
+            if ($min === null || bccomp($min, $value, 2) <= 0) {
+                $errors['min_subtotal'] = 'Tutar indiriminde en düşük sipariş tutarı zorunludur ve indirimden büyük olmalıdır (ör. ₺100 indirim için ₺2.000).';
+            }
+        }
         if ($data['code'] !== null && Promotion::where('code', $data['code'])->when($promotion, fn ($q) => $q->whereKeyNot($promotion->id))->exists()) {
             $errors['code'] = 'Bu kupon kodu zaten kullanılıyor.';
         }
@@ -124,6 +131,9 @@ class PromotionAdmin
             'product_ids' => $found->values()->map(fn ($id) => (int) $id)->all() ?: null,
             'description' => filled($data['description'] ?? null) ? trim($data['description']) : null,
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
+            // Otomatik kampanya hedef bayilerin Kampanyalar sayfasında hep görünür; kupon kodu (kişiye özel verilebilir)
+            // yalnızca toptancı seçerse görünür.
+            'show_to_dealers' => ! $isCoupon || filter_var($input['show_to_dealers'] ?? false, FILTER_VALIDATE_BOOL),
         ];
 
         if ($promotion) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Ordering\CartService;
+use App\Domain\Pricing\PromotionService;
 use App\Domain\Storefront\StorefrontQuery;
 use App\Http\Controllers\Concerns\ServesBannerMedia;
 use App\Http\Controllers\Controller;
@@ -19,7 +20,7 @@ class HomeController extends Controller
 {
     use ServesBannerMedia, UsesDealerContext;
 
-    public function __invoke(StorefrontQuery $storefront, CartService $cart): View
+    public function __invoke(StorefrontQuery $storefront, CartService $cart, PromotionService $promotions): View
     {
         $relationship = $this->relationship()->load(['currentAccount', 'group']);
         $settings = $this->settings();
@@ -32,6 +33,7 @@ class HomeController extends Controller
             'strips' => $storefront->banners($relationship, 'strip'),
             'showcases' => $showcases,
             'settings' => $settings,
+            'promotions' => $promotions->visibleFor($relationship),
             'openRequests' => ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)
                 ->whereIn('product_id', $productIds)->pluck('product_id')->flip(),
             'summary' => [

@@ -311,4 +311,60 @@ class PromotionTest extends TestCase
         $this->actingAs($business->user, 'business')->get(route('business.orders.show', $order))->assertOk()
             ->assertSee('Kupon HOSGELDIN');
     }
+
+    public function test_fixed_discount_requires_minimum_above_discount(): void
+    {
+        $business = $this->makeBusiness();
+        $this->actingAs($business->user, 'business');
+        $base = ['name' => 'Sabit', 'kind' => 'campaign', 'type' => 'fixed', 'value' => '100', 'target' => 'all', 'is_active' => '1'];
+
+        $this->post(route('business.promotions.store'), $base)->assertSessionHasErrors('min_subtotal');
+        $this->post(route('business.promotions.store'), ['min_subtotal' => '100'] + $base)->assertSessionHasErrors('min_subtotal');
+        $this->post(route('business.promotions.store'), ['min_subtotal' => '2000'] + $base)->assertSessionHasNoErrors();
+        // Yüzde indirimde en düşük tutar zorunlu değil.
+        $this->post(route('business.promotions.store'), ['name' => 'Yüzde', 'type' => 'percent', 'value' => '5'] + $base)->assertSessionHasNoErrors();
+
+        $promos = $this->inTenant($business, fn () => Promotion::orderBy('id')->get());
+        $this->assertCount(2, $promos);
+        // Otomatik kampanya bayilere her zaman gösterilir; kupon yalnızca seçilirse.
+        $this->assertTrue($promos->every->show_to_dealers);
+        $coupon = ['name' => 'Kod', 'kind' => 'coupon', 'type' => 'percent', 'value' => '5', 'target' => 'all', 'is_active' => '1'];
+        $this->post(route('business.promotions.store'), ['code' => 'GIZLI'] + $coupon)->assertSessionHasNoErrors();
+        $this->post(route('business.promotions.store'), ['code' => 'ACIK', 'show_to_dealers' => '1'] + $coupon)->assertSessionHasNoErrors();
+        $this->assertSame(['ACIK' => true, 'GIZLI' => false], $this->inTenant($business, fn () => Promotion::whereNotNull('code')->orderBy('code')->pluck('show_to_dealers', 'code')->all()));
+    }
+
+    public function test_dealer_campaigns_page_shows_only_what_the_dealer_can_use(): void
+    {
+        $business = $this->makeBusiness();
+        $rel = $this->orderingDealer($business);
+        $other = $this->orderingDealer($business);
+        $product = $this->makeProduct($business, ['dealer_price' => '100.00']);
+        $this->stockUp($business, $product, '10');
+        $category = $this->inTenant($business, fn () => Category::create(['name' => 'Defterler']));
+
+        $this->promotion($business, ['name' => 'Sezon', 'show_to_dealers' => true, 'ends_at' => now()->addDays(5), 'category_ids' => [$category->id], 'description' => 'Okul sezonu']);
+        $this->promotion($business, ['name' => 'Açık kupon', 'code' => 'ACIK10', 'show_to_dealers' => true, 'per_dealer_limit' => 2]);
+        $this->promotion($business, ['name' => 'Gizli kupon', 'code' => 'GIZLI10']);
+        $this->promotion($business, ['name' => 'Bitmiş', 'show_to_dealers' => true, 'ends_at' => now()->subDay()]);
+        $this->promotion($business, ['name' => 'Gelecek', 'show_to_dealers' => true, 'starts_at' => now()->addDay()]);
+        $this->promotion($business, ['name' => 'Pasif', 'show_to_dealers' => true, 'is_active' => false]);
+        $this->promotion($business, ['name' => 'Başkasına', 'show_to_dealers' => true, 'target' => 'dealers', 'dealer_ids' => [$other->id]]);
+        $this->promotion($business, ['name' => 'Tükendi', 'code' => 'TEK', 'show_to_dealers' => true, 'per_dealer_limit' => 1]);
+        $this->order($business, $rel, [$product->id => '1'], 'TEK');
+        $foreign = $this->makeBusiness();
+        $this->promotion($foreign, ['name' => 'Yabancı', 'show_to_dealers' => true]);
+
+        $this->actingAs($rel->dealer->user, 'dealer');
+        $this->get(route('dealer.promotions.index'))->assertOk()
+            ->assertSee('Sezon')->assertSee('Okul sezonu')->assertSee('5 gün kaldı')->assertSee('Defterler')
+            ->assertSee('Açık kupon')->assertSee('ACIK10')->assertSee('Kalan kullanım hakkınız')
+            ->assertDontSee('Gizli kupon')->assertDontSee('GIZLI10')->assertDontSee('Bitmiş')->assertDontSee('Gelecek')
+            ->assertDontSee('Pasif')->assertDontSee('Başkasına')->assertDontSee('Tükendi')->assertDontSee('Yabancı');
+        $this->get(route('dealer.home'))->assertOk()->assertSee('Aktif kampanyalar')->assertSee('Tümünü gör (2)');
+
+        // Sayfadaki "Sepete uygula" kodu sepete yazar ve sepete götürür.
+        $this->post(route('dealer.cart.promotion'), ['code' => 'ACIK10', 'to_cart' => '1'])->assertRedirect(route('dealer.cart'));
+        $this->assertSame('ACIK10', $this->inTenant($business, fn () => Cart::where('dealer_relationship_id', $rel->id)->value('promotion_code')));
+    }
 }

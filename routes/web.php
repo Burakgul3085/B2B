@@ -398,6 +398,7 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('bildirimler/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
         Route::post('bildirimler/okundu', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::get('kampanyalar', [Dealer\PromotionController::class, 'index'])->name('promotions.index');
         Route::get('duyurular', [Dealer\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::get('duyurular/{announcement}/ek/{attachment}', [Dealer\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');

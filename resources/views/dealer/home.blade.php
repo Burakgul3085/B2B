@@ -63,6 +63,24 @@
         </div>
     </section>
 
+    {{-- ============ Aktif kampanyalar ============ --}}
+    @if ($promotions->isNotEmpty())
+        <section class="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="inline-flex items-center gap-2 text-base font-bold text-ink"><x-icon name="gift" class="size-5 text-primary" />Aktif kampanyalar</h2>
+                <a href="{{ route('dealer.promotions.index') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">Tümünü gör ({{ $promotions->count() }}) <x-icon name="arrow-right" class="size-4" /></a>
+            </div>
+            <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($promotions->take(3) as ['promotion' => $p])
+                    <li class="rounded-xl border border-line bg-white px-4 py-3 text-sm">
+                        <p class="font-semibold text-ink">{{ $p->name }}</p>
+                        <p class="mt-0.5 text-muted">{{ $p->summary() }}{{ $p->isCoupon() ? ' · Kod: '.$p->code : '' }}</p>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     {{-- ============ Ürün vitrinleri ============ --}}
     @if ($showcases->isNotEmpty())
         <section class="mt-14" x-data="{ tab: 0 }">

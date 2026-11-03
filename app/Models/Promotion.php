@@ -26,13 +26,13 @@ class Promotion extends Model
 
     protected $guarded = ['id', 'business_id'];
 
-    protected $attributes = ['is_active' => true, 'target' => 'all'];
+    protected $attributes = ['is_active' => true, 'target' => 'all', 'show_to_dealers' => false];
 
     protected function casts(): array
     {
         return [
             'value' => 'decimal:2', 'max_discount' => 'decimal:2', 'min_subtotal' => 'decimal:2',
-            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean',
+            'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean', 'show_to_dealers' => 'boolean',
             'usage_limit' => 'integer', 'per_dealer_limit' => 'integer',
             'dealer_ids' => 'array', 'category_ids' => 'array', 'product_ids' => 'array',
         ];

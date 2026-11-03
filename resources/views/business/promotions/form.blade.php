@@ -41,7 +41,7 @@
                     <x-field name="type" label="İndirim türü" :options="Promotion::TYPES" :value="$promotion->type" />
                     <x-field name="value" label="İndirim değeri" required :value="$money($promotion->value)" placeholder="Ör. 10 veya 500,00" hint="Yüzdede oran (%), tutarda KDV hariç ₺." />
                     <x-field name="max_discount" label="En fazla indirim (₺)" :value="$money($promotion->max_discount)" hint="Yalnızca yüzde indirimde; boş: sınırsız." />
-                    <x-field name="min_subtotal" label="En düşük sipariş tutarı (₺, KDV hariç)" :value="$money($promotion->min_subtotal)" hint="Kapsam seçildiyse yalnızca kapsamdaki ürünlerin tutarı sayılır." />
+                    <x-field name="min_subtotal" label="En düşük sipariş tutarı (₺, KDV hariç)" :value="$money($promotion->min_subtotal)" hint="Tutar indiriminde zorunlu ve indirimden büyük olmalı. Kapsam seçildiyse yalnızca kapsamdaki ürünlerin tutarı sayılır." />
                     <x-field name="description" label="Açıklama (bayiye görünür)" :value="$promotion->description" placeholder="Ör. Okul sezonu boyunca geçerli" />
                 </div>
             </x-card>
@@ -92,6 +92,11 @@
                     <label class="flex items-center gap-2 text-sm">
                         <input type="hidden" name="is_active" value="0">
                         <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $exists ? $promotion->is_active : true))> Etkin
+                    </label>
+                    <label class="flex items-start gap-2 text-sm">
+                        <input type="hidden" name="show_to_dealers" value="0">
+                        <input type="checkbox" name="show_to_dealers" value="1" class="mt-0.5" @checked(old('show_to_dealers', $exists && $promotion->isCoupon() && $promotion->show_to_dealers))>
+                        <span>Kupon kodunu bayilerin Kampanyalar sayfasında göster<span class="block text-xs text-muted">Yalnızca kupon için; hedefteki bayiler kodu görüp tek tıkla uygular. Kişiye özel verdiğiniz kodlarda kapalı tutun. Otomatik kampanyalar hedefteki bayilere her zaman gösterilir.</span></span>
                     </label>
                 </div>
             </x-card>
