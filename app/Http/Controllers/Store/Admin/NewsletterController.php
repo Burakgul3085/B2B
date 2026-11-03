@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /** Pazarlama → E-bülten: aboneler, dışa aktarma (liste ve İYS biçimi) ve alt bilgideki e-bülten alanının ayarları. */
 class NewsletterController extends Controller
@@ -37,10 +37,10 @@ class NewsletterController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): BinaryFileResponse
     {
         $data = $request->validate([
-            'format' => ['required', Rule::in(['list', 'iys', 'iys-csv'])],
+            'format' => ['required', Rule::in(['list', 'iys'])],
             'status' => ['nullable', Rule::in(array_keys(StoreNewsletterSubscriber::STATUSES))],
         ]);
 

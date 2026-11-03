@@ -30,8 +30,7 @@
                     <x-button size="sm" variant="secondary">Ara</x-button>
                     <span class="ml-auto flex gap-2">
                         <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', array_filter(['format' => 'list', 'status' => $filters['status'] ?? null]))">Excel indir</x-button>
-                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys'])" title="İYS toplu yükleme ekranına yüklenecek dosya">İYS yükleme dosyası (Excel)</x-button>
-                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys-csv'])" title="İYS ekranı Excel kabul etmezse yüklenecek dosya">İYS yükleme dosyası (CSV)</x-button>
+                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys'])" title="İYS toplu yükleme ekranına yüklenecek dosya">İYS yükleme dosyası</x-button>
                     </span>
                 </form>
                 @if ($subscribers->isEmpty())
@@ -76,7 +75,7 @@
                 </form>
             </x-card>
             <x-card title="İYS hakkında">
-                <p class="text-sm leading-relaxed text-muted">Ticari e-posta gönderen işletmelerin İleti Yönetim Sistemi'ne (iys.org.tr) kayıtlı olması ve aldığı onayları oraya bildirmesi gerekir. “İYS yükleme dosyası” onaylı ve ayrılan aboneleri İYS toplu yükleme sütunlarıyla indirir; İYS'ye bu dosya yüklenir. Excel ve CSV dosyalarındaki sütunlar ve değerler birebir aynıdır. CSV düz metindir: Excel'de açınca sütun genişliği ve renk olmaz, yalnızca İYS ekranı Excel kabul etmezse kullanın.</p>
+                <p class="text-sm leading-relaxed text-muted">Ticari e-posta gönderen işletmelerin İleti Yönetim Sistemi'ne (iys.org.tr) kayıtlı olması ve aldığı onayları oraya bildirmesi gerekir. “İYS yükleme dosyası” onaylı ve ayrılan aboneleri İYS toplu yükleme sütunlarıyla (ALICI, ALICI_TURU, IZIN_TURU, DURUM, IZIN_TARIHI, KAYNAK) Excel olarak indirir; İYS'ye bu dosya yüklenir.</p>
             </x-card>
         </div>
     </div>

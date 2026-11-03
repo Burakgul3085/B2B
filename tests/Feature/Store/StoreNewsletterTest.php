@@ -139,15 +139,13 @@ class StoreNewsletterTest extends TestCase
         $this->get(route('store_admin.newsletter.index'))->assertOk()->assertSee('a@ornek.com')->assertSee('Onay bekliyor');
         $this->get(route('store_admin.newsletter.index', ['status' => 'active']))->assertSee('a@ornek.com')->assertDontSee('p@ornek.com');
 
-        // İYS yükleme dosyası (CSV): İYS sütunları, yalnızca onaylı ve ayrılan aboneler.
-        $iys = $this->get(route('store_admin.newsletter.export', ['format' => 'iys-csv']))->assertOk()->streamedContent();
-        $this->assertStringStartsWith("\xEF\xBB\xBFALICI;ALICI_TURU;IZIN_TURU;DURUM;IZIN_TARIHI;KAYNAK", $iys);
-        $this->assertStringContainsString('a@ornek.com;BIREYSEL;EPOSTA;ONAY', $iys);
-        $this->assertStringNotContainsString('p@ornek.com', $iys);
+        // CSV kaldırıldı: İYS yükleme dosyası Excel'dir.
+        $this->get(route('store_admin.newsletter.export', ['format' => 'iys-csv']))->assertSessionHasErrors('format');
 
-        // Excel dosyaları: ilk satır sütun başlıkları (dondurulmuş), veri 2. satırdan başlar.
+        // Excel dosyaları: ilk satır sütun başlıkları, veri 2. satırdan başlar; İYS dosyasında yalnızca onaylı ve ayrılanlar.
         $iysRows = $this->xlsxRows(['format' => 'iys']);
         $this->assertCount(2, $iysRows);
+        $this->assertNotContains('p@ornek.com', array_column($iysRows, 0));
         $this->assertSame(['ALICI', 'ALICI_TURU', 'IZIN_TURU', 'DURUM', 'IZIN_TARIHI', 'KAYNAK'], $iysRows[0]);
         $this->assertSame(['a@ornek.com', 'BIREYSEL', 'EPOSTA', 'ONAY', 'HS_WEB'], [...array_slice($iysRows[1], 0, 4), $iysRows[1][5]]);
         $list = $this->xlsxRows(['format' => 'list']);
@@ -167,7 +165,13 @@ class StoreNewsletterTest extends TestCase
         $response = $this->get(route('store_admin.newsletter.export', $params))->assertOk()
             ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $path = tempnam(sys_get_temp_dir(), 'xlsx');
-        file_put_contents($path, $response->streamedContent());
+        copy($response->baseResponse->getFile()->getPathname(), $path);
+        // Liste Excel tablosudur; bölme dondurulmaz (donmuş başlığı Excel kaydırırken çift çiziyor).
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $this->assertStringContainsString('ref="A1:', (string) $zip->getFromName('xl/tables/table1.xml'));
+        $this->assertStringNotContainsString('<pane', (string) $zip->getFromName('xl/worksheets/sheet1.xml'));
+        $zip->close();
         $reader = new Reader;
         $reader->open($path);
         $rows = [];

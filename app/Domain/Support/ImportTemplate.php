@@ -97,8 +97,8 @@ final class ImportTemplate
     {
         $sheet = $writer->getCurrentSheet();
         $sheet->setName('Ürünler');
-        // Başlık satırı sabittir (ExcelSheetView: Excel'deki gibi yazılır, kaydırırken çift çizilmez).
-        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1));
+        // Başlık dondurulmaz: donmuş başlığı Excel kaydırırken bir an iki kez çiziyor (Excel'in kendi dosyalarında da).
+        $sheet->setSheetView(new ExcelSheetView);
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }
@@ -161,7 +161,7 @@ final class ImportTemplate
     {
         $sheet = $writer->addNewSheetAndMakeItCurrent();
         $sheet->setName('Örnekler');
-        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1, selected: false));
+        $sheet->setSheetView(new ExcelSheetView(selected: false));
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }

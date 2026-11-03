@@ -5,9 +5,10 @@ namespace App\Domain\Support;
 use OpenSpout\Writer\Common\Entity\SheetViewInterface;
 
 /**
- * Excel'in kendi kaydettiği biçimde sayfa görünümü (ızgara çizgisi kapalı). OpenSpout'un SheetView'i donmuş bölmede
- * seçim (<selection>) yazmaz ve sayfayı seçili sekme yapmaz; Excel bu durumda kaydırırken donmuş başlık satırını bir
- * an iki kez çiziyor. Burada bölme, seçim alt bölmede ilk veri hücresinde olacak şekilde Excel'deki gibi yazılır.
+ * Excel'in kendi kaydettiği biçimde sayfa görünümü (ızgara çizgisi kapalı, seçili sekme, seçim). OpenSpout'un
+ * SheetView'i seçim yazmaz ve sayfayı seçili sekme yapmaz. Bölme dondurmak mümkündür ama listelerde kullanılmaz:
+ * donmuş başlığı Excel kaydırırken bir an iki kez çiziyor (Excel'in kendi dosyalarında da); başlığın görünmesi için
+ * liste Excel tablosu yapılır (ExcelTable).
  */
 final readonly class ExcelSheetView implements SheetViewInterface
 {

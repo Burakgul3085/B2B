@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * E-bülten aboneliği (6563 sayılı Kanun ve Ticari İletişim Yönetmeliği): açık onay kutusu zorunludur, onay metni,
@@ -153,11 +153,10 @@ class Subscriptions
     }
 
     /**
-     * Dışa aktarım. "list": yönetim listesi (Excel); "iys": İYS yükleme dosyası (Excel); "iys-csv": aynısı
-     * CSV olarak (; ayraçlı; İYS ekranı Excel kabul etmezse). İYS dosyalarında yalnızca onaylı aboneler ve ayrılanlar bulunur; İYS Excel'inde
-     * sütun adları ve değerler CSV ile birebir aynıdır, yalnızca görünüm düzenlidir.
+     * Dışa aktarım (Excel). "list": yönetim listesi; "iys": İYS toplu yükleme dosyası. İYS dosyasında yalnızca onaylı
+     * aboneler ve ayrılanlar bulunur; ilk satır İYS sütun adları (ALICI…KAYNAK), veriler 2. satırdan başlar.
      */
-    public function export(string $format, ?string $status): StreamedResponse
+    public function export(string $format, ?string $status): BinaryFileResponse
     {
         $query = StoreNewsletterSubscriber::query()->orderBy('id');
         if ($format !== 'list') {
@@ -168,18 +167,6 @@ class Subscriptions
         $date = now('Europe/Istanbul')->format('Y-m-d');
         $iysRow = fn (StoreNewsletterSubscriber $s) => [$s->email, 'BIREYSEL', 'EPOSTA', $s->status === 'active' ? 'ONAY' : 'RET',
             ($s->status === 'active' ? $s->consented_at : $s->unsubscribed_at)?->timezone('Europe/Istanbul')->format('Y-m-d H:i:s'), 'HS_WEB'];
-
-        if ($format === 'iys-csv') {
-            return response()->streamDownload(function () use ($query, $iysRow) {
-                $out = fopen('php://output', 'w');
-                fwrite($out, "\xEF\xBB\xBF"); // Excel için UTF-8 BOM
-                fputcsv($out, ['ALICI', 'ALICI_TURU', 'IZIN_TURU', 'DURUM', 'IZIN_TARIHI', 'KAYNAK'], ';');
-                foreach ($query->lazy(500) as $s) {
-                    fputcsv($out, $iysRow($s), ';');
-                }
-                fclose($out);
-            }, "iys-eposta-izinleri-{$date}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
-        }
 
         // E-posta sütunu en uzun adrese göre genişler (taşma ve kesilme olmaz).
         $emailWidth = (float) min(60, max(28, (int) (clone $query)->max(DB::raw('CHAR_LENGTH(email)')) + 4));
@@ -215,10 +202,13 @@ class Subscriptions
         return $this->excel("e-bulten-aboneleri-{$date}.xlsx", 'E-bülten aboneleri', $columns, $rows);
     }
 
-    private function excel(string $name, string $title, array $columns, iterable $rows, bool $markEmpty = true): StreamedResponse
+    private function excel(string $name, string $title, array $columns, iterable $rows, bool $markEmpty = true): BinaryFileResponse
     {
-        return response()->streamDownload(fn () => (new SubscriberExcelWriter($markEmpty))->write('php://output', $title, $columns, $rows),
-            $name, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        $path = tempnam(sys_get_temp_dir(), 'bulten');
+        (new SubscriberExcelWriter($markEmpty))->write($path, $title, $columns, $rows);
+
+        return response()->download($path, $name, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+            ->deleteFileAfterSend();
     }
 
     private static function token(): string

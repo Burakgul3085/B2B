@@ -5,6 +5,7 @@ namespace App\Domain\Store\Newsletter;
 use App\Domain\Store\Reports\ReportCell;
 use App\Domain\Store\Reports\StoreReportBranding;
 use App\Domain\Support\ExcelSheetView;
+use App\Domain\Support\ExcelTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use OpenSpout\Common\Entity\Cell;
@@ -17,7 +18,6 @@ use OpenSpout\Common\Entity\Style\BorderWidth;
 use OpenSpout\Common\Entity\Style\CellAlignment;
 use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
 use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Writer\AutoFilter;
 use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Options\HeaderFooter;
 use OpenSpout\Writer\XLSX\Options\PageMargin;
@@ -28,10 +28,12 @@ use OpenSpout\Writer\XLSX\Properties;
 use OpenSpout\Writer\XLSX\Writer;
 
 /**
- * E-bülten abone listesi ve İYS listesi için düzenli XLSX (akış halinde; satır sayısından bağımsız sabit bellek).
+ * E-bülten abone listesi ve İYS yükleme dosyası için düzenli XLSX (akış halinde yazılır; satır sayısından bağımsız
+ * sabit bellek). Dosya yola yazılır (sonradan tablo eklendiği için akışa değil).
  *
- * Sütun başlıkları 1. satırdadır ve dondurulur (ExcelSheetView): kaydırırken başlık hep üstte kalır. Üstte antet satırı
- * bilerek yoktur; İYS listesinde de bu sayede ilk satır İYS sütun adlarıdır, veri 2. satırdan başlar.
+ * Sütun başlıkları 1. satırdadır ve liste Excel tablosudur (ExcelTable): aşağı kaydırınca başlıklar sütun harflerinin
+ * yerinde görünür. Bölme dondurulmaz; donmuş başlığı Excel kaydırırken bir an iki kez çiziyor. Üstte antet satırı
+ * bilerek yoktur; İYS dosyasında da bu sayede ilk satır İYS sütun adlarıdır, veri 2. satırdan başlar.
  * Boş hücrelere "—" yazılır: uzun metin yandaki boş hücrenin üzerine taşmaz. İYS yükleme dosyasında boş hücre boş
  * kalır ($markEmpty = false): İYS "—" değerini tarih/değer olarak okumaya çalışır.
  *
@@ -65,7 +67,6 @@ final class SubscriberExcelWriter
     public function write(string $path, string $title, array $columns, iterable $rows): void
     {
         $company = StoreReportBranding::company();
-        $last = count($columns) - 1;
 
         $options = new Options(
             pageMargin: new PageMargin(top: 0.6, right: 0.4, bottom: 0.7, left: 0.4, header: 0.3, footer: 0.3),
@@ -78,7 +79,7 @@ final class SubscriberExcelWriter
         $writer->openToFile($path);
         $sheet = $writer->getCurrentSheet();
         $sheet->setName(mb_substr($title, 0, 31));
-        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1));
+        $sheet->setSheetView(new ExcelSheetView);
         $sheet->setPrintTitleRows('$1:$1');
         foreach ($columns as $i => $column) {
             $sheet->setColumnWidth($column['width'], $i + 1);
@@ -97,12 +98,12 @@ final class SubscriberExcelWriter
             $written++;
         }
         if ($written === 0) {
-            $writer->addRow(new Row([Cell::fromValue('Kayıt bulunamadı.', $this->style('empty'))], 22));
-        } else {
-            $sheet->setAutoFilter(new AutoFilter(0, 1, $last, 1 + $written));
+            // İYS dosyasına açıklama yazılmaz: yüklenirse alıcı sanılır.
+            $writer->addRow(new Row([Cell::fromValue($this->markEmpty ? 'Kayıt bulunamadı.' : '', $this->style('empty'))], 22));
         }
 
         $writer->close();
+        ExcelTable::add($path, 'Liste', array_column($columns, 'label'), 1 + max(1, $written));
     }
 
     private function cell(string $type, mixed $value, string $variant): Cell
