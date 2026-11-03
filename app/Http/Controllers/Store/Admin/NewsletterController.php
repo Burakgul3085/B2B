@@ -40,7 +40,7 @@ class NewsletterController extends Controller
     public function export(Request $request): StreamedResponse
     {
         $data = $request->validate([
-            'format' => ['required', Rule::in(['list', 'iys'])],
+            'format' => ['required', Rule::in(['list', 'iys', 'iys-csv'])],
             'status' => ['nullable', Rule::in(array_keys(StoreNewsletterSubscriber::STATUSES))],
         ]);
 

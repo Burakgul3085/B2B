@@ -29,8 +29,9 @@
                     </select>
                     <x-button size="sm" variant="secondary">Ara</x-button>
                     <span class="ml-auto flex gap-2">
-                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', array_filter(['format' => 'list', 'status' => $filters['status'] ?? null]))">CSV indir</x-button>
-                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys'])">İYS dosyası</x-button>
+                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', array_filter(['format' => 'list', 'status' => $filters['status'] ?? null]))">Excel indir</x-button>
+                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys'])">İYS listesi (Excel)</x-button>
+                        <x-button size="sm" variant="secondary" icon="download" :href="route('store_admin.newsletter.export', ['format' => 'iys-csv'])" title="İYS toplu yükleme ekranına yüklenecek dosya">İYS yükleme dosyası (CSV)</x-button>
                     </span>
                 </form>
                 @if ($subscribers->isEmpty())
@@ -75,7 +76,7 @@
                 </form>
             </x-card>
             <x-card title="İYS hakkında">
-                <p class="text-sm leading-relaxed text-muted">Ticari e-posta gönderen işletmelerin İleti Yönetim Sistemi'ne (iys.org.tr) kayıtlı olması ve aldığı onayları oraya bildirmesi gerekir. “İYS dosyası” onaylı ve ayrılan aboneleri İYS toplu yükleme sütunlarıyla indirir.</p>
+                <p class="text-sm leading-relaxed text-muted">Ticari e-posta gönderen işletmelerin İleti Yönetim Sistemi'ne (iys.org.tr) kayıtlı olması ve aldığı onayları oraya bildirmesi gerekir. “İYS yükleme dosyası (CSV)” onaylı ve ayrılan aboneleri İYS toplu yükleme sütunlarıyla indirir; İYS'ye bu dosya yüklenir. “İYS listesi (Excel)” aynı kayıtların kontrol için düzenli görünümüdür.</p>
             </x-card>
         </div>
     </div>

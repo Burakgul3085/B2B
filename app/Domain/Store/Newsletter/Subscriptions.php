@@ -7,6 +7,7 @@ use App\Domain\Store\Mail\StoreMailer;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreNewsletterSubscriber;
 use App\Models\Store\StoreSetting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -152,36 +153,72 @@ class Subscriptions
     }
 
     /**
-     * CSV: "list" yönetim listesi; "iys" İYS toplu yükleme biçimi (yalnızca onaylı aboneler ve ayrılanlar).
+     * Dışa aktarım. "list": yönetim listesi (Excel); "iys": İYS listesi (Excel, kontrol için); "iys-csv": İYS toplu
+     * yükleme biçimi (CSV, ; ayraçlı). İYS dosyalarında yalnızca onaylı aboneler ve ayrılanlar bulunur; İYS Excel'inde
+     * sütun adları ve değerler CSV ile birebir aynıdır, yalnızca görünüm düzenlidir.
      */
     public function export(string $format, ?string $status): StreamedResponse
     {
         $query = StoreNewsletterSubscriber::query()->orderBy('id');
-        if ($format === 'iys') {
+        if ($format !== 'list') {
             $query->whereIn('status', ['active', 'unsubscribed']);
         } elseif ($status) {
             $query->where('status', $status);
         }
-        $name = ($format === 'iys' ? 'iys-eposta-izinleri-' : 'e-bulten-aboneleri-').now('Europe/Istanbul')->format('Y-m-d').'.csv';
+        $date = now('Europe/Istanbul')->format('Y-m-d');
+        $iysRow = fn (StoreNewsletterSubscriber $s) => [$s->email, 'BIREYSEL', 'EPOSTA', $s->status === 'active' ? 'ONAY' : 'RET',
+            ($s->status === 'active' ? $s->consented_at : $s->unsubscribed_at)?->timezone('Europe/Istanbul')->format('Y-m-d H:i:s'), 'HS_WEB'];
 
-        return response()->streamDownload(function () use ($query, $format) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF"); // Excel için UTF-8 BOM
-            if ($format === 'iys') {
+        if ($format === 'iys-csv') {
+            return response()->streamDownload(function () use ($query, $iysRow) {
+                $out = fopen('php://output', 'w');
+                fwrite($out, "\xEF\xBB\xBF"); // Excel için UTF-8 BOM
                 fputcsv($out, ['ALICI', 'ALICI_TURU', 'IZIN_TURU', 'DURUM', 'IZIN_TARIHI', 'KAYNAK'], ';');
-            } else {
-                fputcsv($out, ['E-posta', 'Durum', 'Kaynak', 'Onay metni', 'Onay tarihi', 'Onay IP', 'Doğrulama tarihi', 'Ayrılma tarihi'], ';');
-            }
-            $query->chunk(500, function ($rows) use ($out, $format) {
-                foreach ($rows as $s) {
-                    $tz = fn ($d) => $d?->timezone('Europe/Istanbul')->format('Y-m-d H:i:s');
-                    fputcsv($out, $format === 'iys'
-                        ? [$s->email, 'BIREYSEL', 'EPOSTA', $s->status === 'active' ? 'ONAY' : 'RET', $tz($s->status === 'active' ? $s->consented_at : $s->unsubscribed_at), 'HS_WEB']
-                        : [$s->email, $s->statusLabel(), StoreNewsletterSubscriber::SOURCES[$s->source] ?? $s->source, $s->consent_text, $tz($s->consented_at), $s->consent_ip, $tz($s->confirmed_at), $tz($s->unsubscribed_at)], ';');
+                foreach ($query->lazy(500) as $s) {
+                    fputcsv($out, $iysRow($s), ';');
                 }
+                fclose($out);
+            }, "iys-eposta-izinleri-{$date}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        // E-posta sütunu en uzun adrese göre genişler (taşma ve kesilme olmaz).
+        $emailWidth = (float) min(60, max(28, (int) (clone $query)->max(DB::raw('CHAR_LENGTH(email)')) + 4));
+
+        if ($format === 'iys') {
+            $columns = [
+                ['label' => 'ALICI', 'width' => $emailWidth], ['label' => 'ALICI_TURU', 'width' => 14, 'type' => 'center'],
+                ['label' => 'IZIN_TURU', 'width' => 13, 'type' => 'center'], ['label' => 'DURUM', 'width' => 11, 'type' => 'status'],
+                ['label' => 'IZIN_TARIHI', 'width' => 21, 'type' => 'center'], ['label' => 'KAYNAK', 'width' => 12, 'type' => 'center'],
+            ];
+            $rows = $query->lazy(500)->map(function (StoreNewsletterSubscriber $s) use ($iysRow) {
+                $row = $iysRow($s);
+                $row[3] = [$row[3], $row[3] === 'ONAY' ? 'success' : 'danger'];
+
+                return $row;
             });
-            fclose($out);
-        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
+
+            return $this->excel("iys-eposta-izinleri-{$date}.xlsx", 'İYS e-posta izinleri', $columns, $rows);
+        }
+
+        $columns = [
+            ['label' => 'E-posta', 'width' => $emailWidth], ['label' => 'Durum', 'width' => 15, 'type' => 'status'],
+            ['label' => 'Kaynak', 'width' => 18], ['label' => 'Onay metni', 'width' => 48],
+            ['label' => 'Onay tarihi', 'width' => 17, 'type' => 'datetime'], ['label' => 'Onay IP', 'width' => 17, 'type' => 'center'],
+            ['label' => 'Doğrulama tarihi', 'width' => 18, 'type' => 'datetime'], ['label' => 'Ayrılma tarihi', 'width' => 17, 'type' => 'datetime'],
+        ];
+        $tones = ['active' => 'success', 'pending' => 'warning', 'unsubscribed' => 'muted'];
+        $rows = $query->lazy(500)->map(fn (StoreNewsletterSubscriber $s) => [
+            $s->email, [$s->statusLabel(), $tones[$s->status] ?? 'muted'], StoreNewsletterSubscriber::SOURCES[$s->source] ?? $s->source,
+            $s->consent_text, $s->consented_at, $s->consent_ip, $s->confirmed_at, $s->unsubscribed_at,
+        ]);
+
+        return $this->excel("e-bulten-aboneleri-{$date}.xlsx", 'E-bülten aboneleri', $columns, $rows);
+    }
+
+    private function excel(string $name, string $title, array $columns, iterable $rows): StreamedResponse
+    {
+        return response()->streamDownload(fn () => (new SubscriberExcelWriter)->write('php://output', $title, $columns, $rows),
+            $name, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     private static function token(): string

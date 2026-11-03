@@ -10,6 +10,7 @@ use App\Models\Store\StoreNewsletterSubscriber;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
 /** E-bülten: iki adımlı onay, ayrılma, üyelik izniyle eşitleme, toplu e-posta ve dışa aktarma. */
@@ -138,14 +139,46 @@ class StoreNewsletterTest extends TestCase
         $this->get(route('store_admin.newsletter.index'))->assertOk()->assertSee('a@ornek.com')->assertSee('Onay bekliyor');
         $this->get(route('store_admin.newsletter.index', ['status' => 'active']))->assertSee('a@ornek.com')->assertDontSee('p@ornek.com');
 
-        $iys = $this->get(route('store_admin.newsletter.export', ['format' => 'iys']))->assertOk()->streamedContent();
-        $this->assertStringContainsString('ALICI;ALICI_TURU;IZIN_TURU;DURUM;IZIN_TARIHI;KAYNAK', $iys);
+        // İYS yükleme dosyası (CSV): İYS sütunları, yalnızca onaylı ve ayrılan aboneler.
+        $iys = $this->get(route('store_admin.newsletter.export', ['format' => 'iys-csv']))->assertOk()->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBFALICI;ALICI_TURU;IZIN_TURU;DURUM;IZIN_TARIHI;KAYNAK", $iys);
         $this->assertStringContainsString('a@ornek.com;BIREYSEL;EPOSTA;ONAY', $iys);
         $this->assertStringNotContainsString('p@ornek.com', $iys);
+
+        // Excel dosyaları: ilk satır sütun başlıkları (dondurulmuş), veri 2. satırdan başlar.
+        $iysRows = $this->xlsxRows(['format' => 'iys']);
+        $this->assertCount(2, $iysRows);
+        $this->assertSame(['ALICI', 'ALICI_TURU', 'IZIN_TURU', 'DURUM', 'IZIN_TARIHI', 'KAYNAK'], $iysRows[0]);
+        $this->assertSame(['a@ornek.com', 'BIREYSEL', 'EPOSTA', 'ONAY', 'HS_WEB'], [...array_slice($iysRows[1], 0, 4), $iysRows[1][5]]);
+        $list = $this->xlsxRows(['format' => 'list']);
+        $this->assertSame(['E-posta', 'Durum', 'Kaynak', 'Onay metni', 'Onay tarihi', 'Onay IP', 'Doğrulama tarihi', 'Ayrılma tarihi'], $list[0]);
+        $this->assertSame(['a@ornek.com', 'Abone'], array_slice($list[1], 0, 2));
+        $this->assertSame(['p@ornek.com', 'Onay bekliyor'], array_slice($list[2], 0, 2));
 
         $this->put(route('store_admin.newsletter.settings'), ['newsletter_title' => 'Fırsatları kaçırmayın', 'newsletter_consent' => 'İzin veriyorum.'])->assertSessionHasNoErrors();
         $this->get(self::HOST.'/urunler')->assertDontSee('id="e-bulten"', false);
         $this->put(route('store_admin.newsletter.settings'), ['newsletter_enabled' => '1', 'newsletter_title' => 'Fırsatları kaçırmayın', 'newsletter_consent' => 'İzin veriyorum.']);
         $this->get(self::HOST.'/urunler')->assertSee('Fırsatları kaçırmayın')->assertSee('İzin veriyorum.');
+    }
+
+    /** @return list<list<string>> dışa aktarılan Excel'in satırları (tarih hücreleri metne çevrilir) */
+    private function xlsxRows(array $params): array
+    {
+        $response = $this->get(route('store_admin.newsletter.export', $params))->assertOk()
+            ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $path = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($path, $response->streamedContent());
+        $reader = new Reader;
+        $reader->open($path);
+        $rows = [];
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $rows[] = array_map(fn ($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d H:i') : (string) $v, $row->toArray());
+            }
+        }
+        $reader->close();
+        unlink($path);
+
+        return $rows;
     }
 }
