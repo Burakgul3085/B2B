@@ -9,33 +9,40 @@
     $icons = ['on-bilgilendirme' => 'file', 'mesafeli-satis' => 'file', 'iptal-iade' => 'refresh', 'kvkk' => 'shield', 'gizlilik-cerez' => 'lock'];
     $updated = $document->created_at->timezone('Europe/Istanbul')->translatedFormat('j F Y');
     $hubLive = HelpPages::isPublished('legal');
+    $host = (string) parse_url(route('store.home'), PHP_URL_HOST);
+    $host = function_exists('idn_to_utf8') ? (idn_to_utf8($host) ?: $host) : $host; // baskıda okunur alan adı (yapbozkırtasiye.com)
 @endphp
 <x-layouts.store :title="$document->title" :noindex="$forOrder">
-    <section class="relative overflow-hidden bg-[#0b1631] text-white print:bg-white print:text-ink">
+    <section class="relative overflow-hidden bg-[#0b1631] text-white print:overflow-visible print:border-b-2 print:border-ink print:bg-white print:text-ink">
         <div class="pointer-events-none absolute -right-10 -bottom-14 hidden rotate-12 grid-cols-2 gap-3 opacity-90 md:grid print:hidden" aria-hidden="true">
             <span class="size-20 rounded-3xl bg-puzzle-orange"></span><span class="size-20 rounded-3xl bg-puzzle-green"></span>
             <span class="size-20 rounded-3xl bg-puzzle-blue"></span><span class="size-20 rounded-3xl bg-puzzle-yellow"></span>
         </div>
-        <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 print:max-w-none print:px-0 print:pt-0 print:pb-4">
+            <p class="mb-4 hidden items-center justify-between text-[10pt] text-slate-600 print:flex">
+                <span class="font-display font-extrabold text-ink">{{ config('store.name') }}</span>
+                <span>{{ $host }}</span>
+            </p>
             <nav class="text-sm text-white/60 print:hidden" aria-label="Konum">
                 <a href="{{ route('store.home') }}" class="hover:text-white">Ana sayfa</a> <span class="mx-1">›</span>
                 @if ($hubLive)<a href="{{ route('store.help.legal') }}" class="hover:text-white">Yasal Haklar ve Sözleşmeler</a> <span class="mx-1">›</span>@endif
                 {{ $document->title }}
             </nav>
-            <div class="mt-6 flex items-start gap-4">
+            <div class="mt-6 flex items-start gap-4 print:mt-0">
                 <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-amber-400 ring-1 ring-white/15 print:hidden"><x-icon :name="$icons[$document->key] ?? 'file'" class="size-7" /></span>
                 <div>
-                    <h1 class="font-display text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">{{ $document->title }}</h1>
-                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
-                        <span class="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">Sürüm {{ $document->version }}</span>
-                        <span class="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">Son güncelleme: {{ $updated }}</span>
+                    <h1 class="font-display text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl print:text-[20pt]">{{ $document->title }}</h1>
+                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold print:mt-2 print:text-[9pt] print:font-normal print:text-slate-600">
+                        <span class="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15 print:bg-transparent print:p-0 print:ring-0">Sürüm {{ $document->version }}</span>
+                        <span class="print:inline hidden" aria-hidden="true">·</span>
+                        <span class="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15 print:bg-transparent print:p-0 print:ring-0">Son güncelleme: {{ $updated }}</span>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8">
+    <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8 print:block print:max-w-none print:px-0 print:pt-5 print:pb-0">
         <aside class="order-last min-w-0 space-y-5 lg:sticky lg:top-28 lg:order-first lg:self-start print:hidden">
             @if (count($toc) > 1)
                 <nav class="hidden rounded-3xl border border-line bg-white p-5 lg:block" aria-label="İçindekiler">
@@ -64,14 +71,15 @@
             </div>
         </aside>
 
-        <article class="min-w-0 rounded-3xl border border-line bg-white p-6 sm:p-10 print:border-0 print:p-0">
+        <article class="min-w-0 rounded-3xl border border-line bg-white p-6 sm:p-10 print:rounded-none print:border-0 print:p-0">
             @if ($forOrder)
                 <div class="mb-8 flex items-start gap-3 rounded-2xl bg-puzzle-blue-soft/60 px-5 py-4 text-sm text-slate-700 print:hidden">
                     <x-icon name="alert" class="mt-0.5 size-5 shrink-0 text-puzzle-blue" />
                     <p>Parantez içindeki alanlar siparişinizi onayladığınızda sizin bilgilerinizle doldurulur ve onayladığınız metin siparişinizde saklanır; ayrıca sipariş e-postanızla gönderilir.</p>
                 </div>
             @endif
-            <div class="space-y-4 text-[15.5px] leading-[1.8] text-slate-700
+            <div class="space-y-4 text-[15.5px] leading-[1.8] text-slate-700 print:space-y-2 print:text-[10.5pt] print:leading-normal print:text-slate-800
+                print:[&_h2]:mt-6 print:[&_h2]:pb-1.5 print:[&_h2]:text-[13pt] print:[&_h2]:break-after-avoid print:[&_h3]:break-after-avoid print:[&_li]:break-inside-avoid print:[&_tr]:break-inside-avoid print:[&_a]:text-ink print:[&_a]:no-underline
                 [&_h2]:mt-10 [&_h2]:scroll-mt-32 [&_h2]:border-b [&_h2]:border-line [&_h2]:pb-3 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-ink [&_h2:first-child]:mt-0
                 [&_h3]:mt-6 [&_h3]:font-bold [&_h3]:text-ink [&_li]:ml-5 [&_li]:pl-1 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_li::marker]:text-puzzle-orange
                 [&_strong]:text-ink [&_a]:font-semibold [&_a]:text-navy-ink [&_a]:underline

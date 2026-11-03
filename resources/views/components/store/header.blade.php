@@ -38,10 +38,10 @@
 
 {{-- Duyuru: yalnızca Mağaza Ayarları'nda yazılmışsa, ince bir şerit --}}
 @if ($settings['announcement'])
-    <div class="bg-navy px-4 py-2 text-center text-[13px] font-semibold text-amber-300">{{ $settings['announcement'] }}</div>
+    <div class="bg-navy px-4 py-2 text-center text-[13px] font-semibold text-amber-300 print:hidden">{{ $settings['announcement'] }}</div>
 @endif
 
-<header class="sticky top-0 z-30 bg-white/95 shadow-[0_1px_0_var(--color-line)] backdrop-blur">
+<header class="sticky top-0 z-30 bg-white/95 shadow-[0_1px_0_var(--color-line)] backdrop-blur print:hidden">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:h-[76px] sm:gap-6 sm:px-6 lg:px-8">
         <button type="button" class="-ml-1 rounded-lg p-2 text-ink hover:bg-slate-100 lg:hidden" @click="menu = true" aria-label="Menüyü aç"><x-icon name="menu" /></button>
         <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="{{ $storeName }} ana sayfa">

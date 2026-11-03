@@ -326,6 +326,17 @@
 .dark .field-input { background-color: #0d1424; }
 .dark .field-input:disabled { background-color: #172033; }
 
+/*
+| Mağaza yazdırma (Yazdır / PDF olarak kaydet): A4, kenar boşlukları; iyzico'nun sonradan eklediği Korumalı Alışveriş
+| rozeti (#iyzi-root) ve yapışık / sabit öğeler baskıya girmez; koyu tema seçili olsa da baskı açık renklidir.
+*/
+@media print {
+    @page { size: A4; margin: 16mm 15mm; }
+    #iyzi-root { display: none !important; }
+    html.dark, html.dark body { background: #fff !important; color: #0f172a !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 /* Mağaza yönetimi sesli sipariş alarmı (components/store/order-alarm): şerit nabız gibi parlar, zil sallanır. */
 .order-alarm { background-size: 200% 100%; animation: order-alarm-glow 1.6s ease-in-out infinite; }
 .order-alarm-bell { animation: order-alarm-bell 1.2s ease-in-out infinite; transform-origin: 50% 10%; }
