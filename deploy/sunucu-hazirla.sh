@@ -56,6 +56,22 @@ for sapi in fpm cli; do
     install -m 644 "$HERE/php.ini" "/etc/php/8.5/$sapi/conf.d/99-yapboz.ini"
 done
 
+# PHP-FPM işçi sayısı: varsayılan 5 işçi, bir sayfadaki görsel ve sayfa isteklerini kuyruğa sokar. 8 GB / 2 çekirdekli
+# sunucuda 20 işçi (her biri ~40–60 MB) rahat sığar. Ayar denetlenmeden uygulanmaz; geçersizse eski dosya geri konur.
+POOL=/etc/php/8.5/fpm/pool.d/www.conf
+if [ -f "$POOL" ]; then
+    cp "$POOL" "$POOL.yapboz-yedek"
+    sed -i -E \
+        -e 's/^;?pm = .*/pm = dynamic/' \
+        -e 's/^;?pm\.max_children = .*/pm.max_children = 20/' \
+        -e 's/^;?pm\.start_servers = .*/pm.start_servers = 4/' \
+        -e 's/^;?pm\.min_spare_servers = .*/pm.min_spare_servers = 4/' \
+        -e 's/^;?pm\.max_spare_servers = .*/pm.max_spare_servers = 8/' \
+        -e 's/^;?pm\.max_requests = .*/pm.max_requests = 500/' \
+        "$POOL"
+    if php-fpm8.5 -t >/dev/null 2>&1; then rm -f "$POOL.yapboz-yedek"; else mv "$POOL.yapboz-yedek" "$POOL"; echo "PHP-FPM ayarı geçersiz, geri alındı."; fi
+fi
+
 # Nginx: yalnızca ilk kurulumda yazılır (sonra certbot HTTPS satırlarını ekler).
 SITE=/etc/nginx/sites-available/yapboz
 if [ ! -f "$SITE" ]; then

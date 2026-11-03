@@ -182,7 +182,7 @@
                         <article class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                             <a href="{{ route('dealer.catalog.show', $product) }}" class="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
                                 @if ($product->primaryImage)
-                                    <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" />
+                                    <x-product-image :src="\App\Domain\Catalog\ProductImageUrl::for($product->primaryImage, \App\Domain\Catalog\ProductImageUrl::THUMB)" :alt="$product->name" />
                                 @else
                                     <x-icon name="image" class="size-7 text-slate-300" />
                                 @endif
@@ -208,7 +208,7 @@
                 {{-- Izgara görünümü --}}
                 <div class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     @foreach ($products as $product)
-                        @include('dealer.catalog._card', ['product' => $product])
+                        @include('dealer.catalog._card', ['product' => $product, 'eager' => $loop->index < 4])
                     @endforeach
                 </div>
             @endif

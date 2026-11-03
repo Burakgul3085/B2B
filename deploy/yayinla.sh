@@ -68,6 +68,8 @@ systemctl reload php8.5-fpm
 nginx -t -q && systemctl reload nginx
 supervisorctl reread >/dev/null && supervisorctl update >/dev/null
 as_www queue:restart >/dev/null
+# Küçük boyutu eksik ürün görselleri kuyruğa verilir (yalnızca eksikler; hata yayını durdurmaz).
+as_www images:prepare || true
 
 # Son 5 sürüm kalır.
 ls -1dt "$BASE"/releases/* | tail -n +6 | xargs -r rm -rf

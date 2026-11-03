@@ -45,7 +45,7 @@
                         @foreach ($product->images as $image)
                             <div class="group relative overflow-hidden rounded-lg border border-line">
                                 <span class="flex aspect-square w-full items-center justify-center bg-white p-3">
-                                    <img src="{{ route('business.images.show', $image) }}" alt="{{ $product->name }}" class="max-h-full max-w-full object-contain" loading="lazy">
+                                    <img src="{{ \App\Domain\Catalog\ProductImageUrl::for($image) }}" alt="{{ $product->name }}" class="max-h-full max-w-full object-contain" loading="lazy">
                                 </span>
                                 @if ($image->is_primary)<span class="absolute top-2 left-2 rounded bg-primary px-1.5 py-0.5 text-[11px] font-medium text-white">Ana görsel</span>@endif
                                 <div class="flex justify-between border-t border-line bg-white px-2 py-1.5 text-xs">

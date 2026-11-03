@@ -274,7 +274,8 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
     Route::get('bulten/onay/{token}', [Front\NewsletterController::class, 'confirm'])->middleware('throttle:30,1,newsletter.confirm')->name('newsletter.confirm');
     Route::get('bulten/ayril/{token}', [Front\NewsletterController::class, 'showUnsubscribe'])->middleware('throttle:30,1,newsletter.leave')->name('newsletter.unsubscribe');
     Route::post('bulten/ayril/{token}', [Front\NewsletterController::class, 'unsubscribe'])->middleware('throttle:30,1,newsletter.leave.store')->name('newsletter.unsubscribe.store');
-    Route::get('gorsel/bulten/{storeNewsletterCampaign}', [Front\MediaController::class, 'newsletter'])->name('media.newsletter');
+    Route::get('gorsel/bulten/{storeNewsletterCampaign}', [Front\MediaController::class, 'newsletter'])
+        ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('media.newsletter');
     // Tüm kategoriler menüsü ilk açılışta yüklenir (yüzlerce kategori her sayfaya gömülmez); ziyaret sayılmaz.
     Route::get('menu/kategoriler/{part}', Front\CategoryMenuController::class)->whereIn('part', ['masaustu', 'mobil'])
         ->middleware('throttle:60,1,category.menu')->name('category-menu');
@@ -390,14 +391,18 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::put('sepet/{item}', [Front\CartController::class, 'update'])->whereNumber('item')->name('cart.update');
         Route::delete('sepet/{item}', [Front\CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
 
-        Route::get('gorsel/urun/{storeImage}', [Front\MediaController::class, 'product'])->name('media.product');
-        Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
-        Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
-        Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
-        Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
-        Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
-        Route::get('gorsel/secki/{storeCollection}', [Front\MediaController::class, 'collection'])->name('media.collection');
-        Route::get('gorsel/kampanya/{storeDiscount}', [Front\MediaController::class, 'discount'])->name('media.discount');
-        Route::get('gorsel/blog/{storeBlogPost}', [Front\MediaController::class, 'blog'])->name('media.blog');
+        // Görseller oturumsuz sunulur: bir sayfadaki onlarca görsel isteği oturum okuyup yazmaz (veritabanı yükü,
+        // PHP işçisi kuyruğu). Mağaza kapalı/önizleme denetimi çerezle yapılır, oturum gerekmez.
+        Route::withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function () {
+            Route::get('gorsel/urun/{storeImage}', [Front\MediaController::class, 'product'])->name('media.product');
+            Route::get('gorsel/banner/{storeBanner}', [Front\MediaController::class, 'banner'])->name('media.banner');
+            Route::get('gorsel/marka/{storeBrand}', [Front\MediaController::class, 'brand'])->name('media.brand');
+            Route::get('gorsel/odeme-logolari', [Front\MediaController::class, 'paymentLogos'])->name('media.payment-logos');
+            Route::get('gorsel/sayfa/{file}', [Front\MediaController::class, 'page'])->name('media.page');
+            Route::get('gorsel/kategori/{storeCategory}', [Front\MediaController::class, 'category'])->name('media.category');
+            Route::get('gorsel/secki/{storeCollection}', [Front\MediaController::class, 'collection'])->name('media.collection');
+            Route::get('gorsel/kampanya/{storeDiscount}', [Front\MediaController::class, 'discount'])->name('media.discount');
+            Route::get('gorsel/blog/{storeBlogPost}', [Front\MediaController::class, 'blog'])->name('media.blog');
+        });
     });
 });

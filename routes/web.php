@@ -7,6 +7,7 @@ use App\Http\Controllers\Business;
 use App\Http\Controllers\Dealer;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Platform;
+use App\Http\Controllers\ProductImageFileController;
 use App\Http\Controllers\PublicSite;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RobotsController;
@@ -54,6 +55,11 @@ require __DIR__.'/store.php';
 // Arama motorları: B2B'de yalnızca bayi ve toptancı girişi ile bayilik başvurusu açıktır.
 Route::get('robots.txt', [RobotsController::class, 'b2b'])->name('robots');
 Route::get('sitemap.xml', [RobotsController::class, 'sitemap'])->name('sitemap');
+
+// B2B ürün görselleri: imzalı bağlantıyla, oturumsuz (App\Domain\Catalog\ProductImageUrl). Bağlantıyı yalnızca görseli
+// görmeye yetkili toptancı/bayi sayfası üretir; imzasız veya süresi dolmuş istek 403 döner.
+Route::get('urun-gorseli/{image}', ProductImageFileController::class)->whereNumber('image')->middleware('signed')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('product-image');
 
 // Ana adres doğrudan bayi girişidir; toptancı (/toptanci) ve platform (/platform) girişleri yalnızca kendi bağlantılarıyla açılır.
 Route::redirect('/', '/bayi/login')->name('home');

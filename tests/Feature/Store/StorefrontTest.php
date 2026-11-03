@@ -146,9 +146,14 @@ class StorefrontTest extends TestCase
         Storage::disk('local')->put("store/products/{$product->id}/a.webp", ob_get_clean());
         $image = $product->images()->create(['path' => "store/products/{$product->id}/a.webp"]);
 
-        $this->get(self::HOST."/gorsel/urun/{$image->id}?w=640")->assertOk()->assertHeader('Cache-Control', 'max-age=604800, public');
+        // Ürün görselinin dosyası değişmez: bir yıl, değişmez olarak önbelleğe alınır; görsel isteği oturum çerezi yazmaz.
+        $response = $this->get(self::HOST."/gorsel/urun/{$image->id}?w=640")->assertOk()
+            ->assertHeader('Cache-Control', 'immutable, max-age=31536000, public')->assertCookieMissing('magaza');
         Storage::disk('local')->assertExists("store/products/{$product->id}/w640/a.webp");
         $this->assertSame(640, getimagesizefromstring(Storage::disk('local')->get("store/products/{$product->id}/w640/a.webp"))[0]);
+
+        // Tarayıcıdaki kopya değişmediyse gövdesiz 304.
+        $this->get(self::HOST."/gorsel/urun/{$image->id}?w=640", ['If-None-Match' => $response->headers->get('ETag')])->assertStatus(304);
 
         $product->update(['is_published' => false]);
         $this->get(self::HOST."/gorsel/urun/{$image->id}")->assertNotFound();

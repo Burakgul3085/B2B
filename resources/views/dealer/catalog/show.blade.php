@@ -24,7 +24,7 @@
                     <div class="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-300 ease-out sm:p-10"
                         :style="zoomStyle">
                         @foreach ($product->images as $i => $image)
-                            <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ route('dealer.images.show', $image) }}" alt="{{ $product->name }}"
+                            <img x-show="active === {{ $i }}" @if ($i) x-cloak @endif src="{{ \App\Domain\Catalog\ProductImageUrl::for($image, null) }}" alt="{{ $product->name }}"
                                 class="max-h-full max-w-full object-contain mix-blend-multiply">
                         @endforeach
                     </div>
@@ -42,7 +42,7 @@
                 <div class="mt-3 flex gap-2">
                     @foreach ($product->images as $i => $image)
                         <button type="button" @click="active = {{ $i }}" class="flex size-16 items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1" :class="active === {{ $i }} ? 'border-primary' : 'border-line'" aria-label="Görsel {{ $i + 1 }}">
-                            <img src="{{ route('dealer.images.show', $image) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply">
+                            <img src="{{ \App\Domain\Catalog\ProductImageUrl::for($image, \App\Domain\Catalog\ProductImageUrl::THUMB) }}" alt="" class="max-h-full max-w-full object-contain mix-blend-multiply">
                         </button>
                     @endforeach
                 </div>

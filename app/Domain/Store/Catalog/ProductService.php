@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
 use App\Domain\Store\Storefront\ImageVariants;
 use App\Domain\Support\Decimal;
+use App\Jobs\GenerateImageVariants;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductImage;
 use App\Models\Store\StoreProductVariant;
@@ -204,6 +205,7 @@ class ProductService
         $path = $this->images->store($file, 'store/products/'.$product->id, maxEdge: 2000, quality: 90, trimWhitespace: true, sharpen: true);
         $image = $product->images()->create(['path' => $path, 'sort' => (int) $product->images()->max('sort') + 1]);
         $this->audit->log('store.product_image_added', $product, [], ['image_id' => $image->id]);
+        GenerateImageVariants::dispatch($path)->afterCommit();
 
         return $image;
     }

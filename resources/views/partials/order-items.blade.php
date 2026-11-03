@@ -1,5 +1,5 @@
-{{-- Sipariş kalemleri ve toplamlar (toptancı ve bayi ortak). $order, $imageRoute (isteğe bağlı: ürün görseli rotası; items.product.primaryImage yüklü olmalı) --}}
-@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; $approved = $order->stock_applied_at !== null; $imageRoute ??= null; @endphp
+{{-- Sipariş kalemleri ve toplamlar (toptancı ve bayi ortak). $order, $withImages (isteğe bağlı: ürün görselleri; items.product.primaryImage yüklü olmalı) --}}
+@php use App\Domain\Inventory\Quantity; use App\Domain\Support\Money; $approved = $order->stock_applied_at !== null; $withImages ??= false; @endphp
 <div class="overflow-x-auto">
     <table class="table-base">
         <thead>
@@ -17,11 +17,11 @@
                 @php $short = $approved && bccomp((string) $item->quantity_approved, (string) $item->quantity_requested, 3) < 0; @endphp
                 <tr>
                     <td>
-                        @if ($imageRoute)
+                        @if ($withImages)
                             <div class="flex items-center gap-3">
                                 <span class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-1">
                                     @if ($item->product?->primaryImage)
-                                        <img src="{{ route($imageRoute, $item->product->primaryImage) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
+                                        <img src="{{ \App\Domain\Catalog\ProductImageUrl::for($item->product->primaryImage, \App\Domain\Catalog\ProductImageUrl::THUMB) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
                                     @else
                                         <x-icon name="image" class="size-5 text-slate-300" />
                                     @endif

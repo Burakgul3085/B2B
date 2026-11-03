@@ -14,10 +14,11 @@
     <a href="{{ $url }}" class="relative block aspect-square overflow-hidden rounded-xl bg-[#fff]">
         @if ($product->primaryImage)
             <span @class(['absolute inset-0 transition duration-500', 'group-hover:opacity-0' => $second])>
-                <x-product-image :src="route('store.media.product', ['storeImage' => $product->primaryImage, 'w' => 640])" :alt="$product->name" zoom />
+                <x-product-image :src="route('store.media.product', ['storeImage' => $product->primaryImage, 'w' => 640])" :alt="$product->name" :eager="$eager ?? false" zoom />
             </span>
             @if ($second)
-                <img src="{{ route('store.media.product', ['storeImage' => $second, 'w' => 640]) }}" alt="" loading="lazy" class="absolute inset-0 size-full object-contain p-2 opacity-0 transition duration-500 group-hover:opacity-100">
+                {{-- İkinci görsel yalnızca fare kartın üzerine gelince indirilir (resources/js/app.js, data-hover-src). --}}
+                <img data-hover-src="{{ route('store.media.product', ['storeImage' => $second, 'w' => 640]) }}" alt="" decoding="async" class="absolute inset-0 size-full object-contain p-2 opacity-0 transition duration-500 group-hover:opacity-100">
             @endif
         @else
             <span class="flex size-full items-center justify-center bg-surface"><x-icon name="image" class="size-10 text-slate-300" /></span>

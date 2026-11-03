@@ -13,7 +13,7 @@
     <div class="relative">
         <a href="{{ route('dealer.catalog.show', $product) }}" class="flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl bg-white">
             @if ($product->primaryImage)
-                <x-product-image :src="route('dealer.images.show', $product->primaryImage)" :alt="$product->name" zoom />
+                <x-product-image :src="\App\Domain\Catalog\ProductImageUrl::for($product->primaryImage)" :alt="$product->name" :eager="$eager ?? false" zoom />
             @else
                 <x-icon name="image" class="size-10 text-slate-300" />
             @endif

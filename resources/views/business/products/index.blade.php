@@ -67,9 +67,9 @@
                                                 @if ($product->primaryImage)
                                                     {{-- Küçük görsele tıklanınca büyük önizleme açılır --}}
                                                     <button type="button" class="group/thumb relative flex size-10 shrink-0 cursor-zoom-in items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-0.5 transition hover:border-primary hover:ring-2 hover:ring-primary/20"
-                                                        @click="preview = @alpine(['src' => route('business.images.show', $product->primaryImage), 'name' => $product->name, 'sku' => $product->sku, 'url' => route('business.products.show', $product)])"
+                                                        @click="preview = @alpine(['src' => \App\Domain\Catalog\ProductImageUrl::for($product->primaryImage, null), 'name' => $product->name, 'sku' => $product->sku, 'url' => route('business.products.show', $product)])"
                                                         aria-label="{{ $product->name }} görselini büyüt">
-                                                        <img src="{{ route('business.images.show', $product->primaryImage) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
+                                                        <img src="{{ \App\Domain\Catalog\ProductImageUrl::for($product->primaryImage, \App\Domain\Catalog\ProductImageUrl::THUMB) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">
                                                         <span class="absolute inset-0 flex items-center justify-center bg-slate-900/40 text-white opacity-0 transition group-hover/thumb:opacity-100"><x-icon name="search" class="size-4" /></span>
                                                     </button>
                                                 @else

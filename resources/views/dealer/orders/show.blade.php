@@ -90,7 +90,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <x-card title="Ürünler" class="lg:col-span-2 print:col-span-3" :padding="false">
-            @include('partials.order-items', ['order' => $order, 'imageRoute' => 'dealer.images.show'])
+            @include('partials.order-items', ['order' => $order, 'withImages' => true])
         </x-card>
 
         <div class="space-y-6">

@@ -163,7 +163,7 @@
                                 <a href="{{ route('dealer.catalog.show', $p->product_id) }}" class="flex items-center gap-3 px-5 py-3 transition hover:bg-slate-50">
                                     <span class="w-4 text-xs font-bold text-muted">{{ $loop->iteration }}</span>
                                     <span class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white p-1">
-                                        @if ($image)<img src="{{ route('dealer.images.show', $image) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">@else<x-icon name="image" class="size-5 text-slate-300" />@endif
+                                        @if ($image)<img src="{{ \App\Domain\Catalog\ProductImageUrl::for($image, \App\Domain\Catalog\ProductImageUrl::THUMB) }}" alt="" class="max-h-full max-w-full object-contain" loading="lazy">@else<x-icon name="image" class="size-5 text-slate-300" />@endif
                                     </span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate font-medium text-ink">{{ $p->name }}</span>

@@ -4,7 +4,9 @@ namespace App\Domain\Catalog;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Files\ImageUploader;
+use App\Domain\Files\ImageVariants;
 use App\Domain\Tenancy\TenantContext;
+use App\Jobs\GenerateImageVariants;
 use App\Models\Business;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -259,12 +261,15 @@ class ProductService
         $path = $this->images->store($file, 'businesses/'.$this->tenant->businessId().'/products/'.$product->id,
             maxEdge: 2000, quality: 90, trimWhitespace: true, sharpen: true);
 
-        return ProductImage::create([
+        $image = ProductImage::create([
             'product_id' => $product->id,
             'path' => $path,
             'sort' => (int) $product->images()->max('sort') + 1,
             'is_primary' => ! $product->images()->exists(),
         ]);
+        GenerateImageVariants::dispatch($path)->afterCommit();
+
+        return $image;
     }
 
     public function removeImage(ProductImage $image): void
@@ -280,6 +285,7 @@ class ProductService
         });
 
         $this->images->delete($image->path);
+        app(ImageVariants::class)->forget($image->path);
     }
 
     public function makePrimary(ProductImage $image): void

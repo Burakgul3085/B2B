@@ -49,6 +49,16 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// Ürün kartındaki ikinci görsel (üzerine gelince görünen) ancak fare karta gelince indirilir; listede her kart için
+// fazladan bir görsel indirilmez. Dokunmatik ekranda hover olmadığı için hiç indirilmez.
+document.addEventListener('pointerover', (event) => {
+    const card = event.target instanceof Element ? event.target.closest('article') : null;
+    card?.querySelectorAll('img[data-hover-src]').forEach((img) => {
+        img.src = img.dataset.hoverSrc;
+        img.removeAttribute('data-hover-src');
+    });
+}, { passive: true });
+
 // Koyu temada yazdırırken açık temaya geçilir (beyaz kâğıtta açık renkli yazı kalmasın); baskıdan sonra geri dönülür.
 let printedDark = false;
 window.addEventListener('beforeprint', () => {

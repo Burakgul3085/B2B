@@ -250,7 +250,7 @@
                 @else
                     <div class="mt-5 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 xl:grid-cols-4">
                         @foreach ($products as $product)
-                            @include('store.front._card', ['product' => $product])
+                            @include('store.front._card', ['product' => $product, 'eager' => $loop->index < 4])
                         @endforeach
                     </div>
                 @endif
