@@ -231,6 +231,22 @@ Genel liste fiyatı bayiye "liste fiyatı" olarak, uygulanan fiyatın yanında g
 
 Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırında taşır. Ürün güncellense, arşivlense veya KDV oranı değişse de geçmiş sipariş, ekstre ve rapor aynı kalır.
 
+### 4.4 Kupon ve kampanyalar (sipariş indirimi)
+
+Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bayi sepette girer; otomatik kampanya kodsuzdur ve koşulu tutan siparişe kendiliğinden uygulanır. Kurallar `App\Domain\Pricing\PromotionService` içindedir.
+
+- **Tür:** yüzde (isteğe bağlı "en fazla ₺" sınırıyla) veya tutar (₺, KDV hariç).
+- **Kime:** tüm bayiler, bir bayi grubu veya seçili bayiler.
+- **Koşullar:** en düşük sipariş tutarı (KDV hariç), başlangıç/bitiş, toplam ve bayi başına kullanım sınırı, isteğe bağlı kapsam (kategori alt kategorileriyle, stok koduyla ürün).
+- **Siparişte tek indirim:** kod girildiyse kupon, girilmediyse en avantajlı kampanya. Geçersiz kod sepette nedeniyle gösterilir; kod kaldırılmadan sipariş gönderilemez.
+- §4.1'deki fiyatın (bayiye özel fiyat ve ürün/kategori indirimi dahil) **üzerine** uygulanır. Taban, kapsamdaki satırların indirimli net tutarıdır.
+- **Paylaştırma:** indirim kapsamdaki satırlara netleriyle orantılı paylaştırılır (`order_items.order_discount`). Her satırda en az 0,01 ₺ kalır. KDV paydan sonra hesaplanır: `net = ara toplam − satır indirimi − sipariş indirimi payı`. `orders.discount_total` iki indirimi birlikte taşır; `orders.promotion_discount` yalnızca kupon/kampanyayı.
+- **Anlık kopya:** siparişe uygulanan kupon/kampanya siparişte kopyalanır (`orders.promotion_*`).
+- **Kısmi onay:** indirim kopyadan yeniden hesaplanır. Yüzde, onaylanan tutara uygulanır; tutar indirimi ilk tutarı ve onaylanan tabanı geçemez.
+- **Kullanım:** `promotion_redemptions` (sipariş başına bir). Gönderimde kampanya satırı `FOR UPDATE` ile kilitlenir; kullanım sayısı kilitli okumayla yeniden denetlenir. Red ve iptalde `released_at` dolar ve kullanım sayılmaz.
+- **İade:** kupon payı iade miktarıyla orantılı (birikimli) düşülür. Bayiye ödediğinden fazlası iade edilmez.
+- **Değişiklik:** kullanılmış kuponun kodu ve türü değiştirilemez, silinemez (pasife alınır).
+
 ## 5. Stokta olmayan ürün talebi
 
 - Bayi, sevk deposunda stoğu yetersiz olan ürün için talep oluşturur: miktar (> 0), açıklama, "stok gelince haber ver" seçimi.
@@ -285,6 +301,7 @@ Bayi sipariş verince toptancı panelinin her sayfasında kırmızı şerit çı
 | Yinelenen cari borç / ters kayıt | `current_account_movements.source_key` UNIQUE, `reverses_movement_id` UNIQUE |
 | İptalin iki kez işlenmesi | Durum kontrolü + `*_reversed_at` + UNIQUE source_key |
 | Formdan sahte fiyat | Fiyat yalnızca sunucuda hesaplanır |
+| Kupon kullanım sınırının eşzamanlı aşılması | `promotions` satırı `FOR UPDATE` + kilitli kullanım sayımı, `promotion_redemptions.order_id` UNIQUE |
 | Başka işletmenin kaydı | Tenant scope + bileşik FK + 404 |
 | E-posta hatasının işlemi bozması | Commit sonrası kuyruk |
 

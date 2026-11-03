@@ -41,6 +41,7 @@
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
                 ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
                 ['label' => 'Fiyatlandırma', 'route' => 'business.pricing', 'icon' => 'percent', 'active' => ['business.pricing', 'business.price-lists.*']],
+                ['label' => 'Kupon ve Kampanyalar', 'route' => 'business.promotions.index', 'icon' => 'gift', 'active' => 'business.promotions.*'],
                 ['label' => 'Vitrin', 'route' => 'business.storefront.index', 'icon' => 'image', 'active' => 'business.storefront.*'],
             ]],
             ['label' => 'Bayiler', 'items' => [

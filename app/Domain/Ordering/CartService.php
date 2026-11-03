@@ -4,7 +4,9 @@ namespace App\Domain\Ordering;
 
 use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
+use App\Domain\Pricing\AppliedPromotion;
 use App\Domain\Pricing\PriceResolver;
+use App\Domain\Pricing\PromotionService;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\DealerRelationship;
@@ -14,13 +16,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Bayi sepeti. Sepette ürün bulunması stok ayırmaz (rezervasyon yoktur).
- * Fiyat ve stok her görüntülemede güncel kurallarla yeniden hesaplanır.
+ * Fiyat, stok ve kupon / kampanya indirimi her görüntülemede güncel kurallarla yeniden hesaplanır; sepette yalnızca
+ * bayinin girdiği kupon kodu saklanır.
  */
 class CartService
 {
     public const MAX_LINES = 200;
 
-    public function __construct(private PriceResolver $prices, private StockService $stock) {}
+    public function __construct(private PriceResolver $prices, private StockService $stock, private PromotionService $promotions) {}
 
     /** Bayinin görebileceği ve sipariş verebileceği ürünler. */
     public static function orderableProducts(): Builder
@@ -62,10 +65,16 @@ class CartService
         $item->update(['quantity' => $qty]);
     }
 
+    /** Bayinin girdiği kupon kodunu saklar (geçerliliği özette denetlenir ve gösterilir). */
+    public function setPromotionCode(DealerRelationship $relationship, ?string $code): void
+    {
+        $this->cart($relationship)->update(['promotion_code' => PromotionService::normalizeCode($code)]);
+    }
+
     /**
-     * Sepet özeti: satırlar, güncel fiyat, kurallara uygunluk ve stok durumu.
+     * Sepet özeti: satırlar, güncel fiyat, kurallara uygunluk, stok durumu ve sipariş indirimi (kupon / kampanya).
      *
-     * @return array{lines: array<int, array>, totals: array, has_issues: bool, warehouse_id: int}
+     * @return array{lines: array<int, array>, totals: array, has_issues: bool, warehouse_id: int, promotion: array{applied: ?AppliedPromotion, error: ?string, next: ?array, code: ?string}}
      */
     public function summary(DealerRelationship $relationship, int $warehouseId): array
     {
@@ -100,10 +109,25 @@ class CartService
             $amounts = $price ? LineCalculator::line($price->basePrice, $qty, $price->discountPercent, $price->taxRate) : null;
             $hasIssues = $hasIssues || $issue !== null;
 
-            $lines[] = ['item' => $item, 'product' => $product, 'price' => $price, 'amounts' => $amounts, 'issue' => $issue];
+            $lines[] = ['item' => $item, 'product' => $product, 'price' => $price, 'amounts' => $amounts, 'issue' => $issue, 'promotion_eligible' => false];
+        }
+
+        // Sipariş indirimi: sorunsuz satırların indirimli neti üzerinden; pay satıra işlenir, KDV paydan sonra hesaplanır.
+        $bases = [];
+        foreach ($lines as $key => $line) {
+            if ($line['amounts'] && $line['issue'] === null) {
+                $bases[$key] = ['product' => $line['product'], 'net' => $line['amounts']['line_net']];
+            }
+        }
+        $promotion = $this->promotions->evaluate($relationship, $bases, $cart->promotion_code);
+        foreach ($promotion['applied']?->shares ?? [] as $key => $share) {
+            $price = $lines[$key]['price'];
+            $lines[$key]['amounts'] = LineCalculator::line($price->basePrice, (string) $lines[$key]['item']->quantity, $price->discountPercent, $price->taxRate, $share);
+            $lines[$key]['promotion_eligible'] = true;
         }
 
         return [
+            'promotion' => $promotion + ['code' => $cart->promotion_code, 'bases' => $bases],
             'lines' => $lines,
             'totals' => LineCalculator::totals(array_filter(array_column($lines, 'amounts'))),
             'has_issues' => $hasIssues,

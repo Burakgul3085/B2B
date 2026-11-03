@@ -19,7 +19,7 @@ class OrderItem extends Model
             'vat_rate' => 'decimal:2', 'quantity_requested' => 'decimal:3', 'quantity_approved' => 'decimal:3',
             'list_unit_price' => 'decimal:4', 'unit_price' => 'decimal:4', 'discount_percent' => 'decimal:2',
             'line_subtotal' => 'decimal:2', 'line_discount' => 'decimal:2', 'line_net' => 'decimal:2',
-            'line_vat' => 'decimal:2', 'line_total' => 'decimal:2',
+            'line_vat' => 'decimal:2', 'line_total' => 'decimal:2', 'order_discount' => 'decimal:2', 'promotion_eligible' => 'boolean',
         ];
     }
 

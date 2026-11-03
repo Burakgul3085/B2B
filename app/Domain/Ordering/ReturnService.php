@@ -7,7 +7,9 @@ use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
 use App\Domain\Payments\OrderPaymentService;
+use App\Domain\Support\Decimal;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\OrderReturn;
 use App\Models\OrderReturnItem;
 use DomainException;
@@ -40,6 +42,23 @@ class ReturnService
         return $order->items->mapWithKeys(fn ($i) => [
             $i->id => bcsub((string) ($i->quantity_approved ?? '0'), (string) ($returned[$i->id] ?? '0'), 3),
         ])->all();
+    }
+
+    /**
+     * Kupon / kampanya indiriminin iade edilen miktara düşen payı: bayiye ödediğinden fazlası iade edilmez. Önceki
+     * iadelerle birlikte toplam pay satırın payını aşmasın diye birikimli hesaplanır.
+     */
+    public static function orderDiscountShare(OrderItem $item, string $returnable, string $qty): string
+    {
+        $total = (string) $item->order_discount;
+        $approved = (string) $item->quantity_approved;
+        if (bccomp($total, '0', 2) <= 0 || bccomp($approved, '0', 3) <= 0) {
+            return '0.00';
+        }
+        $before = bcsub($approved, $returnable, 3);
+        $upTo = fn (string $q) => Decimal::round(bcdiv(bcmul($total, $q, 10), $approved, 10), 2);
+
+        return bcsub($upTo(bcadd($before, $qty, 3)), $upTo($before), 2);
     }
 
     /**
@@ -80,7 +99,7 @@ class ReturnService
                         throw new DomainException("\"{$item->name}\" için depoya girecek miktar 0 ile iade miktarı arasında olmalıdır.");
                     }
                 }
-                $lines[] = ['item' => $item, 'qty' => $qty, 'restock' => $back, 'amounts' => LineCalculator::line((string) $item->unit_price, $qty, (string) $item->discount_percent, (string) $item->vat_rate)];
+                $lines[] = ['item' => $item, 'qty' => $qty, 'restock' => $back, 'amounts' => LineCalculator::line((string) $item->unit_price, $qty, (string) $item->discount_percent, (string) $item->vat_rate, self::orderDiscountShare($item, $returnable[$item->id], $qty))];
             }
 
             if ($lines === []) {

@@ -53,8 +53,16 @@
                 <x-card title="Sipariş özeti">
                     <dl class="space-y-2 text-sm">
                         <div class="flex justify-between"><dt class="text-muted">Ara toplam</dt><dd class="tabular-nums">{{ Money::format($summary['totals']['subtotal']) }}</dd></div>
-                        @if (bccomp($summary['totals']['discount_total'], '0', 2) > 0)
-                            <div class="flex justify-between text-success"><dt>İndirim</dt><dd class="tabular-nums">−{{ Money::format($summary['totals']['discount_total']) }}</dd></div>
+                        @php
+                            $promo = $summary['promotion'];
+                            $promoAmount = $promo['applied']?->amount ?? '0.00';
+                            $lineDiscount = bcsub($summary['totals']['discount_total'], $promoAmount, 2);
+                        @endphp
+                        @if (bccomp($lineDiscount, '0', 2) > 0)
+                            <div class="flex justify-between text-success"><dt>İndirim</dt><dd class="tabular-nums">−{{ Money::format($lineDiscount) }}</dd></div>
+                        @endif
+                        @if ($promo['applied'])
+                            <div class="flex justify-between gap-3 text-success"><dt>{{ $promo['applied']->promotion->isCoupon() ? 'Kupon '.$promo['applied']->promotion->code : 'Kampanya' }} <span class="block text-xs text-muted">{{ $promo['applied']->promotion->name }}</span></dt><dd class="shrink-0 tabular-nums">−{{ Money::format($promoAmount) }}</dd></div>
                         @endif
                         <div class="flex justify-between"><dt class="text-muted">KDV</dt><dd class="tabular-nums">{{ Money::format($summary['totals']['vat_total']) }}</dd></div>
                         @if (bccomp($deliveryFee, '0', 2) > 0)
@@ -62,6 +70,42 @@
                         @endif
                         <div class="flex justify-between border-t border-line pt-2 text-base font-semibold"><dt>Genel toplam</dt><dd class="tabular-nums">{{ Money::format(bcadd((string) $summary['totals']['grand_total'], $deliveryFee, 2)) }}</dd></div>
                     </dl>
+                </x-card>
+
+                <x-card title="Kupon kodu">
+                    @if ($promo['code'])
+                        <div class="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2 text-sm">
+                            <span><b class="font-mono">{{ $promo['code'] }}</b>
+                                @if ($promo['error'])<span class="block text-danger">{{ $promo['error'] }}</span>
+                                @else<span class="block text-success">Uygulandı: {{ $promo['applied']->promotion->summary() }}</span>@endif
+                            </span>
+                            <form method="POST" action="{{ route('dealer.cart.promotion.remove') }}">@csrf @method('DELETE')
+                                <button class="text-xs text-primary hover:underline">Kaldır</button>
+                            </form>
+                        </div>
+                    @else
+                        <form method="POST" action="{{ route('dealer.cart.promotion') }}" class="flex gap-2">
+                            @csrf
+                            <input name="code" value="{{ old('code') }}" maxlength="40" autocomplete="off" class="field-input min-w-0 flex-1 uppercase" placeholder="Kodu girin" aria-label="Kupon kodu">
+                            <x-button variant="secondary">Uygula</x-button>
+                        </form>
+                        @error('code')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
+                        @if ($promo['applied'])<p class="mt-2 text-sm text-success">Kampanya uygulandı: {{ $promo['applied']->promotion->summary() }}</p>@endif
+                    @endif
+                    @if ($campaigns->isNotEmpty())
+                        <div class="mt-4 border-t border-line pt-3">
+                            <p class="mb-1.5 text-sm font-medium">Size özel kampanyalar</p>
+                            <ul class="space-y-1.5 text-sm">
+                                @foreach ($campaigns as $campaign)
+                                    <li><b>{{ $campaign->name }}</b>: {{ $campaign->summary() }}@if ($campaign->ends_at)<span class="text-muted"> · {{ $campaign->ends_at->timezone('Europe/Istanbul')->format('d.m.Y') }} tarihine kadar</span>@endif
+                                        @if ($campaign->description)<span class="block text-muted">{{ $campaign->description }}</span>@endif</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    @if ($promo['next'])
+                        <p class="mt-3 rounded-lg bg-primary-soft/60 px-3 py-2 text-sm">{{ Money::format($promo['next']['missing']) }} (KDV hariç) daha ekleyin, <b>{{ $promo['next']['promotion']->name }}</b> kampanyasından yararlanın: {{ $promo['next']['promotion']->summary() }}.</p>
+                    @endif
                 </x-card>
 
                 <x-card title="Sevk ve gönder">

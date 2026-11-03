@@ -51,7 +51,11 @@
 </div>
 <dl class="ml-auto max-w-xs space-y-1.5 border-t border-line p-5 text-sm">
     <div class="flex justify-between"><dt class="text-muted">Ara toplam</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
-    @if ((float) $order->discount_total > 0)<div class="flex justify-between text-success"><dt>İndirim</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
+    @php($lineDiscount = bcsub((string) $order->discount_total, (string) $order->promotion_discount, 2))
+    @if (bccomp($lineDiscount, '0', 2) > 0)<div class="flex justify-between text-success"><dt>İndirim</dt><dd class="tabular-nums">−{{ Money::format($lineDiscount) }}</dd></div>@endif
+    @if (bccomp((string) $order->promotion_discount, '0', 2) > 0)
+        <div class="flex justify-between gap-3 text-success"><dt>{{ $order->promotion_code ? 'Kupon '.$order->promotion_code : 'Kampanya' }} <span class="text-xs text-muted">({{ $order->promotion_name }})</span></dt><dd class="shrink-0 tabular-nums">−{{ Money::format($order->promotion_discount) }}</dd></div>
+    @endif
     <div class="flex justify-between"><dt class="text-muted">KDV</dt><dd class="tabular-nums">{{ Money::format($order->vat_total) }}</dd></div>
     <div class="flex justify-between border-t border-line pt-1.5 text-base font-semibold"><dt>Genel toplam</dt><dd class="tabular-nums">{{ Money::format($order->grand_total) }}</dd></div>
 </dl>

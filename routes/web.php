@@ -273,6 +273,13 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('fiyat-listeleri/{list}/doldur', [Business\PricingController::class, 'fillList'])->name('price-lists.fill');
         Route::post('indirimler', [Business\PricingController::class, 'storeRule'])->name('discounts.store');
         Route::put('indirimler/{rule}/durum', [Business\PricingController::class, 'toggleRule'])->name('discounts.toggle');
+        Route::get('kupon-kampanyalar', [Business\PromotionController::class, 'index'])->name('promotions.index');
+        Route::get('kupon-kampanyalar/yeni', [Business\PromotionController::class, 'create'])->name('promotions.create');
+        Route::post('kupon-kampanyalar', [Business\PromotionController::class, 'store'])->name('promotions.store');
+        Route::get('kupon-kampanyalar/{promotion}', [Business\PromotionController::class, 'edit'])->name('promotions.edit');
+        Route::put('kupon-kampanyalar/{promotion}', [Business\PromotionController::class, 'update'])->name('promotions.update');
+        Route::put('kupon-kampanyalar/{promotion}/durum', [Business\PromotionController::class, 'toggle'])->name('promotions.toggle');
+        Route::delete('kupon-kampanyalar/{promotion}', [Business\PromotionController::class, 'destroy'])->name('promotions.destroy');
 
         // Katalog: ürünler
         Route::get('urunler', [Business\ProductController::class, 'index'])->name('products.index');
@@ -367,6 +374,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('gorsel/{image}', [Dealer\CatalogController::class, 'image'])->name('images.show');
         Route::get('sepet', [Dealer\CartController::class, 'index'])->name('cart');
         Route::post('sepet', [Dealer\CartController::class, 'add'])->name('cart.add');
+        Route::post('sepet/kupon', [Dealer\CartController::class, 'applyPromotion'])->middleware('throttle:20,1,cart.promotion')->name('cart.promotion');
+        Route::delete('sepet/kupon', [Dealer\CartController::class, 'removePromotion'])->name('cart.promotion.remove');
         Route::put('sepet/{item}', [Dealer\CartController::class, 'update'])->name('cart.update');
         Route::delete('sepet/{item}', [Dealer\CartController::class, 'remove'])->name('cart.remove');
         Route::post('sepet/siparis', [Dealer\CartController::class, 'submit'])->middleware('throttle:20,1,cart.submit')->name('cart.submit');

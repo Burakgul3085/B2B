@@ -26,6 +26,7 @@ use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\ProductImage;
 use App\Models\ProductRequest;
+use App\Models\Promotion;
 use App\Models\SavedReport;
 use App\Models\Showcase;
 use App\Models\StockCount;
@@ -83,6 +84,7 @@ trait BuildsWorld
                 'collection' => CollectionEntry::create(['current_account_id' => $account->id, 'collected_on' => now()->toDateString(), 'amount' => '1', 'method' => 'cash'])->id,
                 'list' => $list->id,
                 'item' => PriceListItem::create(['price_list_id' => $list->id, 'product_id' => $product->id, 'price' => '4'])->id,
+                'promotion' => Promotion::create(['name' => 'Kupon', 'code' => 'K'.Str::upper(Str::random(6)), 'type' => 'percent', 'value' => '5'])->id,
                 'rule' => DiscountRule::create(['name' => 'Kural', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'all', 'percent' => '5'])->id,
                 'order' => $order->id,
                 'returnRequest' => $returnRequestId = OrderReturnRequest::create(['order_id' => $order->id, 'dealer_relationship_id' => $rel->id, 'request_no' => 'IADE-'.Str::random(8), 'reason' => 'other'])->id,

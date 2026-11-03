@@ -7,6 +7,7 @@ use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Payments\PaymentSettings;
+use App\Domain\Pricing\PromotionService;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\CartItem;
@@ -22,7 +23,7 @@ class CartController extends Controller
 
     public function __construct(private CartService $carts, private OrderService $orders) {}
 
-    public function index(PaymentSettings $payments): View
+    public function index(PaymentSettings $payments, PromotionService $promotions): View
     {
         $relationship = $this->relationship();
         $settings = $this->settings();
@@ -33,6 +34,7 @@ class CartController extends Controller
             'paymentMethods' => $payments->methodsFor($relationship),
             'deliveryFee' => $payments->deliveryFee((string) $summary['totals']['grand_total']),
             'addresses' => $relationship->addresses,
+            'campaigns' => $promotions->visibleFor($relationship),
             'settings' => $settings,
             'submitToken' => (string) Str::uuid(), // çift gönderim koruması
         ]);
@@ -76,6 +78,22 @@ class CartController extends Controller
         $item->delete();
 
         return back()->with('status', 'Ürün sepetten çıkarıldı.');
+    }
+
+    /** Kupon kodu: yalnızca kod saklanır; geçerliliği ve tutarı sepet özetinde sunucuda hesaplanır. */
+    public function applyPromotion(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:40']], [], ['code' => 'kupon kodu']);
+        $this->carts->setPromotionCode($this->relationship(), $data['code']);
+
+        return back();
+    }
+
+    public function removePromotion(): RedirectResponse
+    {
+        $this->carts->setPromotionCode($this->relationship(), null);
+
+        return back()->with('status', 'Kupon kodu kaldırıldı.');
     }
 
     public function submit(Request $request): RedirectResponse

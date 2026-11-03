@@ -10,7 +10,7 @@ class Cart extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['dealer_relationship_id'];
+    protected $fillable = ['dealer_relationship_id', 'promotion_code'];
 
     public function items(): HasMany
     {

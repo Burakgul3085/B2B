@@ -53,6 +53,7 @@ class Order extends Model
             'is_partial' => 'boolean',
             'subtotal' => 'decimal:2', 'discount_total' => 'decimal:2', 'net_total' => 'decimal:2',
             'vat_total' => 'decimal:2', 'grand_total' => 'decimal:2', 'delivery_fee' => 'decimal:2', 'requested_total' => 'decimal:2',
+            'promotion_value' => 'decimal:2', 'promotion_max' => 'decimal:2', 'promotion_discount' => 'decimal:2',
             'paid_at' => 'datetime',
             'delivery_planned_on' => 'date',
             'approved_at' => 'datetime', 'shipped_at' => 'datetime', 'stock_applied_at' => 'datetime', 'stock_reversed_at' => 'datetime',

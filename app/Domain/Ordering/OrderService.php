@@ -10,6 +10,7 @@ use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
 use App\Domain\Payments\OrderPaymentService;
 use App\Domain\Payments\PaymentSettings;
+use App\Domain\Pricing\PromotionService;
 use App\Domain\Support\LocalTime;
 use App\Domain\Support\Money;
 use App\Domain\Tenancy\TenantContext;
@@ -22,6 +23,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderReturn;
 use App\Models\OrderStatusHistory;
+use App\Models\PromotionRedemption;
 use App\Models\Warehouse;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +51,7 @@ class OrderService
         private CurrentActor $actor,
         private PaymentSettings $paymentSettings,
         private OrderPaymentService $payments,
+        private PromotionService $promotions,
     ) {}
 
     /**
@@ -92,6 +95,10 @@ class OrderService
             }
 
             $totals = $this->withDeliveryFee($summary['totals']);
+            $applied = $summary['promotion']['applied'];
+            if ($summary['promotion']['code'] !== null && $summary['promotion']['error'] !== null) {
+                throw new DomainException('Kupon: '.$summary['promotion']['error'].' Kodu kaldırın veya düzeltin.');
+            }
             $order = Order::create([
                 'order_no' => $this->nextOrderNo(),
                 'dealer_relationship_id' => $relationship->id,
@@ -111,7 +118,18 @@ class OrderService
                 'ship_note' => $address->note,
                 'delivery_recipient' => $address->recipient_name,
                 'delivery_phone' => $address->phone,
+                // Sipariş indiriminin anlık kopyası: kısmi onayda bu değerlerle yeniden hesaplanır.
+                'promotion_id' => $applied?->promotion->id,
+                'promotion_name' => $applied?->promotion->name,
+                'promotion_code' => $applied?->promotion->code,
+                'promotion_type' => $applied?->promotion->type,
+                'promotion_value' => $applied?->promotion->value,
+                'promotion_max' => $applied?->promotion->max_discount,
+                'promotion_discount' => $applied?->amount ?? '0',
             ]);
+            if ($applied) {
+                $this->promotions->reserve($order, $applied, $relationship, $summary['promotion']['bases']);
+            }
 
             foreach ($summary['lines'] as $line) {
                 $p = $line['product'];
@@ -130,11 +148,13 @@ class OrderService
                     'list_unit_price' => $price->listPrice,
                     'unit_price' => $price->basePrice,
                     'discount_percent' => $price->discountPercent,
+                    'promotion_eligible' => $line['promotion_eligible'],
                     ...$line['amounts'],
                 ]);
             }
 
             CartItem::where('cart_id', $cart->id)->delete();
+            $cart->update(['promotion_code' => null]);
             $this->history($order, null, 'submitted');
             $this->audit->log('order.submitted', $order, [], ['order_no' => $order->order_no, 'grand_total' => (string) $order->grand_total]);
 
@@ -220,14 +240,27 @@ class OrderService
             // Stok: tüm kalemler kilitlenip kontrol edilir; biri yetersizse hiçbir şey yazılmaz.
             $this->stock->applyMany($warehouse->id, 'sale', $stockLines, ['reference_type' => 'order', 'reference_id' => $order->id]);
 
-            // Tutarlar onaylanan miktarla, SİPARİŞTEKİ fiyat ve KDV ile yeniden hesaplanır.
+            // Tutarlar onaylanan miktarla, SİPARİŞTEKİ fiyat, KDV ve kupon / kampanya kopyasıyla yeniden hesaplanır.
+            $nets = [];
             foreach ($items as $item) {
-                $item->fill(LineCalculator::line((string) $item->unit_price, (string) $item->quantity_approved, (string) $item->discount_percent, (string) $item->vat_rate))->save();
+                $line = LineCalculator::line((string) $item->unit_price, (string) $item->quantity_approved, (string) $item->discount_percent, (string) $item->vat_rate);
+                if ($item->promotion_eligible && bccomp($line['line_net'], '0.01', 2) > 0) {
+                    $nets[$item->id] = $line['line_net'];
+                }
+            }
+            $shares = PromotionService::reapply($order, $nets);
+            foreach ($items as $item) {
+                $item->fill(LineCalculator::line((string) $item->unit_price, (string) $item->quantity_approved, (string) $item->discount_percent, (string) $item->vat_rate, $shares[$item->id] ?? '0'))->save();
+            }
+            $promotionDiscount = array_reduce($shares, fn ($c, $v) => bcadd($c, $v, 2), '0.00');
+            if ($order->promotion_id !== null) {
+                $order->promotion_discount = $promotionDiscount;
+                PromotionRedemption::where('order_id', $order->id)->update(['amount' => $promotionDiscount]);
             }
 
             $from = $order->status;
             $requested = (string) $order->grand_total;
-            $order->fill($this->withDeliveryFee(LineCalculator::totals($items->map->only(['line_subtotal', 'line_discount', 'line_net', 'line_vat', 'line_total']))));
+            $order->fill($this->withDeliveryFee(LineCalculator::totals($items->map->only(['line_subtotal', 'line_discount', 'order_discount', 'line_net', 'line_vat', 'line_total']))));
             $order->fill([
                 'requested_total' => $requested,
                 // Onaylanan tutar ödenir: kart, havale ve teslimde ödemede ödeme beklenir; açık hesapta beklenmez.
@@ -266,6 +299,7 @@ class OrderService
 
             $from = $order->status;
             $order->update(['status' => 'rejected', 'rejected_reason' => $reason]);
+            $this->promotions->release($order);
             $this->history($order, $from, 'rejected', $reason);
             $this->audit->log('order.rejected', $order, ['status' => $from], ['reason' => $reason]);
 
@@ -411,6 +445,7 @@ class OrderService
 
         $from = $order->status;
         $order->fill(['status' => 'cancelled', 'cancel_reason' => $reason, 'cancelled_at' => now(), 'cancel_requested_from' => null])->save();
+        $this->promotions->release($order);
         $this->history($order, $from, 'cancelled', $reason.($kept ? ' · Alınan '.Money::format($kept).' ödeme bayinin carisinde alacak olarak duruyor.' : ''));
         $this->audit->log('order.cancelled', $order, ['status' => $from], [
             'reason' => $reason, 'stock_reversed' => $order->stock_reversed_at !== null, 'ledger_reversed' => $order->ledger_reversed_at !== null,
