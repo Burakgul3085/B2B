@@ -13,7 +13,6 @@ use OpenSpout\Common\Entity\Style\BorderWidth;
 use OpenSpout\Common\Entity\Style\CellAlignment;
 use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
 use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Properties;
 use OpenSpout\Writer\XLSX\Validation\Rules\CustomValidationRule;
@@ -98,8 +97,8 @@ final class ImportTemplate
     {
         $sheet = $writer->getCurrentSheet();
         $sheet->setName('Ürünler');
-        // Başlık dondurulmaz: OpenSpout'un yazdığı donmuş bölme Excel'de kaydırırken başlığı bir süre çift çiziyor.
-        $sheet->setSheetView(new SheetView(showGridLines: false, tabSelected: true));
+        // Başlık satırı sabittir (ExcelSheetView: Excel'deki gibi yazılır, kaydırırken çift çizilmez).
+        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1));
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }
@@ -116,7 +115,7 @@ final class ImportTemplate
     {
         $sheet = $writer->addNewSheetAndMakeItCurrent();
         $sheet->setName('Nasıl doldurulur');
-        $sheet->setSheetView(new SheetView(showGridLines: false));
+        $sheet->setSheetView(new ExcelSheetView(selected: false));
         foreach ([24, 14, 70, 26] as $i => $width) {
             $sheet->setColumnWidth($width, $i + 1);
         }
@@ -162,7 +161,7 @@ final class ImportTemplate
     {
         $sheet = $writer->addNewSheetAndMakeItCurrent();
         $sheet->setName('Örnekler');
-        $sheet->setSheetView(new SheetView(showGridLines: false));
+        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1, selected: false));
         foreach ($columns as $i => $col) {
             $sheet->setColumnWidth($col['width'] ?? max(12, mb_strlen($col['title']) + 6), $i + 1);
         }

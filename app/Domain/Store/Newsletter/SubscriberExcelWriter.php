@@ -4,6 +4,7 @@ namespace App\Domain\Store\Newsletter;
 
 use App\Domain\Store\Reports\ReportCell;
 use App\Domain\Store\Reports\StoreReportBranding;
+use App\Domain\Support\ExcelSheetView;
 use DateTimeImmutable;
 use DateTimeZone;
 use OpenSpout\Common\Entity\Cell;
@@ -17,7 +18,6 @@ use OpenSpout\Common\Entity\Style\CellAlignment;
 use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\AutoFilter;
-use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Options\HeaderFooter;
 use OpenSpout\Writer\XLSX\Options\PageMargin;
@@ -30,10 +30,10 @@ use OpenSpout\Writer\XLSX\Writer;
 /**
  * E-bülten abone listesi ve İYS listesi için düzenli XLSX (akış halinde; satır sayısından bağımsız sabit bellek).
  *
- * Sütun başlıkları 1. satırdadır ve dondurulur: kaydırırken başlık hep üstte kalır. Üstte birleştirilmiş antet satırı
- * bilerek yoktur; birleştirilmiş satır dondurulmuş alana girince Excel kaydırırken başlığı iki kez çiziyor
- * (StoreExcelWriter'daki not). İYS listesinde de bu sayede ilk satır İYS sütun adlarıdır, veri 2. satırdan başlar.
- * Boş hücrelere "—" yazılır: uzun metin yandaki boş hücrenin üzerine taşmaz.
+ * Sütun başlıkları 1. satırdadır ve dondurulur (ExcelSheetView): kaydırırken başlık hep üstte kalır. Üstte antet satırı
+ * bilerek yoktur; İYS listesinde de bu sayede ilk satır İYS sütun adlarıdır, veri 2. satırdan başlar.
+ * Boş hücrelere "—" yazılır: uzun metin yandaki boş hücrenin üzerine taşmaz. İYS yükleme dosyasında boş hücre boş
+ * kalır ($markEmpty = false): İYS "—" değerini tarih/değer olarak okumaya çalışır.
  *
  * @phpstan-type Column array{label: string, width: float, type?: 'text'|'center'|'datetime'|'status'}
  */
@@ -56,6 +56,8 @@ final class SubscriberExcelWriter
     /** @var array<string, Style> */
     private array $styles = [];
 
+    public function __construct(private bool $markEmpty = true) {}
+
     /**
      * @param  list<Column>  $columns
      * @param  iterable<list<mixed>>  $rows  hücre değerleri; durum sütununda [metin, ton]
@@ -76,7 +78,7 @@ final class SubscriberExcelWriter
         $writer->openToFile($path);
         $sheet = $writer->getCurrentSheet();
         $sheet->setName(mb_substr($title, 0, 31));
-        $sheet->setSheetView(new SheetView(showGridLines: false, freezeRow: 2));
+        $sheet->setSheetView(new ExcelSheetView(frozenRows: 1));
         $sheet->setPrintTitleRows('$1:$1');
         foreach ($columns as $i => $column) {
             $sheet->setColumnWidth($column['width'], $i + 1);
@@ -109,7 +111,7 @@ final class SubscriberExcelWriter
             return Cell::fromValue(ReportCell::safeText((string) $value[0]), $this->style('status', $value[1] ?? 'muted'));
         }
         if ($value === null || $value === '') {
-            return Cell::fromValue('—', $this->style($variant, 'empty'));
+            return Cell::fromValue($this->markEmpty ? '—' : '', $this->style($variant, 'empty'));
         }
         if ($type === 'datetime' && $value instanceof \DateTimeInterface) {
             // Excel saat dilimi bilmez: yerel saat "duvar saati" olarak yazılır.

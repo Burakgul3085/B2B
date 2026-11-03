@@ -2,6 +2,7 @@
 
 namespace App\Domain\Reporting;
 
+use App\Domain\Support\ExcelSheetView;
 use App\Models\Business;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -18,7 +19,6 @@ use OpenSpout\Common\Entity\Style\CellAlignment;
 use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\AutoFilter;
-use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Options\HeaderFooter;
 use OpenSpout\Writer\XLSX\Options\PageMargin;
@@ -91,8 +91,8 @@ final class ExcelReportWriter
         $writer->openToFile($path);
         $sheet = $writer->getCurrentSheet();
         $sheet->setName($this->sheetName($report->title()));
-        // Bölme dondurulmaz: birleştirilmiş antetle birlikte 7 satırlık donmuş alan Excel'de kaydırırken çizim hatası yapıyor.
-        $sheet->setSheetView(new SheetView(showGridLines: false));
+        // Bölme dondurulmaz: 7 satırlık antet donunca ekranın büyük kısmını kaplar; başlık yazdırırken her sayfada tekrarlanır.
+        $sheet->setSheetView(new ExcelSheetView);
         $sheet->setPrintTitleRows('$'.self::HEADER_ROW.':$'.self::HEADER_ROW);
         foreach ($this->widths($columns, $sample) as $i => $width) {
             $sheet->setColumnWidth($width, $i + 1);

@@ -153,8 +153,8 @@ class Subscriptions
     }
 
     /**
-     * Dışa aktarım. "list": yönetim listesi (Excel); "iys": İYS listesi (Excel, kontrol için); "iys-csv": İYS toplu
-     * yükleme biçimi (CSV, ; ayraçlı). İYS dosyalarında yalnızca onaylı aboneler ve ayrılanlar bulunur; İYS Excel'inde
+     * Dışa aktarım. "list": yönetim listesi (Excel); "iys": İYS yükleme dosyası (Excel); "iys-csv": aynısı
+     * CSV olarak (; ayraçlı; İYS ekranı Excel kabul etmezse). İYS dosyalarında yalnızca onaylı aboneler ve ayrılanlar bulunur; İYS Excel'inde
      * sütun adları ve değerler CSV ile birebir aynıdır, yalnızca görünüm düzenlidir.
      */
     public function export(string $format, ?string $status): StreamedResponse
@@ -197,7 +197,7 @@ class Subscriptions
                 return $row;
             });
 
-            return $this->excel("iys-eposta-izinleri-{$date}.xlsx", 'İYS e-posta izinleri', $columns, $rows);
+            return $this->excel("iys-eposta-izinleri-{$date}.xlsx", 'İYS e-posta izinleri', $columns, $rows, markEmpty: false);
         }
 
         $columns = [
@@ -215,9 +215,9 @@ class Subscriptions
         return $this->excel("e-bulten-aboneleri-{$date}.xlsx", 'E-bülten aboneleri', $columns, $rows);
     }
 
-    private function excel(string $name, string $title, array $columns, iterable $rows): StreamedResponse
+    private function excel(string $name, string $title, array $columns, iterable $rows, bool $markEmpty = true): StreamedResponse
     {
-        return response()->streamDownload(fn () => (new SubscriberExcelWriter)->write('php://output', $title, $columns, $rows),
+        return response()->streamDownload(fn () => (new SubscriberExcelWriter($markEmpty))->write('php://output', $title, $columns, $rows),
             $name, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
