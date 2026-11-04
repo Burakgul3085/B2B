@@ -25,7 +25,7 @@
                                 <p class="text-xs text-muted">{{ $p->sku }}</p>
                                 @if ($line['price'])
                                     <p class="mt-1 text-sm tabular-nums">{{ Money::formatUnit($line['price']->basePrice) }} / {{ $p->unit->name }}
-                                        @if ($line['price']->hasDiscount())<span class="text-success"> · %{{ rtrim(rtrim(number_format((float) $line['price']->discountPercent, 2, ',', ''), '0'), ',') }} indirim</span>@endif
+                                        @if ($line['price']->hasDiscount())<span class="text-muted line-through"> {{ Money::formatUnit($line['price']->wasPrice) }}</span><span class="text-success"> · %{{ $line['price']->savingPercent() }} indirim</span>@endif
                                     </p>
                                 @endif
                                 @if ($line['issue'])<p class="mt-1 text-sm font-medium text-danger">{{ $line['issue'] }}</p>@endif

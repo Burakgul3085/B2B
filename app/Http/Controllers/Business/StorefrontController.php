@@ -9,7 +9,6 @@ use App\Http\Controllers\Concerns\ServesBannerMedia;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\DealerGroup;
 use App\Models\HomeBanner;
 use App\Models\Product;
 use App\Models\Showcase;
@@ -32,9 +31,8 @@ class StorefrontController extends Controller
     public function index(Request $request): View
     {
         return view('business.storefront.index', [
-            'banners' => HomeBanner::with('group')->orderByRaw("placement = 'hero' DESC")->orderBy('sort')->orderBy('id')->get(),
+            'banners' => HomeBanner::query()->orderByRaw("placement = 'hero' DESC")->orderBy('sort')->orderBy('id')->get(),
             'showcases' => Showcase::with('items.product:id,name,sku')->orderBy('sort')->orderBy('id')->get(),
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
             'targets' => [
                 'category' => Category::where('is_active', true)->with('parent:id,name')->orderBy('name')->get()->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->sort()->all(),
                 'brand' => Brand::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all(),
@@ -161,7 +159,6 @@ class StorefrontController extends Controller
             'text_position' => ['required', Rule::in(array_keys(HomeBanner::TEXT_POSITIONS))],
             'starts_on' => ['nullable', 'date'],
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
-            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'media.max' => 'Dosya en fazla 50 MB olabilir.',
@@ -169,7 +166,7 @@ class StorefrontController extends Controller
         ], [
             'media' => 'görsel veya video', 'mobile_media' => 'mobil görsel', 'poster' => 'kapak görseli', 'title' => 'başlık',
             'subtitle' => 'alt başlık', 'button_label' => 'düğme yazısı', 'link_type' => 'bağlantı', 'link_id' => 'bağlantı hedefi',
-            'starts_on' => 'başlangıç', 'ends_on' => 'bitiş', 'dealer_group_id' => 'bayi grubu',
+            'starts_on' => 'başlangıç', 'ends_on' => 'bitiş',
         ]);
     }
 

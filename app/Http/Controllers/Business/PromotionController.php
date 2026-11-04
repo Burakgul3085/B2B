@@ -7,7 +7,6 @@ use App\Domain\Files\ImageVariants;
 use App\Domain\Pricing\PromotionAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
-use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\Product;
 use App\Models\Promotion;
@@ -100,7 +99,6 @@ class PromotionController extends Controller
             'promotion' => $promotion,
             'images' => $promotion->exists ? $promotion->images()->get() : collect(),
             'categories' => Category::with('parent')->get()->sortBy(fn ($c) => $c->fullName())->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->all(),
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id')->all(),
             'dealers' => DealerRelationship::with('dealer')->orderBy('dealer_code')->get()->mapWithKeys(fn ($r) => [$r->id => $r->dealer_code.' · '.$r->dealer->legal_name])->all(),
             'skus' => $promotion->product_ids ? Product::whereIn('id', $promotion->product_ids)->orderBy('sku')->pluck('sku')->implode("\n") : '',
             'redemptions' => collect(),

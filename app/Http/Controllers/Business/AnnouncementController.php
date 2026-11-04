@@ -8,13 +8,11 @@ use App\Domain\Notifications\Notifier;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Attachment;
-use App\Models\DealerGroup;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,7 +31,6 @@ class AnnouncementController extends Controller
     {
         return view('business.announcements', [
             'announcements' => Announcement::with(['group', 'attachments'])->latest('id')->paginate(20),
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
         ]);
     }
 
@@ -42,15 +39,14 @@ class AnnouncementController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:160'],
             'body' => ['required', 'string', 'max:5000'],
-            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'files' => ['nullable', 'array', 'max:'.self::MAX_FILES],
             'files.*' => ['file', 'max:'.(self::MAX_BYTES / 1024)],
-        ], [], ['title' => 'başlık', 'body' => 'duyuru metni', 'dealer_group_id' => 'bayi grubu', 'files' => 'ekler', 'files.*' => 'ek dosya']);
+        ], [], ['title' => 'başlık', 'body' => 'duyuru metni', 'files' => 'ekler', 'files.*' => 'ek dosya']);
 
         // Duyuru ve ekleri birlikte kaydedilir: bir dosya reddedilirse duyuru da yayımlanmaz.
         try {
             $announcement = DB::transaction(function () use ($data, $request, $documents) {
-                $announcement = Announcement::create(collect($data)->only(['title', 'body', 'dealer_group_id'])->all() + [
+                $announcement = Announcement::create(collect($data)->only(['title', 'body'])->all() + [
                     'send_email' => $request->boolean('send_email'), 'published_at' => now(), 'created_by' => $request->user()->id,
                 ]);
 

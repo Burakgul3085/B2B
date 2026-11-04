@@ -6,7 +6,7 @@
     $dealerName = $dealerProfile->legal_name;
     $owes = bccomp($balance, '0', 2) > 0;
     $features = [
-        ['percent', 'Size özel fiyatlar', 'Grubunuza ve hesabınıza tanımlı fiyat ve indirimler her üründe hazır.'],
+        ['percent', 'Kampanya ve indirimler', 'İndirimli ürünler ve size açık kampanyalar her üründe hazır.'],
         ['layers', 'Anlık stok bilgisi', 'Ürünün stokta olup olmadığını sipariş vermeden önce görün.'],
         ['check-circle', 'Adım adım sipariş takibi', 'Onaydan teslime kadar siparişinizin her aşamasından haberdar olun.'],
         ['file', 'Cari hesabınız elinizde', 'Bakiye, hareketler ve ekstreniz 7/24 tek tıkla erişilebilir.'],
@@ -43,7 +43,6 @@
                     <p class="truncate text-xl font-bold tracking-tight text-ink">{{ $dealerName }}</p>
                     <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                         <span>Bayi kodu <strong class="font-semibold text-ink">{{ $summary['code'] }}</strong></span>
-                        @if ($summary['group'])<span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700 ring-1 ring-amber-200">{{ $summary['group'] }}</span>@endif
                     </p>
                 </div>
             </div>

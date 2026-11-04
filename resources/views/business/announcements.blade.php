@@ -27,7 +27,6 @@
                 @csrf
                 <x-field name="title" label="Başlık" required maxlength="160" />
                 <x-field name="body" label="Metin" textarea required />
-                <x-field name="dealer_group_id" label="Kimlere" :options="['' => 'Tüm aktif bayiler'] + $groups->all()" />
                 <div>
                     <label for="announcement_files" class="mb-1.5 block text-sm font-medium text-ink">Ekler <span class="font-normal text-muted">(isteğe bağlı)</span></label>
                     <label for="announcement_files" class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line bg-slate-50 px-4 py-5 text-center transition hover:border-primary/50 hover:bg-primary-soft/40">

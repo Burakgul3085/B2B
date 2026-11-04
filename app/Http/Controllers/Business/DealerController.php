@@ -7,14 +7,9 @@ use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Notifications\Notifier;
-use App\Domain\Pricing\PriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\DealerAddress;
-use App\Models\DealerGroup;
-use App\Models\DealerProductPrice;
 use App\Models\DealerRelationship;
-use App\Models\Product;
-use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,18 +27,16 @@ class DealerController extends Controller
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(array_keys(DealerRelationship::STATUSES))],
-            'group' => ['nullable', 'integer'],
         ]);
 
         $relationships = DealerRelationship::query()
-            ->with(['dealer.user', 'group'])
+            ->with(['dealer.user'])
             ->when($filters['q'] ?? null, function ($q, $term) {
                 $like = addcslashes($term, '%_\\');
                 $q->where(fn ($q) => $q->where('dealer_code', 'like', "{$like}%")
                     ->orWhereHas('dealer', fn ($d) => $d->where('legal_name', 'like', "%{$like}%")->orWhere('email', 'like', "%{$like}%")));
             })
             ->when($filters['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
-            ->when($filters['group'] ?? null, fn ($q, $g) => $q->where('dealer_group_id', $g))
             ->orderBy('dealer_code')
             ->paginate(25)
             ->withQueryString();
@@ -51,7 +44,6 @@ class DealerController extends Controller
         return view('business.dealers.index', [
             'relationships' => $relationships,
             'filters' => $filters,
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
             'hasAny' => DealerRelationship::exists(),
         ]);
     }
@@ -59,7 +51,6 @@ class DealerController extends Controller
     public function create(Request $request): View
     {
         return view('business.dealers.create', [
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
             'defaultTerm' => $request->user()->business->settings->default_payment_term_days,
         ]);
     }
@@ -79,7 +70,6 @@ class DealerController extends Controller
             'tax_office' => ['nullable', 'string', 'max:120'],
             'tax_number' => ['nullable', 'regex:/^\d{10,11}$/'],
             'dealer_code' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-]+$/'],
-            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
             'password' => ['nullable', 'string', Password::defaults()],
@@ -87,7 +77,7 @@ class DealerController extends Controller
 
         try {
             $result = $this->onboarding->createDirect($data, $data['contact_name'], $request->user()->id,
-                array_filter(collect($data)->only(['dealer_code', 'dealer_group_id', 'payment_term_days', 'can_edit_addresses'])->all(), fn ($v) => $v !== null),
+                array_filter(collect($data)->only(['dealer_code', 'payment_term_days', 'can_edit_addresses'])->all(), fn ($v) => $v !== null),
                 $data['password'] ?? null);
         } catch (DomainException $e) {
             return back()->withErrors([str_contains($e->getMessage(), 'şifre') ? 'password' : 'email' => $e->getMessage()])->withInput($request->except('password'));
@@ -104,27 +94,10 @@ class DealerController extends Controller
 
     public function show(Request $request, DealerRelationship $dealer): View
     {
-        $dealer->load(['dealer.user', 'group.priceList', 'currentAccount', 'addresses']);
-        $tab = in_array($request->query('tab'), ['addresses', 'prices', 'preview'], true) ? $request->query('tab') : 'general';
+        $dealer->load(['dealer.user', 'currentAccount', 'addresses']);
+        $tab = $request->query('tab') === 'addresses' ? $request->query('tab') : 'general';
 
-        $data = ['relationship' => $dealer, 'tab' => $tab, 'groups' => DealerGroup::orderBy('name')->pluck('name', 'id')];
-
-        if ($tab === 'prices') {
-            $data['prices'] = $dealer->productPrices()->with('product:id,name,sku')->orderByDesc('id')->paginate(30)->withQueryString();
-        }
-
-        if ($tab === 'preview') {
-            $term = trim($request->scalar('q'));
-            $products = Product::notArchived()->where('is_active', true)->with(['unit', 'taxRate'])
-                ->when($term !== '', function ($q) use ($term) {
-                    $like = addcslashes($term, '%_\\');
-                    $q->where(fn ($q) => $q->where('name', 'like', "%{$like}%")->orWhere('sku', 'like', "{$like}%"));
-                })
-                ->orderBy('name')->limit(30)->get();
-
-            $data['previewProducts'] = $products;
-            $data['previewPrices'] = app(PriceResolver::class)->resolveMany($dealer, $products);
-        }
+        $data = ['relationship' => $dealer, 'tab' => $tab];
 
         return view('business.dealers.show', $data);
     }
@@ -135,7 +108,6 @@ class DealerController extends Controller
         $data = $request->validate([
             'dealer_code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('dealer_relationships', 'dealer_code')->where('business_id', $request->user()->business_id)->ignore($dealer->id)],
-            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
             'allow_open_account' => ['boolean'],
@@ -222,30 +194,6 @@ class DealerController extends Controller
         return redirect()->route('business.dealers.show', [$dealer, 'tab' => 'addresses'])->with('status', 'Adres kaldırıldı. Geçmiş siparişlerdeki adres bilgisi değişmez.');
     }
 
-    public function storePrice(Request $request, DealerRelationship $dealer): RedirectResponse
-    {
-        $data = $request->validate([
-            'product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('business_id', $request->user()->business_id)->whereNull('archived_at')],
-            'price' => ['required', 'decimal:0,4', 'min:0', 'max:99999999999'],
-            'starts_on' => ['nullable', 'date'],
-            'ends_on' => ['nullable', 'date', new NotBefore('starts_on')],
-        ], [], ['product_id' => 'ürün', 'price' => 'fiyat', 'starts_on' => 'başlangıç', 'ends_on' => 'bitiş']);
-
-        $price = $dealer->productPrices()->create($data);
-        $this->audit->log('pricing.dealer_price_set', $price, [], $data + ['dealer_relationship_id' => $dealer->id]);
-
-        return redirect()->route('business.dealers.show', [$dealer, 'tab' => 'prices'])->with('status', 'Bayiye özel fiyat kaydedildi.');
-    }
-
-    public function destroyPrice(DealerRelationship $dealer, DealerProductPrice $price): RedirectResponse
-    {
-        abort_unless($price->dealer_relationship_id === $dealer->id, 404);
-        $this->audit->log('pricing.dealer_price_removed', $price, $price->only(['product_id', 'price', 'starts_on', 'ends_on']));
-        $price->delete();
-
-        return redirect()->route('business.dealers.show', [$dealer, 'tab' => 'prices'])->with('status', 'Özel fiyat kaldırıldı. Geçmiş siparişler etkilenmez.');
-    }
-
     public static function addressRules(): array
     {
         return [
@@ -288,7 +236,7 @@ class DealerController extends Controller
     {
         return [
             'legal_name' => 'işletme unvanı', 'contact_name' => 'yetkili adı', 'dealer_code' => 'bayi kodu',
-            'dealer_group_id' => 'bayi grubu', 'payment_term_days' => 'vade (gün)', 'tax_number' => 'vergi numarası',
+            'payment_term_days' => 'vade (gün)', 'tax_number' => 'vergi numarası',
         ];
     }
 }

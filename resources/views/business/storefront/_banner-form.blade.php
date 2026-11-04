@@ -1,4 +1,4 @@
-{{-- Slayt formu (yeni veya düzenleme). $banner: ?HomeBanner, $groups, $targets --}}
+{{-- Slayt formu (yeni veya düzenleme). $banner: ?HomeBanner, $targets --}}
 @php
     use App\Domain\Storefront\BannerMedia;
     use App\Models\HomeBanner;
@@ -166,7 +166,6 @@
     <div class="grid gap-4 sm:grid-cols-2">
         <x-field name="starts_on" :label="'Başlangıç'" type="date" :value="$banner?->starts_on?->toDateString()" hint="Boşsa hemen yayında." />
         <x-field name="ends_on" :label="'Bitiş'" type="date" :value="$banner?->ends_on?->toDateString()" hint="Boşsa süresiz." />
-        <x-field name="dealer_group_id" label="Kimlere gösterilsin" :options="['' => 'Tüm bayiler'] + $groups->all()" :value="$banner?->dealer_group_id" class="sm:col-span-2" />
     </div>
     <x-toggle name="is_active" label="Yayında" :checked="$banner?->is_active ?? true" hint="Kapalı slaytlar bayilere gösterilmez." />
 

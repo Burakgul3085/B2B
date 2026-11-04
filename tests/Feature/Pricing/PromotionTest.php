@@ -9,7 +9,6 @@ use App\Domain\Pricing\PromotionService;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\CurrentAccountMovement;
-use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\Order;
 use App\Models\OrderReturn;
@@ -117,15 +116,14 @@ class PromotionTest extends TestCase
         $this->assertNull($order->promotion_code);
     }
 
-    public function test_coupon_targets_group_or_selected_dealers_and_is_isolated_per_business(): void
+    public function test_coupon_targets_selected_dealers_and_is_isolated_per_business(): void
     {
         $business = $this->makeBusiness();
         $member = $this->orderingDealer($business);
         $other = $this->orderingDealer($business);
         $product = $this->makeProduct($business, ['dealer_price' => '10.00']);
-        $group = $this->inTenant($business, fn () => DealerGroup::create(['name' => 'A Grubu']));
-        $this->inTenant($business, fn () => $member->update(['dealer_group_id' => $group->id]));
-        $this->promotion($business, ['code' => 'GRUP', 'target' => 'group', 'dealer_group_id' => $group->id]);
+        // Kaldırılan "bayi grubu" hedefi (eski kayıt) hiçbir bayiye açılmaz.
+        $this->promotion($business, ['code' => 'GRUP', 'target' => 'group']);
         $this->promotion($business, ['code' => 'OZEL', 'target' => 'dealers', 'dealer_ids' => [$member->id]]);
 
         $foreign = $this->makeBusiness();
@@ -134,7 +132,7 @@ class PromotionTest extends TestCase
         $check = function (DealerRelationship $rel, string $code) use ($business, $product) {
             return $this->inTenant($business, fn () => app(PromotionService::class)->evaluate($rel, [['product' => $product, 'net' => '100.00']], $code));
         };
-        $this->assertNotNull($check($member, 'GRUP')['applied']);
+        $this->assertSame('Bu kupon hesabınız için geçerli değil.', $check($member, 'GRUP')['error']);
         $this->assertNotNull($check($member, 'OZEL')['applied']);
         $this->assertSame('Bu kupon hesabınız için geçerli değil.', $check($other, 'GRUP')['error']);
         $this->assertSame('Bu kupon hesabınız için geçerli değil.', $check($other, 'OZEL')['error']);

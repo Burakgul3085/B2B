@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
 /**
  * B2B kupon ve kampanyaları (docs/03-is-kurallari.md §4.4).
  *  - Siparişte tek sipariş indirimi: bayi kod girdiyse kupon, girmediyse koşulu tutan en avantajlı otomatik kampanya.
- *  - Ürün / kategori indirim kurallarının ve bayiye özel fiyatın üzerine uygulanır; taban satırların indirimli
+ *  - İndirimli bayi fiyatının üzerine uygulanır; taban satırların
  *    KDV hariç tutarıdır (net). Kapsam (kategori alt kategorileriyle, ürün) varsa yalnızca kapsamdaki satırlar sayılır.
  *  - İndirim kapsamdaki satırlara net tutarlarıyla orantılı paylaştırılır; her satırda en az 0,01 ₺ kalır. KDV
  *    indirimli net üzerinden hesaplanır (fatura ve cari doğru çıkar).
@@ -315,9 +315,9 @@ class PromotionService
     private function targets(Promotion $promotion, DealerRelationship $relationship): bool
     {
         return match ($promotion->target) {
-            'group' => $promotion->dealer_group_id !== null && (int) $relationship->dealer_group_id === (int) $promotion->dealer_group_id,
+            'all' => true,
             'dealers' => in_array($relationship->id, array_map('intval', $promotion->dealer_ids ?? []), true),
-            default => true,
+            default => false, // tanınmayan hedef (ör. kaldırılan "bayi grubu") kimseye açılmaz
         };
     }
 

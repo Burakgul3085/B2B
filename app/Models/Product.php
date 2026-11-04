@@ -16,7 +16,8 @@ class Product extends Model
     /** Formdan ve içe aktarmadan doldurulabilen alanlar. */
     public const EDITABLE = [
         'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'pack_quantity',
-        'purchase_price', 'list_price', 'dealer_price', 'tax_rate_id', 'price_includes_tax', 'min_order_qty',
+        'purchase_price', 'list_price', 'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',
+        'tax_rate_id', 'price_includes_tax', 'min_order_qty',
         'order_step', 'critical_stock_level', 'variant_group_id', 'variant_values', 'is_active', 'visible_to_dealers',
     ];
 
@@ -34,6 +35,9 @@ class Product extends Model
             'purchase_price' => 'decimal:4',
             'list_price' => 'decimal:4',
             'dealer_price' => 'decimal:4',
+            'dealer_sale_price' => 'decimal:4',
+            'dealer_sale_starts_on' => 'date',
+            'dealer_sale_ends_on' => 'date',
             'min_order_qty' => 'decimal:3',
             'order_step' => 'decimal:3',
             'critical_stock_level' => 'decimal:3',
@@ -48,6 +52,30 @@ class Product extends Model
     public function scopeNotArchived(Builder $query): void
     {
         $query->whereNull('archived_at');
+    }
+
+    /** İndirimsiz bayi fiyatı (girildiği gibi): standart bayi fiyatı, yoksa liste fiyatı. */
+    public function regularDealerPrice(): string
+    {
+        return (string) ($this->dealer_price ?? $this->list_price);
+    }
+
+    /** İndirimli bayi fiyatı bu tarihte (Y-m-d) geçerli mi? İndirimsiz fiyattan düşük değilse uygulanmaz. */
+    public function dealerSaleActiveOn(string $date): bool
+    {
+        return $this->dealer_sale_price !== null
+            && ($this->dealer_sale_starts_on === null || $this->dealer_sale_starts_on->toDateString() <= $date)
+            && ($this->dealer_sale_ends_on === null || $this->dealer_sale_ends_on->toDateString() >= $date)
+            && bccomp((string) $this->dealer_sale_price, $this->regularDealerPrice(), 4) < 0;
+    }
+
+    /** Bu tarihte indirimli bayi fiyatı geçerli ürünler (dealerSaleActiveOn ile aynı koşul). */
+    public function scopeOnDealerSale(Builder $query, string $date): void
+    {
+        $query->whereNotNull('products.dealer_sale_price')
+            ->where(fn ($q) => $q->whereNull('products.dealer_sale_starts_on')->orWhere('products.dealer_sale_starts_on', '<=', $date))
+            ->where(fn ($q) => $q->whereNull('products.dealer_sale_ends_on')->orWhere('products.dealer_sale_ends_on', '>=', $date))
+            ->whereRaw('products.dealer_sale_price < COALESCE(products.dealer_price, products.list_price)');
     }
 
     public function category(): BelongsTo

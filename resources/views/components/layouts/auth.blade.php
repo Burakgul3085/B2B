@@ -33,7 +33,7 @@
             'lead' => 'Ürün, stok, bayi, fiyat ve sipariş süreçleri; anlık raporlarla birlikte.',
             'features' => [
                 ['warehouse', 'Çok depolu stok ve sayım yönetimi'],
-                ['users', 'Bayi, grup ve özel fiyat listeleri'],
+                ['users', 'Bayi yönetimi, kupon ve kampanyalar'],
                 ['file', 'Sipariş, tahsilat ve kurumsal raporlar'],
             ],
             'bg' => 'from-[#04201f] via-[#0b3b3a] to-[#115e59]',

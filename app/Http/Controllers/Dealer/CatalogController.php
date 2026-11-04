@@ -62,7 +62,7 @@ class CatalogController extends Controller
         if ($onlyNew && empty($filters['sort'])) {
             $filters['sort'] = 'new';
         }
-        // İndirimdekiler (bayiye uygulanan indirim kuralı) ve kampanya kapsamı: yalnızca bu bayiye görünen kampanyalar.
+        // İndirimdekiler (indirimli bayi fiyatı) ve kampanya kapsamı: yalnızca bu bayiye görünen kampanyalar.
         $onlyDiscounted = (bool) ($filters['indirim'] ?? false);
         $visible = $this->promotions->visibleFor($relationship);
         $campaign = null;
@@ -87,7 +87,7 @@ class CatalogController extends Controller
             })
             ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"))
             ->when($onlyNew, fn ($q) => NewProducts::apply($q, $settings))
-            ->when($onlyDiscounted, fn ($q) => $this->prices->whereDiscounted($q, $relationship))
+            ->when($onlyDiscounted, fn ($q) => $this->prices->whereDiscounted($q))
             ->when($campaign, fn ($q) => $this->promotions->whereInScope($q, $campaign))
             ->when($campaignScoped !== null, fn ($q) => $this->promotions->whereInAnyScope($q, $campaignScoped));
 

@@ -44,7 +44,6 @@
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
                 ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
-                ['label' => 'Fiyatlandırma', 'route' => 'business.pricing', 'icon' => 'percent', 'active' => ['business.pricing', 'business.price-lists.*']],
                 ['label' => 'Kupon ve Kampanyalar', 'route' => 'business.promotions.index', 'icon' => 'gift', 'active' => 'business.promotions.*'],
                 ['label' => 'Vitrin', 'route' => 'business.storefront.index', 'icon' => 'image', 'active' => 'business.storefront.*'],
             ]],
@@ -52,7 +51,6 @@
                 ['label' => 'Bayiler', 'route' => 'business.dealers.index', 'icon' => 'users', 'active' => 'business.dealers.*'],
                 ['label' => 'Başvurular', 'route' => 'business.applications.index', 'icon' => 'inbox', 'active' => 'business.applications.*',
                     'badge' => \App\Models\DealerApplication::whereIn('status', ['new', 'waiting_info'])->count()],
-                ['label' => 'Bayi Grupları', 'route' => 'business.dealer-groups.index', 'icon' => 'layers', 'active' => 'business.dealer-groups.*'],
             ]],
             ['label' => 'Stok', 'items' => [
                 ['label' => 'Stok Durumu', 'route' => 'business.stock.index', 'icon' => 'layers', 'active' => 'business.stock.*'],

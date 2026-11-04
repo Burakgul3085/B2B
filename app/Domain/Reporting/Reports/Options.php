@@ -5,7 +5,6 @@ namespace App\Domain\Reporting\Reports;
 use App\Domain\Support\LocalTime;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\Warehouse;
 
@@ -32,11 +31,6 @@ final class Options
     public static function warehouses(bool $all = true): array
     {
         return ($all ? ['' => 'Tüm depolar'] : []) + Warehouse::orderBy('name')->pluck('name', 'id')->all();
-    }
-
-    public static function groups(): array
-    {
-        return ['' => 'Tüm gruplar'] + DealerGroup::orderBy('name')->pluck('name', 'id')->all();
     }
 
     /** Kategori ve alt kategorileri. */

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Storefront;
 
-use App\Models\DealerGroup;
 use App\Models\HomeBanner;
 use App\Models\Showcase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,17 +54,15 @@ class StorefrontTest extends TestCase
         $this->get(route('dealer.catalog', ['showcase' => $showcase->id]))->assertOk()->assertSee('Vitrin Defteri')->assertDontSee('Vitrin Dışı Kalem');
     }
 
-    public function test_group_targeting_dates_and_inactive_banners_are_respected(): void
+    public function test_banners_go_to_all_dealers_and_dates_and_inactive_banners_are_respected(): void
     {
         $business = $this->makeBusiness();
         $inGroup = $this->orderingDealer($business);
-        $outside = $this->orderingDealer($business);
-        $group = $this->inTenant($business, fn () => DealerGroup::create(['name' => 'Altın']));
-        $inGroup->forceFill(['dealer_group_id' => $group->id])->saveQuietly();
+        $outside = $this->orderingDealer($this->makeBusiness()); // başka işletmenin bayisi
 
         $this->actingAs($business->user, 'business');
         $base = ['media' => null, 'link_type' => 'none', 'text_position' => 'left', 'is_active' => '1'];
-        $this->post(route('business.storefront.banners.store'), ['media' => $this->png(), 'title' => 'Altın bayilere özel', 'dealer_group_id' => $group->id] + $base)->assertSessionHasNoErrors();
+        $this->post(route('business.storefront.banners.store'), ['media' => $this->png(), 'title' => 'Altın bayilere özel', 'dealer_group_id' => '999'] + $base)->assertSessionHasNoErrors();
         $this->post(route('business.storefront.banners.store'), ['media' => $this->png(), 'title' => 'Geçmiş kampanya', 'starts_on' => now()->subDays(10)->toDateString(), 'ends_on' => now()->subDay()->toDateString()] + $base)->assertSessionHasNoErrors();
         $this->post(route('business.storefront.banners.store'), ['media' => $this->png(), 'title' => 'Kapalı slayt', 'is_active' => '0'] + $base)->assertSessionHasNoErrors();
         $groupBanner = $this->inTenant($business, fn () => HomeBanner::where('title', 'Altın bayilere özel')->sole());

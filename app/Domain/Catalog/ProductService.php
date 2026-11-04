@@ -24,6 +24,7 @@ use App\Models\StockMovement;
 use App\Models\Unit;
 use App\Models\VariantGroup;
 use App\Models\WarehouseStock;
+use App\Rules\NotBefore;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
@@ -43,8 +44,8 @@ class ProductService
     /** Ürün geçmişinde izlenen alanlar. */
     private const TRACKED = [
         'sku', 'barcode', 'name', 'category_id', 'brand_id', 'unit_id', 'pack_quantity', 'purchase_price', 'list_price',
-        'dealer_price', 'tax_rate_id', 'price_includes_tax', 'min_order_qty', 'order_step', 'critical_stock_level',
-        'is_active', 'visible_to_dealers',
+        'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on', 'tax_rate_id',
+        'price_includes_tax', 'min_order_qty', 'order_step', 'critical_stock_level', 'is_active', 'visible_to_dealers',
     ];
 
     public function __construct(
@@ -75,6 +76,9 @@ class ProductService
             'purchase_price' => ['nullable', ...$money],
             'list_price' => ['required', ...$money],
             'dealer_price' => ['nullable', ...$money],
+            'dealer_sale_price' => ['nullable', 'decimal:0,4', 'gt:0', 'max:99999999999'],
+            'dealer_sale_starts_on' => ['nullable', 'date'],
+            'dealer_sale_ends_on' => ['nullable', 'date', new NotBefore('dealer_sale_starts_on')],
             'tax_rate_id' => ['required', 'integer', Rule::exists('tax_rates', 'id')->where('business_id', $businessId)->where('is_active', true)],
             'price_includes_tax' => ['boolean'],
             'min_order_qty' => ['required', ...$qty],
@@ -94,6 +98,7 @@ class ProductService
             'sku' => 'ürün kodu (SKU)', 'barcode' => 'barkod', 'name' => 'ürün adı', 'category_id' => 'kategori',
             'brand_id' => 'marka', 'unit_id' => 'birim', 'pack_quantity' => 'koli/paket içi miktar',
             'purchase_price' => 'alış fiyatı', 'list_price' => 'liste fiyatı', 'dealer_price' => 'bayi fiyatı',
+            'dealer_sale_price' => 'indirimli bayi fiyatı', 'dealer_sale_starts_on' => 'indirim başlangıcı', 'dealer_sale_ends_on' => 'indirim bitişi',
             'tax_rate_id' => 'KDV oranı', 'min_order_qty' => 'minimum sipariş miktarı', 'order_step' => 'sipariş artış adımı',
             'critical_stock_level' => 'kritik stok seviyesi', 'variant_group_id' => 'varyant grubu',
         ];
@@ -141,9 +146,21 @@ class ProductService
             if (bccomp(bcmod($min, $step, 3), '0', 3) !== 0) {
                 $v->errors()->add('min_order_qty', 'Minimum sipariş miktarı, sipariş artış adımının katı olmalıdır.');
             }
+
+            // İndirimli bayi fiyatı, indirimsiz bayi fiyatından (yoksa liste fiyatından) düşük olmalı.
+            if (filled($input['dealer_sale_price'] ?? null)) {
+                $regular = (string) (filled($input['dealer_price'] ?? null) ? $input['dealer_price'] : $input['list_price']);
+                if (bccomp((string) $input['dealer_sale_price'], $regular, 4) >= 0) {
+                    $v->errors()->add('dealer_sale_price', 'İndirimli bayi fiyatı, bayi fiyatından düşük olmalıdır.');
+                }
+            }
         });
 
         $data = $validator->validate();
+        // İndirimli fiyat yoksa tarihleri de boşalır (eski tarih yeni indirime taşınmasın).
+        if (array_key_exists('dealer_sale_price', $data) && blank($data['dealer_sale_price'])) {
+            $data['dealer_sale_starts_on'] = $data['dealer_sale_ends_on'] = null;
+        }
         // Varyant değerleri grubun özellik adlarıyla anahtarlanır: {"Renk": "Mavi"}.
         $data['variant_values'] = null;
         if (! empty($data['variant_group_id'])) {

@@ -202,21 +202,17 @@ Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalem
 
 ## 4. Fiyatlandırma
 
-### 4.1 Öncelik (yüksekten düşüğe)
+### 4.1 Öncelik (yüksekten düşüğe) — tüm bayilere aynı fiyat
 
 | Sıra | Kaynak | Sonuç |
 |---|---|---|
-| 1 | **Bayiye özel ürün fiyatı** (tarih aralığında geçerli) | Nihai net fiyat. Üzerine indirim **uygulanmaz**. |
-| 2 | Bayi grubunun **fiyat listesindeki** fiyat (liste tarihi geçerli) | Taban fiyat |
-| 3 | Ürünün **standart bayi fiyatı** | Taban fiyat |
-| 4 | Ürünün **genel liste fiyatı** (bayi fiyatı tanımsızsa) | Taban fiyat |
+| 1 | Ürünün **indirimli bayi fiyatı** (başlangıç–bitiş arasında, bitiş günü dahil; indirimsiz fiyattan düşükse) | Siparişe yazılan birim fiyat. Bayi indirimsiz fiyatı üstü çizili ve yuvarlanmış indirim yüzdesiyle görür. |
+| 2 | Ürünün **standart bayi fiyatı** | Birim fiyat |
+| 3 | Ürünün **genel liste fiyatı** (bayi fiyatı tanımsızsa) | Birim fiyat |
 
-Taban fiyat 2–4'ten geldiyse **tek bir indirim** uygulanır, şu sırayla ilk eşleşen:
-
-1. Ürün bazlı indirim — bayiye özel → bayi grubuna → tüm bayilere
-2. Kategori bazlı indirim — aynı sırayla; alt kategori, üst kategoriden önce gelir
-
-Aynı seviyede birden çok geçerli kural varsa **en yüksek indirim** değil, **en son başlayan** kural uygulanır (öngörülebilir olsun diye); toptancı kural oluştururken çakışma uyarısı görür.
+- İndirimli fiyat ürün formunda girilir; bayi fiyatından (yoksa liste fiyatından) düşük olmalıdır. Fiyat boşaltılınca tarihler de silinir. Sipariş satırına girilen tutar aynen yazılır (`price_source = dealer_sale`, satır indirimi yok; yüzde yuvarlaması oluşmaz).
+- Bir bayiye veya seçili bayilere farklı indirim **kupon / kampanyayla** verilir (§4.4).
+- **Kaldırıldı (2026-11-04):** bayi grupları, grup fiyat listeleri, ürün/kategori indirim kuralları ve bayiye özel fiyatlar. Tablolar (`dealer_groups`, `price_lists`, `price_list_items`, `discount_rules`, `dealer_product_prices`) veri kaybı olmasın diye duruyor; fiyat hesabında kullanılmıyor, ekranları yok. Gruba yönelik kupon / kampanyalar o anki grup bayilerine "seçili bayiler" olarak çevrildi; gruba gösterilen vitrin slaytları pasife alındı. Eski grup duyuruları geçmiş kayıt olarak yalnızca o grubun bayilerine görünmeye devam eder; yeni duyuru ve slaytlar tüm bayilere gider. Tanınmayan kampanya hedefi hiçbir bayiye açılmaz.
 
 Genel liste fiyatı bayiye "liste fiyatı" olarak, uygulanan fiyatın yanında gösterilebilir. Alış fiyatı bayi tarafında hiçbir yanıtta (HTML, JSON, dışa aktarma) yer almaz.
 
@@ -237,10 +233,10 @@ Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırınd
 Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bayi sepette girer; otomatik kampanya kodsuzdur ve koşulu tutan siparişe kendiliğinden uygulanır. Kurallar `App\Domain\Pricing\PromotionService` içindedir.
 
 - **Tür:** yüzde (isteğe bağlı "en fazla ₺" sınırıyla) veya tutar (₺, KDV hariç). Tutar indiriminde en düşük sipariş tutarı zorunludur ve indirimden büyük olmalıdır (küçük sipariş neredeyse bedavaya gitmesin).
-- **Kime:** tüm bayiler, bir bayi grubu veya seçili bayiler.
+- **Kime:** tüm bayiler veya seçili bayiler.
 - **Koşullar:** en düşük sipariş tutarı (KDV hariç), başlangıç/bitiş, toplam ve bayi başına kullanım sınırı, isteğe bağlı kapsam (kategori alt kategorileriyle, stok koduyla ürün).
 - **Siparişte tek indirim:** kod girildiyse kupon, girilmediyse en avantajlı kampanya. Geçersiz kod sepette nedeniyle gösterilir; kod kaldırılmadan sipariş gönderilemez.
-- §4.1'deki fiyatın (bayiye özel fiyat ve ürün/kategori indirimi dahil) **üzerine** uygulanır. Taban, kapsamdaki satırların indirimli net tutarıdır.
+- §4.1'deki fiyatın (indirimli bayi fiyatı dahil) **üzerine** uygulanır. Taban, kapsamdaki satırların net tutarıdır.
 - **Paylaştırma:** indirim kapsamdaki satırlara netleriyle orantılı paylaştırılır (`order_items.order_discount`). Her satırda en az 0,01 ₺ kalır. KDV paydan sonra hesaplanır: `net = ara toplam − satır indirimi − sipariş indirimi payı`. `orders.discount_total` iki indirimi birlikte taşır; `orders.promotion_discount` yalnızca kupon/kampanyayı.
 - **Anlık kopya:** siparişe uygulanan kupon/kampanya siparişte kopyalanır (`orders.promotion_*`).
 - **Kısmi onay:** indirim kopyadan yeniden hesaplanır. Yüzde, onaylanan tutara uygulanır; tutar indirimi ilk tutarı ve onaylanan tabanı geçemez.
@@ -251,7 +247,7 @@ Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bay
 - **Bayi Kampanyalar sayfası** (`/bayi/kampanyalar`, menüde sayıyla; ana sayfada "Aktif kampanyalar" kutusu): yayında, bayiyi hedefleyen ve toplam / bayi başına hakkı bitmemiş olanlar listelenir (`PromotionService::visibleFor`). Otomatik kampanya her zaman görünür; kupon yalnızca toptancı "kodu göster" seçtiyse (`show_to_dealers`) kodu ve "Sepete uygula" düğmesiyle görünür. Kişiye özel verilen kod gizli kalır. Bitmiş, başlamamış, pasif, sınırı dolmuş ve başka bayiye ait olanlar görünmez.
 - **Görseller** (`promotion_images`): bir kapak ve en fazla 8 detay fotoğrafı. Ürün görselleriyle aynı güvenli yükleyiciden geçer (içerik denetimi, yeniden kodlama, private disk). Bayiye yalnızca kampanyayı görebiliyorsa sunulur; toptancıya kendi işletmesininki. Kampanya silinince dosyalar da silinir. Kapak yoksa hazır renkli kapak gösterilir.
 - **Kampanya detayı** (`/bayi/kampanyalar/{id}`): galeri, açıklama (2.000 karakter, satır atlamalı), koşullar, kupon kodu ve "Sepete uygula"; kapsamlı kampanyada kapsamdaki ilk 12 ürün, tümü katalogda `?kampanya={id}` filtresiyle.
-- **İndirimdeki ürünler:** Kampanyalar sayfasında ve katalogda `?indirim=1`. §4.1'deki indirim kuralı bu bayiye uygulanan ürünlerdir (`PriceResolver::whereDiscounted`); bayiye özel fiyatlı ürün indirim almadığı için listelenmez.
+- **İndirimdeki ürünler:** Kampanyalar sayfasında ve katalogda `?indirim=1`. Bugün indirimli bayi fiyatı geçerli ürünlerdir (§4.1, `Product::scopeOnDealerSale`).
 - **Kampanyalı ürünler:** katalogda `?kampanyali=1` ve kartlarda "Kampanya" rozeti; yalnızca belirli ürün/kategoriye uygulanan, bayiye görünen kampanyalar (tüm siparişe uygulanan kampanya her ürüne rozet basmaz).
 
 ## 5. Stokta olmayan ürün talebi

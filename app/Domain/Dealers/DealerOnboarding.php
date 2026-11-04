@@ -242,7 +242,6 @@ class DealerOnboarding
         $relationship = DealerRelationship::create([
             'dealer_id' => $dealer->id,
             'dealer_code' => $code,
-            'dealer_group_id' => $terms['dealer_group_id'] ?? null,
             'status' => 'active',
             'payment_term_days' => $terms['payment_term_days'] ?? $business->settings?->default_payment_term_days ?? 30,
             'can_edit_addresses' => $terms['can_edit_addresses'] ?? true,

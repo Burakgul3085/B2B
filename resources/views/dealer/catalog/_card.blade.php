@@ -24,7 +24,7 @@
                 <span class="rounded-full bg-violet-600 px-2.5 py-1 text-[10px] font-bold tracking-wider text-white uppercase shadow-sm">Yeni</span>
             @endif
             @if ($price->hasDiscount())
-                <span class="rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white shadow-sm">%{{ rtrim(rtrim(number_format((float) $price->discountPercent, 2, ',', ''), '0'), ',') }} indirim</span>
+                <span class="rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white shadow-sm">%{{ $price->savingPercent() }} indirim</span>
             @endif
             @if (isset($campaignTags[$product->id]))
                 <span class="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold tracking-wide text-amber-950 uppercase shadow-sm" title="{{ $campaignTags[$product->id]->name }}: {{ $campaignTags[$product->id]->summary() }}"><x-icon name="gift" class="size-3" />Kampanya</span>

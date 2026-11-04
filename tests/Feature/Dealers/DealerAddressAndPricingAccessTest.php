@@ -3,13 +3,11 @@
 namespace Tests\Feature\Dealers;
 
 use App\Http\Middleware\SetDealerContext;
-use App\Models\Category;
 use App\Models\DealerAddress;
 use App\Models\DealerGroup;
 use App\Models\DealerProductPrice;
 use App\Models\DealerRelationship;
 use App\Models\DiscountRule;
-use App\Models\PriceList;
 use App\Models\PriceListItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesCatalog;
@@ -101,53 +99,24 @@ class DealerAddressAndPricingAccessTest extends TestCase
             ->get(route('dealer.addresses.index'))->assertDontSee('Sadece A için');
     }
 
-    public function test_pricing_inputs_reject_records_of_another_business(): void
-    {
-        $a = $this->makeBusiness();
-        $b = $this->makeBusiness();
-        $relA = $this->relate($a, $this->makeDealer());
-        $foreignProduct = $this->makeProduct($b);
-        $foreignCategory = $this->inTenant($b, fn () => Category::create(['name' => 'B kategorisi']));
-        $foreignGroup = $this->inTenant($b, fn () => DealerGroup::create(['name' => 'B grubu']));
-        $foreignList = $this->inTenant($b, fn () => PriceList::create(['name' => 'B listesi']));
-        $ownList = $this->inTenant($a, fn () => PriceList::create(['name' => 'A listesi']));
-
-        $this->actingAs($a->user, 'business');
-
-        $this->post(route('business.dealers.prices.store', $relA), ['product_id' => $foreignProduct->id, 'price' => '1'])->assertSessionHasErrors('product_id');
-        $this->post(route('business.price-lists.items.store', $ownList), ['product_id' => $foreignProduct->id, 'price' => '1'])->assertSessionHasErrors('product_id');
-        $this->post(route('business.discounts.store'), ['name' => 'X', 'scope' => 'category', 'category_id' => $foreignCategory->id, 'target' => 'all', 'percent' => '5'])->assertSessionHasErrors('category_id');
-        $this->post(route('business.discounts.store'), ['name' => 'X', 'scope' => 'product', 'product_id' => $this->makeProduct($a)->id, 'target' => 'group', 'dealer_group_id' => $foreignGroup->id, 'percent' => '5'])->assertSessionHasErrors('dealer_group_id');
-        $this->post(route('business.dealer-groups.store'), ['name' => 'Grup', 'price_list_id' => $foreignList->id])->assertSessionHasErrors('price_list_id');
-        $this->get(route('business.price-lists.show', $foreignList))->assertNotFound();
-
-        $this->assertSame(0, $this->inTenant($a, fn () => DealerProductPrice::count() + PriceListItem::count() + DiscountRule::count()));
-    }
-
-    public function test_discount_percent_must_be_between_0_and_100(): void
+    public function test_retired_pricing_routes_are_gone_and_group_field_is_ignored(): void
     {
         $business = $this->makeBusiness();
-        $product = $this->makeProduct($business);
+        $rel = $this->relate($business, $this->makeDealer());
+        $group = $this->inTenant($business, fn () => DealerGroup::create(['name' => 'Eski grup']));
         $this->actingAs($business->user, 'business');
 
-        foreach (['0', '100', '-5', 'abc'] as $bad) {
-            $this->post(route('business.discounts.store'), ['name' => 'X', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'all', 'percent' => $bad])
-                ->assertSessionHasErrors('percent');
+        foreach (['business.pricing', 'business.price-lists.show', 'business.discounts.store', 'business.dealer-groups.index', 'business.dealers.prices.store'] as $name) {
+            $this->assertFalse(app('router')->has($name), $name);
         }
-    }
+        $this->post("/toptanci/bayiler/{$rel->id}/fiyatlar", ['product_id' => $this->makeProduct($business)->id, 'price' => '1'])->assertNotFound();
+        $this->post('/toptanci/indirimler', ['name' => 'X'])->assertNotFound();
 
-    public function test_price_list_fill_uses_dealer_price_with_percentage(): void
-    {
-        $business = $this->makeBusiness();
-        $p1 = $this->makeProduct($business, ['dealer_price' => '10.0000']);
-        $p2 = $this->makeProduct($business, ['dealer_price' => null, 'list_price' => '20.0000']);
-        $list = $this->inTenant($business, fn () => PriceList::create(['name' => 'Kampanya']));
-
-        $this->actingAs($business->user, 'business')
-            ->post(route('business.price-lists.fill', $list), ['percent' => '-10'])->assertSessionHasNoErrors()->assertRedirect();
-
-        $prices = $this->inTenant($business, fn () => PriceListItem::where('price_list_id', $list->id)->pluck('price', 'product_id'));
-        $this->assertSame('9.0000', (string) $prices[$p1->id]);
-        $this->assertSame('18.0000', (string) $prices[$p2->id]);
+        // Bayi koşulları kaydedilirken gönderilen grup alanı yazılmaz.
+        $this->put(route('business.dealers.update', $rel), ['dealer_code' => $rel->dealer_code, 'payment_term_days' => '45', 'dealer_group_id' => $group->id])
+            ->assertSessionHasNoErrors();
+        $rel->refresh();
+        $this->assertSame([45, null], [(int) $rel->payment_term_days, $rel->dealer_group_id]);
+        $this->assertSame(0, $this->inTenant($business, fn () => DealerProductPrice::count() + PriceListItem::count() + DiscountRule::count()));
     }
 }

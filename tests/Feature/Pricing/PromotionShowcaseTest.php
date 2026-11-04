@@ -128,30 +128,28 @@ class PromotionShowcaseTest extends TestCase
         $this->get(route('dealer.catalog', ['kampanya' => $promotion->id]))->assertNotFound();
     }
 
-    public function test_discounted_products_follow_dealer_pricing_rules(): void
+    public function test_discounted_products_are_those_with_a_current_dealer_sale_price(): void
     {
         $business = $this->makeBusiness();
         $rel = $this->orderingDealer($business);
-        $category = $this->inTenant($business, fn () => Category::create(['name' => 'Kalemler']));
-        $child = $this->inTenant($business, fn () => Category::create(['name' => 'Tükenmez', 'parent_id' => $category->id]));
-        $byProduct = $this->makeProduct($business, ['name' => 'Ürün İndirimli', 'dealer_price' => '10.00']);
-        $byCategory = $this->makeProduct($business, ['name' => 'Kategori İndirimli', 'category_id' => $child->id, 'dealer_price' => '10.00']);
-        $special = $this->makeProduct($business, ['name' => 'Özel Fiyatlı', 'category_id' => $child->id, 'dealer_price' => '10.00']);
-        $plain = $this->makeProduct($business, ['name' => 'İndirimsiz Ürün', 'dealer_price' => '10.00']);
-        $otherGroupOnly = $this->makeProduct($business, ['name' => 'Başka Bayiye', 'dealer_price' => '10.00']);
-        $this->inTenant($business, function () use ($rel, $byProduct, $category, $special, $otherGroupOnly) {
-            DiscountRule::create(['name' => 'Ürün', 'scope' => 'product', 'product_id' => $byProduct->id, 'target' => 'all', 'percent' => '15']);
-            DiscountRule::create(['name' => 'Kategori', 'scope' => 'category', 'category_id' => $category->id, 'target' => 'dealer', 'dealer_relationship_id' => $rel->id, 'percent' => '5']);
-            DiscountRule::create(['name' => 'Geçmiş', 'scope' => 'product', 'product_id' => $otherGroupOnly->id, 'target' => 'all', 'percent' => '5', 'ends_on' => now()->subDays(3)->toDateString()]);
-            DealerProductPrice::create(['dealer_relationship_id' => $rel->id, 'product_id' => $special->id, 'price' => '8.00']);
+        $today = now('Europe/Istanbul');
+        $this->makeProduct($business, ['name' => 'Süresiz İndirimli', 'dealer_price' => '10.00', 'dealer_sale_price' => '8.50']);
+        $this->makeProduct($business, ['name' => 'Bugün Biten', 'dealer_price' => '10.00', 'dealer_sale_price' => '9.00', 'dealer_sale_ends_on' => $today->toDateString()]);
+        $this->makeProduct($business, ['name' => 'Süresi Geçmiş', 'dealer_price' => '10.00', 'dealer_sale_price' => '5.00', 'dealer_sale_ends_on' => $today->copy()->subDay()->toDateString()]);
+        $this->makeProduct($business, ['name' => 'Henüz Başlamamış', 'dealer_price' => '10.00', 'dealer_sale_price' => '5.00', 'dealer_sale_starts_on' => $today->copy()->addDay()->toDateString()]);
+        $this->makeProduct($business, ['name' => 'İndirimsiz Ürün', 'dealer_price' => '10.00']);
+        $retired = $this->makeProduct($business, ['name' => 'Eski Kurallı', 'dealer_price' => '10.00']);
+        $this->inTenant($business, function () use ($rel, $retired) {
+            DiscountRule::create(['name' => 'Eski', 'scope' => 'product', 'product_id' => $retired->id, 'target' => 'all', 'percent' => '15']);
+            DealerProductPrice::create(['dealer_relationship_id' => $rel->id, 'product_id' => $retired->id, 'price' => '8.00']);
         });
 
         $this->actingAs($rel->dealer->user, 'dealer');
         $this->get(route('dealer.promotions.index'))->assertOk()->assertSee('İndirimdeki ürünler')
-            ->assertSee('Ürün İndirimli')->assertSee('Kategori İndirimli')->assertSee('%15 indirim')
-            ->assertDontSee('Özel Fiyatlı')->assertDontSee('İndirimsiz Ürün')->assertDontSee('Başka Bayiye');
+            ->assertSee('Süresiz İndirimli')->assertSee('Bugün Biten')->assertSee('%15 indirim')->assertSee('₺10,00')
+            ->assertDontSee('Süresi Geçmiş')->assertDontSee('Henüz Başlamamış')->assertDontSee('İndirimsiz Ürün')->assertDontSee('Eski Kurallı');
         $this->get(route('dealer.catalog', ['indirim' => 1]))->assertOk()->assertSee('İndirimdekiler')
-            ->assertSee('Ürün İndirimli')->assertSee('Kategori İndirimli')->assertDontSee('Özel Fiyatlı')->assertDontSee('İndirimsiz Ürün');
+            ->assertSee('Süresiz İndirimli')->assertDontSee('Süresi Geçmiş')->assertDontSee('İndirimsiz Ürün')->assertDontSee('Eski Kurallı');
 
         // Üst menü sırası.
         $this->get(route('dealer.home'))->assertOk()->assertSeeInOrder(['Ana Sayfa', 'Tüm Ürünler', 'Yeni Ürünler', 'Kampanyalar', 'Markalar', 'Siparişlerim', 'Cari Hesap']);

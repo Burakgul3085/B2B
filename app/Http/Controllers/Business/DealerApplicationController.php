@@ -7,7 +7,6 @@ use App\Domain\Notifications\Notifier;
 use App\Http\Controllers\Controller;
 use App\Models\Attachment;
 use App\Models\DealerApplication;
-use App\Models\DealerGroup;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,7 +50,6 @@ class DealerApplicationController extends Controller
 
         return view('business.dealers.application-show', [
             'application' => $application,
-            'groups' => DealerGroup::orderBy('name')->pluck('name', 'id'),
             'defaultTerm' => request()->user()->business->settings->default_payment_term_days,
         ]);
     }
@@ -135,10 +133,9 @@ class DealerApplicationController extends Controller
         $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses')]);
 
         return $request->validate([
-            'dealer_group_id' => ['nullable', 'integer', Rule::exists('dealer_groups', 'id')->where('business_id', $request->user()->business_id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
-        ], [], ['dealer_group_id' => 'bayi grubu', 'payment_term_days' => 'vade (gün)']);
+        ], [], ['payment_term_days' => 'vade (gün)']);
     }
 
     private function run(callable $action, string $message): RedirectResponse

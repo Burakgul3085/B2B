@@ -27,12 +27,10 @@ class AnnouncementAttachmentTest extends TestCase
     {
         $business = $this->makeBusiness();
         $inGroup = $this->orderingDealer($business);
-        $outside = $this->orderingDealer($business);
-        $group = $this->inTenant($business, fn () => DealerGroup::create(['name' => 'Okul bayileri']));
-        $inGroup->forceFill(['dealer_group_id' => $group->id])->saveQuietly();
+        $outside = $this->orderingDealer($this->makeBusiness()); // başka işletmenin bayisi
 
         $this->actingAs($business->user, 'business')->post(route('business.announcements.store'), [
-            'title' => 'Yeni fiyat listesi', 'body' => 'Ekte.', 'dealer_group_id' => $group->id,
+            'title' => 'Yeni fiyat listesi', 'body' => 'Ekte.',
             'files' => [
                 UploadedFile::fake()->createWithContent('fiyat listesi.xlsx', $this->office('xl/workbook.xml')),
                 UploadedFile::fake()->createWithContent('sozlesme.docx', $this->office('word/document.xml')),
@@ -54,7 +52,7 @@ class AnnouncementAttachmentTest extends TestCase
         $this->get(route('dealer.announcements.index'))->assertOk()->assertSee('Yeni fiyat listesi')->assertSee('katalog.pdf');
         $this->get(route('dealer.announcements.attachment', [$announcement, $files[2]]))->assertOk()->assertDownload('katalog.pdf');
 
-        // Grubun dışındaki bayi ne duyuruyu görür ne de eki indirebilir.
+        // Başka işletmenin bayisi ne duyuruyu görür ne de eki indirebilir.
         $this->flushSession();
         $this->actingAs($outside->dealer->user, 'dealer');
         $this->get(route('dealer.announcements.index'))->assertOk()->assertDontSee('Yeni fiyat listesi');

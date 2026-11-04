@@ -256,23 +256,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('bayiler/{dealer}/adresler', [Business\DealerController::class, 'storeAddress'])->name('dealers.addresses.store');
         Route::put('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'updateAddress'])->name('dealers.addresses.update');
         Route::delete('bayiler/{dealer}/adresler/{address}', [Business\DealerController::class, 'archiveAddress'])->name('dealers.addresses.destroy');
-        Route::post('bayiler/{dealer}/fiyatlar', [Business\DealerController::class, 'storePrice'])->name('dealers.prices.store');
-        Route::delete('bayiler/{dealer}/fiyatlar/{price}', [Business\DealerController::class, 'destroyPrice'])->name('dealers.prices.destroy');
-        Route::get('bayi-gruplari', [Business\DealerGroupController::class, 'index'])->name('dealer-groups.index');
-        Route::post('bayi-gruplari', [Business\DealerGroupController::class, 'store'])->name('dealer-groups.store');
-        Route::put('bayi-gruplari/{group}', [Business\DealerGroupController::class, 'update'])->name('dealer-groups.update');
-        Route::delete('bayi-gruplari/{group}', [Business\DealerGroupController::class, 'destroy'])->name('dealer-groups.destroy');
 
-        // Fiyatlandırma
-        Route::get('fiyatlandirma', [Business\PricingController::class, 'index'])->name('pricing');
-        Route::post('fiyat-listeleri', [Business\PricingController::class, 'storeList'])->name('price-lists.store');
-        Route::get('fiyat-listeleri/{list}', [Business\PricingController::class, 'showList'])->name('price-lists.show');
-        Route::put('fiyat-listeleri/{list}', [Business\PricingController::class, 'updateList'])->name('price-lists.update');
-        Route::post('fiyat-listeleri/{list}/urunler', [Business\PricingController::class, 'storeItem'])->name('price-lists.items.store');
-        Route::delete('fiyat-listeleri/{list}/urunler/{item}', [Business\PricingController::class, 'destroyItem'])->name('price-lists.items.destroy');
-        Route::post('fiyat-listeleri/{list}/doldur', [Business\PricingController::class, 'fillList'])->name('price-lists.fill');
-        Route::post('indirimler', [Business\PricingController::class, 'storeRule'])->name('discounts.store');
-        Route::put('indirimler/{rule}/durum', [Business\PricingController::class, 'toggleRule'])->name('discounts.toggle');
         Route::get('kupon-kampanyalar', [Business\PromotionController::class, 'index'])->name('promotions.index');
         Route::get('kupon-kampanyalar/yeni', [Business\PromotionController::class, 'create'])->name('promotions.create');
         Route::post('kupon-kampanyalar', [Business\PromotionController::class, 'store'])->name('promotions.store');

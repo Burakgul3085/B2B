@@ -17,7 +17,7 @@ class Promotion extends Model
 
     public const TYPES = ['percent' => 'Yüzde indirim', 'fixed' => 'Tutar indirimi'];
 
-    public const TARGETS = ['all' => 'Tüm bayiler', 'group' => 'Bayi grubu', 'dealers' => 'Seçili bayiler'];
+    public const TARGETS = ['all' => 'Tüm bayiler', 'dealers' => 'Seçili bayiler'];
 
     /** Durum anahtarı => [etiket, rozet tonu]. */
     public const STATUSES = [

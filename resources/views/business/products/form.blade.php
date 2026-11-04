@@ -33,6 +33,15 @@
                 <x-field name="tax_rate_id" label="KDV oranı" :options="$taxRates->all()" :value="$product->tax_rate_id" required />
                 <x-toggle name="price_includes_tax" label="Fiyatlar KDV dahil" :checked="$product->price_includes_tax" hint="İşaretli değilse girilen fiyatlar KDV hariçtir." class="sm:col-span-2 sm:self-end" />
             </div>
+            <div class="mt-6 border-t border-line pt-5">
+                <p class="text-sm font-semibold text-ink">İndirimli bayi fiyatı</p>
+                <p class="mt-0.5 text-xs text-muted">Tarih aralığında tüm bayilere bu fiyat uygulanır; bayi bayi fiyatını üstü çizili görür ve ürün "İndirimdeki ürünler"de listelenir. Kaldırmak için fiyatı boşaltın.</p>
+                <div class="mt-4 grid gap-5 sm:grid-cols-3">
+                    <x-field name="dealer_sale_price" label="İndirimli bayi fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->dealer_sale_price" hint="Bayi fiyatından düşük olmalı." />
+                    <x-field name="dealer_sale_starts_on" label="Başlangıç" type="date" :value="$product->dealer_sale_starts_on?->toDateString()" hint="Boş: hemen." />
+                    <x-field name="dealer_sale_ends_on" label="Bitiş" type="date" :value="$product->dealer_sale_ends_on?->toDateString()" hint="Boş: süresiz. Bitiş günü dahil." />
+                </div>
+            </div>
         </x-card>
 
         <x-card title="Birim ve sipariş kuralları" description="Bayi siparişlerinde miktar bu kurallara göre doğrulanır.">

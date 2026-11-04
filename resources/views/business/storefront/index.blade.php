@@ -70,7 +70,7 @@
                                 <p class="mt-1.5 truncate font-semibold text-ink">{{ $banner->title ?: 'Başlıksız slayt' }}</p>
                                 <dl class="mt-1 space-y-0.5 text-xs text-muted">
                                     <div>{{ $linkLabel($banner) }}</div>
-                                    <div>{{ $banner->group?->name ? 'Yalnızca '.$banner->group->name : 'Tüm bayiler' }}@if ($banner->ends_on) · {{ $banner->ends_on->format('d.m.Y') }} tarihine kadar @endif</div>
+                                    <div>Tüm bayiler @if ($banner->ends_on) · {{ $banner->ends_on->format('d.m.Y') }} tarihine kadar @endif</div>
                                 </dl>
                             </div>
                             <div class="flex shrink-0 items-start gap-1 sm:flex-col sm:items-end">

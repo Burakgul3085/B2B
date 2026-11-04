@@ -87,7 +87,7 @@
                                             {{ $product->category?->fullName() ?? '—' }}<br><span class="text-xs">{{ $product->brand?->name }}</span>
                                         </td>
                                         <td class="text-right tabular-nums">{{ Money::formatUnit($product->list_price) }}</td>
-                                        <td class="hidden text-right tabular-nums sm:table-cell">{{ $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : '—' }}</td>
+                                        <td class="hidden text-right tabular-nums sm:table-cell">{{ $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : '—' }}@if ($product->dealerSaleActiveOn($today ??= \App\Domain\Support\LocalTime::today()))<span class="block text-xs font-medium text-success">İndirimli {{ Money::formatUnit($product->dealer_sale_price) }}</span>@endif</td>
                                         <td class="text-right tabular-nums">
                                             <span @class([
                                                 'font-medium',

@@ -10,8 +10,7 @@ use App\Domain\Support\Decimal;
 final class ResolvedPrice
 {
     public const SOURCES = [
-        'dealer_special' => 'Bayiye özel fiyat',
-        'price_list' => 'Grup fiyat listesi',
+        'dealer_sale' => 'İndirimli bayi fiyatı',
         'dealer_price' => 'Standart bayi fiyatı',
         'list_price' => 'Liste fiyatı',
     ];
@@ -19,17 +18,23 @@ final class ResolvedPrice
     public function __construct(
         public readonly int $productId,
         public readonly string $listPrice,       // genel liste fiyatı (net) — bilgi amaçlı
-        public readonly string $basePrice,       // indirim öncesi birim fiyat (net)
+        public readonly string $basePrice,       // siparişe yazılan birim fiyat (net)
         public readonly string $baseSource,      // SOURCES anahtarı
-        public readonly string $discountPercent, // 0.00 – 99.99
+        public readonly string $discountPercent, // satır indirimi (0.00; indirimli fiyat zaten birim fiyattadır)
         public readonly ?string $discountName,
         public readonly string $unitPrice,       // indirimli birim fiyat (net)
         public readonly string $taxRate,         // ör. 20.00
+        public readonly ?string $wasPrice = null, // indirimli fiyatta üstü çizili indirimsiz fiyat (net)
     ) {}
 
     public function unitPriceWithTax(): string
     {
-        return Decimal::round(bcmul($this->unitPrice, bcadd('1', bcdiv($this->taxRate, '100', 6), 6), 10), 4);
+        return self::withTax($this->unitPrice, $this->taxRate);
+    }
+
+    public function wasPriceWithTax(): ?string
+    {
+        return $this->wasPrice === null ? null : self::withTax($this->wasPrice, $this->taxRate);
     }
 
     public function sourceLabel(): string
@@ -37,8 +42,24 @@ final class ResolvedPrice
         return self::SOURCES[$this->baseSource];
     }
 
+    /** İndirimli bayi fiyatı uygulanıyor mu (üstü çizili fiyat ve rozet gösterilir)? */
     public function hasDiscount(): bool
     {
-        return bccomp($this->discountPercent, '0', 2) > 0;
+        return $this->wasPrice !== null;
+    }
+
+    /** Rozet için yuvarlanmış indirim yüzdesi (ör. "20"); yalnızca gösterim, hesapta kullanılmaz. */
+    public function savingPercent(): string
+    {
+        if ($this->wasPrice === null || bccomp($this->wasPrice, '0', 4) <= 0) {
+            return '0';
+        }
+
+        return Decimal::round(bcmul(bcsub('1', bcdiv($this->unitPrice, $this->wasPrice, 10), 10), '100', 10), 0);
+    }
+
+    private static function withTax(string $net, string $rate): string
+    {
+        return Decimal::round(bcmul($net, bcadd('1', bcdiv($rate, '100', 6), 6), 10), 4);
     }
 }

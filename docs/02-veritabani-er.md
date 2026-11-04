@@ -47,7 +47,7 @@ erDiagram
 | `dealers` | Bayi işletmesi (toptancıdan bağımsız kimlik) | legal_name, tax_office, tax_number, telefon, e-posta, il/ilçe/adres |
 | `dealer_users` | Bayi giriş hesabı (**bayi başına tek kullanıcı**) | dealer_id **UNIQUE**, email **global UNIQUE**, password (aktivasyona kadar NULL), activated_at, status |
 | `dealer_relationships` | **Toptancı ↔ bayi ticari ilişkisi** — sipariş, fiyat, cari bunun üzerinden | (business_id, dealer_id) UNIQUE, (business_id, dealer_code) UNIQUE, dealer_group_id, status `active/suspended/closed`, payment_term_days, can_edit_addresses, approved_at/by |
-| `dealer_groups` | Fiyat grubu (ör. "A Grubu Bayiler") | business_id, name, price_list_id |
+| `dealer_groups` | Fiyat grubu — **kullanımdan kalktı** (2026-11-04, docs/03 §4.1); tablo duruyor | business_id, name, price_list_id |
 | `dealer_applications` | Başvurular | business_id, firma/yetkili/iletişim/vergi alanları, business_type, activity_area, note, status (6 durum), consent_text_version, consent_at, ip, reviewed_by, decision_note, dealer_id (onayda) |
 | `dealer_addresses` | Sevk adresleri — **Aşama 4'te ilişki bazına alındı** (bkz. 06 raporu) | business_id, dealer_relationship_id, title, recipient_name, phone, city, district, address_line, note, is_default, archived_at |
 | `auth_tokens` | Aktivasyon / parola sıfırlama | guard, user_id, purpose, token_hash UNIQUE, expires_at, used_at |
@@ -93,6 +93,7 @@ erDiagram
 | `warehouse_stock` | business_id, warehouse_id, product_id, quantity — **UNIQUE (warehouse_id, product_id)**, `CHECK (quantity >= 0)`. Anlık stok; hareketlerin toplamına eşit olmak zorunda |
 | `stock_movements` | business_id, warehouse_id, product_id, type, quantity (işaretli), balance_after, reference_type/id, transfer_uuid, note, actor, **source_key UNIQUE (nullable)**, created_at. Güncellenmez/silinmez |
 | `stock_counts` / `stock_count_lines` | Sayım oturumu (draft → applied); satır: system_qty, counted_qty, difference. Uygulanınca fark kadar `count_adjust` hareketi |
+| `price_lists`, `price_list_items`, `discount_rules`, `dealer_product_prices` | **Kullanımdan kalktı** (2026-11-04): fiyat ürünün bayi fiyatı / indirimli bayi fiyatından (`products.dealer_sale_price`, `dealer_sale_starts_on`, `dealer_sale_ends_on`) hesaplanır. Tablolar veri kaybı olmasın diye duruyor. |
 | `price_lists` | business_id, name, starts_at, ends_at, is_active |
 | `price_list_items` | price_list_id, product_id, price — UNIQUE (price_list_id, product_id) |
 | `dealer_product_prices` | business_id, dealer_relationship_id, product_id, price, starts_at, ends_at |

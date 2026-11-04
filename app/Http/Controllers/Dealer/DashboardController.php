@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
     public function __invoke(DashboardMetrics $metrics, AccountAnalysis $analysis): View
     {
-        $relationship = $this->relationship()->load(['currentAccount', 'group']);
+        $relationship = $this->relationship()->load(['currentAccount']);
         $orders = Order::where('dealer_relationship_id', $relationship->id);
         $purchased = (clone $orders)->whereIn('status', self::PURCHASED);
         $approvedSince = fn ($from, $to = null) => (string) (clone $purchased)->where('approved_at', '>=', $from)

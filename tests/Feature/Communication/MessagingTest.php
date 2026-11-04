@@ -9,7 +9,6 @@ use App\Models\AppNotification;
 use App\Models\Attachment;
 use App\Models\BusinessModule;
 use App\Models\Conversation;
-use App\Models\DealerGroup;
 use App\Models\Message;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -152,21 +151,22 @@ class MessagingTest extends TestCase
         $this->get(route('dealer.notifications.open', $evil))->assertRedirect(route('dealer.home'));
     }
 
-    public function test_announcement_targets_group_and_shows_on_dashboard(): void
+    public function test_announcement_goes_to_all_dealers_and_shows_on_dashboard(): void
     {
         $business = $this->makeBusiness();
-        $inGroup = $this->orderingDealer($business);
-        $outside = $this->orderingDealer($business);
-        $group = $this->inTenant($business, fn () => DealerGroup::create(['name' => 'Okul bayileri']));
-        $inGroup->forceFill(['dealer_group_id' => $group->id])->saveQuietly();
+        $first = $this->orderingDealer($business);
+        $second = $this->orderingDealer($business);
+        $outside = $this->orderingDealer($this->makeBusiness());
 
         $this->actingAs($business->user, 'business')
-            ->post(route('business.announcements.store'), ['title' => 'Sezon açılışı', 'body' => 'Yeni katalog yayında.', 'dealer_group_id' => $group->id])
+            ->post(route('business.announcements.store'), ['title' => 'Sezon açılışı', 'body' => 'Yeni katalog yayında.'])
             ->assertSessionHasNoErrors()->assertRedirect();
-        $this->get(route('business.announcements.index'))->assertOk()->assertSee('Sezon açılışı');
+        $this->get(route('business.announcements.index'))->assertOk()->assertSee('Sezon açılışı')->assertDontSee('Kimlere');
 
-        $this->flushSession();
-        $this->actingAs($inGroup->dealer->user, 'dealer')->get(route('dealer.dashboard'))->assertSee('Sezon açılışı');
+        foreach ([$first, $second] as $rel) {
+            $this->flushSession();
+            $this->actingAs($rel->dealer->user, 'dealer')->get(route('dealer.dashboard'))->assertSee('Sezon açılışı');
+        }
         $this->flushSession();
         $this->actingAs($outside->dealer->user, 'dealer')->get(route('dealer.dashboard'))->assertDontSee('Sezon açılışı');
     }

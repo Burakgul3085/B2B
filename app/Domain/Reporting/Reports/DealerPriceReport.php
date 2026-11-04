@@ -11,7 +11,7 @@ use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-/** Seçilen bayinin göreceği fiyat listesi (öncelik kurallarıyla hesaplanmış). */
+/** Bayilerin göreceği fiyat listesi (PriceResolver ile hesaplanmış; tüm bayilere aynı). */
 class DealerPriceReport extends Report
 {
     public function key(): string
@@ -21,12 +21,12 @@ class DealerPriceReport extends Report
 
     public function title(): string
     {
-        return 'Bayiye özel fiyat listesi';
+        return 'Bayi fiyat listesi';
     }
 
     public function description(): string
     {
-        return 'Seçilen bayinin bugün göreceği fiyatlar: kaynak, indirim ve KDV dahil fiyat.';
+        return 'Bayilerin bugün göreceği fiyatlar (tüm bayilere aynı): kaynak, indirimli fiyat ve KDV dahil fiyat.';
     }
 
     public function group(): string
@@ -54,7 +54,6 @@ class DealerPriceReport extends Report
             'name' => ['label' => 'Ürün', 'type' => 'text'],
             'list_net' => ['label' => 'Liste (net)', 'type' => 'money', 'sortable' => false],
             'source' => ['label' => 'Fiyat kaynağı', 'type' => 'text', 'sortable' => false],
-            'discount' => ['label' => 'İndirim', 'type' => 'percent', 'sortable' => false],
             'unit_net' => ['label' => 'Bayi fiyatı (net)', 'type' => 'money', 'sortable' => false],
             'unit_gross' => ['label' => 'KDV dahil', 'type' => 'money', 'sortable' => false],
         ];
@@ -85,7 +84,6 @@ class DealerPriceReport extends Report
             $p = $prices[$row->id];
             $row->list_net = $p->listPrice;
             $row->source = $p->sourceLabel();
-            $row->discount = $p->discountPercent;
             $row->unit_net = $p->unitPrice;
             $row->unit_gross = $p->unitPriceWithTax();
 

@@ -35,7 +35,6 @@ class DealerVolumeReport extends Report
     {
         return Options::dateFilters('year') + [
             'status' => ['label' => 'Bayi durumu', 'type' => 'select', 'options' => ['' => 'Tümü'] + DealerRelationship::STATUSES],
-            'group' => ['label' => 'Grup', 'type' => 'select', 'options' => Options::groups()],
         ];
     }
 
@@ -73,7 +72,6 @@ class DealerVolumeReport extends Report
             ->selectRaw("(SELECT COALESCE(SUM(o.grand_total), 0) FROM orders o WHERE o.business_id = dealer_relationships.business_id AND o.dealer_relationship_id = dealer_relationships.id AND o.status IN {$ok} AND o.created_at BETWEEN ? AND ?) as amount", [$from, $to])
             ->selectRaw('(SELECT MAX(o.created_at) FROM orders o WHERE o.business_id = dealer_relationships.business_id AND o.dealer_relationship_id = dealer_relationships.id) as last_order_at')
             ->selectRaw('COALESCE(current_accounts.balance, 0) as balance')
-            ->when($f['status'] ?? null, fn ($q, $s) => $q->where('dealer_relationships.status', $s))
-            ->when($f['group'] ?? null, fn ($q, $g) => $q->where('dealer_relationships.dealer_group_id', $g));
+            ->when($f['status'] ?? null, fn ($q, $s) => $q->where('dealer_relationships.status', $s));
     }
 }

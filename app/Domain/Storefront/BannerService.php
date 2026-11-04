@@ -134,7 +134,6 @@ class BannerService
             'text_position' => $data['text_position'] ?? 'left',
             'starts_on' => $data['starts_on'] ?? null,
             'ends_on' => $data['ends_on'] ?? null,
-            'dealer_group_id' => $data['dealer_group_id'] ?? null,
             'is_active' => (bool) ($data['is_active'] ?? true),
         ];
     }

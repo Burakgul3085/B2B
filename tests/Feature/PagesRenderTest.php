@@ -9,11 +9,6 @@ use App\Http\Middleware\RequirePlatformTwoFactor;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DealerApplication;
-use App\Models\DealerGroup;
-use App\Models\DealerProductPrice;
-use App\Models\DiscountRule;
-use App\Models\PriceList;
-use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\StockCountLine;
@@ -183,32 +178,29 @@ class PagesRenderTest extends TestCase
         $tenant = app(TenantContext::class);
 
         $this->actingAs($business->user, 'business');
-        foreach (['/toptanci/basvurular', '/toptanci/basvurular?status=approved', '/toptanci/bayiler', '/toptanci/bayiler/yeni',
-            '/toptanci/bayi-gruplari', '/toptanci/fiyatlandirma', '/toptanci/fiyatlandirma?tab=discounts'] as $url) {
-            $this->get($url)->assertOk();
+        foreach (['/toptanci/basvurular', '/toptanci/basvurular?status=approved', '/toptanci/bayiler', '/toptanci/bayiler/yeni'] as $url) {
+            $this->get($url)->assertOk()->assertDontSee('Bayi Grupları')->assertDontSee('Fiyatlandırma');
+        }
+        // Bayi grupları, fiyatlandırma ve fiyat listeleri kaldırıldı.
+        foreach (['/toptanci/bayi-gruplari', '/toptanci/fiyatlandirma', '/toptanci/fiyat-listeleri/1'] as $url) {
+            $this->get($url)->assertNotFound();
         }
 
-        [$list, $application] = $tenant->runAs($business->id, function () use ($rel) {
-            $list = PriceList::create(['name' => 'Liste']);
-            $group = DealerGroup::create(['name' => 'Grup', 'price_list_id' => $list->id]);
-            $rel->update(['dealer_group_id' => $group->id]);
-            $product = Product::create(['sku' => 'P1', 'name' => 'Kalem', 'unit_id' => Unit::value('id'), 'tax_rate_id' => TaxRate::value('id'), 'list_price' => '5']);
-            PriceListItem::create(['price_list_id' => $list->id, 'product_id' => $product->id, 'price' => '4']);
-            DealerProductPrice::create(['dealer_relationship_id' => $rel->id, 'product_id' => $product->id, 'price' => '3']);
-            DiscountRule::create(['name' => 'Kural', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'group', 'dealer_group_id' => $group->id, 'percent' => '5']);
+        $application = $tenant->runAs($business->id, function () use ($rel) {
+            Product::create(['sku' => 'P1', 'name' => 'Kalem', 'unit_id' => Unit::value('id'), 'tax_rate_id' => TaxRate::value('id'), 'list_price' => '5']);
             $rel->addresses()->create(['title' => 'Merkez', 'recipient_name' => 'A', 'phone' => '0212 000 00 00', 'city' => 'İst', 'district' => 'Fatih', 'address_line' => 'X']);
             $application = DealerApplication::create(['legal_name' => 'Başvuran', 'contact_name' => 'B', 'phone' => '1234567', 'email' => 'b@b.test',
                 'city' => 'İst', 'district' => 'Fatih', 'address' => 'Y', 'consent_text_version' => 'v', 'consent_at' => now()]);
 
-            return [$list, $application];
+            return $application;
         });
 
         foreach (['/toptanci/basvurular', "/toptanci/basvurular/{$application->id}", '/toptanci/bayiler', "/toptanci/bayiler/{$rel->id}",
-            "/toptanci/bayiler/{$rel->id}?tab=addresses", "/toptanci/bayiler/{$rel->id}?tab=prices", "/toptanci/bayiler/{$rel->id}?tab=preview",
-            '/toptanci/bayi-gruplari', '/toptanci/fiyatlandirma', '/toptanci/fiyatlandirma?tab=discounts', "/toptanci/fiyat-listeleri/{$list->id}"] as $url) {
-            $this->get($url)->assertOk();
+            "/toptanci/bayiler/{$rel->id}?tab=addresses"] as $url) {
+            $this->get($url)->assertOk()->assertDontSee('Bayi grubu');
         }
-        $this->get("/toptanci/bayiler/{$rel->id}?tab=preview")->assertSee('Bayiye özel fiyat');
+        // Eski sekme adresleri genel sekmeye düşer.
+        $this->get("/toptanci/bayiler/{$rel->id}?tab=prices")->assertOk()->assertSee('Ticari koşullar')->assertDontSee('Özel fiyatlar');
 
         $this->flushSession();
         $this->actingAs($dealer, 'dealer');

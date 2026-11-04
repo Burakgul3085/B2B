@@ -12,7 +12,7 @@
     $title = $exists ? $promotion->name : 'Yeni kupon / kampanya';
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="$title">
-    <x-page-header :title="$title" subtitle="İndirim KDV hariç sipariş tutarından düşülür; ürün indirimlerinin ve bayiye özel fiyatların üzerine uygulanır. Siparişte tek kupon veya kampanya geçerlidir.">
+    <x-page-header :title="$title" subtitle="İndirim KDV hariç sipariş tutarından düşülür; indirimli bayi fiyatlarının üzerine uygulanır. Siparişte tek kupon veya kampanya geçerlidir.">
         <x-button variant="secondary" :href="route('business.promotions.index')">Listeye dön</x-button>
     </x-page-header>
     @error('promotion')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
@@ -100,7 +100,6 @@
             <x-card title="Kime">
                 <div class="space-y-4">
                     <x-field name="target" label="Kime" :options="Promotion::TARGETS" :value="$promotion->target" />
-                    <x-field name="dealer_group_id" label="Bayi grubu (Kime: bayi grubu ise)" :options="['' => 'Seçin'] + $groups" :value="$promotion->dealer_group_id" />
                     <fieldset>
                         <legend class="mb-1.5 text-sm font-medium">Bayiler (Kime: seçili bayiler ise)</legend>
                         @error('dealer_ids')<p class="mb-1.5 text-sm text-danger">{{ $message }}</p>@enderror

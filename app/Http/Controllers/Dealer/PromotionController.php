@@ -37,7 +37,7 @@ class PromotionController extends Controller
     {
         $relationship = $this->relationship();
         $rows = $this->promotions->visibleFor($relationship);
-        [$products, $total] = $this->products(fn ($q) => $this->prices->whereDiscounted($q, $relationship));
+        [$products, $total] = $this->products(fn ($q) => $this->prices->whereDiscounted($q));
 
         return view('dealer.promotions.index', [
             'rows' => $rows,

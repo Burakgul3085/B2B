@@ -25,6 +25,11 @@
                         'KDV' => $product->taxRate->name.($product->price_includes_tax ? ' (dahil)' : ' (hariç)'),
                         'Liste fiyatı' => Money::formatUnit($product->list_price),
                         'Bayi fiyatı' => $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : 'Liste fiyatı',
+                        'İndirimli bayi fiyatı' => $product->dealer_sale_price !== null
+                            ? Money::formatUnit($product->dealer_sale_price)
+                                .($product->dealer_sale_starts_on || $product->dealer_sale_ends_on ? ' · '.($product->dealer_sale_starts_on?->format('d.m.Y') ?? 'hemen').' – '.($product->dealer_sale_ends_on?->format('d.m.Y') ?? 'süresiz') : '')
+                                .($product->dealerSaleActiveOn(\App\Domain\Support\LocalTime::today()) ? ' (geçerli)' : ' (şu an geçerli değil)')
+                            : null,
                         'Alış fiyatı' => Money::formatUnit($product->purchase_price),
                         'Minimum sipariş' => Quantity::format($product->min_order_qty).' '.$product->unit->name,
                         'Sipariş adımı' => Quantity::format($product->order_step),
