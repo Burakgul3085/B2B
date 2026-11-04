@@ -21,6 +21,11 @@ class ReorderService
         $skipped = [];
 
         foreach ($order->items()->orderBy('id')->get() as $item) {
+            if ($item->product_id === null) {
+                $skipped[] = $item->name.': Ürün artık satışta değil.';
+
+                continue;
+            }
             try {
                 $this->cart->add($relationship, $item->product_id, (string) $item->quantity_requested);
                 $added++;

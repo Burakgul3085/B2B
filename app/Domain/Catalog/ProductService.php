@@ -8,10 +8,22 @@ use App\Domain\Files\ImageVariants;
 use App\Domain\Tenancy\TenantContext;
 use App\Jobs\GenerateImageVariants;
 use App\Models\Business;
+use App\Models\CartItem;
+use App\Models\DealerProductPrice;
+use App\Models\DiscountRule;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\OrderReturnRequest;
+use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductRequest;
+use App\Models\Promotion;
+use App\Models\StockCountLine;
+use App\Models\StockMovement;
 use App\Models\Unit;
 use App\Models\VariantGroup;
+use App\Models\WarehouseStock;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
@@ -204,6 +216,67 @@ class ProductService
     {
         $product->forceFill(['archived_at' => null])->save();
         $this->audit->log('product.restored', $product);
+    }
+
+    /**
+     * Ürün kalıcı olarak silinir: stok hareketleri ve depo stoğuyla birlikte (mağazadaki gibi). Stok hareketleri normalde
+     * yalnızca eklenir; ürün tümüyle silindiğinde hareket geçmişi de onunla kalkar, silinen stok ve hareket sayısı işlem
+     * geçmişine yazılır. Siparişler etkilenmez: kalem ürünün adını, kodunu, birimini, fiyatını ve KDV'sini kendi
+     * üzerinde saklar, yalnızca ürün bağlantısı boşalır. Açık sipariş veya açık iade talebindeki ürün silinmez
+     * (onay, sevk ve iadede ürün gerekir). Ürün satırı kilitlenir; aynı anda gönderilen sipariş ile çakışmaz.
+     *
+     * @throws DomainException
+     */
+    public function delete(Product $product): void
+    {
+        $paths = $product->images()->pluck('path');
+
+        DB::transaction(function () use ($product) {
+            // Kilit sırası sipariş gönderimiyle aynı (önce sepet satırları, sonra ürün): aynı anda gönderilen sepet ya
+            // önce tamamlanır ve açık sipariş olarak görülür ya da ürün sepetten kalkmış olarak gönderilir.
+            CartItem::where('product_id', $product->id)->lockForUpdate()->get();
+            Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+
+            // Kilitli okuma: işlemin başındaki anlık görüntü değil, son gönderilen siparişler sayılır.
+            $open = Order::whereIn('status', [...Order::PENDING, ...Order::ACTIVE_FULFILMENT])
+                ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
+                ->lockForUpdate()->orderBy('id')->pluck('order_no');
+            if ($open->isNotEmpty()) {
+                throw new DomainException('Bu ürün '.$open->count().' açık siparişte ('.$open->take(5)->implode(', ').($open->count() > 5 ? '…' : '')
+                    .'). Siparişler teslim edilince, reddedilince veya iptal edilince silebilirsiniz; şimdilik arşivleyebilirsiniz.');
+            }
+            $openReturns = OrderReturnRequest::whereIn('status', OrderReturnRequest::OPEN)
+                ->whereHas('items.orderItem', fn ($q) => $q->where('product_id', $product->id))->lockForUpdate()->count();
+            if ($openReturns > 0) {
+                throw new DomainException('Bu ürün açık bir iade talebinde. Talep sonuçlanınca silebilirsiniz.');
+            }
+
+            $stock = (string) WarehouseStock::where('product_id', $product->id)->sum('quantity');
+            // Toplu silme: StockMovement modelindeki "silinemez" koruması tek kayıt içindir; burada ürünle birlikte kalkar.
+            $movements = StockMovement::where('product_id', $product->id)->delete();
+            WarehouseStock::where('product_id', $product->id)->delete();
+            StockCountLine::where('product_id', $product->id)->delete();
+            CartItem::where('product_id', $product->id)->delete();
+            ProductRequest::where('product_id', $product->id)->delete();
+            DealerProductPrice::where('product_id', $product->id)->delete();
+            PriceListItem::where('product_id', $product->id)->delete();
+            DiscountRule::where('scope', 'product')->where('product_id', $product->id)->delete();
+            $orderLines = OrderItem::where('product_id', $product->id)->update(['product_id' => null]);
+            Promotion::whereJsonContains('product_ids', $product->id)->get()->each(function (Promotion $promotion) use ($product) {
+                $ids = array_values(array_diff(array_map('intval', $promotion->product_ids ?? []), [$product->id]));
+                $promotion->update(['product_ids' => $ids ?: null]);
+            });
+
+            $product->delete(); // görseller ve vitrin kayıtları veritabanında birlikte silinir
+            $this->audit->log('product.deleted', $product, [
+                'sku' => $product->sku, 'name' => $product->name, 'stock' => $stock, 'stock_movements' => $movements, 'order_lines' => $orderLines,
+            ]);
+        });
+
+        foreach ($paths as $path) {
+            $this->images->delete($path);
+            app(ImageVariants::class)->forget($path);
+        }
     }
 
     /** @param  int[]  $ids */

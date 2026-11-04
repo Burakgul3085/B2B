@@ -71,7 +71,7 @@ class OrderItemReport extends Report
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('dealer_relationships', 'dealer_relationships.id', '=', 'orders.dealer_relationship_id')
             ->join('dealers', 'dealers.id', '=', 'dealer_relationships.dealer_id')
-            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id') // silinmiş ürünün kalemi de raporda kalır
             ->whereIn('order_items.order_id', $orders)
             ->select('orders.order_no', 'orders.created_at', 'dealers.legal_name as dealer', 'order_items.sku', 'order_items.name',
                 'order_items.quantity_requested', 'order_items.unit_price', 'order_items.discount_percent',

@@ -48,12 +48,13 @@ stateDiagram-v2
 |---|---|
 | S1 — Değişmezlik | Her (depo, ürün) için `warehouse_stock.quantity = SUM(stock_movements.quantity)`. Günlük kontrol görevi farkı raporlar (otomatik düzeltmez). |
 | S2 — Negatif stok yok | Düşüm öncesi satır `FOR UPDATE` ile kilitlenir; yetersizse işlem reddedilir. Ayrıca `CHECK (quantity >= 0)`. |
-| S3 — Hareketler silinmez | Yanlış hareket, ters yönlü yeni hareketle düzeltilir (açıklama + bağlantı). |
+| S3 — Hareketler silinmez | Yanlış hareket, ters yönlü yeni hareketle düzeltilir (açıklama + bağlantı). Tek istisna: ürünün kalıcı silinmesi (S9). |
 | S4 — Transfer | Tek transaction: kaynak depoda `transfer_out` (−), hedefte `transfer_in` (+), aynı `transfer_uuid`. Kaynak yetersizse ikisi de yazılmaz. |
 | S5 — Sayım | Sayım taslağı oluşturulurken sistem miktarı kopyalanır; **uygulama anında** fark yeniden hesaplanır (sayım sırasında satış olduysa doğru fark yazılır). Fark kadar `count_adjust`. |
 | S6 — Kilit sırası | Birden çok stok satırı kilitlenirken her zaman `product_id` artan sırada (kilitlenme/deadlock önleme). |
 | S7 — Sepet ve sipariş stok ayırmaz | Sepette olmak veya sipariş oluşturmak stoğu değiştirmez. Stok **yalnızca sipariş onayında** düşer. |
 | S8 — Kritik stok | `quantity <= critical_stock_level` → dashboard ve "Kritik stok" raporu. |
+| S9 — Ürünü kalıcı silme | Toptancı ürün sayfasından "Ürünü kalıcı sil" (`ProductService::delete`). Ürünün stok hareketleri, depo stoğu, sayım satırları, görselleri, sepet kayıtları, ürün talepleri, bayi özel fiyatları, fiyat listesi kalemleri ve ürün indirim kuralları birlikte silinir; kampanya kapsamından çıkarılır. Silinen stok miktarı ve hareket sayısı denetim kaydına yazılır. Sipariş kalemleri korunur (`product_id` boşaltılır; ad, kod, birim, fiyat ve KDV satırda kalır), böylece sipariş, cari ve rapor değişmez. Ürün karar bekleyen veya hazırlanan bir siparişte ya da açık bir iade talebindeyse silinmez. Silinmiş ürünün iadesinde tutar cariye / karta yazılır, stok girişi yapılmaz. Sipariş verme ile çakışmasın diye önce ürünün sepet satırları, sonra ürün satırı kilitlenir (sipariş verme ile aynı sıra). Arşivleme ve pasife alma ayrıca durur. |
 
 **Bayiye gösterilen stok** = varsayılan sevk deposundaki miktar (K3). Gösterim biçimi işletme ayarı (K4).
 
@@ -229,7 +230,7 @@ Genel liste fiyatı bayiye "liste fiyatı" olarak, uygulanan fiyatın yanında g
 
 ### 4.3 Fiyat değişikliğinin geçmişe etkisi
 
-Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırında taşır. Ürün güncellense, arşivlense veya KDV oranı değişse de geçmiş sipariş, ekstre ve rapor aynı kalır.
+Yok. Sipariş kalemi fiyatı, KDV oranı, ürün adı ve kodunu kendi satırında taşır. Ürün güncellense, arşivlense, silinse (§2 S9) veya KDV oranı değişse de geçmiş sipariş, ekstre ve rapor aynı kalır.
 
 ### 4.4 Kupon ve kampanyalar (sipariş indirimi)
 

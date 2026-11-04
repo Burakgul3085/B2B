@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Inventory\Quantity;
 use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +32,16 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Küsuratlı miktar girilebilir mi? Ürünün biriminden; ürün silindiyse (bağlantı boş) sipariş miktarının kendisinden.
+     */
+    public function allowsFraction(): bool
+    {
+        return $this->product?->unit
+            ? (bool) $this->product->unit->allows_fraction
+            : ! Quantity::isWhole($this->effectiveQuantity());
     }
 
     /** Onaydan sonra onaylanan, öncesinde istenen miktar. */

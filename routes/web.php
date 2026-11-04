@@ -301,6 +301,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('urunler/{product}/kopyala', [Business\ProductController::class, 'duplicate'])->name('products.duplicate');
         Route::post('urunler/{product}/arsivle', [Business\ProductController::class, 'archive'])->name('products.archive');
         Route::post('urunler/{product}/arsivden-cikar', [Business\ProductController::class, 'restore'])->name('products.restore');
+        Route::delete('urunler/{product}', [Business\ProductController::class, 'destroy'])->name('products.destroy');
         Route::post('urunler/{product}/gorseller', [Business\ProductImageController::class, 'store'])->name('products.images.store');
         Route::put('urunler/{product}/gorseller/{image}/ana', [Business\ProductImageController::class, 'primary'])->name('products.images.primary');
         Route::delete('urunler/{product}/gorseller/{image}', [Business\ProductImageController::class, 'destroy'])->name('products.images.destroy');

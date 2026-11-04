@@ -159,6 +159,17 @@
                     </form>
                 </x-card>
             @endunless
+
+            {{-- Kalıcı silme: stok hareketleriyle birlikte; açık siparişteki ürün silinmez (ProductService::delete). --}}
+            <x-card title="Ürünü kalıcı sil">
+                @error('product')<div role="alert" class="mb-3 rounded-lg border border-red-200 bg-danger-soft px-3 py-2 text-sm text-red-900">{{ $message }}</div>@enderror
+                <p class="text-sm text-muted">Ürün; stok hareketleri, depo stoğu, görselleri, bayi fiyatları ve sepetlerdeki kayıtlarıyla birlikte silinir. Geçmiş siparişler, cari ve raporlar ürünün adı, kodu ve fiyatıyla korunur. Açık siparişteki ürün silinemez. Bu işlem geri alınamaz; ürünü saklamak için arşivleyin.</p>
+                <form method="POST" action="{{ route('business.products.destroy', $product) }}" class="mt-4"
+                    data-confirm="“{{ $product->name }}” kalıcı olarak silinsin mi? Stok hareketleri ve depo stoğu da silinir; bu işlem geri alınamaz.">
+                    @csrf @method('DELETE')
+                    <x-button variant="ghost" size="sm" icon="trash" class="text-danger">Ürünü kalıcı sil</x-button>
+                </form>
+            </x-card>
         </div>
     </div>
 </x-layouts.panel>

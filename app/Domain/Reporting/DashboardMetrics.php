@@ -159,7 +159,7 @@ class DashboardMetrics
     public function categories(array $range, array $f, int $limit = 8): array
     {
         return $this->items($range, $f)
-            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id') // silinmiş ürün: "Kategorisiz"
             ->leftJoin('categories as c', 'c.id', '=', 'products.category_id')
             ->leftJoin('categories as p', 'p.id', '=', 'c.parent_id')
             ->selectRaw("COALESCE(p.name, c.name, 'Kategorisiz') as label, SUM(order_items.line_net) as total")

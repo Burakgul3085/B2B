@@ -124,6 +124,18 @@ class ProductController extends Controller
         return redirect()->route('business.products.show', $product)->with('status', 'Ürün arşivlendi. Bayiler artık bu ürünü görmez; geçmiş kayıtlar korunur.');
     }
 
+    /** Kalıcı silme (stok hareketleriyle birlikte; açık siparişteki ürün silinmez). */
+    public function destroy(Product $product): RedirectResponse
+    {
+        try {
+            $this->products->delete($product);
+        } catch (DomainException $e) {
+            return back()->withErrors(['product' => $e->getMessage()]);
+        }
+
+        return redirect()->route('business.products.index')->with('status', "“{$product->name}” kalıcı olarak silindi.");
+    }
+
     public function restore(Product $product): RedirectResponse
     {
         $this->products->restore($product);

@@ -94,7 +94,7 @@ class ReturnRequestService
                     if (bccomp($qty, $requestable[$item->id] ?? '0', 3) > 0) {
                         throw new DomainException("\"{$item->name}\" için en fazla ".Quantity::format($requestable[$item->id] ?? '0').' iade talep edilebilir.');
                     }
-                    if (! $item->product->unit->allows_fraction && ! Quantity::isWhole($qty)) {
+                    if (! $item->allowsFraction() && ! Quantity::isWhole($qty)) {
                         throw new DomainException("\"{$item->name}\" için küsuratlı miktar girilemez.");
                     }
                     $lines[] = ['order_item_id' => $item->id, 'quantity' => $qty];

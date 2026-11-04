@@ -61,11 +61,12 @@ class TopProductsReport extends Report
 
         return OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id') // silinmiş ürün: kalemdeki kod ve ad
             ->whereIn('order_items.order_id', $orders)
             ->when($f['category'] ?? null, fn ($q, $c) => $q->whereIn('products.category_id', Options::categoryIds((int) $c)))
-            ->groupBy('order_items.product_id', 'products.sku', 'products.name')
-            ->select('products.sku', 'products.name')
+            ->groupBy('order_items.product_id', 'order_items.sku')
+            ->select('order_items.sku')
+            ->selectRaw('MAX(order_items.name) as name')
             ->selectRaw('COUNT(DISTINCT order_items.order_id) as orders, COUNT(DISTINCT orders.dealer_relationship_id) as dealers')
             ->selectRaw('SUM(order_items.quantity_approved) as quantity, SUM(order_items.line_net) as line_net');
     }

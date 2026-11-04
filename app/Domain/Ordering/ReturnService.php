@@ -89,15 +89,19 @@ class ReturnService
                 if (bccomp($qty, $returnable[$item->id], 3) > 0) {
                     throw new DomainException("\"{$item->name}\" için en fazla ".Quantity::format($returnable[$item->id]).' iade edilebilir.');
                 }
-                if (! $item->product->unit->allows_fraction && ! Quantity::isWhole($qty)) {
+                if (! $item->allowsFraction() && ! Quantity::isWhole($qty)) {
                     throw new DomainException("\"{$item->name}\" için küsuratlı iade girilemez.");
                 }
                 $back = $qty;
                 if ($restock !== null) {
                     $back = Quantity::parse((string) ($restock[$item->id] ?? '0')) ?? '0';
-                    if (bccomp($back, '0', 3) < 0 || bccomp($back, $qty, 3) > 0 || (! $item->product->unit->allows_fraction && ! Quantity::isWhole($back))) {
+                    if (bccomp($back, '0', 3) < 0 || bccomp($back, $qty, 3) > 0 || (! $item->allowsFraction() && ! Quantity::isWhole($back))) {
                         throw new DomainException("\"{$item->name}\" için depoya girecek miktar 0 ile iade miktarı arasında olmalıdır.");
                     }
+                }
+                // Silinmiş ürün depoya girmez (ürün kaydı yok); tutar yine cariye / karta iade edilir.
+                if ($item->product === null) {
+                    $back = '0';
                 }
                 $lines[] = ['item' => $item, 'qty' => $qty, 'restock' => $back, 'amounts' => LineCalculator::line((string) $item->unit_price, $qty, (string) $item->discount_percent, (string) $item->vat_rate, self::orderDiscountShare($item, $returnable[$item->id], $qty))];
             }

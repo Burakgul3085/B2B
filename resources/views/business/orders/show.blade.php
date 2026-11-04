@@ -122,7 +122,7 @@
                                 @foreach ($order->items as $item)
                                     @continue(bccomp($returnable[$item->id] ?? '0', '0', 3) <= 0)
                                     <tr>
-                                        <td>{{ $item->name }}</td>
+                                        <td>{{ $item->name }}@if (! $item->product_id)<span class="block text-xs text-muted">Ürün silindi; iade tutarı yazılır, stoğa alınmaz.</span>@endif</td>
                                         <td class="text-right tabular-nums">{{ Quantity::format($returnable[$item->id]) }} {{ $item->unit_name }}</td>
                                         <td class="text-right"><input name="qty[{{ $item->id }}]" value="{{ old('qty.'.$item->id) }}" inputmode="decimal" class="field-input ml-auto w-24 py-1 text-right" aria-label="{{ $item->name }} iade miktarı"></td>
                                     </tr>
