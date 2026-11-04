@@ -58,6 +58,21 @@ stateDiagram-v2
 
 **Bayiye gösterilen stok** = varsayılan sevk deposundaki miktar (K3). Gösterim biçimi işletme ayarı (K4).
 
+### 2.1 Satış şekli (2026-11-04)
+
+Fiyat, stok ve sipariş miktarı her zaman **adet** cinsindendir; koli yalnızca bayinin nasıl sipariş vereceğini belirleyen kuraldır. Toptancı ürün formunda üç şekilden birini seçer (`products.sale_mode`):
+
+| Şekil | Toptancı girer | Kayıt | Bayi görür |
+|---|---|---|---|
+| Tek tek (`single`) | En az sipariş (genelde 1) | koli içi = 1, artış = 1 | "Tek tek satılır" / "Tek tek · en az 3 adet" |
+| Koli halinde (`case`) | Koli içi adet (≥ 2), en az koli | artış = koli içi, en az = koli içi × en az koli | "Koli: 24 adet · en az 1 koli", ürün sayfasında koli fiyatı, sepette "N koli" |
+| Özel kural (`custom`) | En az sipariş, artış | koli içi = 1; en az, artışın katı olmalı | "En az 15 adet, 15'er artar" |
+
+- Miktarlar tam sayıdır. Sipariş doğrulaması değişmedi: `miktar ≥ min_order_qty` ve `miktar`, `order_step`'in katı (§3).
+- **Birim yönetimi kaldırıldı:** "KDV ve Birimler" sayfası "KDV Oranları" oldu (`/toptanci/kdv-oranlari`; eski adres yönlendirilir). Yeni ürün her zaman adettir. Mevcut ürün birimini korur; stok hareketleri değiştirilemeyeceği için (S3) birim dönüştürülmez. `units` tablosu durur.
+- Excel içe aktarmada birim sütunu yok. "Koli İçi Adet / En Az Sipariş / Artış" sütunlarından şekil çıkarılır: koli içi = artış > 1 → koli halinde; artış > 1 → özel kural; diğer → tek tek. Üçü de boşsa yeni ürün tek tek satılır, mevcut ürünün şekli değişmez. Eski şablon başlıkları da okunur.
+- Geçişte mevcut ürünlerin şekli kurallarından aynı yöntemle çıkarıldı.
+
 ## 3. Sipariş
 
 ### 3.1 Durumlar

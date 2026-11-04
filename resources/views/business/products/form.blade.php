@@ -44,13 +44,45 @@
             </div>
         </x-card>
 
-        <x-card title="Birim ve sipariş kuralları" description="Bayi siparişlerinde miktar bu kurallara göre doğrulanır.">
-            <div class="grid gap-5 sm:grid-cols-3">
-                <x-field name="unit_id" label="Birim" :options="$units->pluck('name', 'id')->all()" :value="$product->unit_id" required />
-                <x-field name="pack_quantity" label="Koli / paket içi miktar" type="number" step="0.001" min="0.001" :value="$product->pack_quantity" required />
-                <x-field name="critical_stock_level" label="Kritik stok seviyesi" type="number" step="0.001" min="0" :value="$product->critical_stock_level" required hint="Bu seviyede ve altında uyarı verilir." />
-                <x-field name="min_order_qty" label="Minimum sipariş miktarı" type="number" step="0.001" min="0.001" :value="$product->min_order_qty" required />
-                <x-field name="order_step" label="Sipariş artış adımı" type="number" step="0.001" min="0.001" :value="$product->order_step" required hint="Ör. 12 ise bayi 12, 24, 36… sipariş verebilir." />
+        @php
+            $unitName = mb_strtolower($product->unit?->name ?? 'adet', 'UTF-8');
+            $qty = fn ($v) => rtrim(rtrim((string) $v, '0'), '.');
+            $mode = old('sale_mode', $product->sale_mode ?? 'single');
+            $mode = is_string($mode) && isset(\App\Models\Product::SALE_MODES[$mode]) ? $mode : 'single';
+        @endphp
+        <x-card title="Satış şekli" description="Fiyat ve stok her zaman {{ $unitName }} başınadır; koli yalnızca bayinin nasıl sipariş vereceğini belirler.">
+            <div x-data="{ mode: @alpine($mode) }" class="space-y-5">
+                <fieldset>
+                    <legend class="sr-only">Satış şekli</legend>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        @foreach (['single' => 'Bayi istediği kadar alır (1, 2, 3…).', 'case' => 'Bayi yalnızca tam koli alır.', 'custom' => 'Ör. en az 15, 15\'er artar.'] as $value => $hint)
+                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3 has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+                                <input type="radio" name="sale_mode" value="{{ $value }}" x-model="mode" class="mt-1" @checked($mode === $value)>
+                                <span>
+                                    <span class="block text-sm font-medium">{{ \App\Models\Product::SALE_MODES[$value] }}</span>
+                                    <span class="block text-xs text-muted">{{ $hint }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('sale_mode')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
+                </fieldset>
+
+                <div class="grid gap-5 sm:grid-cols-3">
+                    <div x-show="mode === 'case'">
+                        <x-field name="pack_quantity" label="Koli içi adet" type="number" step="1" min="2" :value="$qty($product->pack_quantity)" required x-bind:disabled="mode !== 'case'" hint="Bayi bu sayının katlarıyla sipariş verir." />
+                    </div>
+                    <div x-show="mode === 'case'">
+                        <x-field name="min_cases" label="En az koli" type="number" step="1" min="1" :value="$product->minCases()" required x-bind:disabled="mode !== 'case'" />
+                    </div>
+                    <div x-show="mode !== 'case'">
+                        <x-field name="min_order_qty" label="En az sipariş ({{ $unitName }})" type="number" step="1" min="1" :value="$qty($product->min_order_qty)" required x-bind:disabled="mode === 'case'" hint="Tek tek satışta genelde 1." />
+                    </div>
+                    <div x-show="mode === 'custom'">
+                        <x-field name="order_step" label="Artış ({{ $unitName }})" type="number" step="1" min="1" :value="$qty($product->order_step)" required x-bind:disabled="mode !== 'custom'" hint="Ör. 15 ise bayi 15, 30, 45… sipariş verebilir. En az sipariş bunun katı olmalı." />
+                    </div>
+                    <x-field name="critical_stock_level" label="Kritik stok seviyesi ({{ $unitName }})" type="number" step="1" min="0" :value="$qty($product->critical_stock_level)" required hint="Bu seviyede ve altında uyarı verilir." />
+                </div>
             </div>
         </x-card>
 

@@ -12,7 +12,6 @@ use App\Models\Product;
 use App\Models\Showcase;
 use App\Models\ShowcaseProduct;
 use App\Models\TaxRate;
-use App\Models\Unit;
 use App\Models\VariantGroup;
 use App\Models\Warehouse;
 use DomainException;
@@ -53,8 +52,7 @@ class ProductController extends Controller
     {
         return view('business.products.form', $this->formData(new Product([
             'is_active' => true, 'visible_to_dealers' => true, 'pack_quantity' => 1, 'min_order_qty' => 1,
-            'order_step' => 1, 'critical_stock_level' => 0,
-            'unit_id' => Unit::where('code', 'ADET')->value('id'),
+            'order_step' => 1, 'critical_stock_level' => 0, 'sale_mode' => 'single',
             'tax_rate_id' => TaxRate::where('rate', '20.00')->value('id'),
         ])));
     }
@@ -245,7 +243,7 @@ class ProductController extends Controller
 
     private function input(Request $request): array
     {
-        $input = $request->only(Product::EDITABLE);
+        $input = $request->only([...Product::EDITABLE, 'min_cases']);
         foreach (['price_includes_tax', 'is_active', 'visible_to_dealers'] as $flag) {
             $input[$flag] = $request->boolean($flag);
         }
@@ -264,7 +262,6 @@ class ProductController extends Controller
             'product' => $product,
             'categories' => $this->categoryOptions(),
             'brands' => Brand::where('is_active', true)->orWhere('id', $product->brand_id)->orderBy('name')->pluck('name', 'id'),
-            'units' => Unit::orderBy('name')->get(),
             'taxRates' => TaxRate::where('is_active', true)->orWhere('id', $product->tax_rate_id)->orderBy('rate')->pluck('name', 'id'),
             'variantGroups' => VariantGroup::orderBy('name')->get(),
         ];

@@ -114,7 +114,7 @@ class PagesRenderTest extends TestCase
 
         $pages = ['/toptanci/urunler', '/toptanci/urunler/yeni', '/toptanci/urunler/toplu-fiyat', '/toptanci/urunler/ice-aktar',
             '/toptanci/kategori-ve-markalar', '/toptanci/kategori-ve-markalar?tab=brands', '/toptanci/kategori-ve-markalar?tab=variants',
-            '/toptanci/kdv-ve-birimler', '/toptanci/stok', '/toptanci/stok/hareket', '/toptanci/stok/transfer',
+            '/toptanci/kdv-oranlari', '/toptanci/stok', '/toptanci/stok/hareket', '/toptanci/stok/transfer',
             '/toptanci/stok-hareketleri', '/toptanci/depolar', '/toptanci/stok-sayimlari'];
 
         foreach ($pages as $url) {

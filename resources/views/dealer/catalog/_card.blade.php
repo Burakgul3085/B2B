@@ -41,7 +41,7 @@
             <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium {{ $text }}"><span class="size-1.5 rounded-full {{ $dot }}"></span>{{ $level['label'] }}</span>
         </div>
         <a href="{{ route('dealer.catalog.show', $product) }}" class="mt-1.5 line-clamp-2 min-h-[2.75rem] font-semibold leading-snug text-ink transition hover:text-primary">{{ $product->name }}</a>
-        <p class="mt-1 text-xs text-muted"><span class="font-mono">{{ $product->sku }}</span> · {{ $product->unit->name }}@if ((float) $product->pack_quantity > 1) · Koli {{ Quantity::format($product->pack_quantity) }}@endif</p>
+        <p class="mt-1 text-xs text-muted"><span class="font-mono">{{ $product->sku }}</span> · {{ $product->saleRuleLabel() }}</p>
         <x-price-tag :price="$price" :display="$settings->price_display" class="mt-3" />
         <div class="mt-auto pt-4">
             @include('dealer.catalog._add-form', ['product' => $product, 'level' => $level, 'hasOpenRequest' => $openRequests->has($product->id)])

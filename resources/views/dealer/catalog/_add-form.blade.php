@@ -19,7 +19,6 @@
         <p class="rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-muted">Şu an sipariş verilemiyor</p>
     @endif
 @else
-    @php $step = Quantity::format($product->order_step); $min = Quantity::format($product->min_order_qty); @endphp
     {{-- Dar alanda miktar ve düğme alt alta, genişte yan yana dizilir. --}}
     <div class="@container">
     <form method="POST" action="{{ route('dealer.cart.add') }}" class="flex flex-col gap-2 @[16.5rem]:flex-row"
@@ -34,5 +33,5 @@
         <x-button class="h-10 min-w-0 flex-1 rounded-xl! whitespace-nowrap" icon="cart">Sepete Ekle</x-button>
     </form>
     </div>
-    <p class="mt-1.5 text-[11px] text-muted">En az {{ $min }}, {{ $step }}'er artar · {{ $product->unit->name }}</p>
+    <p class="mt-1.5 text-[11px] text-muted">{{ $product->saleRuleLabel() }}</p>
 @endif

@@ -305,12 +305,11 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('varyant-gruplari', [Business\CatalogStructureController::class, 'storeVariantGroup'])->name('variant-groups.store');
         Route::put('varyant-gruplari/{variantGroup}', [Business\CatalogStructureController::class, 'updateVariantGroup'])->name('variant-groups.update');
 
-        // Ayarlar: KDV ve birimler
-        Route::get('kdv-ve-birimler', [Business\CatalogSettingsController::class, 'index'])->name('catalog.settings');
+        // Ayarlar: KDV oranları (birim yönetimi kaldırıldı; satış şekli ürün formunda)
+        Route::get('kdv-oranlari', [Business\CatalogSettingsController::class, 'index'])->name('catalog.settings');
+        Route::permanentRedirect('kdv-ve-birimler', '/toptanci/kdv-oranlari');
         Route::post('kdv-oranlari', [Business\CatalogSettingsController::class, 'storeTaxRate'])->name('tax-rates.store');
         Route::put('kdv-oranlari/{taxRate}/durum', [Business\CatalogSettingsController::class, 'toggleTaxRate'])->name('tax-rates.toggle');
-        Route::post('birimler', [Business\CatalogSettingsController::class, 'storeUnit'])->name('units.store');
-        Route::put('birimler/{unit}', [Business\CatalogSettingsController::class, 'updateUnit'])->name('units.update');
 
         // Stok ve depo
         Route::get('stok', [Business\StockController::class, 'index'])->name('stock.index');

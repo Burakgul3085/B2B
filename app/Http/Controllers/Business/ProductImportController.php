@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\ImportJob;
 use App\Models\TaxRate;
-use App\Models\Unit;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,8 +55,7 @@ class ProductImportController extends Controller
 
     public function template(TenantContext $tenant): StreamedResponse
     {
-        // Açılır listeler işletmenin kendi birimlerinden ve aktif KDV oranlarından gelir.
-        $units = Unit::orderBy('code')->pluck('code')->all();
+        // Açılır listeler işletmenin aktif KDV oranlarından gelir.
         $rates = TaxRate::where('is_active', true)->orderBy('rate')->pluck('rate')->map(fn ($r) => rtrim(rtrim((string) $r, '0'), '.'))->unique()->values()->all();
         $yesNo = ['Evet', 'Hayır'];
         $help = [
@@ -68,15 +66,14 @@ class ProductImportController extends Controller
             'category' => [26, false, 'Kategori. Alt kategori ">" ile yazılır (en fazla iki seviye). Yoksa yükleme ekranındaki seçenekle oluşturulur.', 'Kalem > Tükenmez Kalem'],
             'brand' => [16, false, 'Marka adı (varsa).', 'Örnek Marka'],
             'model' => [12, false, 'Model veya üretici kodu.', 'TK-10'],
-            'unit' => [10, false, 'Satış birimi. Boşsa ADET kabul edilir.', 'ADET', $units ?: null],
-            'pack_quantity' => [12, false, 'Bir kolideki miktar.', '50'],
+            'pack_quantity' => [12, false, 'Koli halinde satılıyorsa bir kolideki adet (Artış ile aynı yazın). Üçü de boşsa ürün tek tek satılır.', '50'],
             'purchase_price' => [13, false, 'Alış fiyatı (bayiler görmez).', '4,20'],
             'list_price' => [13, true, 'Liste fiyatı. Virgül veya nokta kullanılabilir. Yeni ürün için zorunlu.', '8,50'],
             'dealer_price' => [13, false, 'Bayilere uygulanan fiyat.', '7,25'],
             'tax_rate' => [13, true, 'KDV oranı; işletmenizde tanımlı ve aktif olmalı. Yeni ürün için zorunlu.', '20', $rates ?: null],
             'price_includes_tax' => [10, false, 'Fiyatlar KDV dahil mi?', 'Hayır', $yesNo],
-            'min_order_qty' => [12, false, 'Bayinin en az sipariş edebileceği miktar.', '50'],
-            'order_step' => [11, false, 'Sipariş miktarı bu sayının katları olmalı (ör. koli içi).', '50'],
+            'min_order_qty' => [12, false, 'Bayinin en az sipariş edebileceği adet; Artış\'ın katı olmalı (ör. en az 2 koli için 100).', '50'],
+            'order_step' => [11, false, 'Sipariş bu sayının katlarıyla artar (ör. 15 yazılırsa 15, 30, 45…). Koli halinde satışta koli içi adetle aynıdır.', '50'],
             'critical_stock_level' => [11, false, 'Stok bu seviyeye inince uyarı verilir.', '500'],
             'is_active' => [9, false, 'Ürün satışta mı?', 'Evet', $yesNo],
             'visible_to_dealers' => [12, false, 'Ürün bayi kataloğunda görünsün mü?', 'Evet', $yesNo],
@@ -97,14 +94,14 @@ class ProductImportController extends Controller
                     'Her satır bir üründür. Turuncu başlıklı sütunlar yeni ürün için zorunludur.',
                     'Ürün Kodu sistemde varsa ürün güncellenir; güncellemede yalnızca dosyada dolu olan sütunlar değişir.',
                     'Fiyatlar 8,50 veya 8.50 biçiminde yazılabilir. Kategori "Ana > Alt" biçiminde olabilir.',
-                    'Bir hücreye tıkladığınızda o sütunun açıklaması görünür. Birim, KDV ve Evet/Hayır sütunlarında açılır listeden seçin.',
+                    'Bir hücreye tıkladığınızda o sütunun açıklaması görünür. KDV ve Evet/Hayır sütunlarında açılır listeden seçin.',
                     'Hatalı satırlar atlanır, diğerleri kaydedilir; hatalar satır numarasıyla listelenir.',
                 ],
                 'notes' => ['En fazla 5.000 satır ve 10 MB. Yalnızca ilk sayfa (Ürünler) okunur; başlık satırını değiştirmeyin.'],
                 'columns' => $columns,
                 'examples' => [
-                    ['KLM-001', '8690000000017', 'Tükenmez Kalem Mavi', '1.0 mm uç', 'Kalem > Tükenmez Kalem', 'Örnek Marka', 'TK-10', 'ADET', '50', '4,20', '8,50', '7,25', '20', 'Hayır', '50', '50', '500', 'Evet', 'Evet', '1000'],
-                    ['DFT-A4-80', '8690000000024', 'Spiralli Defter A4 80 Yaprak', 'Kareli, sert kapak', 'Defter > Spiralli Defter', 'Örnek Marka', 'SD-80', 'ADET', '24', '38,00', '65,00', '', '20', 'Hayır', '24', '24', '100', 'Evet', 'Evet', '480'],
+                    ['KLM-001', '8690000000017', 'Tükenmez Kalem Mavi', '1.0 mm uç', 'Kalem > Tükenmez Kalem', 'Örnek Marka', 'TK-10', '50', '4,20', '8,50', '7,25', '20', 'Hayır', '50', '50', '500', 'Evet', 'Evet', '1000'],
+                    ['DFT-A4-80', '8690000000024', 'Spiralli Defter A4 80 Yaprak', 'Kareli, sert kapak', 'Defter > Spiralli Defter', 'Örnek Marka', 'SD-80', '24', '38,00', '65,00', '', '20', 'Hayır', '24', '24', '100', 'Evet', 'Evet', '480'],
                 ],
             ]);
         }, 'urun-ice-aktarma-sablonu.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);

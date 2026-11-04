@@ -64,10 +64,11 @@
                 @endforeach
                 <div class="mt-3 flex flex-wrap gap-1.5"><x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>@if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif</div>
                 <dl class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
-                    <div><dt class="text-muted">Birim</dt><dd class="font-medium">{{ $product->unit->name }}</dd></div>
-                    <div><dt class="text-muted">Koli / paket içi</dt><dd class="font-medium">{{ Quantity::format($product->pack_quantity) }}</dd></div>
-                    <div><dt class="text-muted">En az sipariş</dt><dd class="font-medium">{{ Quantity::format($product->min_order_qty) }}</dd></div>
-                    <div><dt class="text-muted">Artış</dt><dd class="font-medium">{{ Quantity::format($product->order_step) }}</dd></div>
+                    <div class="col-span-2"><dt class="text-muted">Satış şekli</dt><dd class="font-medium">{{ $product->saleRuleLabel() }}</dd></div>
+                    @if ($product->sale_mode === 'case')
+                        @php $casePrice = bcmul($settings->price_display === 'incl_vat' ? $price->unitPriceWithTax() : $price->unitPrice, (string) $product->pack_quantity, 4); @endphp
+                        <div class="col-span-2"><dt class="text-muted">Koli fiyatı</dt><dd class="font-medium tabular-nums">{{ Money::formatUnit($casePrice) }} <span class="text-xs font-normal text-muted">({{ Quantity::format($product->pack_quantity) }} × birim fiyat, KDV {{ $settings->price_display === 'incl_vat' ? 'dahil' : 'hariç' }})</span></dd></div>
+                    @endif
                     @if ($product->barcode)<div class="col-span-2"><dt class="text-muted">Barkod</dt><dd class="font-mono text-xs">{{ $product->barcode }}</dd></div>@endif
                 </dl>
                 <div class="mt-5">

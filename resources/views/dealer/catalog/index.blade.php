@@ -213,7 +213,7 @@
                             <div class="min-w-0 flex-1">
                                 <p class="text-[11px] font-semibold tracking-wider text-muted uppercase">{{ $product->brand?->name }}</p>
                                 <a href="{{ route('dealer.catalog.show', $product) }}" class="font-semibold text-ink hover:text-primary">{{ $product->name }}</a>
-                                <p class="mt-0.5 font-mono text-xs text-muted">{{ $product->sku }}@if ((float) $product->pack_quantity > 1)<span class="font-sans"> · Koli {{ Quantity::format($product->pack_quantity) }}</span>@endif</p>
+                                <p class="mt-0.5 font-mono text-xs text-muted">{{ $product->sku }}<span class="font-sans"> · {{ $product->saleRuleLabel() }}</span></p>
                                 <div class="mt-2 flex flex-wrap gap-1.5">
                                     <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
 @if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif

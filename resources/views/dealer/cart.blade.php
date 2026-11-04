@@ -22,7 +22,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <a href="{{ route('dealer.catalog.show', $p) }}" class="font-medium hover:text-primary">{{ $p->name }}</a>
-                                <p class="text-xs text-muted">{{ $p->sku }}</p>
+                                <p class="text-xs text-muted">{{ $p->sku }} · {{ $p->saleRuleLabel() }}@if ($cases = $p->casesLabel($line['item']->quantity)) · <b class="text-ink">{{ $cases }}</b>@endif</p>
                                 @if ($line['price'])
                                     <p class="mt-1 text-sm tabular-nums">{{ Money::formatUnit($line['price']->basePrice) }} / {{ $p->unit->name }}
                                         @if ($line['price']->hasDiscount())<span class="text-muted line-through"> {{ Money::formatUnit($line['price']->wasPrice) }}</span><span class="text-success"> · %{{ $line['price']->savingPercent() }} indirim</span>@endif

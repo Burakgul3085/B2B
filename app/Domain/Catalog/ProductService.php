@@ -43,7 +43,7 @@ class ProductService
 
     /** Ürün geçmişinde izlenen alanlar. */
     private const TRACKED = [
-        'sku', 'barcode', 'name', 'category_id', 'brand_id', 'unit_id', 'pack_quantity', 'purchase_price', 'list_price',
+        'sku', 'barcode', 'name', 'category_id', 'brand_id', 'unit_id', 'sale_mode', 'pack_quantity', 'purchase_price', 'list_price',
         'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on', 'tax_rate_id',
         'price_includes_tax', 'min_order_qty', 'order_step', 'critical_stock_level', 'is_active', 'visible_to_dealers',
     ];
@@ -72,6 +72,8 @@ class ProductService
             'brand_id' => ['nullable', 'integer', $scoped('brands')],
             'model' => ['nullable', 'string', 'max:120'],
             'unit_id' => ['required', 'integer', $scoped('units')],
+            'sale_mode' => ['required', Rule::in(array_keys(Product::SALE_MODES))],
+            'min_cases' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'pack_quantity' => ['required', ...$qty],
             'purchase_price' => ['nullable', ...$money],
             'list_price' => ['required', ...$money],
@@ -96,7 +98,8 @@ class ProductService
     {
         return [
             'sku' => 'ürün kodu (SKU)', 'barcode' => 'barkod', 'name' => 'ürün adı', 'category_id' => 'kategori',
-            'brand_id' => 'marka', 'unit_id' => 'birim', 'pack_quantity' => 'koli/paket içi miktar',
+            'brand_id' => 'marka', 'unit_id' => 'birim', 'sale_mode' => 'satış şekli', 'min_cases' => 'en az koli',
+            'pack_quantity' => 'koli içi adet',
             'purchase_price' => 'alış fiyatı', 'list_price' => 'liste fiyatı', 'dealer_price' => 'bayi fiyatı',
             'dealer_sale_price' => 'indirimli bayi fiyatı', 'dealer_sale_starts_on' => 'indirim başlangıcı', 'dealer_sale_ends_on' => 'indirim bitişi',
             'tax_rate_id' => 'KDV oranı', 'min_order_qty' => 'minimum sipariş miktarı', 'order_step' => 'sipariş artış adımı',
@@ -122,12 +125,19 @@ class ProductService
         }
         $input['sku'] ??= null;
         $input += ['pack_quantity' => 1, 'min_order_qty' => 1, 'order_step' => 1, 'critical_stock_level' => 0];
+        // Birim seçilmez: yeni ürün adettir; mevcut ürün birimini korur (stoğun ve fiyatın anlamı değişmez).
+        $input['unit_id'] = $product?->unit_id ?? $this->defaultUnitId();
+        $input = $this->applySaleMode($input);
 
         $validator = Validator::make($input, $this->rules($product), [], $this->attributes());
 
         $validator->after(function ($v) use ($input) {
             if ($v->errors()->isNotEmpty()) {
                 return;
+            }
+
+            if ($input['sale_mode'] === 'case' && bccomp((string) $input['pack_quantity'], '2', 3) < 0) {
+                $v->errors()->add('pack_quantity', 'Koli içi en az 2 adet olmalıdır; tek tek satılan ürün için "Tek tek" seçin.');
             }
 
             $unit = Unit::find($input['unit_id']);
@@ -157,6 +167,7 @@ class ProductService
         });
 
         $data = $validator->validate();
+        unset($data['min_cases']); // yalnızca min_order_qty hesabı için
         // İndirimli fiyat yoksa tarihleri de boşalır (eski tarih yeni indirime taşınmasın).
         if (array_key_exists('dealer_sale_price', $data) && blank($data['dealer_sale_price'])) {
             $data['dealer_sale_starts_on'] = $data['dealer_sale_ends_on'] = null;
@@ -172,6 +183,57 @@ class ProductService
         }
 
         return $data;
+    }
+
+    /** İşletmenin "Adet" birimi (yoksa oluşturulur). */
+    private function defaultUnitId(): int
+    {
+        return Unit::where('code', 'ADET')->value('id')
+            ?? Unit::create(['code' => 'ADET', 'name' => 'Adet', 'allows_fraction' => false])->id;
+    }
+
+    /**
+     * Satış şeklini sipariş kurallarına çevirir (docs/03-is-kurallari.md §2.1):
+     *  - single: tek tek; isteğe bağlı en az miktar, 1'er artar.
+     *  - case:   koli halinde; artış = koli içi, en az = koli içi × en az koli.
+     *  - custom: en az X, Y'er artar (koli içi 1).
+     * Şekil gönderilmediyse (içe aktarma, eski kayıt) kurallardan çıkarılır.
+     */
+    private function applySaleMode(array $input): array
+    {
+        $num = fn ($v) => is_scalar($v) && is_numeric((string) $v) ? (string) $v : null;
+        $mode = $input['sale_mode'] ?? null;
+
+        if (! is_string($mode) || ! isset(Product::SALE_MODES[$mode])) {
+            if ($mode !== null) {
+                return $input; // geçersiz değer: doğrulama hata verir
+            }
+            $pack = $num($input['pack_quantity']);
+            $step = $num($input['order_step']);
+            $input['sale_mode'] = match (true) {
+                $pack !== null && $step !== null && bccomp($pack, '1', 3) > 0 && bccomp($pack, $step, 3) === 0 => 'case',
+                $step !== null && bccomp($step, '1', 3) > 0 => 'custom',
+                default => 'single',
+            };
+
+            return $input;
+        }
+
+        if ($mode === 'single') {
+            $input['pack_quantity'] = 1;
+            $input['order_step'] = 1;
+        } elseif ($mode === 'custom') {
+            $input['pack_quantity'] = 1;
+        } else {
+            $input['order_step'] = $input['pack_quantity'];
+            $cases = $input['min_cases'] ?? 1;
+            $pack = $num($input['pack_quantity']);
+            $input['min_order_qty'] = $pack !== null && is_scalar($cases) && ctype_digit((string) $cases) && (int) $cases >= 1
+                ? bcmul($pack, (string) (int) $cases, 3)
+                : $input['pack_quantity']; // en az koli hatalıysa doğrulama min_cases için hata verir
+        }
+
+        return $input;
     }
 
     public function create(array $data): Product

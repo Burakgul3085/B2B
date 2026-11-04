@@ -20,8 +20,7 @@
                         'Kategori' => $product->category?->fullName(),
                         'Marka' => $product->brand?->name,
                         'Model' => $product->model,
-                        'Birim' => $product->unit->name,
-                        'Koli / paket içi' => Quantity::format($product->pack_quantity),
+                        'Satış şekli' => $product->saleRuleLabel(),
                         'KDV' => $product->taxRate->name.($product->price_includes_tax ? ' (dahil)' : ' (hariç)'),
                         'Liste fiyatı' => Money::formatUnit($product->list_price),
                         'Bayi fiyatı' => $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : 'Liste fiyatı',
@@ -31,8 +30,6 @@
                                 .($product->dealerSaleActiveOn(\App\Domain\Support\LocalTime::today()) ? ' (geçerli)' : ' (şu an geçerli değil)')
                             : null,
                         'Alış fiyatı' => Money::formatUnit($product->purchase_price),
-                        'Minimum sipariş' => Quantity::format($product->min_order_qty).' '.$product->unit->name,
-                        'Sipariş adımı' => Quantity::format($product->order_step),
                         'Kritik stok' => Quantity::format($product->critical_stock_level),
                     ] as $label => $value)
                         <div><dt class="text-muted">{{ $label }}</dt><dd class="mt-0.5 font-medium">{{ $value ?: '—' }}</dd></div>

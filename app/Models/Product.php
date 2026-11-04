@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Inventory\Quantity;
 use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ class Product extends Model
 
     /** Formdan ve içe aktarmadan doldurulabilen alanlar. */
     public const EDITABLE = [
-        'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'pack_quantity',
+        'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'sale_mode', 'pack_quantity',
         'purchase_price', 'list_price', 'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',
         'tax_rate_id', 'price_includes_tax', 'min_order_qty',
         'order_step', 'critical_stock_level', 'variant_group_id', 'variant_values', 'is_active', 'visible_to_dealers',
@@ -23,8 +24,11 @@ class Product extends Model
 
     protected $fillable = self::EDITABLE;
 
+    /** Satış şekli: miktar ürünün biriminden (yeni ürünlerde adet); koli yalnızca sipariş kuralıdır. */
+    public const SALE_MODES = ['single' => 'Tek tek', 'case' => 'Koli halinde', 'custom' => 'Özel kural'];
+
     protected $attributes = [
-        'is_active' => true, 'visible_to_dealers' => true, 'price_includes_tax' => false,
+        'sale_mode' => 'single', 'is_active' => true, 'visible_to_dealers' => true, 'price_includes_tax' => false,
         'pack_quantity' => '1.000', 'min_order_qty' => '1.000', 'order_step' => '1.000', 'critical_stock_level' => '0.000',
     ];
 
@@ -52,6 +56,41 @@ class Product extends Model
     public function scopeNotArchived(Builder $query): void
     {
         $query->whereNull('archived_at');
+    }
+
+    /** Koli halinde satışta en az kaç koli (min_order_qty / koli içi). */
+    public function minCases(): int
+    {
+        return $this->sale_mode === 'case' && bccomp((string) $this->pack_quantity, '0', 3) > 0
+            ? (int) bcdiv((string) $this->min_order_qty, (string) $this->pack_quantity, 0)
+            : 1;
+    }
+
+    /** Bayiye gösterilen sipariş kuralı, ör. "Koli: 24 adet · en az 1 koli" veya "En az 15, 15'er artar". */
+    public function saleRuleLabel(): string
+    {
+        $unit = mb_strtolower($this->unit?->name ?? 'adet', 'UTF-8');
+        $min = Quantity::format($this->min_order_qty);
+        $step = Quantity::format($this->order_step);
+
+        return match ($this->sale_mode) {
+            'case' => 'Koli: '.Quantity::format($this->pack_quantity)." {$unit} · en az {$this->minCases()} koli",
+            'custom' => "En az {$min} {$unit}, {$step}'er artar",
+            default => bccomp((string) $this->min_order_qty, '1', 3) > 0 ? "Tek tek · en az {$min} {$unit}" : 'Tek tek satılır',
+        };
+    }
+
+    /** Koli halinde satışta miktarın koli karşılığı, ör. "2 koli"; tam koli değilse veya şekil koli değilse null. */
+    public function casesLabel(mixed $quantity): ?string
+    {
+        if ($this->sale_mode !== 'case' || bccomp((string) $this->pack_quantity, '1', 3) <= 0) {
+            return null;
+        }
+        $qty = (string) $quantity;
+
+        return bccomp(bcmod($qty, (string) $this->pack_quantity, 3), '0', 3) === 0
+            ? bcdiv($qty, (string) $this->pack_quantity, 0).' koli'
+            : null;
     }
 
     /** İndirimsiz bayi fiyatı (girildiği gibi): standart bayi fiyatı, yoksa liste fiyatı. */

@@ -13,7 +13,6 @@ use App\Models\ImportError;
 use App\Models\ImportJob;
 use App\Models\Product;
 use App\Models\TaxRate;
-use App\Models\Unit;
 use App\Models\Warehouse;
 use DomainException;
 use Illuminate\Database\QueryException;
@@ -49,15 +48,14 @@ class ProductImporter
         'category' => 'Kategori',
         'brand' => 'Marka',
         'model' => 'Model',
-        'unit' => 'Birim',
-        'pack_quantity' => 'Koli İçi Miktar',
+        'pack_quantity' => 'Koli İçi Adet',
         'purchase_price' => 'Alış Fiyatı',
         'list_price' => 'Liste Fiyatı',
         'dealer_price' => 'Bayi Fiyatı',
         'tax_rate' => 'KDV Oranı',
         'price_includes_tax' => 'KDV Dahil',
-        'min_order_qty' => 'Minimum Sipariş',
-        'order_step' => 'Sipariş Adımı',
+        'min_order_qty' => 'En Az Sipariş',
+        'order_step' => 'Artış',
         'critical_stock_level' => 'Kritik Stok',
         'is_active' => 'Aktif',
         'visible_to_dealers' => 'Bayiye Görünür',
@@ -201,10 +199,11 @@ class ProductImporter
             }
         }
 
-        if ($this->filled($values, 'unit')) {
-            $input['unit_id'] = $this->unitId((string) $values['unit']);
-        } elseif (! $existing) {
-            $input['unit_id'] = Unit::where('code', 'ADET')->value('id');
+        // Birim sütunu yok: yeni ürün adettir, mevcut ürün birimini korur (ProductService::validate).
+        // Sipariş kuralı sütunlarından biri doluysa satış şekli kurallardan yeniden çıkarılır
+        // (koli içi = artış > 1 → koli halinde; artış > 1 → özel kural; diğer → tek tek).
+        if ($this->filled($values, 'pack_quantity') || $this->filled($values, 'min_order_qty') || $this->filled($values, 'order_step')) {
+            unset($input['sale_mode']);
         }
 
         if ($this->filled($values, 'tax_rate')) {
@@ -296,6 +295,10 @@ class ProductImporter
             $lookup[$normalize($title)] = $key;
             $lookup[$normalize($key)] = $key;
         }
+        // Eski şablon başlıkları da okunur.
+        $lookup['koliicimiktar'] = 'pack_quantity';
+        $lookup['minimumsiparis'] = 'min_order_qty';
+        $lookup['siparisadimi'] = 'order_step';
         $lookup['sku'] = 'sku';
         $lookup['stokkodu'] = 'sku';
 
@@ -324,14 +327,6 @@ class ProductImporter
             in_array($v, ['0', 'hayir', 'h', 'false', 'pasif', 'yok'], true) => false,
             default => throw ValidationException::withMessages([$field => "\"{$value}\" anlaşılamadı; Evet veya Hayır yazın."]),
         };
-    }
-
-    private function unitId(string $value): int
-    {
-        $value = trim($value);
-        $unit = Unit::where('code', Str::upper(Str::ascii($value)))->orWhere('name', $value)->first();
-
-        return $unit?->id ?? throw ValidationException::withMessages(['unit' => "\"{$value}\" birimi tanımlı değil. Birimler sayfasından ekleyin."]);
     }
 
     private function taxRateId(mixed $value): int
