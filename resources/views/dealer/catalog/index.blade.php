@@ -15,7 +15,7 @@
     };
     $categoryNames = $categories->flatMap(fn ($c) => collect([$c])->merge($c->children))->pluck('name', 'id');
     $brandNames = $brands->pluck('name', 'id');
-    $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase || $onlyNew;
+    $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase || $onlyNew || $onlyDiscounted || $campaign || $onlyCampaign;
     $newDays = (int) ($settings->new_product_days ?: 30);
     $taxLabel = fn ($rate) => '%'.rtrim(rtrim(number_format((float) $rate, 2, ',', ''), '0'), ',');
 @endphp
@@ -37,6 +37,7 @@
                 <input type="hidden" name="view" value="{{ $view }}">
                 @if ($onlyNew)<input type="hidden" name="yeni" value="1">@endif
                 @if ($filters['in_stock'] ?? false)<input type="hidden" name="in_stock" value="1">@endif
+                @if ($campaign)<input type="hidden" name="kampanya" value="{{ $campaign->id }}">@endif
 
                 <div class="flex items-center justify-between border-b border-line px-5 py-4">
                     <h2 class="text-base font-semibold text-ink">Filtreler</h2>
@@ -51,6 +52,19 @@
                         <x-icon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
                         <input id="f_q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Ad, kod veya barkod" class="field-input pl-9">
                     </div>
+                </div>
+
+                {{-- Fırsatlar: bayiye uygulanan indirimler ve kampanyalı ürünler --}}
+                <div role="group" aria-labelledby="f_deal_title" class="border-b border-line px-5 py-4">
+                    <h3 id="f_deal_title" class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Fırsatlar</h3>
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                        <input type="checkbox" name="indirim" value="1" @checked($onlyDiscounted) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                        <span class="flex-1 text-sm font-medium text-ink">İndirimdekiler</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                        <input type="checkbox" name="kampanyali" value="1" @checked($onlyCampaign) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
+                        <span class="flex-1 text-sm font-medium text-ink">Kampanyalı ürünler</span>
+                    </label>
                 </div>
 
                 {{-- Kategoriler --}}
@@ -141,6 +155,15 @@
                         @if ($showcase)
                             <a href="{{ $without('showcase') }}" class="chip">Vitrin: {{ $showcase->name }} <x-icon name="x" class="size-3" /></a>
                         @endif
+                        @if ($onlyDiscounted)
+                            <a href="{{ $without('indirim') }}" class="chip">İndirimdekiler <x-icon name="x" class="size-3" /></a>
+                        @endif
+                        @if ($onlyCampaign)
+                            <a href="{{ $without('kampanyali') }}" class="chip">Kampanyalı ürünler <x-icon name="x" class="size-3" /></a>
+                        @endif
+                        @if ($campaign)
+                            <a href="{{ $without('kampanya') }}" class="chip">Kampanya: {{ $campaign->name }}{{ $campaign->isScoped() ? '' : ' (tüm ürünlerde)' }} <x-icon name="x" class="size-3" /></a>
+                        @endif
                         @if (filled($filters['q'] ?? null))
                             <a href="{{ $without('q') }}" class="chip">“{{ $filters['q'] }}” <x-icon name="x" class="size-3" /></a>
                         @endif
@@ -194,6 +217,7 @@
                                 <div class="mt-2 flex flex-wrap gap-1.5">
                                     <x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>
 @if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif
+                                    @if (isset($campaignTags[$product->id]))<a href="{{ route('dealer.promotions.show', $campaignTags[$product->id]) }}" class="rounded-md bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-amber-950 uppercase hover:bg-amber-300" title="{{ $campaignTags[$product->id]->name }}: {{ $campaignTags[$product->id]->summary() }}">Kampanya</a>@endif
                                     <span class="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700">+KDV {{ $taxLabel($product->taxRate?->rate) }}</span>
                                 </div>
                             </div>

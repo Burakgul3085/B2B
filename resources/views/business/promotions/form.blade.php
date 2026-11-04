@@ -17,7 +17,7 @@
     </x-page-header>
     @error('promotion')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
-    <form method="POST" action="{{ $exists ? route('business.promotions.update', $promotion) : route('business.promotions.store') }}" class="grid gap-6 lg:grid-cols-3">
+    <form method="POST" action="{{ $exists ? route('business.promotions.update', $promotion) : route('business.promotions.store') }}" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-3">
         @csrf
         @if ($exists) @method('PUT') @endif
         <div class="space-y-6 lg:col-span-2">
@@ -42,7 +42,58 @@
                     <x-field name="value" label="İndirim değeri" required :value="$money($promotion->value)" placeholder="Ör. 10 veya 500,00" hint="Yüzdede oran (%), tutarda KDV hariç ₺." />
                     <x-field name="max_discount" label="En fazla indirim (₺)" :value="$money($promotion->max_discount)" hint="Yalnızca yüzde indirimde; boş: sınırsız." />
                     <x-field name="min_subtotal" label="En düşük sipariş tutarı (₺, KDV hariç)" :value="$money($promotion->min_subtotal)" hint="Tutar indiriminde zorunlu ve indirimden büyük olmalı. Kapsam seçildiyse yalnızca kapsamdaki ürünlerin tutarı sayılır." />
-                    <x-field name="description" label="Açıklama (bayiye görünür)" :value="$promotion->description" placeholder="Ör. Okul sezonu boyunca geçerli" />
+                </div>
+            </x-card>
+
+            <x-card title="Bayiye görünen tanıtım">
+                <div class="space-y-5">
+                    <x-field name="description" label="Açıklama" textarea :value="$promotion->description" placeholder="Ör. Okul sezonu boyunca defter ve kalemlerde geçerli. Stoklarla sınırlıdır." hint="Bayinin Kampanyalar sayfasında ve kampanya detayında görünür. En fazla 2.000 karakter; satır atlayabilirsiniz." />
+
+                    {{-- Kapak: kampanya kartında ve detayın başında; detay fotoğrafları galeride. --}}
+                    @php $cover = $images->firstWhere('is_cover', true); $details = $images->where('is_cover', false)->values(); @endphp
+                    <div x-data="imagePicks">
+                        <p class="mb-1.5 text-sm font-medium">Kapak fotoğrafı</p>
+                        <div class="flex flex-wrap items-start gap-4">
+                            @if ($cover)
+                                <figure class="w-48">
+                                    <img src="{{ route('business.promotions.image', ['promotionImage' => $cover, 'w' => 640]) }}" alt="Kapak" class="aspect-video w-full rounded-lg border border-line object-cover">
+                                    <label class="mt-1.5 flex items-center gap-1.5 text-xs text-danger"><input type="checkbox" name="remove_cover" value="1"> Kapağı kaldır</label>
+                                </figure>
+                            @endif
+                            <template x-for="url in previews" :key="url">
+                                <img :src="url" alt="Yeni kapak" class="aspect-video w-48 rounded-lg border-2 border-primary object-cover">
+                            </template>
+                        </div>
+                        <input type="file" name="cover" accept="image/jpeg,image/png,image/webp" @change="pick($event)" class="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium">
+                        <p class="mt-1 text-xs text-muted">Yatay fotoğraf önerilir (1200×675). JPG, PNG veya WEBP; en fazla 5 MB. {{ $cover ? 'Yeni seçerseniz eskisinin yerine geçer.' : 'Eklemezseniz hazır renkli kapak kullanılır.' }}</p>
+                        @error('cover')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div x-data="imagePicks">
+                        <p class="mb-1.5 text-sm font-medium">Detay fotoğrafları <span class="font-normal text-muted">(en fazla {{ \App\Domain\Pricing\PromotionAdmin::MAX_IMAGES }})</span></p>
+                        @if ($details->isNotEmpty())
+                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                @foreach ($details as $image)
+                                    <figure class="rounded-lg border border-line p-2">
+                                        <img src="{{ route('business.promotions.image', ['promotionImage' => $image, 'w' => 320]) }}" alt="Detay {{ $loop->iteration }}" class="aspect-square w-full rounded-md object-cover">
+                                        <div class="mt-2 flex items-center justify-between gap-2 text-xs">
+                                            <label class="flex items-center gap-1">Sıra <input type="number" name="image_sort[{{ $image->id }}]" value="{{ $image->sort }}" min="0" max="1000" class="field-input w-14 px-1.5 py-1 text-xs"></label>
+                                            <label class="flex items-center gap-1 text-danger"><input type="checkbox" name="remove_images[]" value="{{ $image->id }}"> Kaldır</label>
+                                        </div>
+                                    </figure>
+                                @endforeach
+                            </div>
+                        @endif
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <template x-for="url in previews" :key="url">
+                                <img :src="url" alt="Yeni fotoğraf" class="size-20 rounded-md border-2 border-primary object-cover">
+                            </template>
+                        </div>
+                        <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp" @change="pick($event)" class="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium">
+                        <p class="mt-1 text-xs text-muted">Birden fazla seçebilirsiniz; her biri en fazla 5 MB. Küçük sıra numarası önce gösterilir.</p>
+                        @error('images')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                        @error('images.*')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                    </div>
                 </div>
             </x-card>
 

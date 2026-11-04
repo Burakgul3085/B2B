@@ -56,6 +56,12 @@
             <x-card>
                 <x-price-tag :price="$price" :display="$settings->price_display" size="lg" />
                 @if ($price->discountName)<p class="mt-1 text-xs text-success">{{ $price->discountName }}</p>@endif
+                @foreach ($campaigns as $campaign)
+                    <a href="{{ route('dealer.promotions.show', $campaign) }}" class="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950 transition hover:border-amber-300">
+                        <x-icon name="gift" class="mt-0.5 size-4 shrink-0 text-amber-600" />
+                        <span>Bu ürün <b>{{ $campaign->name }}</b> kampanyasında: {{ $campaign->summary() }}{{ $campaign->isCoupon() ? ' · Kod: '.$campaign->code : '' }}</span>
+                    </a>
+                @endforeach
                 <div class="mt-3 flex flex-wrap gap-1.5"><x-badge :tone="$level['tone']">{{ $level['label'] }}</x-badge>@if (\App\Domain\Catalog\NewProducts::isNew($product, $settings))<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">Yeni</span>@endif</div>
                 <dl class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
                     <div><dt class="text-muted">Birim</dt><dd class="font-medium">{{ $product->unit->name }}</dd></div>

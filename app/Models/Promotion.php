@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Bayilere kupon (kodlu) veya otomatik kampanya (kodsuz). Kurallar: App\Domain\Pricing\PromotionService. */
 class Promotion extends Model
@@ -54,6 +55,25 @@ class Promotion extends Model
     public function redemptions(): HasMany
     {
         return $this->hasMany(PromotionRedemption::class);
+    }
+
+    /** Kapak önce, sonra detay fotoğrafları sırasıyla. */
+    public function images(): HasMany
+    {
+        return $this->hasMany(PromotionImage::class)->orderByDesc('is_cover')->orderBy('sort')->orderBy('id');
+    }
+
+    public function cover(): HasOne
+    {
+        return $this->hasOne(PromotionImage::class)->where('is_cover', true);
+    }
+
+    /** Kapak üzerindeki kısa etiket: "%10" veya "₺100". */
+    public function badge(): string
+    {
+        return $this->type === 'percent'
+            ? '%'.rtrim(rtrim(number_format((float) $this->value, 2, ',', ''), '0'), ',')
+            : Money::format($this->value);
     }
 
     public function isCoupon(): bool

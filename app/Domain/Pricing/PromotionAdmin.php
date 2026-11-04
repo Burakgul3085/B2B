@@ -3,14 +3,21 @@
 namespace App\Domain\Pricing;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Files\ImageUploader;
+use App\Domain\Files\ImageVariants;
 use App\Domain\Support\Decimal;
+use App\Domain\Tenancy\TenantContext;
+use App\Jobs\GenerateImageVariants;
 use App\Models\Category;
 use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\Product;
 use App\Models\Promotion;
+use App\Models\PromotionImage;
 use DomainException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -21,7 +28,10 @@ use Illuminate\Validation\ValidationException;
  */
 class PromotionAdmin
 {
-    public function __construct(private AuditLogger $audit) {}
+    /** Kampanya başına en fazla detay fotoğrafı (kapak hariç). */
+    public const MAX_IMAGES = 8;
+
+    public function __construct(private AuditLogger $audit, private ImageUploader $uploader, private TenantContext $tenant) {}
 
     /** @throws ValidationException|DomainException */
     public function save(array $input, ?Promotion $promotion = null): Promotion
@@ -48,12 +58,21 @@ class PromotionAdmin
             'category_ids' => ['nullable', 'array', 'max:500'],
             'category_ids.*' => ['integer'],
             'product_skus' => ['nullable', 'string', 'max:5000'],
-            'description' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'cover' => ['nullable', 'file', 'max:5120'],
+            'remove_cover' => ['nullable', 'boolean'],
+            'images' => ['nullable', 'array', 'max:'.self::MAX_IMAGES],
+            'images.*' => ['file', 'max:5120'],
+            'remove_images' => ['nullable', 'array', 'max:100'],
+            'remove_images.*' => ['integer'],
+            'image_sort' => ['nullable', 'array', 'max:100'],
+            'image_sort.*' => ['nullable', 'integer', 'min:0', 'max:1000'],
         ], ['code.regex' => 'Kupon kodu yalnızca harf, rakam, - ve _ içerebilir (Türkçe karakter olmadan).'], [
             'name' => 'ad', 'code' => 'kupon kodu', 'type' => 'indirim türü', 'value' => 'indirim', 'max_discount' => 'en fazla indirim',
             'min_subtotal' => 'en düşük sipariş tutarı', 'starts_at' => 'başlangıç', 'ends_at' => 'bitiş', 'usage_limit' => 'toplam kullanım',
             'per_dealer_limit' => 'bayi başına kullanım', 'target' => 'kime', 'dealer_group_id' => 'bayi grubu', 'dealer_ids' => 'bayiler',
             'category_ids' => 'kategoriler', 'product_skus' => 'ürün kodları', 'description' => 'açıklama',
+            'cover' => 'kapak fotoğrafı', 'images' => 'detay fotoğrafları', 'images.*' => 'detay fotoğrafı',
         ])->validate();
 
         $errors = [];
@@ -104,6 +123,15 @@ class PromotionAdmin
             $errors['product_skus'] = 'Bulunamayan stok kodu: '.implode(', ', array_slice($unknown, 0, 10)).'.';
         }
 
+        // Görseller: yalnızca bu kampanyanın kayıtları (başka kampanyanın görsel numarası yok sayılır).
+        $existing = $promotion ? $promotion->images()->get() : collect();
+        $removeIds = array_map('intval', $data['remove_images'] ?? []);
+        $newFiles = array_values(array_filter($data['images'] ?? [], fn ($f) => $f instanceof UploadedFile));
+        $details = $existing->where('is_cover', false)->reject(fn ($i) => in_array($i->id, $removeIds, true));
+        if ($details->count() + count($newFiles) > self::MAX_IMAGES) {
+            $errors['images'] = 'En fazla '.self::MAX_IMAGES.' detay fotoğrafı eklenebilir; önce bazılarını kaldırın.';
+        }
+
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
@@ -129,23 +157,67 @@ class PromotionAdmin
             'dealer_ids' => $dealerIds ?: null,
             'category_ids' => $categoryIds ?: null,
             'product_ids' => $found->values()->map(fn ($id) => (int) $id)->all() ?: null,
-            'description' => filled($data['description'] ?? null) ? trim($data['description']) : null,
+            'description' => filled($data['description'] ?? null) ? trim(str_replace("\r\n", "\n", $data['description'])) : null,
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
             // Otomatik kampanya hedef bayilerin Kampanyalar sayfasında hep görünür; kupon kodu (kişiye özel verilebilir)
             // yalnızca toptancı seçerse görünür.
             'show_to_dealers' => ! $isCoupon || filter_var($input['show_to_dealers'] ?? false, FILTER_VALIDATE_BOOL),
         ];
 
-        if ($promotion) {
-            $old = $promotion->only(['name', 'code', 'type', 'value', 'target', 'is_active']);
-            $promotion->update($values);
-            $this->audit->log('pricing.promotion_updated', $promotion, $old, $promotion->only(array_keys($old)));
-
-            return $promotion;
+        // Dosyalar önce diske yazılır (içerik denetimi burada); kayıt başarısız olursa geri silinir.
+        $stored = [];
+        try {
+            $cover = ($data['cover'] ?? null) instanceof UploadedFile ? $stored[] = $this->store($data['cover'], 'cover') : null;
+            $added = [];
+            foreach ($newFiles as $file) {
+                $added[] = $stored[] = $this->store($file, 'images');
+            }
+        } catch (ValidationException $e) {
+            array_walk($stored, fn ($path) => $this->uploader->delete($path));
+            throw $e;
         }
 
-        $promotion = Promotion::create($values);
-        $this->audit->log('pricing.promotion_created', $promotion, [], ['name' => $promotion->name, 'code' => $promotion->code]);
+        $dropped = $existing->filter(fn (PromotionImage $i) => $i->is_cover
+            ? $cover !== null || filter_var($data['remove_cover'] ?? false, FILTER_VALIDATE_BOOL)
+            : in_array($i->id, $removeIds, true));
+
+        try {
+            $promotion = DB::transaction(function () use ($promotion, $values, $cover, $added, $dropped, $details, $data) {
+                if ($promotion) {
+                    $old = $promotion->only(['name', 'code', 'type', 'value', 'target', 'is_active']);
+                    $promotion->update($values);
+                    $this->audit->log('pricing.promotion_updated', $promotion, $old, $promotion->only(array_keys($old)));
+                } else {
+                    $promotion = Promotion::create($values);
+                    $this->audit->log('pricing.promotion_created', $promotion, [], ['name' => $promotion->name, 'code' => $promotion->code]);
+                }
+
+                PromotionImage::whereIn('id', $dropped->pluck('id')->all())->delete();
+                foreach ($details as $image) {
+                    $sort = $data['image_sort'][$image->id] ?? null;
+                    if ($sort !== null && (int) $sort !== $image->sort) {
+                        $image->update(['sort' => (int) $sort]);
+                    }
+                }
+                if ($cover) {
+                    $promotion->images()->create(['path' => $cover, 'is_cover' => true]);
+                }
+                $next = (int) $details->max('sort');
+                foreach ($added as $path) {
+                    $promotion->images()->create(['path' => $path, 'sort' => ++$next]);
+                }
+
+                return $promotion;
+            });
+        } catch (\Throwable $e) {
+            array_walk($stored, fn ($path) => $this->uploader->delete($path));
+            throw $e;
+        }
+
+        $this->forget($dropped->pluck('path')->all());
+        foreach ($stored as $path) {
+            GenerateImageVariants::dispatch($path);
+        }
 
         return $promotion;
     }
@@ -163,6 +235,26 @@ class PromotionAdmin
             throw new DomainException('Bu kupon / kampanya siparişlerde kullanıldığı için silinemez; pasife alabilirsiniz.');
         }
         $this->audit->log('pricing.promotion_deleted', $promotion, ['name' => $promotion->name, 'code' => $promotion->code]);
-        $promotion->delete();
+        $paths = $promotion->images()->pluck('path')->all();
+        $promotion->delete(); // görsel kayıtları veritabanında birlikte silinir
+        $this->forget($paths);
+    }
+
+    /** Yüklenen görseli denetleyip private diske yazar; geçersiz dosya alanında hata olarak döner. */
+    private function store(UploadedFile $file, string $field): string
+    {
+        try {
+            return $this->uploader->store($file, 'businesses/'.$this->tenant->businessId().'/promotions', maxEdge: 1800, quality: 85);
+        } catch (DomainException $e) {
+            throw ValidationException::withMessages([$field => $e->getMessage()]);
+        }
+    }
+
+    private function forget(array $paths): void
+    {
+        foreach ($paths as $path) {
+            $this->uploader->delete($path);
+            app(ImageVariants::class)->forget($path);
+        }
     }
 }

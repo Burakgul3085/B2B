@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\PromotionRedemption;
 use DomainException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -186,7 +187,7 @@ class PromotionService
      */
     public function visibleFor(DealerRelationship $relationship): Collection
     {
-        $promotions = Promotion::live()->where('show_to_dealers', true)->orderByRaw('ends_at IS NULL, ends_at')->orderBy('id')->get()
+        $promotions = Promotion::live()->where('show_to_dealers', true)->with('cover')->orderByRaw('ends_at IS NULL, ends_at')->orderBy('id')->get()
             ->filter(fn (Promotion $p) => $this->targets($p, $relationship));
         $ids = $promotions->modelKeys();
         $used = PromotionRedemption::whereIn('promotion_id', $ids)->whereNull('released_at')
@@ -203,6 +204,74 @@ class PromotionService
 
             return ['promotion' => $p, 'remaining' => $remaining];
         })->filter(fn (array $row) => $row['remaining'] === null || $row['remaining'] > 0)->values();
+    }
+
+    /** Ürün sorgusunu kampanyanın kapsamıyla sınırlar (kategoriler alt kategorileriyle, seçili ürünler). */
+    public function whereInScope(Builder $query, Promotion $promotion): Builder
+    {
+        if (! $promotion->isScoped()) {
+            return $query;
+        }
+        $categories = $promotion->category_ids ? $this->withDescendants($promotion->category_ids) : [];
+        $products = array_map('intval', $promotion->product_ids ?? []);
+
+        return $query->where(fn ($q) => $q->whereIn('products.id', $products ?: [0])->orWhereIn('products.category_id', $categories ?: [0]));
+    }
+
+    /** Ürün sorgusunu kampanyalardan herhangi birinin kapsamıyla sınırlar (bayi "Kampanyalı ürünler" filtresi). */
+    public function whereInAnyScope(Builder $query, Collection $promotions): Builder
+    {
+        $scoped = $promotions->filter(fn (Promotion $p) => $p->isScoped());
+        if ($scoped->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($scoped) {
+            foreach ($scoped as $promotion) {
+                $q->orWhere(fn ($q) => $this->whereInScope($q, $promotion));
+            }
+        });
+    }
+
+    /**
+     * Ürün kartlarındaki "Kampanya" rozeti: bayiye görünen, belirli ürün/kategoriye uygulanan kampanyalar.
+     * Tüm siparişe uygulanan kampanya her ürüne rozet basmasın diye sayılmaz.
+     *
+     * @param  iterable<Product>  $products
+     * @param  Collection|null  $rows  visibleFor sonucu (aynı istekte yeniden sorgulanmasın diye)
+     * @return array<int, Promotion> ürün ID'si → ilk uyan kampanya
+     */
+    public function tagsFor(DealerRelationship $relationship, iterable $products, ?Collection $rows = null): array
+    {
+        $scoped = ($rows ?? $this->visibleFor($relationship))->pluck('promotion')->filter(fn (Promotion $p) => $p->isScoped());
+        if ($scoped->isEmpty()) {
+            return [];
+        }
+        $scopes = $scoped->map(fn (Promotion $p) => [
+            $p,
+            array_map('intval', $p->product_ids ?? []),
+            $p->category_ids ? $this->withDescendants($p->category_ids) : [],
+        ]);
+
+        $tags = [];
+        foreach ($products as $product) {
+            foreach ($scopes as [$promotion, $ids, $categories]) {
+                if (in_array($product->id, $ids, true) || ($product->category_id && in_array((int) $product->category_id, $categories, true))) {
+                    $tags[$product->id] = $promotion;
+                    break;
+                }
+            }
+        }
+
+        return $tags;
+    }
+
+    /** Ürün sayfasındaki not: bu ürünü kapsayan, bayiye görünen kampanyalar (tüm siparişe uygulananlar hariç). */
+    public function forProduct(DealerRelationship $relationship, Product $product): Collection
+    {
+        return $this->visibleFor($relationship)
+            ->filter(fn (array $row) => $this->tagsFor($relationship, [$product], collect([$row])) !== [])
+            ->pluck('promotion')->values();
     }
 
     private function apply(Promotion $promotion, array $lines): ?AppliedPromotion

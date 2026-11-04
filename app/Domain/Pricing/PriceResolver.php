@@ -10,6 +10,7 @@ use App\Models\DealerRelationship;
 use App\Models\DiscountRule;
 use App\Models\PriceListItem;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -82,6 +83,34 @@ class PriceResolver
         });
     }
 
+    /**
+     * Ürün sorgusunu bu bayiye bugün indirim kuralı uygulanan ürünlerle sınırlar (bayi "İndirimdekiler" listesi).
+     * resolveMany ile aynı kurallar: ürün kuralı veya ürünün kategorisine / üst kategorisine kural; bayiye özel fiyatlı
+     * üründe indirim uygulanmadığı için bu ürünler hariç tutulur.
+     */
+    public function whereDiscounted(Builder $query, DealerRelationship $relationship, ?string $date = null): Builder
+    {
+        $date ??= LocalTime::today();
+        $rules = $this->rulesFor($relationship, $date)->where('percent', '>', 0)->get(['scope', 'product_id', 'category_id']);
+        $productIds = $rules->where('scope', 'product')->pluck('product_id')->filter()->unique()->values()->all();
+        $categoryIds = $rules->where('scope', 'category')->pluck('category_id')->filter()->unique()->values()->all();
+        if ($categoryIds) {
+            $categoryIds = array_merge($categoryIds, Category::whereIn('parent_id', $categoryIds)->pluck('id')->all());
+        }
+        if (! $productIds && ! $categoryIds) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $special = DealerProductPrice::where('dealer_relationship_id', $relationship->id)
+            ->where(fn ($q) => $q->whereNull('starts_on')->orWhere('starts_on', '<=', $date))
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $date))
+            ->pluck('product_id')->all();
+
+        return $query
+            ->where(fn ($q) => $q->whereIn('products.id', $productIds ?: [0])->orWhereIn('products.category_id', $categoryIds ?: [0]))
+            ->when($special, fn ($q) => $q->whereNotIn('products.id', $special));
+    }
+
     /** KDV dahil girilmiş fiyatı nete çevirir. */
     private function net(string $price, Product $product, string $taxRate): string
     {
@@ -122,17 +151,23 @@ class PriceResolver
         $categoryIds = $products->pluck('category_id')->filter()->unique();
         $parentIds = Category::whereIn('id', $categoryIds)->whereNotNull('parent_id')->pluck('parent_id');
 
+        return $this->rulesFor($relationship, $date)
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('scope', 'product')->whereIn('product_id', $products->keys()))
+                ->orWhere(fn ($q) => $q->where('scope', 'category')->whereIn('category_id', $categoryIds->merge($parentIds)->unique())))
+            ->get();
+    }
+
+    /** Bu bayiye bu tarihte geçerli, etkin indirim kuralları (kapsam süzülmeden). */
+    private function rulesFor(DealerRelationship $relationship, string $date): Builder
+    {
         return DiscountRule::where('is_active', true)
             ->where(fn ($q) => $q->whereNull('starts_on')->orWhere('starts_on', '<=', $date))
             ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $date))
             ->where(fn ($q) => $q
                 ->where('target', 'all')
                 ->orWhere(fn ($q) => $q->where('target', 'group')->where('dealer_group_id', $relationship->dealer_group_id))
-                ->orWhere(fn ($q) => $q->where('target', 'dealer')->where('dealer_relationship_id', $relationship->id)))
-            ->where(fn ($q) => $q
-                ->where(fn ($q) => $q->where('scope', 'product')->whereIn('product_id', $products->keys()))
-                ->orWhere(fn ($q) => $q->where('scope', 'category')->whereIn('category_id', $categoryIds->merge($parentIds)->unique())))
-            ->get();
+                ->orWhere(fn ($q) => $q->where('target', 'dealer')->where('dealer_relationship_id', $relationship->id)));
     }
 
     private function pickRule(Collection $rules, Product $product, ?int $parentCategoryId): ?DiscountRule

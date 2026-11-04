@@ -86,7 +86,7 @@ class RouteAccessSweepTest extends TestCase
         // Kontrol: aynı sayfalar kendi kayıtlarıyla açılıyor (404'ler kapsamdan geliyor, rota hatasından değil).
         $opened = 0;
         foreach ($this->routes('business.') as $route) {
-            if ($this->method($route) !== 'GET' || preg_match('/(attachment|images\.show|notifications\.open|\.media|\.logo|returns\.photo)$/', $route->getName())
+            if ($this->method($route) !== 'GET' || preg_match('/(attachment|images\.show|promotions\.image|notifications\.open|\.media|\.logo|returns\.photo)$/', $route->getName())
                 || ! ($url = $this->url($route, fn ($p, $i, $name) => $this->routeParam($mine, $name, $p)))) {
                 continue;
             }

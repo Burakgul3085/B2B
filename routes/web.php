@@ -276,6 +276,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('kupon-kampanyalar', [Business\PromotionController::class, 'index'])->name('promotions.index');
         Route::get('kupon-kampanyalar/yeni', [Business\PromotionController::class, 'create'])->name('promotions.create');
         Route::post('kupon-kampanyalar', [Business\PromotionController::class, 'store'])->name('promotions.store');
+        Route::get('kupon-kampanyalar/gorsel/{promotionImage}', [Business\PromotionController::class, 'image'])->name('promotions.image');
         Route::get('kupon-kampanyalar/{promotion}', [Business\PromotionController::class, 'edit'])->name('promotions.edit');
         Route::put('kupon-kampanyalar/{promotion}', [Business\PromotionController::class, 'update'])->name('promotions.update');
         Route::put('kupon-kampanyalar/{promotion}/durum', [Business\PromotionController::class, 'toggle'])->name('promotions.toggle');
@@ -399,6 +400,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('bildirimler/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
         Route::post('bildirimler/okundu', [NotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('kampanyalar', [Dealer\PromotionController::class, 'index'])->name('promotions.index');
+        Route::get('kampanyalar/gorsel/{promotionImage}', [Dealer\PromotionController::class, 'image'])->name('promotions.image');
+        Route::get('kampanyalar/{promotion}', [Dealer\PromotionController::class, 'show'])->name('promotions.show');
         Route::get('duyurular', [Dealer\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::get('duyurular/{announcement}/ek/{attachment}', [Dealer\AnnouncementController::class, 'attachment'])->name('announcements.attachment');
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');

@@ -65,19 +65,19 @@
 
     {{-- ============ Aktif kampanyalar ============ --}}
     @if ($promotions->isNotEmpty())
-        <section class="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="inline-flex items-center gap-2 text-base font-bold text-ink"><x-icon name="gift" class="size-5 text-primary" />Aktif kampanyalar</h2>
-                <a href="{{ route('dealer.promotions.index') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">Tümünü gör ({{ $promotions->count() }}) <x-icon name="arrow-right" class="size-4" /></a>
+        <section class="mt-10">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <p class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-primary uppercase"><x-icon name="gift" class="size-3.5" />Fırsatlar</p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-ink">Aktif kampanyalar</h2>
+                </div>
+                <a href="{{ route('dealer.promotions.index') }}" class="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs transition hover:border-primary/40 hover:text-primary">Tümünü gör ({{ $promotions->count() }}) <x-icon name="arrow-right" class="size-4" /></a>
             </div>
-            <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($promotions->take(3) as ['promotion' => $p])
-                    <li class="rounded-xl border border-line bg-white px-4 py-3 text-sm">
-                        <p class="font-semibold text-ink">{{ $p->name }}</p>
-                        <p class="mt-0.5 text-muted">{{ $p->summary() }}{{ $p->isCoupon() ? ' · Kod: '.$p->code : '' }}</p>
-                    </li>
+            <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($promotions->take(3) as ['promotion' => $promotion, 'remaining' => $remaining])
+                    @include('dealer.promotions._card', ['compact' => true, 'categories' => collect()])
                 @endforeach
-            </ul>
+            </div>
         </section>
     @endif
 

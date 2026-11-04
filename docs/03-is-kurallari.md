@@ -247,6 +247,10 @@ Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bay
 - **İade:** kupon payı iade miktarıyla orantılı (birikimli) düşülür. Bayiye ödediğinden fazlası iade edilmez.
 - **Değişiklik:** kullanılmış kuponun kodu ve türü değiştirilemez, silinemez (pasife alınır).
 - **Bayi Kampanyalar sayfası** (`/bayi/kampanyalar`, menüde sayıyla; ana sayfada "Aktif kampanyalar" kutusu): yayında, bayiyi hedefleyen ve toplam / bayi başına hakkı bitmemiş olanlar listelenir (`PromotionService::visibleFor`). Otomatik kampanya her zaman görünür; kupon yalnızca toptancı "kodu göster" seçtiyse (`show_to_dealers`) kodu ve "Sepete uygula" düğmesiyle görünür. Kişiye özel verilen kod gizli kalır. Bitmiş, başlamamış, pasif, sınırı dolmuş ve başka bayiye ait olanlar görünmez.
+- **Görseller** (`promotion_images`): bir kapak ve en fazla 8 detay fotoğrafı. Ürün görselleriyle aynı güvenli yükleyiciden geçer (içerik denetimi, yeniden kodlama, private disk). Bayiye yalnızca kampanyayı görebiliyorsa sunulur; toptancıya kendi işletmesininki. Kampanya silinince dosyalar da silinir. Kapak yoksa hazır renkli kapak gösterilir.
+- **Kampanya detayı** (`/bayi/kampanyalar/{id}`): galeri, açıklama (2.000 karakter, satır atlamalı), koşullar, kupon kodu ve "Sepete uygula"; kapsamlı kampanyada kapsamdaki ilk 12 ürün, tümü katalogda `?kampanya={id}` filtresiyle.
+- **İndirimdeki ürünler:** Kampanyalar sayfasında ve katalogda `?indirim=1`. §4.1'deki indirim kuralı bu bayiye uygulanan ürünlerdir (`PriceResolver::whereDiscounted`); bayiye özel fiyatlı ürün indirim almadığı için listelenmez.
+- **Kampanyalı ürünler:** katalogda `?kampanyali=1` ve kartlarda "Kampanya" rozeti; yalnızca belirli ürün/kategoriye uygulanan, bayiye görünen kampanyalar (tüm siparişe uygulanan kampanya her ürüne rozet basmaz).
 
 ## 5. Stokta olmayan ürün talebi
 

@@ -1,4 +1,4 @@
-{{-- Izgara ürün kartı: $product (available_qty seçili), $prices, $settings, $openRequests --}}
+{{-- Izgara ürün kartı: $product (available_qty seçili), $prices, $settings, $openRequests; isteğe bağlı $campaignTags (ürün → kampanya) --}}
 @php
     use App\Domain\Catalog\NewProducts;
     use App\Domain\Catalog\StockLevel;
@@ -25,6 +25,9 @@
             @endif
             @if ($price->hasDiscount())
                 <span class="rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white shadow-sm">%{{ rtrim(rtrim(number_format((float) $price->discountPercent, 2, ',', ''), '0'), ',') }} indirim</span>
+            @endif
+            @if (isset($campaignTags[$product->id]))
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold tracking-wide text-amber-950 uppercase shadow-sm" title="{{ $campaignTags[$product->id]->name }}: {{ $campaignTags[$product->id]->summary() }}"><x-icon name="gift" class="size-3" />Kampanya</span>
             @endif
         </div>
         <a href="{{ route('dealer.catalog.show', $product) }}" class="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-white/95 text-muted opacity-0 shadow-md ring-1 ring-line transition group-hover:opacity-100 hover:text-primary focus:opacity-100" aria-label="{{ $product->name }} ürününü incele">

@@ -44,6 +44,41 @@ export function bannerForm(state) {
     };
 }
 
+/** Görsel seçimi önizlemesi (kampanya kapak ve detay fotoğrafları): seçilen dosyalar küçük resim olarak gösterilir. */
+export function imagePicks() {
+    return {
+        previews: [],
+        pick(event) {
+            this.previews.forEach((url) => URL.revokeObjectURL(url));
+            this.previews = Array.from(event.target.files).map((f) => URL.createObjectURL(f));
+        },
+    };
+}
+
+/** Fotoğraf galerisi (bayi kampanya detayı): küçük resimle seçim, tam ekran görünüm, ok tuşları ve Esc. */
+export function gallery(count) {
+    return {
+        active: 0,
+        open: false,
+        count,
+        show(index) {
+            this.active = index;
+        },
+        next() {
+            this.active = (this.active + 1) % this.count;
+        },
+        prev() {
+            this.active = (this.active + this.count - 1) % this.count;
+        },
+        key(event) {
+            if (!this.open) return;
+            if (event.key === 'Escape') this.open = false;
+            if (event.key === 'ArrowRight') this.next();
+            if (event.key === 'ArrowLeft') this.prev();
+        },
+    };
+}
+
 /** Ürün seçici (toptancı paneli): ad, kod veya barkodla arar; seçimde "product-picked" olayı yayar. */
 export function productPicker(lookupUrl, selected) {
     return {

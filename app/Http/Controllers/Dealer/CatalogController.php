@@ -6,6 +6,7 @@ use App\Domain\Catalog\NewProducts;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Pricing\PriceResolver;
+use App\Domain\Pricing\PromotionService;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
 use App\Models\Brand;
@@ -29,7 +30,7 @@ class CatalogController extends Controller
 {
     use UsesDealerContext;
 
-    public function __construct(private PriceResolver $prices) {}
+    public function __construct(private PriceResolver $prices, private PromotionService $promotions) {}
 
     public function index(Request $request): View
     {
@@ -47,6 +48,9 @@ class CatalogController extends Controller
             'view' => ['nullable', Rule::in(['grid', 'list'])],
             'showcase' => ['nullable', 'integer'],
             'yeni' => ['nullable', 'boolean'],
+            'indirim' => ['nullable', 'boolean'],
+            'kampanyali' => ['nullable', 'boolean'],
+            'kampanya' => ['nullable', 'integer'],
         ]);
         $relationship = $this->relationship();
         $settings = $this->settings();
@@ -58,6 +62,14 @@ class CatalogController extends Controller
         if ($onlyNew && empty($filters['sort'])) {
             $filters['sort'] = 'new';
         }
+        // İndirimdekiler (bayiye uygulanan indirim kuralı) ve kampanya kapsamı: yalnızca bu bayiye görünen kampanyalar.
+        $onlyDiscounted = (bool) ($filters['indirim'] ?? false);
+        $visible = $this->promotions->visibleFor($relationship);
+        $campaign = null;
+        if (! empty($filters['kampanya'])) {
+            $campaign = $visible->pluck('promotion')->firstWhere('id', (int) $filters['kampanya']) ?? abort(404);
+        }
+        $campaignScoped = ($filters['kampanyali'] ?? false) ? $visible->pluck('promotion')->filter->isScoped()->values() : null;
         $selectedCategories = array_map('intval', $filters['category']);
         $selectedBrands = array_map('intval', $filters['brand']);
         // Ana sayfadaki elle seçilmiş bir vitrinin "Tümünü gör" bağlantısı.
@@ -74,7 +86,10 @@ class CatalogController extends Controller
                 $q->where(fn ($q) => $q->where('name', 'like', "%{$like}%")->orWhere('sku', 'like', "{$like}%")->orWhere('barcode', $term));
             })
             ->when($filters['in_stock'] ?? false, fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"))
-            ->when($onlyNew, fn ($q) => NewProducts::apply($q, $settings));
+            ->when($onlyNew, fn ($q) => NewProducts::apply($q, $settings))
+            ->when($onlyDiscounted, fn ($q) => $this->prices->whereDiscounted($q, $relationship))
+            ->when($campaign, fn ($q) => $this->promotions->whereInScope($q, $campaign))
+            ->when($campaignScoped !== null, fn ($q) => $this->promotions->whereInAnyScope($q, $campaignScoped));
 
         $products = $base()
             ->with(['unit', 'brand', 'taxRate', 'primaryImage'])
@@ -121,6 +136,10 @@ class CatalogController extends Controller
             'latest' => $latest,
             'onlyNew' => $onlyNew,
             'prices' => $this->prices->resolveMany($relationship, $products->getCollection()->merge($latest)),
+            'campaignTags' => $this->promotions->tagsFor($relationship, $products->getCollection()->merge($latest), $visible),
+            'onlyDiscounted' => $onlyDiscounted,
+            'campaign' => $campaign,
+            'onlyCampaign' => $campaignScoped !== null,
             'filters' => $filters,
             'selectedCategories' => $selectedCategories,
             'selectedBrands' => $selectedBrands,
@@ -147,6 +166,7 @@ class CatalogController extends Controller
 
         return view('dealer.catalog.show', [
             'product' => $product,
+            'campaigns' => $this->promotions->forProduct($relationship, $product),
             'price' => $this->prices->resolve($relationship, $product),
             'available' => app(StockService::class)->available($product->id, (int) $settings->default_warehouse_id),
             'settings' => $settings,

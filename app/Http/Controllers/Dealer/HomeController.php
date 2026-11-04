@@ -33,7 +33,8 @@ class HomeController extends Controller
             'strips' => $storefront->banners($relationship, 'strip'),
             'showcases' => $showcases,
             'settings' => $settings,
-            'promotions' => $promotions->visibleFor($relationship),
+            'promotions' => $rows = $promotions->visibleFor($relationship),
+            'campaignTags' => $promotions->tagsFor($relationship, $showcases->flatMap(fn ($s) => $s['products']), $rows),
             'openRequests' => ProductRequest::where('dealer_relationship_id', $relationship->id)->whereIn('status', ProductRequest::OPEN)
                 ->whereIn('product_id', $productIds)->pluck('product_id')->flip(),
             'summary' => [

@@ -24,8 +24,17 @@
                             @php [$statusLabel, $tone] = Promotion::STATUSES[$promotion->status($promotion->used_count)]; @endphp
                             <tr>
                                 <td class="px-5 py-3">
+                                    <div class="flex items-center gap-3">
+                                    @if ($promotion->cover)
+                                        <img src="{{ route('business.promotions.image', ['promotionImage' => $promotion->cover, 'w' => 320]) }}" alt="" class="h-10 w-16 shrink-0 rounded-md object-cover">
+                                    @else
+                                        <span class="flex h-10 w-16 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-amber-300 to-orange-500 text-xs font-bold text-white">{{ $promotion->badge() }}</span>
+                                    @endif
+                                    <div class="min-w-0">
                                     <a href="{{ route('business.promotions.edit', $promotion) }}" class="font-medium hover:text-primary">{{ $promotion->name }}</a>
                                     <span class="block text-xs text-muted">{{ $promotion->starts_at?->timezone('Europe/Istanbul')->format('d.m.Y') ?? 'Hemen' }} – {{ $promotion->ends_at?->timezone('Europe/Istanbul')->format('d.m.Y') ?? 'süresiz' }}</span>
+                                    </div>
+                                    </div>
                                 </td>
                                 <td class="px-3 py-3">
                                     @if ($promotion->code)<span class="font-mono">{{ $promotion->code }}</span>@else<span class="text-muted">Otomatik</span>@endif
