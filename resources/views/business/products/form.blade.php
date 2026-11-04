@@ -24,19 +24,25 @@
             <p class="mt-4 text-xs text-muted">Kategori veya marka listede yoksa <a href="{{ route('business.categories.index') }}" class="text-primary hover:underline">Kategoriler</a> veya <a href="{{ route('business.brands.index') }}" class="text-primary hover:underline">Markalar</a> sayfasından ekleyin.</p>
         </x-card>
 
-        <x-card title="Fiyat ve KDV" description="Alış fiyatı yalnızca sizin panelinizde görünür; bayiye gösterilmez.">
+        @php $hasSale = (bool) old('has_sale', $product->dealer_sale_price !== null); @endphp
+        <x-card title="Fiyat ve KDV" description="Bayiye tek fiyat gider: bayi fiyatı. İndirim açıksa tarihler arasında indirimli fiyat uygulanır.">
             <div class="grid gap-5 sm:grid-cols-3">
-                <x-field name="list_price" label="Liste fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->list_price" required hint="Genel liste fiyatı." />
-                <x-field name="dealer_price" label="Standart bayi fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->dealer_price" hint="Boşsa bayiye liste fiyatı uygulanır." />
-                <x-field name="purchase_price" label="Alış fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->purchase_price" hint="Stok değeri hesabında kullanılır." />
+                <x-field name="list_price" label="Bayi fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->exists ? $product->regularDealerPrice() : $product->list_price" required hint="Bayinin ödediği birim fiyat." />
+                <x-field name="purchase_price" label="Alış fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->purchase_price" hint="Yalnızca siz görürsünüz; kâr ve stok değeri için. İsteğe bağlı." />
                 <x-field name="tax_rate_id" label="KDV oranı" :options="$taxRates->all()" :value="$product->tax_rate_id" required />
-                <x-toggle name="price_includes_tax" label="Fiyatlar KDV dahil" :checked="$product->price_includes_tax" hint="İşaretli değilse girilen fiyatlar KDV hariçtir." class="sm:col-span-2 sm:self-end" />
+                <x-toggle name="price_includes_tax" label="Fiyatlar KDV dahil" :checked="$product->price_includes_tax" hint="İşaretli değilse girilen fiyatlar KDV hariçtir." class="sm:col-span-3" />
             </div>
-            <div class="mt-6 border-t border-line pt-5">
-                <p class="text-sm font-semibold text-ink">İndirimli bayi fiyatı</p>
-                <p class="mt-0.5 text-xs text-muted">Tarih aralığında tüm bayilere bu fiyat uygulanır; bayi bayi fiyatını üstü çizili görür ve ürün "İndirimdeki ürünler"de listelenir. Kaldırmak için fiyatı boşaltın.</p>
-                <div class="mt-4 grid gap-5 sm:grid-cols-3">
-                    <x-field name="dealer_sale_price" label="İndirimli bayi fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->dealer_sale_price" hint="Bayi fiyatından düşük olmalı." />
+            <div class="mt-6 border-t border-line pt-5" x-data="{ sale: @alpine($hasSale) }">
+                <input type="hidden" name="has_sale" value="0">
+                <label class="flex cursor-pointer items-start gap-3">
+                    <input type="checkbox" name="has_sale" value="1" x-model="sale" class="mt-0.5 size-4 rounded" @checked($hasSale)>
+                    <span>
+                        <span class="block text-sm font-semibold text-ink">İndirim uygula</span>
+                        <span class="block text-xs text-muted">Belirli tarihlerde tüm bayilere daha düşük fiyat. Bayi eski fiyatı üstü çizili görür; ürün "İndirimdeki ürünler"de listelenir.</span>
+                    </span>
+                </label>
+                <div class="mt-4 grid gap-5 sm:grid-cols-3" x-show="sale" x-cloak>
+                    <x-field name="dealer_sale_price" label="İndirimli bayi fiyatı (₺)" type="number" step="0.0001" min="0" :value="$product->dealer_sale_price" hint="Bayi fiyatından düşük olmalı." x-bind:required="sale" />
                     <x-field name="dealer_sale_starts_on" label="Başlangıç" type="date" :value="$product->dealer_sale_starts_on?->toDateString()" hint="Boş: hemen." />
                     <x-field name="dealer_sale_ends_on" label="Bitiş" type="date" :value="$product->dealer_sale_ends_on?->toDateString()" hint="Boş: süresiz. Bitiş günü dahil." />
                 </div>

@@ -77,7 +77,6 @@ class ProductService
             'pack_quantity' => ['required', ...$qty],
             'purchase_price' => ['nullable', ...$money],
             'list_price' => ['required', ...$money],
-            'dealer_price' => ['nullable', ...$money],
             'dealer_sale_price' => ['nullable', 'decimal:0,4', 'gt:0', 'max:99999999999'],
             'dealer_sale_starts_on' => ['nullable', 'date'],
             'dealer_sale_ends_on' => ['nullable', 'date', new NotBefore('dealer_sale_starts_on')],
@@ -100,7 +99,7 @@ class ProductService
             'sku' => 'ürün kodu (SKU)', 'barcode' => 'barkod', 'name' => 'ürün adı', 'category_id' => 'kategori',
             'brand_id' => 'marka', 'unit_id' => 'birim', 'sale_mode' => 'satış şekli', 'min_cases' => 'en az koli',
             'pack_quantity' => 'koli içi adet',
-            'purchase_price' => 'alış fiyatı', 'list_price' => 'liste fiyatı', 'dealer_price' => 'bayi fiyatı',
+            'purchase_price' => 'alış fiyatı', 'list_price' => 'bayi fiyatı',
             'dealer_sale_price' => 'indirimli bayi fiyatı', 'dealer_sale_starts_on' => 'indirim başlangıcı', 'dealer_sale_ends_on' => 'indirim bitişi',
             'tax_rate_id' => 'KDV oranı', 'min_order_qty' => 'minimum sipariş miktarı', 'order_step' => 'sipariş artış adımı',
             'critical_stock_level' => 'kritik stok seviyesi', 'option_name' => 'seçenek adı', 'option_value' => 'seçenek değeri',
@@ -159,7 +158,7 @@ class ProductService
 
             // İndirimli bayi fiyatı, indirimsiz bayi fiyatından (yoksa liste fiyatından) düşük olmalı.
             if (filled($input['dealer_sale_price'] ?? null)) {
-                $regular = (string) (filled($input['dealer_price'] ?? null) ? $input['dealer_price'] : $input['list_price']);
+                $regular = (string) $input['list_price'];
                 if (bccomp((string) $input['dealer_sale_price'], $regular, 4) >= 0) {
                     $v->errors()->add('dealer_sale_price', 'İndirimli bayi fiyatı, bayi fiyatından düşük olmalıdır.');
                 }
@@ -168,6 +167,8 @@ class ProductService
 
         $data = $validator->validate();
         unset($data['min_cases']); // yalnızca min_order_qty hesabı için
+        // Tek satış fiyatı: bayi fiyatı list_price'tadır; eski ayrı bayi fiyatı kaydedilince boşalır.
+        $data['dealer_price'] = null;
         // İndirimli fiyat yoksa tarihleri de boşalır (eski tarih yeni indirime taşınmasın).
         if (array_key_exists('dealer_sale_price', $data) && blank($data['dealer_sale_price'])) {
             $data['dealer_sale_starts_on'] = $data['dealer_sale_ends_on'] = null;

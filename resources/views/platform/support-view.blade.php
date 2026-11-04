@@ -43,7 +43,7 @@
             </table>
         @else
             <table class="table-base">
-                <thead><tr><th>SKU</th><th>Ürün</th><th>Birim</th><th class="text-right">Liste fiyatı</th><th>Durum</th></tr></thead>
+                <thead><tr><th>SKU</th><th>Ürün</th><th>Birim</th><th class="text-right">Bayi fiyatı</th><th>Durum</th></tr></thead>
                 <tbody class="divide-y divide-line">
                     @foreach ($rows as $p)
                         <tr><td class="font-mono text-sm">{{ $p->sku }}</td><td>{{ $p->name }}</td><td>{{ $p->unit?->name }}</td>

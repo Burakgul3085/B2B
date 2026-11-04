@@ -21,7 +21,7 @@
             <form method="POST" action="{{ route('business.products.price.update', $filters) }}" class="space-y-5">
                 @csrf
                 <div class="grid gap-5 sm:grid-cols-3">
-                    <x-field name="field" label="Hangi fiyat" :options="['list_price' => 'Liste fiyatı', 'dealer_price' => 'Bayi fiyatı', 'purchase_price' => 'Alış fiyatı']" />
+                    <x-field name="field" label="Hangi fiyat" :options="['list_price' => 'Bayi fiyatı', 'purchase_price' => 'Alış fiyatı']" />
                     <x-field name="mode" label="Değişim türü" :options="['percent' => 'Yüzde (%)', 'amount' => 'Tutar (₺)']" />
                     <x-field name="value" label="Değer" type="number" step="0.0001" required hint="Artış için pozitif, indirim için negatif (ör. 10 veya -5)." />
                 </div>

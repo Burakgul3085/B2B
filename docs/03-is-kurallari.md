@@ -247,14 +247,15 @@ Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalem
 | Sıra | Kaynak | Sonuç |
 |---|---|---|
 | 1 | Ürünün **indirimli bayi fiyatı** (başlangıç–bitiş arasında, bitiş günü dahil; indirimsiz fiyattan düşükse) | Siparişe yazılan birim fiyat. Bayi indirimsiz fiyatı üstü çizili ve yuvarlanmış indirim yüzdesiyle görür. |
-| 2 | Ürünün **standart bayi fiyatı** | Birim fiyat |
-| 3 | Ürünün **genel liste fiyatı** (bayi fiyatı tanımsızsa) | Birim fiyat |
+| 2 | Ürünün **bayi fiyatı** (`products.list_price`) | Birim fiyat |
 
-- İndirimli fiyat ürün formunda girilir; bayi fiyatından (yoksa liste fiyatından) düşük olmalıdır. Fiyat boşaltılınca tarihler de silinir. Sipariş satırına girilen tutar aynen yazılır (`price_source = dealer_sale`, satır indirimi yok; yüzde yuvarlaması oluşmaz).
+- İndirimli fiyat ürün formunda girilir; bayi fiyatından düşük olmalıdır. "İndirim uygula" kapatılınca indirimli fiyat ve tarihler silinir. Fiyat boşaltılınca tarihler de silinir. Sipariş satırına girilen tutar aynen yazılır (`price_source = dealer_sale`, satır indirimi yok; yüzde yuvarlaması oluşmaz).
 - Bir bayiye veya seçili bayilere farklı indirim **kupon / kampanyayla** verilir (§4.4).
 - **Kaldırıldı (2026-11-04):** bayi grupları, grup fiyat listeleri, ürün/kategori indirim kuralları ve bayiye özel fiyatlar. Tablolar (`dealer_groups`, `price_lists`, `price_list_items`, `discount_rules`, `dealer_product_prices`) veri kaybı olmasın diye duruyor; fiyat hesabında kullanılmıyor, ekranları yok. Gruba yönelik kupon / kampanyalar o anki grup bayilerine "seçili bayiler" olarak çevrildi; gruba gösterilen vitrin slaytları pasife alındı. Eski grup duyuruları geçmiş kayıt olarak yalnızca o grubun bayilerine görünmeye devam eder; yeni duyuru ve slaytlar tüm bayilere gider. Tanınmayan kampanya hedefi hiçbir bayiye açılmaz.
 
-Genel liste fiyatı bayiye "liste fiyatı" olarak, uygulanan fiyatın yanında gösterilebilir. Alış fiyatı bayi tarafında hiçbir yanıtta (HTML, JSON, dışa aktarma) yer almaz.
+- **Tek satış fiyatı (2026-11-05):** "Liste fiyatı" ile "Standart bayi fiyatı" birleşti; formda yalnızca **Bayi fiyatı**, isteğe bağlı **Alış fiyatı** ve kapalı gelen **İndirim uygula** bölümü vardır. Geçişte her ürünün bugün uygulanan fiyatı (bayi fiyatı varsa o, yoksa liste fiyatı) `list_price`'a yazıldı ve `dealer_price` boşaltıldı; hiçbir bayinin fiyatı değişmedi. `dealer_price` sütunu eski kayıtlar için okunur, formdan ve içe aktarmadan girilmez. Excel'de sütun "Bayi Fiyatı"; eski şablondaki "Liste Fiyatı" yalnızca Bayi Fiyatı boşsa kullanılır.
+
+Alış fiyatı bayi tarafında hiçbir yanıtta (HTML, JSON, dışa aktarma) yer almaz.
 
 ### 4.2 KDV ve yuvarlama
 

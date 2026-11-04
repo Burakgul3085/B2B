@@ -52,7 +52,6 @@ class DealerPriceReport extends Report
         return [
             'sku' => ['label' => 'Ürün kodu', 'type' => 'text'],
             'name' => ['label' => 'Ürün', 'type' => 'text'],
-            'list_net' => ['label' => 'Liste (net)', 'type' => 'money', 'sortable' => false],
             'source' => ['label' => 'Fiyat kaynağı', 'type' => 'text', 'sortable' => false],
             'unit_net' => ['label' => 'Bayi fiyatı (net)', 'type' => 'money', 'sortable' => false],
             'unit_gross' => ['label' => 'KDV dahil', 'type' => 'money', 'sortable' => false],
@@ -82,7 +81,6 @@ class DealerPriceReport extends Report
         return $rows->map(function ($row) use ($prices) {
             /** @var ResolvedPrice $p */
             $p = $prices[$row->id];
-            $row->list_net = $p->listPrice;
             $row->source = $p->sourceLabel();
             $row->unit_net = $p->unitPrice;
             $row->unit_gross = $p->unitPriceWithTax();

@@ -40,13 +40,13 @@ class ProductCreateAllInOneTest extends TestCase
     {
         return $this->inTenant($business, fn () => $overrides + [
             'sku' => 'DFT-M', 'name' => 'Defter A4', 'tax_rate_id' => TaxRate::where('rate', '20.00')->value('id'),
-            'list_price' => '10', 'dealer_price' => '8', 'sale_mode' => 'single', 'min_order_qty' => '1', 'critical_stock_level' => '0',
+            'list_price' => '8', 'sale_mode' => 'single', 'min_order_qty' => '1', 'critical_stock_level' => '0',
             'is_active' => '1', 'visible_to_dealers' => '1', 'option_name' => 'Renk', 'option_value' => 'Mavi',
             'images' => [$this->image('a.png'), $this->image('b.png')],
             'opening_stock' => '40',
             'options' => [
-                ['option_value' => 'Kırmızı', 'sku' => 'DFT-K', 'barcode' => '', 'dealer_price' => '', 'stock' => '15', 'image' => $this->image('k.png')],
-                ['option_value' => 'Yeşil', 'sku' => 'DFT-Y', 'barcode' => '', 'dealer_price' => '9', 'stock' => ''],
+                ['option_value' => 'Kırmızı', 'sku' => 'DFT-K', 'barcode' => '', 'price' => '', 'stock' => '15', 'image' => $this->image('k.png')],
+                ['option_value' => 'Yeşil', 'sku' => 'DFT-Y', 'barcode' => '', 'price' => '9', 'stock' => ''],
             ],
         ]);
     }
@@ -64,7 +64,7 @@ class ProductCreateAllInOneTest extends TestCase
             $main = Product::where('sku', 'DFT-M')->firstOrFail();
             $options = Product::optionsOf($main)->orderBy('id')->get();
             $this->assertSame(['Mavi', 'Kırmızı', 'Yeşil'], $options->pluck('option_value')->all());
-            $this->assertSame(['8.0000', '8.0000', '9.0000'], $options->pluck('dealer_price')->map(fn ($p) => (string) $p)->all());
+            $this->assertSame(['8.0000', '8.0000', '9.0000'], $options->pluck('list_price')->map(fn ($p) => (string) $p)->all());
             $this->assertSame(['Defter A4', 'Defter A4', 'Defter A4'], $options->pluck('name')->all());
             $this->assertSame(2, ProductImage::where('product_id', $main->id)->count());
             $this->assertSame(1, ProductImage::where('product_id', $options[1]->id)->count());

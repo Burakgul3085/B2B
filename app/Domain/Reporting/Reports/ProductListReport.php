@@ -47,8 +47,7 @@ class ProductListReport extends Report
             'category' => ['label' => 'Kategori', 'type' => 'text'],
             'brand' => ['label' => 'Marka', 'type' => 'text'],
             'unit' => ['label' => 'Birim', 'type' => 'text', 'default' => false],
-            'list_price' => ['label' => 'Liste fiyatı', 'type' => 'money'],
-            'dealer_price' => ['label' => 'Bayi fiyatı', 'type' => 'money'],
+            'price' => ['label' => 'Bayi fiyatı', 'type' => 'money'],
             'purchase_price' => ['label' => 'Alış fiyatı', 'type' => 'money', 'default' => false],
             'vat_rate' => ['label' => 'KDV', 'type' => 'percent'],
             'stock' => ['label' => 'Toplam stok', 'type' => 'qty', 'total' => true],
@@ -69,7 +68,8 @@ class ProductListReport extends Report
             ->join('units', 'units.id', '=', 'products.unit_id')
             ->join('tax_rates', 'tax_rates.id', '=', 'products.tax_rate_id')
             ->select('products.sku', 'products.name', 'categories.name as category', 'brands.name as brand', 'units.name as unit',
-                'products.list_price', 'products.dealer_price', 'products.purchase_price', 'tax_rates.rate as vat_rate')
+                'products.purchase_price', 'tax_rates.rate as vat_rate')
+            ->selectRaw('COALESCE(products.dealer_price, products.list_price) as price')
             ->selectRaw('(SELECT COALESCE(SUM(ws.quantity), 0) FROM warehouse_stock ws WHERE ws.business_id = products.business_id AND ws.product_id = products.id) as stock')
             ->selectRaw("CASE WHEN products.is_active = 1 THEN 'Aktif' ELSE 'Pasif' END as status")
             ->when($f['q'] ?? null, fn ($q, $t) => $q->where(fn ($q) => $q->where('products.name', 'like', Options::like($t))->orWhere('products.sku', 'like', Options::like($t))->orWhere('products.barcode', $t)))

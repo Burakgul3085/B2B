@@ -35,7 +35,7 @@ class CreateProduct
     /**
      * @param  array  $input  ürün formu alanları (ProductService::validate)
      * @param  UploadedFile[]  $images  ilk görsel ana görsel olur
-     * @param  array<int, array{option_value?: mixed, sku?: mixed, barcode?: mixed, dealer_price?: mixed, stock?: mixed, image?: mixed}>  $options
+     * @param  array<int, array{option_value?: mixed, sku?: mixed, barcode?: mixed, price?: mixed, stock?: mixed, image?: mixed}>  $options
      * @param  int[]  $showcaseIds
      *
      * @throws ValidationException|DomainException
@@ -108,7 +108,7 @@ class CreateProduct
                 'sku' => $row['sku'] ?? null,
                 'barcode' => $row['barcode'] ?? null,
                 'option_value' => $row['option_value'] ?? null,
-                'dealer_price' => filled($row['dealer_price'] ?? null) ? $row['dealer_price'] : ($input['dealer_price'] ?? null),
+                'list_price' => filled($row['price'] ?? null) ? $row['price'] : ($input['list_price'] ?? null),
             ] + $input;
             if (blank($rowInput['option_value'])) {
                 $errors["options.{$i}.option_value"] = ["{$data['option_name']} değerini yazın (ör. Kırmızı)."];
@@ -118,7 +118,10 @@ class CreateProduct
                 $rowData = $this->products->validate($rowInput);
             } catch (ValidationException $e) {
                 foreach ($e->errors() as $key => $messages) {
-                    $errors["options.{$i}.".(in_array($key, ['sku', 'barcode', 'option_value', 'dealer_price'], true) ? $key : 'sku')] ??= $messages;
+                    $field = match ($key) {
+                        'list_price', 'dealer_sale_price' => 'price', 'sku', 'barcode', 'option_value' => $key, default => 'sku'
+                    };
+                    $errors["options.{$i}.{$field}"] ??= $messages;
                 }
 
                 continue;

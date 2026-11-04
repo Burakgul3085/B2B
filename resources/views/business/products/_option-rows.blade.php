@@ -2,8 +2,8 @@
 @php
     $rowErrors = collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'options.'))->all();
     $oldRows = collect((array) old('options', []))->filter(fn ($r) => is_array($r))
-        ->map(fn ($r) => collect($r)->only(['option_value', 'sku', 'barcode', 'dealer_price', 'stock'])->map(fn ($v) => is_scalar($v) ? (string) $v : '')
-            ->put('price', is_scalar($r['dealer_price'] ?? null) ? (string) $r['dealer_price'] : '')->all())
+        ->map(fn ($r) => collect($r)->only(['option_value', 'sku', 'barcode', 'price', 'stock'])->map(fn ($v) => is_scalar($v) ? (string) $v : '')
+            ->all())
         ->values()->all();
 @endphp
 <div x-show="optionName.trim() !== ''" x-cloak x-data="optionRows(@alpine($oldRows), @alpine($rowErrors), {{ \App\Domain\Catalog\CreateProduct::MAX_OPTIONS }})" class="rounded-xl border border-line">
@@ -37,8 +37,8 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium">Bayi fiyatı (₺)</label>
-                    <input :name="field(i, 'dealer_price')" x-model="row.price" type="number" step="0.0001" min="0" placeholder="Aynı" class="field-input">
-                    <p x-show="error(i, 'dealer_price')" x-text="error(i, 'dealer_price')" class="mt-1 text-xs text-danger"></p>
+                    <input :name="field(i, 'price')" x-model="row.price" type="number" step="0.0001" min="0" placeholder="Aynı" class="field-input">
+                    <p x-show="error(i, 'price')" x-text="error(i, 'price')" class="mt-1 text-xs text-danger"></p>
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium">Stok</label>

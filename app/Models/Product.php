@@ -17,12 +17,13 @@ class Product extends Model
     /** Formdan ve içe aktarmadan doldurulabilen alanlar. */
     public const EDITABLE = [
         'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'sale_mode', 'pack_quantity',
-        'purchase_price', 'list_price', 'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',
+        'purchase_price', 'list_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',
         'tax_rate_id', 'price_includes_tax', 'min_order_qty',
         'order_step', 'critical_stock_level', 'option_name', 'option_value', 'is_active', 'visible_to_dealers',
     ];
 
-    protected $fillable = self::EDITABLE;
+    // list_price = bayi fiyatı (tek satış fiyatı, docs/03 §4.1). dealer_price eski kayıtlar için okunur; formdan girilmez.
+    protected $fillable = [...self::EDITABLE, 'dealer_price'];
 
     /** Satış şekli: miktar ürünün biriminden (yeni ürünlerde adet); koli yalnızca sipariş kuralıdır. */
     public const SALE_MODES = ['single' => 'Tek tek', 'case' => 'Koli halinde', 'custom' => 'Özel kural'];

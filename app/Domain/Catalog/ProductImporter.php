@@ -50,8 +50,7 @@ class ProductImporter
         'model' => 'Model',
         'pack_quantity' => 'Koli İçi Adet',
         'purchase_price' => 'Alış Fiyatı',
-        'list_price' => 'Liste Fiyatı',
-        'dealer_price' => 'Bayi Fiyatı',
+        'list_price' => 'Bayi Fiyatı',
         'tax_rate' => 'KDV Oranı',
         'price_includes_tax' => 'KDV Dahil',
         'min_order_qty' => 'En Az Sipariş',
@@ -176,6 +175,9 @@ class ProductImporter
             'pack_quantity' => 1, 'min_order_qty' => 1, 'order_step' => 1, 'critical_stock_level' => 0,
         ];
         $input['sku'] = $sku;
+        if ($existing) {
+            $input['list_price'] = $existing->regularDealerPrice(); // tek satış fiyatı (eski ayrı bayi fiyatı dahil)
+        }
 
         foreach (['barcode', 'name', 'description', 'model'] as $text) {
             if ($this->filled($values, $text)) {
@@ -183,7 +185,10 @@ class ProductImporter
             }
         }
 
-        foreach (['purchase_price' => 4, 'list_price' => 4, 'dealer_price' => 4, 'pack_quantity' => 3, 'min_order_qty' => 3, 'order_step' => 3, 'critical_stock_level' => 3] as $field => $scale) {
+        if (! $this->filled($values, 'list_price') && $this->filled($values, 'legacy_list_price')) {
+            $values['list_price'] = $values['legacy_list_price'];
+        }
+        foreach (['purchase_price' => 4, 'list_price' => 4, 'pack_quantity' => 3, 'min_order_qty' => 3, 'order_step' => 3, 'critical_stock_level' => 3] as $field => $scale) {
             if ($this->filled($values, $field)) {
                 $parsed = Decimal::parse($values[$field], $scale);
                 if ($parsed === null) {
@@ -296,6 +301,8 @@ class ProductImporter
             $lookup[$normalize($key)] = $key;
         }
         // Eski şablon başlıkları da okunur.
+        $lookup['listefiyati'] = 'legacy_list_price'; // eski şablon: Bayi Fiyatı boşsa Liste Fiyatı kullanılır
+        $lookup['standartbayifiyati'] = 'list_price';
         $lookup['koliicimiktar'] = 'pack_quantity';
         $lookup['minimumsiparis'] = 'min_order_qty';
         $lookup['siparisadimi'] = 'order_step';

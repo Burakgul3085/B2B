@@ -51,8 +51,7 @@
                                     <th class="w-10"><input type="checkbox" class="size-4 rounded" aria-label="Tümünü seç" x-model="all" @change="selected = all ? @alpine($products->pluck('id')) : []"></th>
                                     <th><x-sort-link column="name" label="Ürün" :filters="$filters" /></th>
                                     <th class="hidden md:table-cell">Kategori / Marka</th>
-                                    <th class="text-right"><x-sort-link column="list_price" label="Liste fiyatı" :filters="$filters" /></th>
-                                    <th class="hidden text-right sm:table-cell">Bayi fiyatı</th>
+                                    <th class="text-right"><x-sort-link column="list_price" label="Bayi fiyatı" :filters="$filters" /></th>
                                     <th class="text-right"><x-sort-link column="stock" label="Stok" :filters="$filters" /></th>
                                     <th>Durum</th>
                                 </tr>
@@ -86,8 +85,7 @@
                                         <td class="hidden text-muted md:table-cell">
                                             {{ $product->category?->fullName() ?? '—' }}<br><span class="text-xs">{{ $product->brand?->name }}</span>
                                         </td>
-                                        <td class="text-right tabular-nums">{{ Money::formatUnit($product->list_price) }}</td>
-                                        <td class="hidden text-right tabular-nums sm:table-cell">{{ $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : '—' }}@if ($product->dealerSaleActiveOn($today ??= \App\Domain\Support\LocalTime::today()))<span class="block text-xs font-medium text-success">İndirimli {{ Money::formatUnit($product->dealer_sale_price) }}</span>@endif</td>
+                                        <td class="text-right tabular-nums">{{ Money::formatUnit($product->regularDealerPrice()) }}@if ($product->dealerSaleActiveOn($today ??= \App\Domain\Support\LocalTime::today()))<span class="block text-xs font-medium text-success">İndirimli {{ Money::formatUnit($product->dealer_sale_price) }}</span>@endif</td>
                                         <td class="text-right tabular-nums">
                                             <span @class([
                                                 'font-medium',

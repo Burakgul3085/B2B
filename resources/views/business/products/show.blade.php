@@ -22,8 +22,7 @@
                         'Model' => $product->model,
                         'Satış şekli' => $product->saleRuleLabel(),
                         'KDV' => $product->taxRate->name.($product->price_includes_tax ? ' (dahil)' : ' (hariç)'),
-                        'Liste fiyatı' => Money::formatUnit($product->list_price),
-                        'Bayi fiyatı' => $product->dealer_price !== null ? Money::formatUnit($product->dealer_price) : 'Liste fiyatı',
+                        'Bayi fiyatı' => Money::formatUnit($product->regularDealerPrice()),
                         'İndirimli bayi fiyatı' => $product->dealer_sale_price !== null
                             ? Money::formatUnit($product->dealer_sale_price)
                                 .($product->dealer_sale_starts_on || $product->dealer_sale_ends_on ? ' · '.($product->dealer_sale_starts_on?->format('d.m.Y') ?? 'hemen').' – '.($product->dealer_sale_ends_on?->format('d.m.Y') ?? 'süresiz') : '')
@@ -134,7 +133,7 @@
                                         <p class="font-mono text-xs text-muted">{{ $option->sku }}@unless ($option->is_active)<span class="font-sans"> · pasif</span>@endunless</p>
                                     </div>
                                     <div class="text-right text-xs text-muted tabular-nums">
-                                        <p>{{ Money::formatUnit($option->dealer_price ?? $option->list_price) }}</p>
+                                        <p>{{ Money::formatUnit($option->regularDealerPrice()) }}</p>
                                         <p>Stok {{ Quantity::format($option->stocks_sum_quantity ?? 0) }}</p>
                                     </div>
                                 </li>

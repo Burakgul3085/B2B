@@ -148,4 +148,20 @@ class ProductImportTest extends TestCase
         $this->assertSame([0, 0, 0], [$job->created_rows, $job->updated_rows, $job->failed_rows]);
         @unlink($path);
     }
+
+    public function test_single_price_column_and_legacy_list_price_fallback(): void
+    {
+        $business = $this->makeBusiness();
+        $file = $this->csv([
+            ['Ürün Kodu', 'Ürün Adı', 'Liste Fiyatı', 'Bayi Fiyatı', 'KDV Oranı'],
+            ['E-1', 'Eski şablon bayi fiyatlı', '12', '9,50', '20'],   // bayi fiyatı geçerli
+            ['E-2', 'Eski şablon bayi fiyatsız', '11', '', '20'],      // liste fiyatına düşer
+        ]);
+        $this->actingAs($business->user, 'business')
+            ->post(route('business.products.import.store'), ['file' => $file, 'create_missing' => '1'])->assertRedirect();
+
+        $this->assertSame(['E-1' => '9.5000', 'E-2' => '11.0000'],
+            $this->inTenant($business, fn () => Product::orderBy('sku')->pluck('list_price', 'sku')->map(fn ($p) => (string) $p)->all()));
+        $this->assertSame(0, $this->inTenant($business, fn () => Product::whereNotNull('dealer_price')->count()));
+    }
 }

@@ -11,8 +11,8 @@ final class ResolvedPrice
 {
     public const SOURCES = [
         'dealer_sale' => 'İndirimli bayi fiyatı',
-        'dealer_price' => 'Standart bayi fiyatı',
-        'list_price' => 'Liste fiyatı',
+        'dealer_price' => 'Bayi fiyatı',
+        'list_price' => 'Bayi fiyatı',
     ];
 
     public function __construct(

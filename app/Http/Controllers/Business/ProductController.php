@@ -214,7 +214,7 @@ class ProductController extends Controller
     {
         $filters = $this->filters($request);
         $data = $request->validate([
-            'field' => ['required', Rule::in(['list_price', 'dealer_price', 'purchase_price'])],
+            'field' => ['required', Rule::in(['list_price', 'purchase_price'])],
             'mode' => ['required', Rule::in(['percent', 'amount'])],
             'value' => ['required', 'decimal:0,4', 'not_in:0', 'min:-100000', 'max:100000'],
             'confirm' => ['accepted'],
@@ -288,6 +288,10 @@ class ProductController extends Controller
     private function input(Request $request): array
     {
         $input = $request->only([...Product::EDITABLE, 'min_cases']);
+        // "İndirim uygula" kapalıysa indirimli fiyat ve tarihleri kaldırılır (alan formda yoksa dokunulmaz).
+        if ($request->has('has_sale') && ! $request->boolean('has_sale')) {
+            $input['dealer_sale_price'] = $input['dealer_sale_starts_on'] = $input['dealer_sale_ends_on'] = null;
+        }
         foreach (['price_includes_tax', 'is_active', 'visible_to_dealers'] as $flag) {
             $input[$flag] = $request->boolean($flag);
         }

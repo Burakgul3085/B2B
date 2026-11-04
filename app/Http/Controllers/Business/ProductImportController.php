@@ -68,8 +68,7 @@ class ProductImportController extends Controller
             'model' => [12, false, 'Model veya üretici kodu.', 'TK-10'],
             'pack_quantity' => [12, false, 'Koli halinde satılıyorsa bir kolideki adet (Artış ile aynı yazın). Üçü de boşsa ürün tek tek satılır.', '50'],
             'purchase_price' => [13, false, 'Alış fiyatı (bayiler görmez).', '4,20'],
-            'list_price' => [13, true, 'Liste fiyatı. Virgül veya nokta kullanılabilir. Yeni ürün için zorunlu.', '8,50'],
-            'dealer_price' => [13, false, 'Bayilere uygulanan fiyat.', '7,25'],
+            'list_price' => [13, true, 'Bayinin ödediği birim fiyat. Virgül veya nokta kullanılabilir. Yeni ürün için zorunlu.', '7,25'],
             'tax_rate' => [13, true, 'KDV oranı; işletmenizde tanımlı ve aktif olmalı. Yeni ürün için zorunlu.', '20', $rates ?: null],
             'price_includes_tax' => [10, false, 'Fiyatlar KDV dahil mi?', 'Hayır', $yesNo],
             'min_order_qty' => [12, false, 'Bayinin en az sipariş edebileceği adet; Artış\'ın katı olmalı (ör. en az 2 koli için 100).', '50'],
@@ -100,8 +99,8 @@ class ProductImportController extends Controller
                 'notes' => ['En fazla 5.000 satır ve 10 MB. Yalnızca ilk sayfa (Ürünler) okunur; başlık satırını değiştirmeyin.'],
                 'columns' => $columns,
                 'examples' => [
-                    ['KLM-001', '8690000000017', 'Tükenmez Kalem Mavi', '1.0 mm uç', 'Kalem > Tükenmez Kalem', 'Örnek Marka', 'TK-10', '50', '4,20', '8,50', '7,25', '20', 'Hayır', '50', '50', '500', 'Evet', 'Evet', '1000'],
-                    ['DFT-A4-80', '8690000000024', 'Spiralli Defter A4 80 Yaprak', 'Kareli, sert kapak', 'Defter > Spiralli Defter', 'Örnek Marka', 'SD-80', '24', '38,00', '65,00', '', '20', 'Hayır', '24', '24', '100', 'Evet', 'Evet', '480'],
+                    ['KLM-001', '8690000000017', 'Tükenmez Kalem Mavi', '1.0 mm uç', 'Kalem > Tükenmez Kalem', 'Örnek Marka', 'TK-10', '50', '4,20', '7,25', '20', 'Hayır', '50', '50', '500', 'Evet', 'Evet', '1000'],
+                    ['DFT-A4-80', '8690000000024', 'Spiralli Defter A4 80 Yaprak', 'Kareli, sert kapak', 'Defter > Spiralli Defter', 'Örnek Marka', 'SD-80', '24', '38,00', '65,00', '20', 'Hayır', '24', '24', '100', 'Evet', 'Evet', '480'],
                 ],
             ]);
         }, 'urun-ice-aktarma-sablonu.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
