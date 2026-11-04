@@ -1,7 +1,6 @@
 @php
     $editing = $product->exists;
     $title = $editing ? 'Ürünü düzenle' : 'Yeni ürün';
-    $groups = $variantGroups->mapWithKeys(fn ($g) => [$g->id => $g->attribute_names]);
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="$title">
     <x-page-header :title="$editing ? $product->name : 'Yeni ürün'" :subtitle="$editing ? 'Ürün bilgilerini düzenleyin.' : 'Zorunlu alanlar * ile işaretlidir. Görsel ve stoku kayıttan sonra ekleyebilirsiniz.'">
@@ -22,7 +21,7 @@
                 <x-field name="model" label="Model" :value="$product->model" />
                 <x-field name="description" label="Açıklama" :value="$product->description" textarea class="sm:col-span-2" />
             </div>
-            <p class="mt-4 text-xs text-muted">Kategori veya marka listede yoksa <a href="{{ route('business.catalog.structure') }}" class="text-primary hover:underline">Kategori ve Markalar</a> sayfasından ekleyin.</p>
+            <p class="mt-4 text-xs text-muted">Kategori veya marka listede yoksa <a href="{{ route('business.categories.index') }}" class="text-primary hover:underline">Kategoriler</a> veya <a href="{{ route('business.brands.index') }}" class="text-primary hover:underline">Markalar</a> sayfasından ekleyin.</p>
         </x-card>
 
         <x-card title="Fiyat ve KDV" description="Alış fiyatı yalnızca sizin panelinizde görünür; bayiye gösterilmez.">
@@ -86,27 +85,19 @@
             </div>
         </x-card>
 
-        @if ($variantGroups->isNotEmpty())
-            <x-card title="Varyant" description="Renk, boyut gibi seçenekleri olan ürünleri aynı grupta toplayın. Her varyant kendi kodu, stoğu ve fiyatı olan ayrı üründür.">
-                <div class="grid gap-5 sm:grid-cols-3"
-                    x-data="{ group: '{{ old('variant_group_id', $product->variant_group_id) }}', groups: @alpine($groups), values: @alpine(old('variant_values', $product->variant_values ?? [])) }">
-                    <div>
-                        <label for="f_variant_group_id" class="mb-1.5 block text-sm font-medium">Varyant grubu</label>
-                        <select id="f_variant_group_id" name="variant_group_id" x-model="group" class="field-input">
-                            <option value="">Varyant yok</option>
-                            @foreach ($variantGroups as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach
-                        </select>
-                    </div>
-                    <template x-for="(attr, i) in (groups[group] || [])" :key="group + i">
-                        <div>
-                            <label class="mb-1.5 block text-sm font-medium" x-text="attr"></label>
-                            <input type="text" :name="'variant_values[' + attr + ']'" class="field-input" maxlength="60"
-                                :value="values[attr] || ''">
-                        </div>
-                    </template>
-                </div>
-            </x-card>
-        @endif
+        <x-card title="Seçenek" description="Ürünün renk, boyut gibi seçenekleri varsa doldurun. Her seçenek kendi kodu, stoğu ve fiyatı olan ayrı üründür; bayi ürün sayfasında seçenekler arasında geçer.">
+            @if ($optionOf)
+                <input type="hidden" name="option_of" value="{{ $optionOf->id }}">
+                <p class="mb-4 rounded-lg bg-primary/5 px-3 py-2.5 text-sm">“<a href="{{ route('business.products.show', $optionOf) }}" class="font-medium text-primary hover:underline">{{ $optionOf->name }}</a>” ürününe yeni seçenek ekliyorsunuz. Bilgiler ondan kopyalandı; ürün kodu, barkod ve seçenek değerini girin.</p>
+            @endif
+            <div class="grid gap-5 sm:grid-cols-3">
+                <x-field name="option_name" label="Seçenek adı" :value="$product->option_name" maxlength="40" placeholder="Ör. Renk" :required="(bool) $optionOf" hint="Tek seçenekli üründe boş bırakın." />
+                <x-field name="option_value" :label="$optionOf ? 'Yeni seçeneğin değeri' : 'Bu ürünün değeri'" :value="$product->option_value" maxlength="60" placeholder="Ör. Kırmızı" :required="(bool) ($optionOf || $product->variant_group_id)" />
+                @if ($optionOf && blank($optionOf->option_value))
+                    <x-field name="source_option_value" label="“{{ \Illuminate\Support\Str::limit($optionOf->name, 30) }}” ürününün değeri" maxlength="60" placeholder="Ör. Mavi" required hint="Mevcut ürünün seçeneği (bir kez sorulur)." />
+                @endif
+            </div>
+        </x-card>
 
         <x-card title="Satış durumu">
             <div class="grid gap-4 sm:grid-cols-2">

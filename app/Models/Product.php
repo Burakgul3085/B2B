@@ -19,7 +19,7 @@ class Product extends Model
         'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'sale_mode', 'pack_quantity',
         'purchase_price', 'list_price', 'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',
         'tax_rate_id', 'price_includes_tax', 'min_order_qty',
-        'order_step', 'critical_stock_level', 'variant_group_id', 'variant_values', 'is_active', 'visible_to_dealers',
+        'order_step', 'critical_stock_level', 'option_name', 'option_value', 'is_active', 'visible_to_dealers',
     ];
 
     protected $fillable = self::EDITABLE;
@@ -167,8 +167,17 @@ class Product extends Model
         return $this->archived_at !== null;
     }
 
+    /** Seçenek değeri, ör. "Kırmızı" (docs/03 §2.2). */
     public function variantLabel(): ?string
     {
-        return $this->variant_values ? implode(' / ', $this->variant_values) : null;
+        return filled($this->option_value) ? $this->option_value : null;
+    }
+
+    /** Aynı ürünün seçenekleri (kendisi dahil) — arka planda variant_group_id ile bağlıdır. */
+    public function scopeOptionsOf(Builder $query, self $product): void
+    {
+        $product->variant_group_id
+            ? $query->where('variant_group_id', $product->variant_group_id)
+            : $query->whereKey($product->id);
     }
 }

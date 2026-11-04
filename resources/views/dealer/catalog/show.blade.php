@@ -78,7 +78,7 @@
             </x-card>
 
             @if ($siblings->isNotEmpty())
-                <x-card title="Diğer seçenekler">
+                <x-card :title="($product->option_name ?: 'Diğer seçenekler')">
                     <div class="flex flex-wrap gap-2">
                         <span class="rounded-full bg-primary px-3 py-1 text-sm text-white">{{ $product->variantLabel() }}</span>
                         @foreach ($siblings as $s)

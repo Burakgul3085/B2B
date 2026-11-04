@@ -45,7 +45,7 @@ class ProductService
     private const TRACKED = [
         'sku', 'barcode', 'name', 'category_id', 'brand_id', 'unit_id', 'sale_mode', 'pack_quantity', 'purchase_price', 'list_price',
         'dealer_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on', 'tax_rate_id',
-        'price_includes_tax', 'min_order_qty', 'order_step', 'critical_stock_level', 'is_active', 'visible_to_dealers',
+        'price_includes_tax', 'min_order_qty', 'order_step', 'critical_stock_level', 'option_name', 'option_value', 'is_active', 'visible_to_dealers',
     ];
 
     public function __construct(
@@ -86,9 +86,9 @@ class ProductService
             'min_order_qty' => ['required', ...$qty],
             'order_step' => ['required', ...$qty],
             'critical_stock_level' => ['required', 'decimal:0,3', 'min:0', 'max:99999999999'],
-            'variant_group_id' => ['nullable', 'integer', $scoped('variant_groups')],
-            'variant_values' => ['nullable', 'array', 'max:3'],
-            'variant_values.*' => ['nullable', 'string', 'max:60'],
+            'option_name' => ['nullable', 'string', 'max:40'],
+            // Seçenekli üründe (aynı ürünün başka seçenekleri varsa) değer zorunludur.
+            'option_value' => [$product?->variant_group_id ? 'required' : 'nullable', 'required_with:option_name', 'string', 'max:60'],
             'is_active' => ['boolean'],
             'visible_to_dealers' => ['boolean'],
         ];
@@ -103,7 +103,7 @@ class ProductService
             'purchase_price' => 'alış fiyatı', 'list_price' => 'liste fiyatı', 'dealer_price' => 'bayi fiyatı',
             'dealer_sale_price' => 'indirimli bayi fiyatı', 'dealer_sale_starts_on' => 'indirim başlangıcı', 'dealer_sale_ends_on' => 'indirim bitişi',
             'tax_rate_id' => 'KDV oranı', 'min_order_qty' => 'minimum sipariş miktarı', 'order_step' => 'sipariş artış adımı',
-            'critical_stock_level' => 'kritik stok seviyesi', 'variant_group_id' => 'varyant grubu',
+            'critical_stock_level' => 'kritik stok seviyesi', 'option_name' => 'seçenek adı', 'option_value' => 'seçenek değeri',
         ];
     }
 
@@ -172,14 +172,14 @@ class ProductService
         if (array_key_exists('dealer_sale_price', $data) && blank($data['dealer_sale_price'])) {
             $data['dealer_sale_starts_on'] = $data['dealer_sale_ends_on'] = null;
         }
-        // Varyant değerleri grubun özellik adlarıyla anahtarlanır: {"Renk": "Mavi"}.
-        $data['variant_values'] = null;
-        if (! empty($data['variant_group_id'])) {
-            $attributes = VariantGroup::find($data['variant_group_id'])->attribute_names;
-            $data['variant_values'] = array_filter(
-                array_intersect_key($input['variant_values'] ?? [], array_flip($attributes)),
-                fn ($v) => filled($v),
-            ) ?: null;
+        foreach (['option_name', 'option_value'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = filled($data[$field]) ? trim((string) $data[$field]) : null;
+            }
+        }
+        // Aynı ürünün iki seçeneği aynı değeri taşımaz (ör. iki "Kırmızı").
+        if ($product?->variant_group_id && filled($data['option_value'] ?? null)) {
+            $this->assertOptionValueFree($product->variant_group_id, $data['option_value'], $product->id);
         }
 
         return $data;
@@ -255,6 +255,11 @@ class ProductService
     {
         return DB::transaction(function () use ($product, $data) {
             $product->fill($data);
+            // Seçenek adı (ör. Renk) aynı ürünün tüm seçeneklerinde ortaktır.
+            if ($product->variant_group_id && $product->isDirty('option_name')) {
+                Product::where('variant_group_id', $product->variant_group_id)->whereKeyNot($product->id)
+                    ->update(['option_name' => $product->option_name]);
+            }
             $changed = array_intersect(array_keys($product->getDirty()), self::TRACKED);
 
             if ($changed !== []) {
@@ -267,6 +272,81 @@ class ProductService
 
             return $product;
         });
+    }
+
+    /**
+     * Ürüne yeni seçenek ekler (ör. aynı defterin kırmızısı). Yeni seçenek kendi kodu, stoğu ve fiyatı olan
+     * ayrı üründür; kaynakla arka planda variant_group_id ile bağlanır (grup kaydı otomatik açılır, toptancı görmez).
+     * Kaynağın henüz değeri yoksa $sourceValue ile verilir (ör. mevcut ürün "Mavi").
+     *
+     * @throws ValidationException
+     */
+    public function createOption(Product $source, array $data, ?string $sourceValue = null): Product
+    {
+        $name = trim((string) ($data['option_name'] ?? '')) ?: null;
+        $value = trim((string) ($data['option_value'] ?? ''));
+        $sourceValue = trim((string) $sourceValue);
+        $errors = [];
+        if ($name === null) {
+            $errors['option_name'] = 'Seçenek adını yazın (ör. Renk).';
+        }
+        if ($value === '') {
+            $errors['option_value'] = 'Yeni seçeneğin değerini yazın (ör. Kırmızı).';
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return DB::transaction(function () use ($source, $data, $name, $value, $sourceValue) {
+            $source = Product::lockForUpdate()->findOrFail($source->id);
+            abort_if($source->isArchived(), 409, 'Arşivlenmiş ürüne seçenek eklenemez.');
+
+            if (blank($source->option_value)) {
+                if ($sourceValue === '' || mb_strlen($sourceValue) > 60) {
+                    throw ValidationException::withMessages(['source_option_value' => "“{$source->name}” ürününün kendi değerini yazın (ör. Mavi; en fazla 60 karakter)."]);
+                }
+                $source->option_value = $sourceValue;
+            }
+            if (! $source->variant_group_id) {
+                $source->variant_group_id = VariantGroup::create(['name' => mb_substr($source->name, 0, 160), 'attribute_names' => [$name]])->id;
+            }
+            $source->option_name = $name;
+            $source->save();
+
+            $this->assertOptionValueFree($source->variant_group_id, $value, null);
+            Product::where('variant_group_id', $source->variant_group_id)->update(['option_name' => $name]);
+
+            $product = $this->create(['option_name' => $name, 'option_value' => $value] + $data);
+            $product->forceFill(['variant_group_id' => $source->variant_group_id])->save();
+            $this->audit->log('product.option_added', $product, [], ['source_product_id' => $source->id, 'option_value' => $value]);
+
+            return $product;
+        });
+    }
+
+    /** Ürünü seçeneklerinden ayırır; tek kalan seçenek de bağımsız olur. */
+    public function detachOption(Product $product): void
+    {
+        DB::transaction(function () use ($product) {
+            $groupId = $product->variant_group_id;
+            if (! $groupId) {
+                return;
+            }
+            $product->forceFill(['variant_group_id' => null])->save();
+            if (Product::where('variant_group_id', $groupId)->count() === 1) {
+                Product::where('variant_group_id', $groupId)->update(['variant_group_id' => null]);
+            }
+            $this->audit->log('product.option_detached', $product, ['variant_group_id' => $groupId], []);
+        });
+    }
+
+    private function assertOptionValueFree(int $groupId, string $value, ?int $exceptId): void
+    {
+        $taken = Product::where('variant_group_id', $groupId)->where('option_value', $value)
+            ->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))->exists();
+        if ($taken) {
+            throw ValidationException::withMessages(['option_value' => "“{$value}” bu ürünün başka bir seçeneğinde zaten var."]);
+        }
     }
 
     /** Ürünü kopyalar: yeni SKU zorunlu, barkod ve görseller kopyalanmaz, stok sıfırdan başlar. */

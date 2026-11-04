@@ -113,7 +113,7 @@ class PagesRenderTest extends TestCase
         $this->actingAs($business->user, 'business');
 
         $pages = ['/toptanci/urunler', '/toptanci/urunler/yeni', '/toptanci/urunler/toplu-fiyat', '/toptanci/urunler/ice-aktar',
-            '/toptanci/kategori-ve-markalar', '/toptanci/kategori-ve-markalar?tab=brands', '/toptanci/kategori-ve-markalar?tab=variants',
+            '/toptanci/kategoriler', '/toptanci/markalar',
             '/toptanci/kdv-oranlari', '/toptanci/stok', '/toptanci/stok/hareket', '/toptanci/stok/transfer',
             '/toptanci/stok-hareketleri', '/toptanci/depolar', '/toptanci/stok-sayimlari'];
 
@@ -129,10 +129,11 @@ class PagesRenderTest extends TestCase
             Brand::create(['name' => 'Marka']);
             $group = VariantGroup::create(['name' => 'Jel Kalem', 'attribute_names' => ['Renk']]);
             $product = Product::create([
-                'sku' => 'P1', 'name' => 'Jel Kalem Mavi', 'category_id' => $category->id, 'variant_group_id' => $group->id, 'variant_values' => ['Renk' => 'Mavi'],
+                'sku' => 'P1', 'name' => 'Jel Kalem Mavi', 'category_id' => $category->id, 'option_name' => 'Renk', 'option_value' => 'Mavi',
                 'unit_id' => Unit::where('code', 'ADET')->value('id'), 'tax_rate_id' => TaxRate::where('rate', '20.00')->value('id'),
                 'list_price' => '5', 'critical_stock_level' => '10',
             ]);
+            $product->forceFill(['variant_group_id' => $group->id])->save();
             $warehouse = Warehouse::find($business->settings()->value('default_warehouse_id'));
             app(StockService::class)->adjust($product->load('unit'), $warehouse, 'increase', '4');
             $count = StockCount::create(['warehouse_id' => $warehouse->id]);

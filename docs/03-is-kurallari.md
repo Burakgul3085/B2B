@@ -73,6 +73,19 @@ Fiyat, stok ve sipariş miktarı her zaman **adet** cinsindendir; koli yalnızca
 - Excel içe aktarmada birim sütunu yok. "Koli İçi Adet / En Az Sipariş / Artış" sütunlarından şekil çıkarılır: koli içi = artış > 1 → koli halinde; artış > 1 → özel kural; diğer → tek tek. Üçü de boşsa yeni ürün tek tek satılır, mevcut ürünün şekli değişmez. Eski şablon başlıkları da okunur.
 - Geçişte mevcut ürünlerin şekli kurallarından aynı yöntemle çıkarıldı.
 
+### 2.2 Ürün seçenekleri (2026-11-05)
+
+Varyant grupları sayfası kaldırıldı. Renk, boyut gibi seçenekler ürünün kendisinden yönetilir (mağaza yönetimindeki gibi):
+
+- Ürün formunda **Seçenek adı** (ör. Renk) ve **değeri** (ör. Kırmızı) vardır; tek seçenekli üründe ikisi de boş kalır (`products.option_name`, `option_value`).
+- Ürün sayfasındaki **Seçenekler** kartından "Yeni seçenek ekle" denir: form kaynak ürünün bilgileriyle (ad, kategori, marka, açıklama, fiyatlar, KDV, satış şekli) dolu gelir; ürün kodu, barkod ve değer girilir. Kaynağın henüz değeri yoksa bir kez sorulur (`ProductService::createOption`).
+- Her seçenek kendi kodu, stoğu ve fiyatı olan **ayrı üründür** (sipariş, stok, iade ve raporlar ürün bazında). Seçenekler arka planda `variant_group_id` ile bağlanır; grup kaydını sistem açar, toptancı görmez.
+- Seçenek adı aynı ürünün tüm seçeneklerinde ortaktır (birinde değişince hepsinde değişir). Seçenekli üründe değer zorunludur; aynı değer iki seçenekte olamaz.
+- "Seçenekten ayır" ürünü bağımsız yapar (kodu, stoğu, geçmişi değişmez); tek kalan seçenek de bağımsız olur.
+- Bayi ürün sayfasında seçenek adıyla (ör. "Renk") diğer seçeneklere geçer; sipariş satırında ad "Defter (Kırmızı)" olarak yazılır.
+- Geçişte eski grup özellikleri ve değerleri yeni alanlara taşındı (birden çok özellik " / " ile birleşti). `variant_values` sütunu ve `variant_groups` tablosu veri kaybı olmasın diye duruyor.
+- Kategoriler ve Markalar ayrı sayfalardır (`/toptanci/kategoriler`, `/toptanci/markalar`); eski "Kategori ve Markalar" adresi yönlendirilir.
+
 ## 3. Sipariş
 
 ### 3.1 Durumlar

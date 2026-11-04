@@ -119,14 +119,38 @@
                 @endunless
             </x-card>
 
-            @if ($product->variantGroup)
-                <x-card title="Varyantlar" :description="$product->variantGroup->name">
-                    <p class="text-sm"><b>Bu ürün:</b> {{ $product->variantLabel() ?? '—' }}</p>
-                    @foreach ($siblings as $sibling)
-                        <a href="{{ route('business.products.show', $sibling) }}" class="mt-2 block text-sm text-primary hover:underline">{{ $sibling->variantLabel() ?? $sibling->name }} <span class="text-muted">· {{ $sibling->sku }}</span></a>
-                    @endforeach
+            @unless ($product->isArchived())
+                <x-card title="Seçenekler" :description="$options->isNotEmpty() ? ($product->option_name ?: 'Seçenek').' seçenekleri' : 'Bu ürünün farklı renk, boyut gibi seçeneklerini buradan ekleyin.'" :padding="false">
+                    @if ($options->isNotEmpty())
+                        <ul class="divide-y divide-line text-sm">
+                            @foreach ($options as $option)
+                                <li class="flex items-center gap-3 px-5 py-2.5 {{ $option->id === $product->id ? 'bg-primary/5' : '' }}">
+                                    <div class="min-w-0 flex-1">
+                                        @if ($option->id === $product->id)
+                                            <span class="font-medium">{{ $option->option_value ?? '—' }}</span> <span class="text-xs text-muted">(bu ürün)</span>
+                                        @else
+                                            <a href="{{ route('business.products.show', $option) }}" class="font-medium text-primary hover:underline">{{ $option->option_value ?? $option->name }}</a>
+                                        @endif
+                                        <p class="font-mono text-xs text-muted">{{ $option->sku }}@unless ($option->is_active)<span class="font-sans"> · pasif</span>@endunless</p>
+                                    </div>
+                                    <div class="text-right text-xs text-muted tabular-nums">
+                                        <p>{{ Money::formatUnit($option->dealer_price ?? $option->list_price) }}</p>
+                                        <p>Stok {{ Quantity::format($option->stocks_sum_quantity ?? 0) }}</p>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    <div class="flex flex-wrap items-center gap-3 border-t border-line p-4 first:border-t-0">
+                        <x-button size="sm" icon="plus" :href="route('business.products.create', ['secenek' => $product->id])">Yeni seçenek ekle</x-button>
+                        @if ($options->isNotEmpty())
+                            <form method="POST" action="{{ route('business.products.option.detach', $product) }}" data-confirm="Bu ürün seçeneklerden ayrılsın mı? Kodu, stoğu ve geçmişi değişmez.">@csrf
+                                <button class="text-sm text-muted hover:text-danger hover:underline">Seçenekten ayır</button>
+                            </form>
+                        @endif
+                    </div>
                 </x-card>
-            @endif
+            @endunless
 
             <x-card title="Vitrinler" description="Ürünün bayi ana sayfasında yer alacağı vitrinler.">
                 @if ($manualShowcases->isEmpty())

@@ -43,7 +43,8 @@
             ]))],
             ['label' => 'Katalog', 'items' => [
                 ['label' => 'Ürünler', 'route' => 'business.products.index', 'icon' => 'package', 'active' => 'business.products.*'],
-                ['label' => 'Kategori ve Markalar', 'route' => 'business.catalog.structure', 'icon' => 'list', 'active' => 'business.catalog.structure'],
+                ['label' => 'Kategoriler', 'route' => 'business.categories.index', 'icon' => 'list', 'active' => 'business.categories.*'],
+                ['label' => 'Markalar', 'route' => 'business.brands.index', 'icon' => 'layers', 'active' => 'business.brands.*'],
                 ['label' => 'Kupon ve Kampanyalar', 'route' => 'business.promotions.index', 'icon' => 'gift', 'active' => 'business.promotions.*'],
                 ['label' => 'Vitrin', 'route' => 'business.storefront.index', 'icon' => 'image', 'active' => 'business.storefront.*'],
             ]],

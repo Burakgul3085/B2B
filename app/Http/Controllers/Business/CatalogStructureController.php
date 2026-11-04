@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\VariantGroup;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,22 +17,30 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** Kategori, marka ve varyant grupları — tek sayfada, sekmeli. */
+/** Kategoriler ve markalar — ayrı sayfalar (mağaza yönetimindeki gibi). Varyant grupları kaldırıldı; seçenekler ürün sayfasından eklenir. */
 class CatalogStructureController extends Controller
 {
     public function __construct(private AuditLogger $audit, private TenantContext $tenant) {}
 
-    public function index(Request $request): View
+    public function categories(): View
     {
-        $tab = in_array($request->query('tab'), ['brands', 'variants'], true) ? $request->query('tab') : 'categories';
-
-        return view('business.catalog.structure', [
-            'tab' => $tab,
+        return view('business.catalog.categories', [
             'categories' => Category::whereNull('parent_id')->with('children')->orderBy('sort')->orderBy('name')->get(),
             'productCounts' => Product::notArchived()->selectRaw('category_id, count(*) c')->groupBy('category_id')->pluck('c', 'category_id'),
-            'brands' => Brand::withCount(['products' => fn ($q) => $q->whereNull('archived_at')])->orderBy('name')->get(),
-            'variantGroups' => VariantGroup::withCount('products')->orderBy('name')->get(),
         ]);
+    }
+
+    public function brands(): View
+    {
+        return view('business.catalog.brands', [
+            'brands' => Brand::withCount(['products' => fn ($q) => $q->whereNull('archived_at')])->orderBy('name')->get(),
+        ]);
+    }
+
+    /** Eski "Kategori ve Markalar" adresi: sekmesine göre yeni sayfaya. */
+    public function legacy(Request $request): RedirectResponse
+    {
+        return redirect()->route($request->query('tab') === 'brands' ? 'business.brands.index' : 'business.categories.index', status: 301);
     }
 
     public function storeCategory(Request $request): RedirectResponse
@@ -79,7 +86,7 @@ class CatalogStructureController extends Controller
         $brand = Brand::create($data);
         $this->audit->log('catalog.brand_created', $brand, [], $data);
 
-        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', 'Marka eklendi.');
+        return redirect()->route('business.brands.index')->with('status', 'Marka eklendi.');
     }
 
     public function updateBrand(Request $request, Brand $brand): RedirectResponse
@@ -87,7 +94,7 @@ class CatalogStructureController extends Controller
         $data = $this->validateBrand($request, $brand);
         $brand->update($data);
 
-        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', 'Marka güncellendi.');
+        return redirect()->route('business.brands.index')->with('status', 'Marka güncellendi.');
     }
 
     /** Marka logosu: bayi Markalar sayfasında görünür. */
@@ -101,14 +108,14 @@ class CatalogStructureController extends Controller
             return back()->withErrors(['logo' => $e->getMessage()]);
         }
 
-        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', "\"{$brand->name}\" logosu güncellendi.");
+        return redirect()->route('business.brands.index')->with('status', "\"{$brand->name}\" logosu güncellendi.");
     }
 
     public function destroyBrandLogo(Brand $brand, BrandLogo $logos): RedirectResponse
     {
         $logos->remove($brand);
 
-        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', "\"{$brand->name}\" logosu kaldırıldı.");
+        return redirect()->route('business.brands.index')->with('status', "\"{$brand->name}\" logosu kaldırıldı.");
     }
 
     public function brandLogo(Brand $brand): StreamedResponse
@@ -128,22 +135,7 @@ class CatalogStructureController extends Controller
         }
         $brand->delete();
 
-        return redirect()->route('business.catalog.structure', ['tab' => 'brands'])->with('status', 'Marka silindi.');
-    }
-
-    public function storeVariantGroup(Request $request): RedirectResponse
-    {
-        $data = $this->validateVariantGroup($request);
-        VariantGroup::create($data);
-
-        return redirect()->route('business.catalog.structure', ['tab' => 'variants'])->with('status', 'Varyant grubu eklendi.');
-    }
-
-    public function updateVariantGroup(Request $request, VariantGroup $variantGroup): RedirectResponse
-    {
-        $variantGroup->update($this->validateVariantGroup($request));
-
-        return redirect()->route('business.catalog.structure', ['tab' => 'variants'])->with('status', 'Varyant grubu güncellendi.');
+        return redirect()->route('business.brands.index')->with('status', 'Marka silindi.');
     }
 
     private function validateCategory(Request $request, ?Category $category = null): array
@@ -178,18 +170,5 @@ class CatalogStructureController extends Controller
             'name' => ['required', 'string', 'max:120', Rule::unique('brands', 'name')->where('business_id', $this->tenant->businessId())->ignore($brand?->id)],
             'is_active' => ['boolean'],
         ], [], ['name' => 'marka adı']);
-    }
-
-    private function validateVariantGroup(Request $request): array
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:160'],
-            'attributes' => ['required', 'string', 'max:200'],
-        ], [], ['name' => 'grup adı', 'attributes' => 'özellikler']);
-
-        $attributes = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['attributes'])))));
-        abort_if($attributes === [] || count($attributes) > 3, back()->withErrors(['attributes' => 'Bir ile üç arasında özellik girin (ör. Renk, Boyut).'])->withInput());
-
-        return ['name' => $data['name'], 'attribute_names' => $attributes];
     }
 }

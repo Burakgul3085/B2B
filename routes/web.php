@@ -289,10 +289,13 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('urunler/{product}/gorseller', [Business\ProductImageController::class, 'store'])->name('products.images.store');
         Route::put('urunler/{product}/gorseller/{image}/ana', [Business\ProductImageController::class, 'primary'])->name('products.images.primary');
         Route::delete('urunler/{product}/gorseller/{image}', [Business\ProductImageController::class, 'destroy'])->name('products.images.destroy');
+        Route::post('urunler/{product}/secenekten-ayir', [Business\ProductController::class, 'detachOption'])->name('products.option.detach');
         Route::get('gorsel/{image}', [Business\ProductImageController::class, 'show'])->name('images.show');
 
-        // Katalog: kategori, marka, varyant grupları
-        Route::get('kategori-ve-markalar', [Business\CatalogStructureController::class, 'index'])->name('catalog.structure');
+        // Katalog: kategoriler ve markalar (ayrı sayfalar; varyant grupları kaldırıldı)
+        Route::get('kategori-ve-markalar', [Business\CatalogStructureController::class, 'legacy']);
+        Route::get('kategoriler', [Business\CatalogStructureController::class, 'categories'])->name('categories.index');
+        Route::get('markalar', [Business\CatalogStructureController::class, 'brands'])->name('brands.index');
         Route::post('kategoriler', [Business\CatalogStructureController::class, 'storeCategory'])->name('categories.store');
         Route::put('kategoriler/{category}', [Business\CatalogStructureController::class, 'updateCategory'])->name('categories.update');
         Route::delete('kategoriler/{category}', [Business\CatalogStructureController::class, 'destroyCategory'])->name('categories.destroy');
@@ -302,8 +305,6 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'updateBrandLogo'])->name('brands.logo.update');
         Route::delete('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'destroyBrandLogo'])->name('brands.logo.destroy');
         Route::get('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'brandLogo'])->name('brands.logo');
-        Route::post('varyant-gruplari', [Business\CatalogStructureController::class, 'storeVariantGroup'])->name('variant-groups.store');
-        Route::put('varyant-gruplari/{variantGroup}', [Business\CatalogStructureController::class, 'updateVariantGroup'])->name('variant-groups.update');
 
         // Ayarlar: KDV oranları (birim yönetimi kaldırıldı; satış şekli ürün formunda)
         Route::get('kdv-oranlari', [Business\CatalogSettingsController::class, 'index'])->name('catalog.settings');

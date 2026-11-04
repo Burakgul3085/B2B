@@ -76,7 +76,7 @@ class BrandDirectoryTest extends TestCase
         $this->actingAs($business->user, 'business')->post(route('business.brands.logo.update', $brand), ['logo' => $png])->assertSessionHasNoErrors();
         $path = $brand->fresh()->logo_path;
         Storage::disk('local')->assertExists($path);
-        $this->get(route('business.catalog.structure', ['tab' => 'brands']))->assertOk()->assertSee(route('business.brands.logo', $brand), false);
+        $this->get(route('business.brands.index'))->assertOk()->assertSee(route('business.brands.logo', $brand), false);
 
         $this->flushSession();
         $this->actingAs($rel->dealer->user, 'dealer');

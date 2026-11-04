@@ -172,7 +172,7 @@ class CatalogController extends Controller
             'settings' => $settings,
             'history' => $history,
             'siblings' => $product->variant_group_id
-                ? CartService::orderableProducts()->where('variant_group_id', $product->variant_group_id)->whereKeyNot($product->id)->get(['id', 'name', 'variant_values'])
+                ? CartService::orderableProducts()->where('variant_group_id', $product->variant_group_id)->whereKeyNot($product->id)->orderBy('option_value')->get(['id', 'name', 'option_value'])
                 : collect(),
             'openRequest' => ProductRequest::where('dealer_relationship_id', $relationship->id)->where('product_id', $product->id)->whereIn('status', ProductRequest::OPEN)->first(),
         ]);

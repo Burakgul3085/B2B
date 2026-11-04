@@ -12,7 +12,6 @@ use App\Models\Product;
 use App\Models\Showcase;
 use App\Models\ShowcaseProduct;
 use App\Models\TaxRate;
-use App\Models\VariantGroup;
 use App\Models\Warehouse;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,8 +47,16 @@ class ProductController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        // "Yeni seçenek ekle": form kaynak ürünün bilgileriyle dolu gelir; kod, barkod ve değer boş kalır.
+        if ($request->filled('secenek')) {
+            $source = Product::notArchived()->findOrFail((int) $request->query('secenek'));
+            $draft = new Product(['is_active' => true] + array_diff_key($source->only(Product::EDITABLE), array_flip(['sku', 'barcode', 'option_value', 'is_active'])));
+
+            return view('business.products.form', ['optionOf' => $source] + $this->formData($draft));
+        }
+
         return view('business.products.form', $this->formData(new Product([
             'is_active' => true, 'visible_to_dealers' => true, 'pack_quantity' => 1, 'min_order_qty' => 1,
             'order_step' => 1, 'critical_stock_level' => 0, 'sale_mode' => 'single',
@@ -59,8 +66,13 @@ class ProductController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $source = $request->filled('option_of') ? Product::notArchived()->findOrFail((int) $request->input('option_of')) : null;
+
         try {
-            $product = $this->products->create($this->products->validate($this->input($request)));
+            $data = $this->products->validate($this->input($request));
+            $product = $source
+                ? $this->products->createOption($source, $data, $request->string('source_option_value')->toString())
+                : $this->products->create($data);
         } catch (DomainException $e) {
             return back()->withErrors(['name' => $e->getMessage()])->withInput();
         }
@@ -87,8 +99,8 @@ class ProductController extends Controller
             'history' => $history,
             'manualShowcases' => Showcase::where('type', 'manual')->orderBy('sort')->get(['id', 'name', 'is_active']),
             'productShowcaseIds' => ShowcaseProduct::where('product_id', $product->id)->pluck('showcase_id')->map(fn ($id) => (int) $id)->all(),
-            'siblings' => $product->variant_group_id
-                ? Product::where('variant_group_id', $product->variant_group_id)->whereKeyNot($product->id)->notArchived()->get(['id', 'name', 'sku', 'variant_values'])
+            'options' => $product->variant_group_id
+                ? Product::optionsOf($product)->notArchived()->withSum('stocks', 'quantity')->orderBy('option_value')->get(['id', 'name', 'sku', 'option_value', 'is_active', 'dealer_price', 'list_price'])
                 : collect(),
         ]);
     }
@@ -105,6 +117,14 @@ class ProductController extends Controller
         $this->products->update($product, $this->products->validate($this->input($request), $product));
 
         return redirect()->route('business.products.show', $product)->with('status', 'Ürün güncellendi.');
+    }
+
+    /** Ürünü seçeneklerinden ayırır (bağımsız ürün olur; kodu, stoğu ve geçmişi değişmez). */
+    public function detachOption(Product $product): RedirectResponse
+    {
+        $this->products->detachOption($product);
+
+        return redirect()->route('business.products.show', $product)->with('status', 'Ürün seçeneklerden ayrıldı; artık bağımsız bir ürün.');
     }
 
     public function duplicate(Request $request, Product $product): RedirectResponse
@@ -263,7 +283,7 @@ class ProductController extends Controller
             'categories' => $this->categoryOptions(),
             'brands' => Brand::where('is_active', true)->orWhere('id', $product->brand_id)->orderBy('name')->pluck('name', 'id'),
             'taxRates' => TaxRate::where('is_active', true)->orWhere('id', $product->tax_rate_id)->orderBy('rate')->pluck('name', 'id'),
-            'variantGroups' => VariantGroup::orderBy('name')->get(),
+            'optionOf' => null,
         ];
     }
 
