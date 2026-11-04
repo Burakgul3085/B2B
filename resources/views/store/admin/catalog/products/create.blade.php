@@ -1,15 +1,15 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Yeni ürün">
-    <x-page-header title="Yeni ürün" subtitle="Ürünü ilk seçeneğiyle oluşturun; görselleri ve diğer seçenekleri (renk, boyut) sonraki sayfada eklersiniz.">
+    <x-page-header title="Yeni ürün" subtitle="Ürünün bilgilerini, görsellerini, stoğunu ve renk, boyut gibi seçeneklerini bu sayfada tek seferde girin.">
         <x-slot:breadcrumb><a href="{{ route('store_admin.products.index') }}" class="hover:underline">Ürünler</a></x-slot:breadcrumb>
     </x-page-header>
 
-    <form method="POST" action="{{ route('store_admin.products.store') }}" class="space-y-6" x-data="{ option: @alpine(old('variant_name', '')) }">
+    <form method="POST" action="{{ route('store_admin.products.store') }}" class="space-y-6" enctype="multipart/form-data" x-data="{ option: @alpine(old('variant_name', '')) }">
         @csrf
         <x-card title="Ürün bilgileri">
             @include('store.admin.catalog.products._fields', ['product' => $product])
         </x-card>
 
-        <x-card title="Fiyat ve stok kodu" description="Fiyatlar KDV dahildir. Stok miktarı Stok bölümünden girilecek.">
+        <x-card title="Fiyat ve stok kodu" description="Fiyatlar KDV dahildir.">
             {{-- Seçenek adı yazılırsa ilk seçeneğin değeri de istenir --}}
             <div x-show="option.trim() !== ''" x-cloak class="mb-4 max-w-xs">
                 <label for="variant_option" class="mb-1.5 block text-sm font-medium text-ink">İlk seçeneğin değeri<span class="text-danger"> *</span></label>
@@ -17,7 +17,13 @@
                 @error('variant.option_value')<p class="mt-1.5 text-sm text-danger">{{ $message }}</p>@enderror
             </div>
             @include('store.admin.catalog.products._variant-fields', ['prefix' => 'variant', 'bag' => 'default', 'variant' => null, 'optionLabel' => null, 'useOld' => true])
+            <div class="mt-4 max-w-xs">
+                <x-field name="stock" label="Başlangıç stoğu (adet)" type="number" step="1" min="0" placeholder="0" hint="Boşsa stok 0 başlar; sonra Stok bölümünden girebilirsiniz." />
+            </div>
+            @include('store.admin.catalog.products._option-rows')
         </x-card>
+
+        @include('store.admin.catalog.products._image-picker')
 
         <div class="flex gap-3">
             <x-button icon="plus">Ürünü oluştur</x-button>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Catalog\CategoryService;
+use App\Domain\Store\Catalog\CreateStoreProduct;
 use App\Domain\Store\Catalog\ProductService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Http\Controllers\Controller;
@@ -60,13 +61,28 @@ class ProductController extends Controller
         return view('store.admin.catalog.products.create', $this->formData(new StoreProduct));
     }
 
-    public function store(Request $request): RedirectResponse
+    /** Ürün tek ekranda oluşturulur: bilgiler, ilk seçenek, görseller, başlangıç stoğu ve diğer seçenekler. */
+    public function store(Request $request, CreateStoreProduct $create): RedirectResponse
     {
+        $extras = $request->validate([
+            'images' => ['nullable', 'array', 'max:'.ProductService::MAX_IMAGES],
+            'images.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+            'stock' => ['nullable', 'integer', 'min:0', 'max:'.StoreStockService::MAX_QUANTITY],
+            'options' => ['nullable', 'array', 'max:'.CreateStoreProduct::MAX_OPTIONS],
+            'options.*' => ['array'],
+            'options.*.stock' => ['nullable', 'integer', 'min:0', 'max:'.StoreStockService::MAX_QUANTITY],
+        ], [], ['images' => 'görseller', 'images.*' => 'görsel', 'stock' => 'başlangıç stoğu', 'options.*.stock' => 'stok']);
+
         try {
-            $product = $this->products->create(
+            $product = $create->handle(
                 $request->only(['name', 'slug', 'category_id', 'brand_id', 'variant_name', 'description', 'seo_title', 'seo_description', 'is_published', 'is_featured']),
                 (array) $request->input('variant', []),
+                $request->file('images', []),
+                isset($extras['stock']) ? (int) $extras['stock'] : null,
+                (array) $request->input('options', []),
             );
+        } catch (DomainException $e) {
+            return back()->withErrors(['name' => $e->getMessage()])->withInput();
         } catch (ValidationException $e) {
             // Varyant alanları formda variant[...] adındadır.
             $variantKeys = ['sku', 'barcode', 'option_value', 'price', 'compare_at_price', 'vat_rate', 'desi', 'weight_grams', 'critical_stock'];
@@ -75,8 +91,10 @@ class ProductController extends Controller
             return back()->withErrors($errors->all())->withInput();
         }
 
+        $count = $product->variants()->count();
+
         return redirect()->route('store_admin.products.edit', $product)
-            ->with('status', 'Ürün oluşturuldu. Görsellerini ve varsa diğer seçeneklerini bu sayfadan ekleyin.');
+            ->with('status', $count > 1 ? "Ürün {$count} seçeneğiyle oluşturuldu." : 'Ürün oluşturuldu.');
     }
 
     public function edit(StoreProduct $storeProduct): View

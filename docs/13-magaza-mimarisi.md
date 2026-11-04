@@ -107,6 +107,7 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 ### 8.2 Stok
 - Satılabilir stok = stok hareketleri toplamı − etkin ayırmalar.
 - Hareketler yalnızca eklenir; düzeltme ters kayıtla yapılır (B2B ile aynı ilke).
+- **Ürünü tek ekranda oluşturma** (`App\Domain\Store\Catalog\CreateStoreProduct`): "Yeni ürün" formunda ilk seçenek, görseller (en fazla 10), başlangıç stoğu (`receipt` hareketi) ve diğer seçenekler (değer, stok kodu, barkod, isteğe bağlı fiyat, stok; KDV, desi, ağırlık ve kritik stok ilk seçenekten) birlikte girilir. Tek transaction: hata olursa hiçbiri yazılmaz, yüklenen görseller silinir. Fiyat sunucuda doğrulanır.
 - **Ayırma (rezervasyon) yalnızca mağazada vardır.** Kartla ödemede, ödeme adımına geçilince stok 20 dakika ayrılır (`CheckoutService::HOLD_MINUTES`). Ödeme başarılı olursa ayırma satış hareketine dönüşür. Süre dolarsa veya ödeme başarısız olursa ayırma düşer.
 - Ayırma ve satış, ilgili varyant satırı kilitlenerek yapılır (`SELECT … FOR UPDATE`). Aynı son ürünü iki müşteri alamaz. Eşzamanlılık test paketine mağaza senaryoları eklenir.
 

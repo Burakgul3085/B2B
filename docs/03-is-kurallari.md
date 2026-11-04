@@ -86,6 +86,18 @@ Varyant grupları sayfası kaldırıldı. Renk, boyut gibi seçenekler ürünün
 - Geçişte eski grup özellikleri ve değerleri yeni alanlara taşındı (birden çok özellik " / " ile birleşti). `variant_values` sütunu ve `variant_groups` tablosu veri kaybı olmasın diye duruyor.
 - Kategoriler ve Markalar ayrı sayfalardır (`/toptanci/kategoriler`, `/toptanci/markalar`); eski "Kategori ve Markalar" adresi yönlendirilir.
 
+### 2.3 Ürünü tek ekranda oluşturma (2026-11-05)
+
+"Yeni ürün" formunda her şey tek seferde girilir (`App\Domain\Catalog\CreateProduct`):
+
+- Bilgiler, fiyat, satış şekli ve seçenek adı/değeri (önceki gibi).
+- **Görseller:** en fazla 8, her biri 5 MB (JPG, PNG, WEBP); seçilenler önizlenir, ilk görsel ana görseldir ("Ana yap" ile değişir). Sunucuda yeniden işlenir.
+- **Başlangıç stoğu:** varsayılan sevk deposuna (birden çok aktif depo varsa seçilen depoya) `opening` hareketi olarak yazılır (S3 değişmez).
+- **Vitrinler:** elle seçilen vitrinlere eklenir (isteğe bağlı).
+- **Diğer seçenekler:** seçenek adı yazılınca satır satır girilir (değer, ürün kodu, barkod, isteğe bağlı bayi fiyatı, stok, görsel; en fazla 30). Her satır kendi kodu ve stoğu olan ayrı ürün olur ve §2.2'deki gibi bağlanır; diğer bilgiler ana üründen alınır. Formda tekrar eden kod, barkod veya değer reddedilir.
+- Hepsi **tek transaction**'dadır: bir adım hata verirse ürün, seçenekler, stok ve vitrin kaydı yazılmaz; diske yazılan görseller silinir. Hata dönüşünde tarayıcı seçilen dosyaları korumaz; kullanıcıya yeniden seçmesi söylenir.
+- "Yeni seçenek ekle" ekranı da görsel ve başlangıç stoğu alır. Düzenleme ekranı yalnızca bilgileri değiştirir; görsel, stok ve seçenekler ürün sayfasından yönetilmeye devam eder.
+
 ## 3. Sipariş
 
 ### 3.1 Durumlar

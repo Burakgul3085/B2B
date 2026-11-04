@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Domain\Catalog\CreateProduct;
 use App\Domain\Catalog\ProductService;
 use App\Domain\Inventory\Quantity;
 use App\Http\Controllers\Controller;
@@ -64,20 +65,43 @@ class ProductController extends Controller
         ])));
     }
 
-    public function store(Request $request): RedirectResponse
+    /** Ürün tek ekranda oluşturulur: bilgiler, görseller, başlangıç stoğu, vitrinler ve diğer seçenekler (docs/03 §2.3). */
+    public function store(Request $request, CreateProduct $create): RedirectResponse
     {
         $source = $request->filled('option_of') ? Product::notArchived()->findOrFail((int) $request->input('option_of')) : null;
+        $image = ['file', 'max:5120', 'mimes:jpg,jpeg,png,webp'];
+        $extras = $request->validate([
+            'images' => ['nullable', 'array', 'max:'.ProductService::MAX_IMAGES],
+            'images.*' => $image,
+            'opening_stock' => ['nullable', 'integer', 'min:0', 'max:99999999'],
+            'warehouse_id' => ['nullable', 'integer'],
+            'options' => ['nullable', 'array', 'max:'.CreateProduct::MAX_OPTIONS],
+            'options.*' => ['array'],
+            'options.*.stock' => ['nullable', 'integer', 'min:0', 'max:99999999'],
+            'options.*.image' => ['nullable', ...$image],
+            'showcases' => ['nullable', 'array'],
+            'showcases.*' => ['integer'],
+        ], [], ['images' => 'görseller', 'images.*' => 'görsel', 'opening_stock' => 'başlangıç stoğu', 'options.*.stock' => 'stok', 'options.*.image' => 'görsel']);
 
         try {
-            $data = $this->products->validate($this->input($request));
-            $product = $source
-                ? $this->products->createOption($source, $data, $request->string('source_option_value')->toString())
-                : $this->products->create($data);
+            $product = $create->handle(
+                $this->input($request),
+                $request->file('images', []),
+                isset($extras['opening_stock']) ? (string) $extras['opening_stock'] : null,
+                isset($extras['warehouse_id']) ? (int) $extras['warehouse_id'] : null,
+                $request->file('options', []) ? array_replace_recursive((array) $request->input('options', []), $request->file('options', [])) : (array) $request->input('options', []),
+                $extras['showcases'] ?? [],
+                $source,
+                $request->string('source_option_value')->toString(),
+            );
         } catch (DomainException $e) {
             return back()->withErrors(['name' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('business.products.show', $product)->with('status', 'Ürün oluşturuldu. Görsel ve stok girişini bu sayfadan yapabilirsiniz.');
+        $count = $product->variant_group_id ? Product::optionsOf($product)->count() : 1;
+
+        return redirect()->route('business.products.show', $product)
+            ->with('status', $count > 1 && ! $source ? "Ürün {$count} seçeneğiyle oluşturuldu." : 'Ürün oluşturuldu.');
     }
 
     public function show(Product $product): View
@@ -284,6 +308,9 @@ class ProductController extends Controller
             'brands' => Brand::where('is_active', true)->orWhere('id', $product->brand_id)->orderBy('name')->pluck('name', 'id'),
             'taxRates' => TaxRate::where('is_active', true)->orWhere('id', $product->tax_rate_id)->orderBy('rate')->pluck('name', 'id'),
             'optionOf' => null,
+            'warehouses' => $product->exists ? collect() : Warehouse::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'defaultWarehouseId' => request()->user()?->business?->settings?->default_warehouse_id,
+            'showcaseOptions' => $product->exists ? collect() : Showcase::where('type', 'manual')->orderBy('sort')->get(['id', 'name', 'is_active']),
         ];
     }
 

@@ -3,11 +3,11 @@
     $title = $editing ? 'Ürünü düzenle' : 'Yeni ürün';
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" :title="$title">
-    <x-page-header :title="$editing ? $product->name : 'Yeni ürün'" :subtitle="$editing ? 'Ürün bilgilerini düzenleyin.' : 'Zorunlu alanlar * ile işaretlidir. Görsel ve stoku kayıttan sonra ekleyebilirsiniz.'">
+    <x-page-header :title="$editing ? $product->name : 'Yeni ürün'" :subtitle="$editing ? 'Ürün bilgilerini düzenleyin.' : 'Zorunlu alanlar * ile işaretlidir. Görselleri, stoğu ve renk gibi diğer seçenekleri de bu sayfada girebilirsiniz.'">
         <x-slot:breadcrumb><a href="{{ route('business.products.index') }}" class="hover:underline">Ürünler</a></x-slot:breadcrumb>
     </x-page-header>
 
-    <form method="POST" action="{{ $editing ? route('business.products.update', $product) : route('business.products.store') }}" class="space-y-6">
+    <form method="POST" action="{{ $editing ? route('business.products.update', $product) : route('business.products.store') }}" class="space-y-6" @unless ($editing) enctype="multipart/form-data" @endunless>
         @csrf
         @if ($editing) @method('PUT') @endif
 
@@ -90,14 +90,23 @@
                 <input type="hidden" name="option_of" value="{{ $optionOf->id }}">
                 <p class="mb-4 rounded-lg bg-primary/5 px-3 py-2.5 text-sm">“<a href="{{ route('business.products.show', $optionOf) }}" class="font-medium text-primary hover:underline">{{ $optionOf->name }}</a>” ürününe yeni seçenek ekliyorsunuz. Bilgiler ondan kopyalandı; ürün kodu, barkod ve seçenek değerini girin.</p>
             @endif
+            <div class="space-y-5" x-data="{ optionName: @alpine((string) old('option_name', $product->option_name ?? '')) }">
             <div class="grid gap-5 sm:grid-cols-3">
-                <x-field name="option_name" label="Seçenek adı" :value="$product->option_name" maxlength="40" placeholder="Ör. Renk" :required="(bool) $optionOf" hint="Tek seçenekli üründe boş bırakın." />
+                <x-field name="option_name" label="Seçenek adı" :value="$product->option_name" maxlength="40" placeholder="Ör. Renk" :required="(bool) $optionOf" hint="Tek seçenekli üründe boş bırakın." x-model="optionName" />
                 <x-field name="option_value" :label="$optionOf ? 'Yeni seçeneğin değeri' : 'Bu ürünün değeri'" :value="$product->option_value" maxlength="60" placeholder="Ör. Kırmızı" :required="(bool) ($optionOf || $product->variant_group_id)" />
                 @if ($optionOf && blank($optionOf->option_value))
                     <x-field name="source_option_value" label="“{{ \Illuminate\Support\Str::limit($optionOf->name, 30) }}” ürününün değeri" maxlength="60" placeholder="Ör. Mavi" required hint="Mevcut ürünün seçeneği (bir kez sorulur)." />
                 @endif
             </div>
+            @if (! $editing && ! $optionOf)
+                @include('business.products._option-rows')
+            @endif
+            </div>
         </x-card>
+
+        @unless ($editing)
+            @include('business.products._create-extras')
+        @endunless
 
         <x-card title="Satış durumu">
             <div class="grid gap-4 sm:grid-cols-2">

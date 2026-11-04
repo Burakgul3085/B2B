@@ -1657,3 +1657,82 @@ export function pickList() {
         },
     };
 }
+
+/**
+ * Ürün oluşturma: seçilen görsellerin önizlemesi. Tür, boyut ve sayı tarayıcıda denetlenir (sunucu yine doğrular).
+ * İlk görsel ana görseldir; "Ana yap" dosyayı başa alır, "Kaldır" seçimden çıkarır.
+ */
+export function imagePicker(max, maxBytes) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+
+    return {
+        previews: [],
+        error: '',
+        pick() {
+            this.render();
+        },
+        render() {
+            this.previews.forEach((p) => URL.revokeObjectURL(p.url));
+            const files = Array.from(this.$refs.input.files);
+            this.previews = files.map((f, i) => ({ key: i + '-' + f.name + '-' + f.size, url: URL.createObjectURL(f), name: f.name, primary: i === 0 }));
+            if (files.length > max) {
+                this.error = 'En fazla ' + max + ' görsel seçebilirsiniz.';
+            } else if (files.some((f) => !allowed.includes(f.type))) {
+                this.error = 'Yalnızca JPG, PNG veya WEBP görsel seçin.';
+            } else if (files.some((f) => f.size > maxBytes)) {
+                this.error = 'Her görsel en fazla ' + Math.round(maxBytes / 1048576) + ' MB olabilir.';
+            } else {
+                this.error = '';
+            }
+        },
+        rebuild(order) {
+            const files = Array.from(this.$refs.input.files);
+            const dt = new DataTransfer();
+            order(files).forEach((f) => dt.items.add(f));
+            this.$refs.input.files = dt.files;
+            this.render();
+        },
+        remove(index) {
+            this.rebuild((files) => files.filter((f, i) => i !== index));
+        },
+        makePrimary(index) {
+            this.rebuild((files) => [files[index], ...files.filter((f, i) => i !== index)]);
+        },
+    };
+}
+
+/**
+ * Ürün oluşturma: diğer seçenekler (ör. renkler) satır satır girilir. Alan adları options[N][alan];
+ * sunucu hataları "options.N.alan" anahtarıyla gelir.
+ */
+export function optionRows(initial, errors, max) {
+    const blank = () => ({ option_value: '', sku: '', barcode: '', price: '', stock: '' });
+    let next = 0;
+    const withKey = (row) => ({ ...blank(), ...row, key: next++ });
+
+    return {
+        rows: (Array.isArray(initial) ? initial : Object.values(initial || {})).map(withKey),
+        errors: errors || {},
+        get canAdd() {
+            return this.rows.length < max;
+        },
+        get empty() {
+            return this.rows.length === 0;
+        },
+        add() {
+            if (this.canAdd) {
+                this.rows.push(withKey({}));
+            }
+        },
+        remove(index) {
+            this.rows.splice(index, 1);
+        },
+        field(index, name) {
+            return 'options[' + index + '][' + name + ']';
+        },
+        error(index, name) {
+            const messages = this.errors['options.' + index + '.' + name];
+            return messages ? messages[0] : '';
+        },
+    };
+}
