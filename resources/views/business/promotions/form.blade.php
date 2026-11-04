@@ -181,10 +181,10 @@
                 </div>
             @endif
         </x-card>
-        @if ($redemptions->isEmpty())
-            <form method="POST" action="{{ route('business.promotions.destroy', $promotion) }}" class="mt-4" data-confirm="Silinsin mi?">@csrf @method('DELETE')
-                <button class="text-sm text-danger hover:underline">Sil</button>
-            </form>
-        @endif
+        @php $usedIn = $promotion->redemptions()->whereNull('released_at')->count(); @endphp
+        <form method="POST" action="{{ route('business.promotions.destroy', $promotion) }}" class="mt-4"
+            data-confirm="“{{ $promotion->name }}” silinsin mi? Bayilerden ve sepetlerden hemen kalkar.{{ $usedIn ? ' '.$usedIn.' siparişte kullanıldı; bu siparişlerdeki indirim değişmez.' : '' }} Bu işlem geri alınamaz.">@csrf @method('DELETE')
+            <button class="text-sm text-danger hover:underline">Sil</button>
+        </form>
     @endif
 </x-layouts.panel>

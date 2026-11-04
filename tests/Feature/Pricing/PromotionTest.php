@@ -285,16 +285,54 @@ class PromotionTest extends TestCase
         $this->actingAs($this->makeBusiness()->user, 'business')->get(route('business.promotions.edit', $promo))->assertNotFound();
         $this->flushSession();
 
-        // Kullanılmış kuponun kodu değişmez, silinemez.
+        // Kullanılmış kuponun kodu değişmez (silinebilir: test_used_promotion_can_be_deleted_and_orders_keep_discount).
         $product = $this->makeProduct($business, ['dealer_price' => '10.00']);
         $this->stockUp($business, $product, '10');
         $this->order($business, $rel, [$product->id => '1'], 'BAHAR-25');
         $this->actingAs($business->user, 'business');
         $this->put(route('business.promotions.update', $promo), ['code' => 'YENI'] + $base)->assertSessionHasErrors('promotion');
-        $this->delete(route('business.promotions.destroy', $promo))->assertSessionHasErrors('promotion');
         $this->put(route('business.promotions.toggle', $promo));
         $this->assertFalse($this->inTenant($business, fn () => $promo->fresh()->is_active));
         $this->get(route('business.promotions.edit', $promo))->assertOk()->assertSee($rel->dealer->legal_name);
+    }
+
+    public function test_used_promotion_can_be_deleted_and_orders_keep_discount(): void
+    {
+        $business = $this->makeBusiness();
+        $rel = $this->orderingDealer($business);
+        $other = $this->orderingDealer($business);
+        $product = $this->makeProduct($business, ['dealer_price' => '10.00']);
+        $this->stockUp($business, $product, '20');
+        $promo = $this->promotion($business, ['code' => 'SIL10']);
+
+        $done = $this->approve($business, $this->order($business, $rel, [$product->id => '2'], 'SIL10'));
+        $pending = $this->order($business, $rel, [$product->id => '3'], 'SIL10');
+        $this->inTenant($business, function () use ($other, $product) {
+            app(CartService::class)->add($other, $product->id, '1');
+            app(CartService::class)->setPromotionCode($other, 'SIL10');
+        });
+        $before = [(string) $done->grand_total, (string) $pending->promotion_discount, (string) $pending->grand_total];
+
+        $this->actingAs($business->user, 'business');
+        $this->get(route('business.promotions.edit', $promo))->assertOk()->assertSee('2 siparişte kullanıldı', false);
+        $this->delete(route('business.promotions.destroy', $promo))
+            ->assertRedirect(route('business.promotions.index'))->assertSessionHasNoErrors();
+        $this->get(route('business.promotions.edit', $promo))->assertNotFound();
+
+        $this->inTenant($business, function () use ($promo, $other) {
+            $this->assertNull(Promotion::find($promo->id));
+            $this->assertSame(0, PromotionRedemption::count());
+            $this->assertNull(Cart::where('dealer_relationship_id', $other->id)->value('promotion_code'));
+        });
+
+        // Bekleyen sipariş onaylanınca söz verilen indirim siparişin kopyasından uygulanır; geçmiş sipariş değişmez.
+        $pending = $this->approve($business, $pending);
+        $this->assertSame($before, [(string) $done->fresh()->grand_total, (string) $pending->promotion_discount, (string) $pending->grand_total]);
+        $this->assertSame('SIL10', $pending->promotion_code);
+        $this->get(route('business.orders.show', $pending))->assertOk()->assertSee('SIL10');
+
+        $this->actingAs($other->dealer->user, 'dealer');
+        $this->get(route('dealer.cart'))->assertOk()->assertDontSee('SIL10');
     }
 
     public function test_order_pages_show_coupon_line(): void

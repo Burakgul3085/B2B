@@ -8,12 +8,14 @@ use App\Domain\Files\ImageVariants;
 use App\Domain\Support\Decimal;
 use App\Domain\Tenancy\TenantContext;
 use App\Jobs\GenerateImageVariants;
+use App\Models\Cart;
 use App\Models\Category;
 use App\Models\DealerGroup;
 use App\Models\DealerRelationship;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\PromotionImage;
+use App\Models\PromotionRedemption;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -229,14 +231,26 @@ class PromotionAdmin
     }
 
     /** Kullanılmış kupon silinmez (siparişlerde kaydı var); pasife alınır. */
+    /**
+     * Her zaman silinebilir (kullanılmış olsa da). Sipariş, uygulanan indirimin anlık kopyasını kendi satırında taşır
+     * (orders.promotion_*); bekleyen siparişin onayı da bu kopyadan hesaplanır. Kullanım kayıtları yalnızca kullanım
+     * sınırı içindir, kampanyayla birlikte silinir. Sipariş gönderimi kampanya satırını kilitlediği için önce o kilitlenir.
+     */
     public function delete(Promotion $promotion): void
     {
-        if ($promotion->redemptions()->exists()) {
-            throw new DomainException('Bu kupon / kampanya siparişlerde kullanıldığı için silinemez; pasife alabilirsiniz.');
-        }
-        $this->audit->log('pricing.promotion_deleted', $promotion, ['name' => $promotion->name, 'code' => $promotion->code]);
         $paths = $promotion->images()->pluck('path')->all();
-        $promotion->delete(); // görsel kayıtları veritabanında birlikte silinir
+
+        DB::transaction(function () use ($promotion) {
+            $promotion = Promotion::whereKey($promotion->id)->lockForUpdate()->firstOrFail();
+            $used = PromotionRedemption::where('promotion_id', $promotion->id)->whereNull('released_at')->count();
+            PromotionRedemption::where('promotion_id', $promotion->id)->delete();
+            if ($promotion->code !== null) {
+                Cart::where('promotion_code', $promotion->code)->update(['promotion_code' => null]);
+            }
+            $promotion->delete(); // görsel kayıtları veritabanında birlikte silinir
+            $this->audit->log('pricing.promotion_deleted', $promotion, ['name' => $promotion->name, 'code' => $promotion->code, 'used' => $used]);
+        });
+
         $this->forget($paths);
     }
 
