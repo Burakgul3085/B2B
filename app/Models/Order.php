@@ -23,10 +23,14 @@ class Order extends Model
         'cancelled' => 'İptal edildi',
     ];
 
-    /** Ödeme yöntemleri (null: ödeme sistemi açılmadan önce verilmiş sipariş). */
+    /**
+     * Ödeme yöntemleri (null: ödeme sistemi açılmadan önce verilmiş sipariş). Sonra öde: süre teslimden başlar
+     * (docs/03 §6.1). open_account / on_delivery artık seçilemez; eski siparişlerde görünür.
+     */
     public const PAYMENT_METHODS = [
         'card' => 'Kredi / banka kartı',
         'transfer' => 'Havale / EFT',
+        'pay_later' => 'Sonra öde',
         'open_account' => 'Açık hesap (cari)',
         'on_delivery' => 'Teslimde ödeme',
     ];
@@ -54,7 +58,7 @@ class Order extends Model
             'subtotal' => 'decimal:2', 'discount_total' => 'decimal:2', 'net_total' => 'decimal:2',
             'vat_total' => 'decimal:2', 'grand_total' => 'decimal:2', 'delivery_fee' => 'decimal:2', 'requested_total' => 'decimal:2',
             'promotion_value' => 'decimal:2', 'promotion_max' => 'decimal:2', 'promotion_discount' => 'decimal:2',
-            'paid_at' => 'datetime',
+            'paid_at' => 'datetime', 'payment_due_on' => 'date',
             'delivery_planned_on' => 'date',
             'approved_at' => 'datetime', 'shipped_at' => 'datetime', 'stock_applied_at' => 'datetime', 'stock_reversed_at' => 'datetime',
             'ledger_applied_at' => 'datetime', 'ledger_reversed_at' => 'datetime',
@@ -101,7 +105,27 @@ class Order extends Model
 
     public function paymentMethodLabel(): string
     {
+        if ($this->payment_method === 'pay_later') {
+            return self::payLaterLabelFor((int) $this->payment_term_days);
+        }
+
         return self::PAYMENT_METHODS[$this->payment_method] ?? 'Cari hesap';
+    }
+
+    public static function payLaterLabelFor(int $days): string
+    {
+        return $days === 0 ? 'Teslimatta öde' : "Sonra öde · teslimden {$days} gün sonra";
+    }
+
+    public function isPayLater(): bool
+    {
+        return $this->payment_method === 'pay_later';
+    }
+
+    /** Ödemenin beklendiği durumlar: sonra öde siparişi teslimden (tamamlandıktan) sonra da ödenir. */
+    public function inPayableStatus(): bool
+    {
+        return in_array($this->status, ['approved', 'preparing', 'shipped'], true) || ($this->isPayLater() && $this->status === 'completed');
     }
 
     public function relationship(): BelongsTo

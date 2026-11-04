@@ -3,13 +3,16 @@
 namespace Tests\Feature\Ordering;
 
 use App\Domain\Auth\Area;
+use App\Domain\Ledger\LedgerService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
+use App\Domain\Payments\OrderPaymentService;
 use App\Domain\Payments\PaymentSettings;
 use App\Models\AppNotification;
 use App\Models\Business;
 use App\Models\BusinessSetting;
 use App\Models\CollectionEntry;
+use App\Models\CurrentAccount;
 use App\Models\DealerRelationship;
 use App\Models\EmailLog;
 use App\Models\Order;
@@ -27,8 +30,8 @@ use Tests\Concerns\CreatesOrders;
 use Tests\TestCase;
 
 /**
- * B2B ödemeleri: bayi yöntemi sepette seçer, toptancı onaylar, bayi ONAYLANAN tutarı öder (kart / havale / teslimde);
- * izinli bayi açık hesapla verir. Ödeme cariye tahsilat yazar; kartla ödenen sipariş iptalinde iyzico'dan iade edilir.
+ * B2B ödemeleri: bayi yöntemi sepette seçer, toptancı onaylar, bayi ONAYLANAN tutarı öder (kart / havale);
+ * izinli bayi "sonra öde" ile verir (süre teslimden başlar; kart, havale veya teslimatta nakit / POS). Ödeme cariye tahsilat yazar; kartla ödenen sipariş iptalinde iyzico'dan iade edilir.
  */
 class DealerPaymentTest extends TestCase
 {
@@ -90,30 +93,129 @@ class DealerPaymentTest extends TestCase
         ]);
     }
 
-    public function test_dealer_chooses_method_and_only_permitted_dealers_see_open_account_and_on_delivery(): void
+    public function test_dealer_chooses_method_and_only_permitted_dealers_see_pay_later(): void
     {
         $this->actingAs($this->rel->dealer->user, 'dealer');
         $this->inTenant($this->business, fn () => app(CartService::class)->add($this->rel, $this->product->id, '2'));
         $this->get(route('dealer.cart'))->assertOk()->assertSee('Ödeme yöntemi')->assertSee('Kredi / banka kartı')->assertSee('Havale / EFT')
-            ->assertDontSee('Açık hesap (cari)')->assertDontSee('Teslimde ödeme');
+            ->assertDontSee('Sonra öde')->assertDontSee('Açık hesap (cari)');
 
-        // İzin verilmeyen yöntem reddedilir; yöntem seçmeden sipariş verilemez.
-        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'open_account'])
-            ->assertSessionHasErrors('cart');
-        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid()])
-            ->assertSessionHasErrors('cart');
+        // İzin verilmeyen ya da artık seçilemeyen yöntem reddedilir; yöntem seçmeden sipariş verilemez.
+        foreach (['pay_later', 'open_account', 'on_delivery', null] as $method) {
+            $this->post(route('dealer.cart.submit'), array_filter(['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => $method]))
+                ->assertSessionHasErrors('cart');
+        }
 
-        $this->inTenant($this->business, fn () => $this->rel->update(['allow_open_account' => true, 'allow_on_delivery' => true]));
-        $this->get(route('dealer.cart'))->assertSee('Açık hesap (cari)')->assertSee('Teslimde ödeme');
-        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'open_account'])
+        $this->inTenant($this->business, fn () => $this->rel->update(['allow_pay_later' => true, 'payment_term_days' => 30]));
+        $this->get(route('dealer.cart'))->assertSee('Sonra öde · teslimden 30 gün sonra');
+        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'pay_later'])
             ->assertRedirect();
         $order = $this->inTenant($this->business, fn () => Order::firstOrFail());
-        $this->assertSame('open_account', $order->payment_method);
+        $this->assertSame(['pay_later', 30], [$order->payment_method, $order->payment_term_days]);
 
-        // Açık hesap: onaydan sonra ödeme beklenmez, hazırlanabilir.
+        // Sonra öde: ödeme beklenir ama hazırlanmasını ve yola çıkmasını engellemez.
         $order = $this->approve($order, '2');
-        $this->assertNull($order->payment_status);
+        $this->assertSame('awaiting', $order->payment_status);
         $this->post(route('business.orders.prepare', $order))->assertSessionHasNoErrors();
+    }
+
+    public function test_pay_later_order_is_delivered_unpaid_and_due_date_starts_at_delivery(): void
+    {
+        $this->inTenant($this->business, fn () => $this->rel->update(['allow_pay_later' => true, 'payment_term_days' => 15]));
+        $order = $this->approve($this->submit('2', 'pay_later'), '2');
+        $this->post(route('business.orders.ship', $order))->assertSessionHasNoErrors();
+        $this->post(route('business.orders.complete', $order))->assertSessionHasNoErrors();
+
+        $order = $this->inTenant($this->business, fn () => $order->fresh());
+        $this->assertSame(['completed', 'awaiting'], [$order->status, $order->payment_status]);
+        $this->assertSame(now('Europe/Istanbul')->addDays(15)->toDateString(), $order->payment_due_on->toDateString());
+
+        $this->actingAs($this->rel->dealer->user, 'dealer')->get(route('dealer.orders.show', $order))->assertOk()
+            ->assertSee('Son ödeme günü')->assertSee($order->payment_due_on->format('d.m.Y'))->assertSee('Kartla öde')->assertSee('TR28 0004 6098 7654 3210 9876 54');
+        $this->get(route('dealer.account.statement'))->assertOk()->assertSeeText('₺24,00 ödemeniz var')->assertSee('15 gün kaldı');
+
+        // Teslimatta nakit alındı: tamamlanmış sonra öde siparişine kaydedilir.
+        $this->actingAs($this->business->user, 'business')
+            ->post(route('business.orders.payments.store', $order), ['method' => 'cash', 'paid_on' => now('Europe/Istanbul')->toDateString()])->assertSessionHasNoErrors();
+        $this->assertSame('paid', $this->inTenant($this->business, fn () => $order->fresh()->payment_status));
+        $this->actingAs($this->rel->dealer->user, 'dealer')->get(route('dealer.account.statement'))->assertSee('Borcunuz yok');
+    }
+
+    public function test_cash_and_pos_are_only_for_pay_later_orders(): void
+    {
+        $order = $this->approve($this->submit('2', 'transfer'), '2');
+        $this->actingAs($this->business->user, 'business')->get(route('business.orders.show', $order))->assertOk()->assertDontSee('Fiziki POS');
+        $this->post(route('business.orders.payments.store', $order), ['method' => 'cash', 'paid_on' => now('Europe/Istanbul')->toDateString()])
+            ->assertSessionHasErrors('order');
+        $this->post(route('business.orders.payments.store', $order), ['method' => 'transfer', 'paid_on' => now('Europe/Istanbul')->toDateString()])
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_lump_sum_payment_closes_oldest_orders_and_reopens_on_cancel(): void
+    {
+        $this->inTenant($this->business, fn () => $this->rel->update(['allow_pay_later' => true, 'payment_term_days' => 30]));
+        $first = $this->approve($this->submit('2', 'pay_later'), '2');   // 24,00
+        $second = $this->approve($this->submit('5', 'pay_later'), '5');  // 60,00
+        $account = $this->inTenant($this->business, fn () => CurrentAccount::where('dealer_relationship_id', $this->rel->id)->sole());
+
+        // Siparişe bağlanmayan 40 ₺: ilk sipariş kapanır, ikincinin 16 ₺'si düşer.
+        $this->post(route('business.accounts.collections.store', $account), ['amount' => '40', 'collected_on' => now('Europe/Istanbul')->toDateString(), 'method' => 'transfer'])
+            ->assertSessionHasNoErrors();
+        $this->inTenant($this->business, function () use ($first, $second) {
+            $this->assertSame('paid', $first->fresh()->payment_status);
+            $this->assertSame('awaiting', $second->fresh()->payment_status);
+            $this->assertSame('44.00', app(OrderPaymentService::class)->dueAmount($second->fresh()));
+        });
+        $this->get(route('business.accounts.show', $account))->assertOk()->assertSee($second->order_no)->assertSee('₺44,00')->assertSee('Teslim bekleniyor');
+
+        // Kısmen kapanan sipariş kartla ödenemez (kart tutarın tamamını çeker); kalan havale ile ödenir.
+        $this->actingAs($this->rel->dealer->user, 'dealer')->post(route('dealer.orders.pay', $second))->assertSessionHasErrors('payment');
+
+        // Toplu ödeme iptal edilirse, kendi ödeme kaydı olmadan kapanan sipariş yeniden ödeme bekler.
+        $collection = $this->inTenant($this->business, fn () => CollectionEntry::whereNull('order_id')->sole());
+        $this->actingAs($this->business->user, 'business')->post(route('business.collections.cancel', $collection), ['reason' => 'Hatalı'])->assertSessionHasNoErrors();
+        $this->assertSame('awaiting', $this->inTenant($this->business, fn () => $first->fresh()->payment_status));
+    }
+
+    public function test_pay_later_is_blocked_by_overdue_debt_and_credit_limit(): void
+    {
+        $this->inTenant($this->business, fn () => $this->rel->update(['allow_pay_later' => true, 'payment_term_days' => 30, 'credit_limit' => '30.00']));
+        $this->submit('2', 'pay_later'); // 24,00: limit içinde
+
+        // Onaylanmamış sonra öde siparişi de limite sayılır: 24 + 24 > 30.
+        $this->actingAs($this->rel->dealer->user, 'dealer');
+        $this->inTenant($this->business, fn () => app(CartService::class)->add($this->rel, $this->product->id, '2'));
+        $this->get(route('dealer.cart'))->assertSee('borç limitiniz');
+        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'pay_later'])
+            ->assertSessionHasErrors('cart');
+        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'transfer'])
+            ->assertSessionHasNoErrors();
+
+        // Vadesi geçmiş borç varken sonra öde seçilemez.
+        $this->inTenant($this->business, function () {
+            $this->rel->update(['credit_limit' => null]);
+            app(LedgerService::class)->setOpening(CurrentAccount::where('dealer_relationship_id', $this->rel->id)->sole(), '50.00', now()->subDays(3)->toDateString(), null);
+            app(CartService::class)->add($this->rel, $this->product->id, '1');
+        });
+        $this->get(route('dealer.cart'))->assertSee('Vadesi geçmiş');
+        $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'pay_later'])
+            ->assertSessionHasErrors('cart');
+    }
+
+    public function test_business_sets_pay_later_terms(): void
+    {
+        $this->actingAs($this->business->user, 'business')->get(route('business.dealers.show', $this->rel))->assertOk()
+            ->assertSee('Sonra ödeyebilir')->assertSee('Borç limiti (₺)')->assertDontSee('Açık hesapla');
+        $this->put(route('business.dealers.update', $this->rel), ['dealer_code' => $this->rel->dealer_code, 'payment_term_days' => '0', 'allow_pay_later' => '1', 'credit_limit' => '1.500,50'])
+            ->assertSessionHasNoErrors();
+        $rel = $this->inTenant($this->business, fn () => $this->rel->fresh());
+        $this->assertSame([true, '1500.50', 'Teslimatta öde'], [$rel->allow_pay_later, (string) $rel->credit_limit, $rel->payLaterLabel()]);
+
+        $this->put(route('business.dealers.update', $this->rel), ['dealer_code' => $this->rel->dealer_code, 'payment_term_days' => '30', 'credit_limit' => ''])->assertSessionHasNoErrors();
+        $rel = $this->inTenant($this->business, fn () => $this->rel->fresh());
+        $this->assertSame([false, null], [$rel->allow_pay_later, $rel->credit_limit]);
+        $this->put(route('business.dealers.update', $this->rel), ['dealer_code' => $this->rel->dealer_code, 'payment_term_days' => '30', 'credit_limit' => 'abc'])
+            ->assertSessionHasErrors('credit_limit');
     }
 
     public function test_partial_approval_asks_for_approved_amount_and_highlights_changes(): void

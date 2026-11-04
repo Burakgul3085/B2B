@@ -53,7 +53,7 @@
                     <form method="POST" action="{{ route('platform.applications.approve', $a->id) }}" class="space-y-4" data-confirm="Başvuru onaylansın ve bayi hesabı açılsın mı?">
                         @csrf
                         @include('partials.approve-login', ['application' => $a])
-                        <x-field name="payment_term_days" label="Vade (gün)" type="number" min="0" max="365" :value="$defaultTerm" required />
+                        <x-field name="payment_term_days" label="Sonra öde süresi (gün)" type="number" min="0" max="365" :value="$defaultTerm" required />
                         <x-button class="w-full" icon="check">Onayla</x-button>
                     </form>
                 </x-card>

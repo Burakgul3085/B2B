@@ -17,12 +17,13 @@ class DealerRelationship extends Model
 
     protected $fillable = [
         'dealer_id', 'dealer_code', 'dealer_group_id', 'status', 'payment_term_days',
-        'can_edit_addresses', 'allow_open_account', 'allow_on_delivery', 'approved_at', 'approved_by',
+        'can_edit_addresses', 'allow_open_account', 'allow_on_delivery', 'allow_pay_later', 'credit_limit', 'approved_at', 'approved_by',
     ];
 
     protected function casts(): array
     {
-        return ['can_edit_addresses' => 'boolean', 'allow_open_account' => 'boolean', 'allow_on_delivery' => 'boolean', 'approved_at' => 'datetime'];
+        return ['can_edit_addresses' => 'boolean', 'allow_open_account' => 'boolean', 'allow_on_delivery' => 'boolean', 'allow_pay_later' => 'boolean',
+            'credit_limit' => 'decimal:2', 'approved_at' => 'datetime'];
     }
 
     public function dealer(): BelongsTo
@@ -48,6 +49,12 @@ class DealerRelationship extends Model
     public function productPrices(): HasMany
     {
         return $this->hasMany(DealerProductPrice::class);
+    }
+
+    /** Sepette görünen "Sonra öde" adı: süre 0 ise teslimatta, değilse teslimden N gün sonra. */
+    public function payLaterLabel(): string
+    {
+        return Order::payLaterLabelFor((int) $this->payment_term_days);
     }
 
     public function isActive(): bool

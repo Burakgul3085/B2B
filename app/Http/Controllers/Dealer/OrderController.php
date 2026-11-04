@@ -76,20 +76,26 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show(Order $order, PaymentSettings $payments): View
+    public function show(Order $order, PaymentSettings $settings, OrderPaymentService $payments): View
     {
         $this->assertOwn($order);
         $order->load(['items.product.primaryImage', 'history', 'payments']);
-        $payable = $order->awaitingPayment() && in_array($order->status, ['approved', 'preparing', 'shipped'], true);
+        $payable = $order->awaitingPayment() && $order->inPayableStatus();
         $requestable = in_array($order->status, Order::RETURNABLE, true) ? ReturnRequestService::requestable($order) : [];
 
         return view('dealer.orders.show', [
             'order' => $order,
             'payable' => $payable,
             'changes' => $order->approvalChanges(),
-            'paymentMethods' => $payable ? $payments->methodsFor($this->relationship()) : [],
-            'accounts' => $payable && $payments->transferAvailable() ? $payments->accounts() : [],
-            'dueDate' => CurrentAccountMovement::where('order_id', $order->id)->where('type', 'order_debit')->whereNull('reverses_movement_id')->value('due_date'),
+            'paymentMethods' => $payable ? $settings->methodsFor($this->relationship()) : [],
+            'accounts' => $payable && $settings->transferAvailable() ? $settings->accounts() : [],
+            // Ödenen siparişte son ödeme günü gösterilmez; sonra öde siparişinde teslimde yazılan tarih.
+            'dueDate' => match (true) {
+                $order->payment_status === 'paid' => null,
+                $order->isPayLater() => $order->payment_due_on,
+                default => CurrentAccountMovement::where('order_id', $order->id)->where('type', 'order_debit')->whereNull('reverses_movement_id')->value('due_date'),
+            },
+            'dueAmount' => $payable ? $payments->dueAmount($order) : null,
             'canCancel' => in_array($order->status, Order::DEALER_CANCELLABLE, true),
             'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->with(['items.orderItem', 'photos', 'orderReturn'])->latest('id')->get(),
             'requestable' => $requestable,

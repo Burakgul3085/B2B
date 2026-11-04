@@ -8,6 +8,7 @@ use App\Domain\Ordering\NewOrderAlerts;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\OrderStateMachine;
 use App\Domain\Ordering\ReturnService;
+use App\Domain\Payments\OrderPaymentService;
 use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Models\DealerRelationship;
@@ -87,6 +88,7 @@ class OrderController extends Controller
             'returns' => OrderReturn::where('order_id', $order->id)->with('items')->latest('id')->get(),
             'returnRequests' => OrderReturnRequest::where('order_id', $order->id)->latest('id')->get(),
             'can' => fn (string $to) => OrderStateMachine::can($order->status, $to),
+            'dueAmount' => $order->awaitingPayment() ? app(OrderPaymentService::class)->dueAmount($order) : null,
         ]);
     }
 

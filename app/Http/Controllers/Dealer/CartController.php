@@ -6,6 +6,7 @@ use App\Domain\Inventory\Quantity;
 use App\Domain\Notifications\Notifier;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
+use App\Domain\Payments\PayLaterPolicy;
 use App\Domain\Payments\PaymentSettings;
 use App\Domain\Pricing\PromotionService;
 use App\Http\Controllers\Controller;
@@ -23,16 +24,21 @@ class CartController extends Controller
 
     public function __construct(private CartService $carts, private OrderService $orders) {}
 
-    public function index(PaymentSettings $payments, PromotionService $promotions): View
+    public function index(PaymentSettings $payments, PromotionService $promotions, PayLaterPolicy $payLater): View
     {
         $relationship = $this->relationship();
         $settings = $this->settings();
         $summary = $this->carts->summary($relationship, (int) $settings->default_warehouse_id);
+        $methods = $payments->methodsFor($relationship);
+        $deliveryFee = $payments->deliveryFee((string) $summary['totals']['grand_total']);
 
         return view('dealer.cart', [
             'summary' => $summary,
-            'paymentMethods' => $payments->methodsFor($relationship),
-            'deliveryFee' => $payments->deliveryFee((string) $summary['totals']['grand_total']),
+            'paymentMethods' => $methods,
+            // Bilgi amaçlı; kesin kontrol sipariş gönderilirken yapılır.
+            'payLaterBlock' => isset($methods['pay_later'])
+                ? $payLater->blockReason($relationship, bcadd((string) $summary['totals']['grand_total'], $deliveryFee, 2)) : null,
+            'deliveryFee' => $deliveryFee,
             'addresses' => $relationship->addresses,
             'campaigns' => $promotions->visibleFor($relationship)->pluck('promotion')->filter(fn ($p) => ! $p->isCoupon())->values(),
             'settings' => $settings,

@@ -54,8 +54,13 @@
                 <p class="mt-1 text-2xl font-bold text-ink tabular-nums">{{ $due->format('d.m.Y') }}</p>
                 <p @class(['text-xs', 'font-semibold text-red-700' => $days < 0, 'text-muted' => $days >= 0])>{{ $days < 0 ? abs($days).' gün gecikti' : ($days === 0 ? 'Bugün' : $days.' gün kaldı') }} · <a href="{{ route('dealer.account.statement') }}" class="text-primary hover:underline">Cari hesap</a></p>
             @else
-                <p class="mt-1 text-2xl font-bold text-slate-400">—</p>
-                <p class="text-xs text-muted">{{ $closed ? 'Borç kaydı oluşmadı' : 'Sipariş onaylanınca belirlenir' }}</p>
+                <p class="mt-1 text-2xl font-bold text-slate-400">{{ $order->payment_status === 'paid' ? 'Ödendi' : '—' }}</p>
+                <p class="text-xs text-muted">{{ match (true) {
+                    $closed => 'Borç kaydı oluşmadı',
+                    $order->payment_status === 'paid' => 'Bu siparişin ödemesi alındı',
+                    $order->isPayLater() => ($order->payment_term_days ? 'Teslimden '.$order->payment_term_days.' gün sonra' : 'Teslimatta ödenir'),
+                    default => 'Sipariş onaylanınca belirlenir',
+                } }}</p>
             @endif
         </div>
         <div class="rounded-2xl border border-line bg-white p-5 shadow-xs">

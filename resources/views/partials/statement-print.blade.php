@@ -9,7 +9,7 @@
 <x-print-document title="Cari Hesap Ekstresi" :number="'Cari kodu '.$account->code" :business="$business" :dealer="$account->relationship->dealer"
     :meta="[
         'Dönem' => Carbon::parse($from)->format('d.m.Y').' – '.Carbon::parse($to)->format('d.m.Y'),
-        'Vade' => $account->relationship->payment_term_days.' gün',
+        'Ödeme' => $account->relationship->allow_pay_later ? $account->relationship->payLaterLabel() : null,
         'Güncel bakiye' => Money::format(ltrim($balance, '-')).($sign > 0 ? ' (B)' : ($sign < 0 ? ' (A)' : '')),
         'Gecikmiş tutar' => bccomp((string) $aging['overdue'], '0', 2) > 0 ? Money::format($aging['overdue']) : null,
     ]">

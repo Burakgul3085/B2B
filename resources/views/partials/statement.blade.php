@@ -7,9 +7,7 @@
 
     $forDealer ??= false;
     $bare ??= false;
-    $labels = $forDealer
-        ? ['collection' => 'Ödeme', 'adjustment_debit' => 'Düzeltme (borç)', 'adjustment_credit' => 'Düzeltme (alacak)', 'reversal' => 'İptal kaydı'] + CurrentAccountMovement::TYPES
-        : CurrentAccountMovement::TYPES;
+    $labels = ['collection' => 'Ödeme', 'adjustment_debit' => 'Düzeltme (borç)', 'adjustment_credit' => 'Düzeltme (alacak)', 'reversal' => 'İptal kaydı'] + CurrentAccountMovement::TYPES;
     $presets = [
         'Bu ay' => [now('Europe/Istanbul')->startOfMonth(), now('Europe/Istanbul')],
         'Son 3 ay' => [now('Europe/Istanbul')->subMonths(3)->startOfMonth(), now('Europe/Istanbul')],
@@ -44,22 +42,21 @@
             <tr>
                 <th>Tarih</th>
                 <th>İşlem</th>
-                <th class="hidden md:table-cell">{{ $forDealer ? 'Son ödeme günü' : 'Vade' }}</th>
-                <th class="text-right">Borç @if ($forDealer)<span class="block text-[10px] font-medium normal-case tracking-normal text-muted">Alımlarınız</span>@endif</th>
-                <th class="text-right">Alacak @if ($forDealer)<span class="block text-[10px] font-medium normal-case tracking-normal text-muted">Ödeme ve iadeler</span>@endif</th>
+                <th class="text-right">Borç <span class="block text-[10px] font-medium normal-case tracking-normal text-muted">Siparişler</span></th>
+                <th class="text-right">Alacak <span class="block text-[10px] font-medium normal-case tracking-normal text-muted">Ödeme ve iadeler</span></th>
                 <th class="text-right">Bakiye</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-line">
             <tr class="bg-slate-50/60">
                 <td class="text-muted tabular-nums">{{ Carbon::parse($from)->format('d.m.Y') }}</td>
-                <td class="font-medium" colspan="4">Devreden bakiye @if ($forDealer)<span class="block text-xs font-normal text-muted">Bu tarihten önceki hareketlerin toplamı</span>@endif</td>
+                <td class="font-medium" colspan="3">Devreden bakiye @if ($forDealer)<span class="block text-xs font-normal text-muted">Bu tarihten önceki hareketlerin toplamı</span>@endif</td>
                 <td class="text-right font-medium tabular-nums">@include('partials._balance', ['amount' => $statement['opening']])</td>
             </tr>
             @forelse ($statement['rows'] as $row)
                 @php
                     $m = $row['movement'];
-                    $note = $forDealer ? preg_replace(['/^Tahsilat — /u', '/^Sipariş (?=SIP-)/u'], '', (string) $m->description) : $m->description;
+                    $note = preg_replace(['/^Tahsilat — /u', '/^Sipariş (?=[A-Z]+-)/u'], '', (string) $m->description);
                 @endphp
                 <tr>
                     <td class="whitespace-nowrap text-muted tabular-nums">{{ $m->movement_date->format('d.m.Y') }}</td>
@@ -69,18 +66,17 @@
                             @if ($m->order_id && $orderRoute)<a href="{{ route($orderRoute, $m->order_id) }}" class="text-primary hover:underline">{{ $note }}</a>@else{{ $note }}@endif
                         </p>
                     </td>
-                    <td class="hidden text-muted tabular-nums md:table-cell">{{ $m->due_date?->format('d.m.Y') ?? '—' }}</td>
                     <td class="text-right tabular-nums">{{ (float) $m->debit > 0 ? Money::format($m->debit) : '' }}</td>
                     <td class="text-right tabular-nums text-emerald-700">{{ (float) $m->credit > 0 ? Money::format($m->credit) : '' }}</td>
                     <td class="text-right font-medium tabular-nums">@include('partials._balance', ['amount' => $row['balance']])</td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="py-6 text-center text-sm text-muted">Bu tarih aralığında hareket yok.</td></tr>
+                <tr><td colspan="5" class="py-6 text-center text-sm text-muted">Bu tarih aralığında hareket yok.</td></tr>
             @endforelse
         </tbody>
         <tfoot class="border-t-2 border-line text-sm font-semibold">
             <tr>
-                <td colspan="3" class="px-4 py-3">{{ $forDealer ? 'Dönem toplamı / dönem sonu bakiyeniz' : 'Dönem toplamı / kapanış bakiyesi' }}</td>
+                <td colspan="2" class="px-4 py-3">{{ $forDealer ? 'Dönem toplamı / dönem sonu bakiyeniz' : 'Dönem toplamı / kapanış bakiyesi' }}</td>
                 <td class="px-4 py-3 text-right tabular-nums">{{ Money::format($statement['debit_total']) }}</td>
                 <td class="px-4 py-3 text-right tabular-nums text-emerald-700">{{ Money::format($statement['credit_total']) }}</td>
                 <td class="px-4 py-3 text-right tabular-nums">@include('partials._balance', ['amount' => $statement['closing']])</td>

@@ -135,7 +135,7 @@ class DealerApplicationController extends Controller
         return $request->validate([
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
-        ], [], ['payment_term_days' => 'vade (gün)']);
+        ], [], ['payment_term_days' => 'sonra öde süresi (gün)']);
     }
 
     private function run(callable $action, string $message): RedirectResponse

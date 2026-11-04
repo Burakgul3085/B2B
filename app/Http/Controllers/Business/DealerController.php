@@ -7,6 +7,7 @@ use App\Domain\Auth\AccountEmailService;
 use App\Domain\Auth\Area;
 use App\Domain\Dealers\DealerOnboarding;
 use App\Domain\Notifications\Notifier;
+use App\Domain\Support\Decimal;
 use App\Http\Controllers\Controller;
 use App\Models\DealerAddress;
 use App\Models\DealerRelationship;
@@ -57,8 +58,7 @@ class DealerController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses'), 'allow_open_account' => $request->boolean('allow_open_account'),
-            'allow_on_delivery' => $request->boolean('allow_on_delivery')]);
+        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses')]);
         $data = $request->validate([
             'legal_name' => ['required', 'string', 'max:255'],
             'contact_name' => ['required', 'string', 'max:120'],
@@ -104,15 +104,21 @@ class DealerController extends Controller
 
     public function update(Request $request, DealerRelationship $dealer): RedirectResponse
     {
-        $request->merge(['can_edit_addresses' => $request->boolean('can_edit_addresses')]);
+        // "1.500,00" gibi yazımlar kabul edilir; boş = sınırsız. Metin olmayan değer doğrulamada reddedilir.
+        $limit = $request->input('credit_limit');
+        $request->merge([
+            'can_edit_addresses' => $request->boolean('can_edit_addresses'),
+            'allow_pay_later' => $request->boolean('allow_pay_later'),
+            'credit_limit' => is_string($limit) ? (trim($limit) === '' ? null : (Decimal::parse($limit, 2) ?? $limit)) : $limit,
+        ]);
         $data = $request->validate([
             'dealer_code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('dealer_relationships', 'dealer_code')->where('business_id', $request->user()->business_id)->ignore($dealer->id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
-            'allow_open_account' => ['boolean'],
-            'allow_on_delivery' => ['boolean'],
-        ], [], $this->attributes());
+            'allow_pay_later' => ['boolean'],
+            'credit_limit' => ['nullable', 'decimal:0,2', 'gt:0', 'max:9999999999999'],
+        ], [], $this->attributes() + ['credit_limit' => 'borç limiti']);
 
         $old = $dealer->only(array_keys($data));
         $dealer->update($data);
@@ -236,7 +242,7 @@ class DealerController extends Controller
     {
         return [
             'legal_name' => 'işletme unvanı', 'contact_name' => 'yetkili adı', 'dealer_code' => 'bayi kodu',
-            'payment_term_days' => 'vade (gün)', 'tax_number' => 'vergi numarası',
+            'payment_term_days' => 'sonra öde süresi (gün)', 'tax_number' => 'vergi numarası',
         ];
     }
 }

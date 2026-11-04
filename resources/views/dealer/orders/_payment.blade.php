@@ -1,6 +1,7 @@
 {{--
     Bayi sipariş ekranı: onaylanan siparişte ödeme paneli (kart, havale bilgileri, teslimde ödeme) ve ödeme durumu.
-    Değişkenler: $order, $payable, $paymentMethods, $accounts
+    Sonra öde siparişinde son ödeme günü ve kalan tutar gösterilir; bayi dilediği an kartla veya havaleyle öder.
+    Değişkenler: $order, $payable, $paymentMethods, $accounts, $dueAmount (ödenecek kalan tutar)
 --}}
 @php use App\Domain\Support\Money; use App\Domain\Support\Payments\Iban; use App\Models\Order; @endphp
 
@@ -17,15 +18,29 @@
 @error('payment')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
 @if ($payable)
+    @php
+        $dueAmount ??= (string) $order->grand_total;
+        $whole = bccomp($dueAmount, (string) $order->grand_total, 2) === 0;
+        $days = $order->payment_due_on ? (int) now('Europe/Istanbul')->startOfDay()->diffInDays($order->payment_due_on, false) : null;
+    @endphp
     <section class="mb-6 overflow-hidden rounded-2xl border-2 border-primary/30 bg-white shadow-xs print:hidden" aria-labelledby="odeme-baslik">
         <div class="flex flex-wrap items-center justify-between gap-4 bg-primary-soft/50 px-5 py-4 sm:px-6">
             <div>
-                <h2 id="odeme-baslik" class="text-base font-semibold text-ink">Siparişiniz onaylandı, ödemenizi bekliyoruz</h2>
-                <p class="text-sm text-muted">Yalnızca onaylanan tutarı ödersiniz. Siparişiniz ödemeniz alındıktan sonra hazırlanır.</p>
+                @if ($order->isPayLater())
+                    <h2 id="odeme-baslik" class="text-base font-semibold text-ink">{{ $order->paymentMethodLabel() }}</h2>
+                    @if ($order->payment_due_on)
+                        <p @class(['text-sm', 'font-semibold text-red-700' => $days < 0, 'text-muted' => $days >= 0])>Son ödeme günü <b>{{ $order->payment_due_on->format('d.m.Y') }}</b> · {{ $days < 0 ? abs($days).' gün gecikti' : ($days === 0 ? 'bugün' : $days.' gün kaldı') }}</p>
+                    @else
+                        <p class="text-sm text-muted">Son ödeme günü teslimatla belli olur{{ $order->payment_term_days ? ': teslimden '.$order->payment_term_days.' gün sonra' : ' (teslimatta ödenir)' }}. Dilerseniz şimdi de ödeyebilirsiniz.</p>
+                    @endif
+                @else
+                    <h2 id="odeme-baslik" class="text-base font-semibold text-ink">Siparişiniz onaylandı, ödemenizi bekliyoruz</h2>
+                    <p class="text-sm text-muted">Yalnızca onaylanan tutarı ödersiniz. Siparişiniz ödemeniz alındıktan sonra hazırlanır.</p>
+                @endif
             </div>
             <div class="text-right">
-                <p class="text-xs text-muted">Ödenecek tutar</p>
-                <p class="text-3xl font-bold tabular-nums text-ink">{{ Money::format($order->grand_total) }}</p>
+                <p class="text-xs text-muted">{{ $whole ? 'Ödenecek tutar' : 'Kalan tutar' }}</p>
+                <p class="text-3xl font-bold tabular-nums text-ink">{{ Money::format($dueAmount) }}</p>
                 @if ($order->requested_total !== null && bccomp((string) $order->requested_total, (string) $order->grand_total, 2) !== 0)
                     <p class="text-xs text-muted">Sipariş ettiğiniz: <span class="line-through">{{ Money::format($order->requested_total) }}</span></p>
                 @endif
@@ -39,16 +54,17 @@
                     <p>Açık bir kart ödemeniz var; sonucu kontrol ediliyor. Ödemeyi tamamladıysanız <b>tekrar ödeme yapmayın</b>, bu ekran kendiliğinden yenilenir.</p>
                 </div>
             @endif
-            @if ($order->payment_method === 'card')
+            @if ($order->payment_method === 'card' || ($order->isPayLater() && isset($paymentMethods['card']) && $whole))
                 <form method="POST" action="{{ route('dealer.orders.pay', $order) }}" class="flex flex-wrap items-center gap-3" x-data="{ sending: false }" @submit="sending = true">
                     @csrf
                     <x-button icon="lock" x-bind:disabled="sending"><span x-text="sending ? 'Yönlendiriliyor…' : 'Kartla öde'">Kartla öde</span></x-button>
                     <p class="text-xs text-muted">iyzico'nun güvenli ödeme sayfasına yönlendirilirsiniz; kart bilgileriniz bize gelmez.</p>
                 </form>
-            @elseif ($order->payment_method === 'transfer')
-                <div>
+            @endif
+            @if ($order->payment_method === 'transfer' || ($order->isPayLater() && $accounts !== []))
+                <div @class(['border-t border-line pt-4' => $order->isPayLater() && isset($paymentMethods['card']) && $whole])>
                     <p class="text-sm font-medium">Havale / EFT bilgileri</p>
-                    <p class="mt-1 text-sm text-muted">Açıklamaya <b class="font-mono text-ink">{{ $order->order_no }}</b> yazarak aşağıdaki hesaplardan birine <b class="text-ink">{{ Money::format($order->grand_total) }}</b> gönderin. Ödemeniz hesabımıza geçince siparişiniz hazırlanır.</p>
+                    <p class="mt-1 text-sm text-muted">Açıklamaya <b class="font-mono text-ink">{{ $order->order_no }}</b> yazarak aşağıdaki hesaplardan birine <b class="text-ink">{{ Money::format($dueAmount) }}</b> gönderin.{{ $order->isPayLater() ? '' : ' Ödemeniz hesabımıza geçince siparişiniz hazırlanır.' }}</p>
                     <ul class="mt-3 grid gap-3 sm:grid-cols-2">
                         @foreach ($accounts as $a)
                             <li class="flex items-center gap-3 rounded-xl border border-line p-3">
@@ -65,6 +81,9 @@
                     </ul>
                     @if ($accounts === [])<p class="mt-2 text-sm text-danger">Hesap bilgisi şu anda gösterilemiyor; lütfen toptancınızla iletişime geçin.</p>@endif
                 </div>
+            @endif
+            @if ($order->isPayLater() && ! $order->payment_due_on)
+                <p class="text-sm text-muted">Teslimatta <b class="text-ink">nakit veya kartla (POS)</b> da ödeyebilirsiniz.</p>
             @elseif ($order->payment_method === 'on_delivery')
                 <p class="text-sm">Ödemeyi teslimatta <b>nakit veya kartla (POS)</b> yapacaksınız. Teslimatta {{ Money::format($order->grand_total) }} hazır bulundurun.</p>
             @endif

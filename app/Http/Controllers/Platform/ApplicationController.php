@@ -61,7 +61,7 @@ class ApplicationController extends Controller
     {
         $a = $this->find($application);
         $login = DealerApplicationController::validateLogin($request);
-        $terms = $request->validate(['payment_term_days' => ['required', 'integer', 'min:0', 'max:365']], [], ['payment_term_days' => 'vade (gün)'])
+        $terms = $request->validate(['payment_term_days' => ['required', 'integer', 'min:0', 'max:365']], [], ['payment_term_days' => 'sonra öde süresi (gün)'])
             + ['can_edit_addresses' => true];
 
         try {

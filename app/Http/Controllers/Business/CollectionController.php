@@ -39,6 +39,14 @@ class CollectionController extends Controller
         return view('business.ledger.collections', [
             'collections' => (clone $query)->with(['account.relationship.dealer:id,legal_name', 'order:id,order_no'])->latest('collected_on')->latest('id')->paginate(30)->withQueryString(),
             'total' => (string) (clone $query)->whereNull('cancelled_at')->sum('amount'),
+            // Yönteme göre dağılım (kart / havale / nakit / POS); eski yöntemler "Diğer"de toplanır.
+            'byMethod' => (clone $query)->whereNull('cancelled_at')->groupBy('method')->selectRaw('method, SUM(amount) total')->pluck('total', 'method')
+                ->reduce(function ($c, $total, $method) {
+                    $key = in_array($method, ['card_online', 'transfer', 'cash', 'card_pos'], true) ? $method : 'other';
+                    $c[$key] = bcadd($c[$key], (string) $total, 2);
+
+                    return $c;
+                }, ['card_online' => '0.00', 'transfer' => '0.00', 'cash' => '0.00', 'card_pos' => '0.00', 'other' => '0.00']),
             'filters' => $filters + ['from' => $from, 'to' => $to],
             'accounts' => CurrentAccount::with('relationship.dealer:id,legal_name')->orderBy('code')->get()->mapWithKeys(fn ($a) => [$a->id => $a->code.' · '.$a->relationship->dealer->legal_name]),
         ]);
@@ -54,6 +62,6 @@ class CollectionController extends Controller
             return back()->withErrors(['ledger' => $e->getMessage()]);
         }
 
-        return back()->with('status', 'Tahsilat iptal edildi; ters kayıt cari hesaba yazıldı.');
+        return back()->with('status', 'Ödeme kaydı iptal edildi; ters kayıt cari hesaba yazıldı.');
     }
 }

@@ -41,11 +41,16 @@
                     <form method="POST" action="{{ route('business.dealers.update', $r) }}" class="grid gap-5 sm:grid-cols-3">
                         @csrf @method('PUT')
                         <x-field name="dealer_code" label="Bayi kodu" :value="$r->dealer_code" required />
-                        <x-field name="payment_term_days" label="Vade (gün)" type="number" min="0" max="365" :value="$r->payment_term_days" required />
                         <x-toggle name="can_edit_addresses" label="Bayi sevk adreslerini değiştirebilir" :checked="$r->can_edit_addresses" class="sm:col-span-2" />
-                        <x-toggle name="allow_open_account" label="Açık hesapla (cari, ödemesiz) sipariş verebilir" :checked="$r->allow_open_account" class="sm:col-span-2" />
-                        <x-toggle name="allow_on_delivery" label="Teslimde ödeme (nakit / POS) seçebilir" :checked="$r->allow_on_delivery" class="sm:col-span-2" />
-                        <p class="text-xs text-muted sm:col-span-2">Ödeme sistemi açıkken (Ayarlar → Ödeme) bu iki seçenek yalnızca işaretli bayilere görünür; diğer bayiler kartla veya havaleyle öder.</p>
+                        <div class="space-y-4 rounded-xl border border-line p-4 sm:col-span-3">
+                            <x-toggle name="allow_pay_later" label="Sonra ödeyebilir" :checked="$r->allow_pay_later" />
+                            <p class="-mt-2 text-xs text-muted">Kapalıysa bayi yalnızca kartla veya havaleyle (peşin) öder. Açıksa sepette "Sonra öde" seçeneğini de görür; ödemeyi kartla, havaleyle veya teslimatta nakit / POS ile yapar.</p>
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <x-field name="payment_term_days" label="Ödeme süresi (gün)" type="number" min="0" max="365" :value="$r->payment_term_days" required hint="Teslimden itibaren sayılır. 0 = teslimatta öder." />
+                                <x-field name="credit_limit" label="Borç limiti (₺)" inputmode="decimal" :value="$r->credit_limit !== null ? number_format((float) $r->credit_limit, 2, ',', '') : ''" placeholder="Sınırsız" hint="Ödenmemiş borcu bu tutarı geçecekse sonra öde seçilemez. Boş = sınır yok." />
+                            </div>
+                            <p class="text-xs text-muted">Vadesi geçmiş borcu olan bayi, ödeyene kadar yeni siparişte sonra öde seçemez.</p>
+                        </div>
                         <div class="sm:text-right"><x-button variant="secondary">Kaydet</x-button></div>
                     </form>
                 </x-card>

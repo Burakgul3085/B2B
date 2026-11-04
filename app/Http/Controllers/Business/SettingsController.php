@@ -46,7 +46,7 @@ class SettingsController extends Controller
             'order_alarm' => ['sometimes', 'boolean'],
         ], [], [
             'display_name' => 'görünen ad', 'accent_color' => 'vurgu rengi',
-            'default_payment_term_days' => 'varsayılan vade (gün)',
+            'default_payment_term_days' => 'varsayılan sonra öde süresi (gün)',
             'new_product_days' => 'yeni ürün süresi', 'new_products_since' => 'yeni ürün başlangıç tarihi',
         ]);
 

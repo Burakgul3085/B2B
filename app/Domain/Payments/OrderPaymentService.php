@@ -3,9 +3,11 @@
 namespace App\Domain\Payments;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Ledger\AccountAnalysis;
 use App\Domain\Ledger\LedgerService;
 use App\Domain\Notifications\Notifier;
 use App\Domain\Support\LocalTime;
+use App\Domain\Support\Money;
 use App\Domain\Support\Payments\IyzicoUnreachable;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\CollectionEntry;
@@ -25,6 +27,8 @@ use Throwable;
  *  - Kart: iyzico Ödeme Formu. Sonuç tarayıcıdan değil iyzico'dan sorgulanır; durum, sepet kimliği (sipariş no) ve
  *    tutar siparişle eşleşmezse ödeme kabul edilmez. Aynı belirteç ikinci kez işlenmez.
  *  - Havale / teslimde ödeme: toptancı parayı alınca "Ödeme alındı" ile kaydeder.
+ *  - Sonra öde: teslimden sonra da ödenir (kart, havale; teslimatta nakit / fiziki POS). Toplu ödeme cariye girilir,
+ *    borcu kapanan siparişler kendiliğinden "Ödendi" olur (LedgerService::settleOrders).
  * Başarılı her ödeme bayinin carisine tahsilat yazar; sipariş iptalinde kart ödemesi iyzico'dan iade edilir ve
  * tahsilat ters kayıtla iptal edilir. Havale / nakit / POS ödemesi carisinde alacak olarak kalır (iade toptancıdadır).
  * Çift ödeme koruması: aynı siparişe ikinci form açılmadan önce açık deneme sorgulanır; yine de gelen ikinci / geç kart
@@ -38,6 +42,8 @@ class OrderPaymentService
         private AuditLogger $audit,
         private TenantContext $tenant,
         private Notifier $notifier,
+        private AccountAnalysis $analysis,
+        private PayLaterPolicy $payLater,
     ) {}
 
     /** Ödeme formunun ömrü (dk); bu süre geçen açık denemeler kapatılır. */
@@ -65,9 +71,18 @@ class OrderPaymentService
         if (! $order->awaitingPayment()) {
             throw new DomainException('Bu siparişin ödemesi zaten alındı; yeniden ödeme yapmayın.');
         }
+        // Kart her zaman sipariş tutarının tamamını çeker; bir kısmı cariden kapandıysa kalan havale ile ödenir.
+        $due = $this->dueAmount($order);
+        if (bccomp($due, '0', 2) <= 0) {
+            throw new DomainException('Bu siparişin borcu cari hesabınızdaki ödemelerle kapandı; yeniden ödeme yapmayın.');
+        }
+        if (bccomp($due, (string) $order->grand_total, 2) !== 0) {
+            throw new DomainException('Bu siparişin bir kısmı ödendi; kalan '.Money::format($due).' tutarı havale ile ödeyebilirsiniz.');
+        }
         OrderPayment::where('order_id', $order->id)->where('driver', 'iyzico')->where('status', 'initialized')
             ->update(['status' => 'expired', 'error_message' => 'Yeni ödeme formu açıldı.', 'updated_at' => now()]);
-        if ($order->payment_method !== 'card') {
+        // Havaleden karta geçilir; sonra öde siparişi kartla ödense de yöntemi (ve vadesi) korunur.
+        if (! in_array($order->payment_method, ['card', 'pay_later'], true)) {
             $order->update(['payment_method' => 'card']);
         }
 
@@ -240,11 +255,18 @@ class OrderPaymentService
 
         return DB::transaction(function () use ($order, $method, $date, $note, $userId) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if (! $order->awaitingPayment() || ! in_array($order->status, Order::ACTIVE_FULFILMENT, true)) {
+            if (! $order->awaitingPayment() || ! (in_array($order->status, Order::ACTIVE_FULFILMENT, true) || $order->inPayableStatus())) {
                 throw new DomainException('Bu sipariş için ödeme beklenmiyor.');
             }
+            // Nakit ve fiziki POS yalnızca teslimatta alınan ödemededir (sonra öde / eski teslimde ödeme).
+            if ($method !== 'transfer' && ! in_array($order->payment_method, ['pay_later', 'on_delivery'], true)) {
+                throw new DomainException('Bu sipariş için yalnızca havale / EFT kaydedilebilir.');
+            }
+            if (bccomp($this->dueAmount($order), '0', 2) <= 0) {
+                throw new DomainException('Bu siparişin borcu carideki ödemelerle kapandı.');
+            }
             $payment = OrderPayment::create([
-                'order_id' => $order->id, 'driver' => 'manual', 'status' => 'succeeded', 'amount' => $order->grand_total,
+                'order_id' => $order->id, 'driver' => 'manual', 'status' => 'succeeded', 'amount' => $this->dueAmount($order),
                 'method' => $method, 'created_by' => $userId, 'raw' => $note ? ['note' => mb_substr($note, 0, 300)] : null,
             ]);
 
@@ -266,8 +288,14 @@ class OrderPaymentService
             if (! isset($this->settings->methodsFor($order->relationship)[$method])) {
                 throw new DomainException('Bu ödeme yöntemi kullanılamıyor.');
             }
+            if ($method === 'pay_later' && ($reason = $this->payLater->blockReason($order->relationship, $order->ledger_applied_at ? '0' : (string) $order->grand_total, $order->id))) {
+                throw new DomainException($reason);
+            }
             $old = $order->payment_method;
-            $order->update(['payment_method' => $method, 'payment_status' => $method === 'open_account' ? null : 'awaiting']);
+            $order->update([
+                'payment_method' => $method, 'payment_status' => 'awaiting',
+                'payment_term_days' => $method === 'pay_later' ? (int) $order->relationship->payment_term_days : null,
+            ]);
             $this->audit->log('order.payment_method_changed', $order, ['payment_method' => $old], ['payment_method' => $method]);
 
             return $order;
@@ -412,7 +440,7 @@ class OrderPaymentService
             'method' => $collectionMethod,
             'order_id' => $order->id,
             'description' => "Sipariş {$order->order_no} — {$description}",
-        ], $userId);
+        ], $userId, settle: false);
         $payment->update(['collection_id' => $collection->id]);
         $order->update(['payment_status' => 'paid', 'paid_at' => now()]);
         $this->audit->log('order.paid', $order, [], ['amount' => (string) $payment->amount, 'driver' => $payment->driver, 'method' => $collectionMethod]);
@@ -420,10 +448,24 @@ class OrderPaymentService
         return $order;
     }
 
+    /**
+     * Siparişin ödenecek kalan tutarı: cariye yazıldıysa eşleştirmeden (bir kısmı toplu ödeme / iadeyle kapanmış
+     * olabilir), yazılmadıysa sipariş tutarı.
+     */
+    public function dueAmount(Order $order): string
+    {
+        if ($order->ledger_applied_at === null || $order->ledger_reversed_at !== null) {
+            return bcadd((string) $order->grand_total, '0', 2);
+        }
+        $account = CurrentAccount::where('dealer_relationship_id', $order->dealer_relationship_id)->firstOrFail();
+
+        return $this->analysis->openByOrder($account)[$order->id] ?? '0.00';
+    }
+
     /** @throws DomainException */
     private function assertPayable(Order $order): void
     {
-        if (! $order->awaitingPayment() || ! in_array($order->status, ['approved', 'preparing', 'shipped'], true)) {
+        if (! $order->awaitingPayment() || ! $order->inPayableStatus()) {
             throw new DomainException('Bu sipariş için ödeme beklenmiyor.');
         }
     }

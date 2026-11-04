@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dealer;
 
 use App\Domain\Ledger\AccountAnalysis;
+use App\Domain\Payments\PaymentSettings;
 use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dealer\Concerns\UsesDealerContext;
@@ -12,24 +13,25 @@ use App\Rules\NotBefore;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Bayinin seçili toptancıdaki cari hesabı: bakiye, vade durumu, ekstre ve tahsilatlar. Yalnızca görüntüleme. */
+/** Bayinin seçili toptancıdaki cari hesabı: durum, ödemesi bekleyen siparişler, hareketler ve ödemeler. Yalnızca görüntüleme. */
 class AccountStatementController extends Controller
 {
     use UsesDealerContext;
 
-    public function __invoke(Request $request, AccountAnalysis $analysis): View
+    public function __invoke(Request $request, AccountAnalysis $analysis, PaymentSettings $payments): View
     {
         $range = $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', new NotBefore('from')]]);
         $from = $range['from'] ?? LocalTime::now()->subMonths(3)->startOfMonth()->toDateString();
         $to = $range['to'] ?? LocalTime::today();
 
-        $account = CurrentAccount::where('dealer_relationship_id', $this->relationship()->id)->firstOrFail();
+        $account = CurrentAccount::with('relationship')->where('dealer_relationship_id', $this->relationship()->id)->firstOrFail();
 
         return view('dealer.account', [
             'account' => $account,
             'aging' => $analysis->aging($account),
             'statement' => $analysis->statement($account, $from, $to),
             'collections' => CollectionEntry::where('current_account_id', $account->id)->whereNull('cancelled_at')->latest('collected_on')->limit(10)->get(),
+            'bankAccounts' => $payments->transferAvailable() ? $payments->accounts() : [],
             'from' => $from,
             'to' => $to,
         ]);

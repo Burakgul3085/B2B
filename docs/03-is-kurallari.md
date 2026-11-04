@@ -306,12 +306,23 @@ Toptancı panelinde **Kupon ve Kampanyalar** (`promotions`). Kupon kodludur, bay
 | C1 — Bakiye kaynağı hareketlerdir | `balance = SUM(debit) − SUM(credit)` (açılış dahil). `current_accounts.balance` yalnızca önbellektir ve hareketle **aynı transaction'da**, hesap satırı `FOR UPDATE` kilitliyken güncellenir. Günlük kontrol görevi farkı raporlar. |
 | C2 — Hareket silinmez | Hata ters kayıtla düzeltilir (`reverses_movement_id` UNIQUE → bir hareket en fazla bir kez ters çevrilir). |
 | C3 — Sipariş borcu tek | `source_key='order:{id}:debit'` UNIQUE. Ne zaman oluşacağı `ledger_post_on` ayarına bağlı (K5). |
-| C4 — Tahsilat | Toptancı manuel girer: tarih, tutar (> 0), yöntem, isteğe bağlı sipariş, açıklama. Tek transaction: `collections` + `collection` alacak hareketi + bakiye. Ödeme sistemi açıksa bayinin kart ödemesi (iyzico) ve toptancının siparişte kaydettiği havale / nakit / POS ödemesi aynı yolla otomatik tahsilat yazar (docs/29-b2b-odeme-raporu.md). Sistem bankayı kontrol etmez. |
+| C4 — Tahsilat (ekranda "ödeme") | Toptancı manuel girer: tarih, tutar (> 0), yöntem (yalnızca havale / EFT, nakit, fiziki POS; çek, senet ve diğerleri eski kayıtlarda görünür), isteğe bağlı sipariş, açıklama. Tek transaction: `collections` + `collection` alacak hareketi + bakiye. Ödeme sistemi açıksa bayinin kart ödemesi (iyzico) ve toptancının siparişte kaydettiği havale / nakit / POS ödemesi aynı yolla otomatik tahsilat yazar (docs/29-b2b-odeme-raporu.md). Sistem bankayı kontrol etmez. |
 | C5 — Tahsilat iptali | Silinmez; `cancelled_at` + gerekçe + `reversal` hareketi. |
 | C6 — Açılış bakiyesi | İlişki başına bir kez (`source_key='opening:{account_id}'`); düzeltmesi `adjustment_*` ile. |
 | C7 — Manuel düzeltme | Açıklama zorunlu, `audit_logs`'a yazılır. |
-| C8 — Vade | Borç hareketi `due_date = hareket tarihi + ilişkinin vade günü`. |
-| C9 — Vadesi geçmiş tutar | Rapor anında **FIFO eşleştirme** ile hesaplanır: alacaklar (tahsilat, iade, ters kayıt) en eski borçtan başlayarak kapatılır; kapanmamış ve `due_date < bugün` olan borç kalanları "vadesi geçmiş" sayılır. Saklanmaz, her zaman hareketlerden türetilir. |
+| C8 — Vade (son ödeme günü) | Kart / havale siparişi peşindir: borcun vadesi yazıldığı gündür. Sonra öde siparişinin vadesi **teslimde** (sipariş tamamlanınca) `orders.payment_due_on = teslim günü + siparişteki süre` olarak yazılır; teslim edilmemişse "teslim bekleniyor" sayılır. Eski açık hesap / ödemesiz siparişlerde `hareket tarihi + ilişkinin süresi`. |
+| C9 — Eşleştirme ve vadesi geçmiş tutar | Rapor anında hesaplanır, saklanmaz: siparişe bağlı alacak (o siparişin ödemesi, iadesi) önce **o siparişi** kapatır; artanı ve siparişe bağlı olmayan alacaklar (toplu ödeme, alacak düzeltmesi) en eski vadeli borçtan başlayarak kapatır (FIFO). Kapanmamış ve vadesi bugünden önce olan kalanlar "vadesi geçmiş" sayılır. |
+| C10 — Siparişin ödeme durumu cariyle uyumlu | Toplu ödeme, düzeltme veya ödeme iptalinden sonra (ve sipariş borcu yazılınca) eşleştirmeye göre: borcu tamamen kapanan, ödeme bekleyen kart / havale / sonra öde siparişi "Ödendi" olur; kendi ödeme kaydı olmadan ödendi sayılmış sipariş yeniden açılırsa tekrar ödeme beklenir (`LedgerService::settleOrders`). Kısmen kapanan sipariş kartla ödenemez (kart tutarın tamamını çeker); kalan havale / nakit / POS ile ödenir. |
+
+### 6.1 Ödeme yolları ve "Sonra öde" (2026-11-05)
+
+- Bayi sepette **Kartla öde**, **Havale / EFT** veya (izin verildiyse) **Sonra öde** seçer. Eski "açık hesap" ve "teslimde ödeme" seçilemez; bu iki izni olan bayiler `allow_pay_later` ile sonra öde iznine geçirildi.
+- Bayi ayarı: `allow_pay_later`, `payment_term_days` (teslimden itibaren gün; 0 = "Teslimatta öde"), `credit_limit` (boş = sınırsız). Süre siparişe anlık kopyalanır.
+- Sonra öde seçilemez (`PayLaterPolicy`): izin yoksa; vadesi geçmiş borç varsa; limit verildiyse `cari bakiye + cariye yazılmamış açık sonra öde siparişleri + bu sipariş > limit` ise. Kart ve havale etkilenmez. Kontrol sipariş gönderilirken ilişki satırı kilitliyken yapılır.
+- Sonra öde siparişi ödenmeden hazırlanır, yola çıkar ve tamamlanır; teslimden sonra da ödenebilir (kart, havale; teslimatta nakit / fiziki POS). Nakit ve POS yalnızca sonra öde (ve eski teslimde ödeme) siparişinde kaydedilebilir; kart / havale siparişinde yalnızca havale.
+- Kartla ödeme sonra öde siparişinin yöntemini değiştirmez (vadesi ve geçmişi korunur).
+- Hatırlatma (günlük görev, e-posta ayarında açıksa): son ödeme gününe 3 gün kala, son gün ve gecikmenin 1. gününden itibaren haftada bir.
+- Ekranlar: Toptancı → Cari Hesaplar (Bayiler / Gelen ödemeler sekmeleri; bayi detayında ödemesi bekleyen siparişler, hareketler, ödeme ekle, "Diğer işlemler" altında açılış ve düzeltme). Bayi → Cari hesabım (tek cümlelik durum, ödemesi bekleyen siparişler, hareketler, havale bilgileri).
 
 Cari modül resmî muhasebe veya yasal defter değildir; bu not ekstre ve rapor başlıklarında yer alır.
 

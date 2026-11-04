@@ -34,7 +34,7 @@
         <x-card title="Ticari koşullar">
             <div class="grid gap-5 sm:grid-cols-3">
                 <x-field name="dealer_code" label="Bayi kodu" hint="Boş bırakılırsa otomatik verilir." />
-                <x-field name="payment_term_days" label="Vade (gün)" type="number" min="0" max="365" :value="$defaultTerm" required />
+                <x-field name="payment_term_days" label="Sonra öde süresi (gün)" type="number" min="0" max="365" :value="$defaultTerm" required />
                 <x-toggle name="can_edit_addresses" label="Bayi sevk adreslerini değiştirebilsin" :checked="true" class="sm:col-span-3" />
             </div>
         </x-card>

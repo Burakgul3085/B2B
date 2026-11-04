@@ -23,6 +23,9 @@ class CollectionEntry extends Model
         'other' => 'Diğer',
     ];
 
+    /** Bugün elle girilebilen yöntemler; çek, senet, sanal POS (elle) ve diğer yalnızca eski kayıtlarda görünür. */
+    public const SELECTABLE = ['transfer', 'cash', 'card_pos'];
+
     protected $fillable = ['current_account_id', 'collected_on', 'amount', 'method', 'order_id', 'description', 'created_by'];
 
     protected function casts(): array

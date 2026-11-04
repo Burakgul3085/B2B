@@ -7,6 +7,7 @@ use App\Domain\Mail\BusinessMailer;
 use App\Domain\Mail\MailFailure;
 use App\Domain\Mail\MailTransport;
 use App\Domain\Mail\SecretBox;
+use App\Domain\Support\LocalTime;
 use App\Models\AuditLog;
 use App\Models\BusinessModule;
 use App\Models\CurrentAccount;
@@ -212,7 +213,7 @@ class EmailTest extends TestCase
         $rel = $this->orderingDealer($business);
         $quiet = $this->orderingDealer($business);
         $this->inTenant($business, fn () => app(LedgerService::class)->setOpening(
-            CurrentAccount::where('dealer_relationship_id', $rel->id)->sole(), '100.00', now()->subDays(40)->toDateString(), null));
+            CurrentAccount::where('dealer_relationship_id', $rel->id)->sole(), '100.00', LocalTime::now()->subDays(8)->toDateString(), null)); // 8 gün gecikti: haftalık hatırlatma günü
 
         $this->artisan('ledger:send-reminders')->assertSuccessful();
 

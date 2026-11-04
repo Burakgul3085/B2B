@@ -166,11 +166,11 @@ Yeni durum: {durum}
             'note' => 'Talep stok ayırmaz; stok sipariş onayında kesinleşir. Yoğun talep gören ürünlerde erken sipariş vermenizi öneririz.',
         ],
         'payment_reminder' => [
-            'label' => 'Vade hatırlatması (bayiye)',
+            'label' => 'Ödeme hatırlatması (bayiye)',
             'eyebrow' => 'Cari hesap',
-            'subject' => '{isletme} cari hesap vade hatırlatması',
-            'intro' => "Cari hesabınızla ilgili hatırlatma yapmak isteriz.\n\nVadesi geçmiş bakiye: {gecikmis}\nÖnümüzdeki günlerde vadesi gelecek bakiye: {yaklasan}\n\nHesap hareketlerinizi ve ekstrenizi panelden ayrıntılı olarak görüntüleyebilirsiniz.",
-            'note' => 'Ödemenizi yaptıysanız bu hatırlatmayı dikkate almayın; tahsilat kaydı işlendiğinde bakiyeniz güncellenir.',
+            'subject' => '{isletme} ödeme hatırlatması',
+            'intro' => "Ödemesi bekleyen siparişleriniz için hatırlatma yapmak isteriz.\n\nSon ödeme günü geçen: {gecikmis}\nÖnümüzdeki 7 gün içinde ödenecek: {yaklasan}\n\nPanelinizdeki Cari hesabım sayfasından kartla ödeyebilir veya havale bilgilerini görebilirsiniz.",
+            'note' => 'Ödemenizi yaptıysanız bu hatırlatmayı dikkate almayın; ödemeniz işlendiğinde hesabınız güncellenir.',
         ],
         'announcement' => [
             'label' => 'Duyuru (bayilere)',

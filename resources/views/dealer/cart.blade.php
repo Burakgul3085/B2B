@@ -131,16 +131,17 @@
                                     $methodHints = [
                                         'card' => 'Onaydan sonra onaylanan tutarı kartla ödersiniz (iyzico güvenli ödeme).',
                                         'transfer' => 'Onaydan sonra hesap bilgilerimizi görür, havale / EFT ile ödersiniz.',
-                                        'open_account' => 'Ödeme yapmadan; tutar cari hesabınıza borç yazılır.',
-                                        'on_delivery' => 'Teslimatta nakit veya kartla (POS) ödersiniz.',
                                     ];
+                                    $methodHints['pay_later'] = $payLaterBlock ?? 'Şimdi ödemezsiniz; son ödeme günü teslimatla belli olur. Kartla, havaleyle veya teslimatta nakit / POS ile ödersiniz.';
+                                    $selectable = array_keys(array_filter($paymentMethods, fn ($v, $k) => $k !== 'pay_later' || ! $payLaterBlock, ARRAY_FILTER_USE_BOTH));
                                 @endphp
                                 <fieldset class="space-y-2">
                                     <legend class="mb-1.5 text-sm font-medium">Ödeme yöntemi</legend>
                                     @foreach ($paymentMethods as $key => $label)
-                                        <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 text-sm has-checked:border-primary has-checked:bg-primary-soft/40">
-                                            <input type="radio" name="payment_method" value="{{ $key }}" @checked(old('payment_method', array_key_first($paymentMethods)) === $key) class="mt-0.5">
-                                            <span><b>{{ $label }}</b><span class="block text-muted">{{ $methodHints[$key] }}</span></span>
+                                        @php $blocked = ! in_array($key, $selectable, true); @endphp
+                                        <label @class(['flex gap-3 rounded-lg border border-line p-3 text-sm', 'cursor-pointer has-checked:border-primary has-checked:bg-primary-soft/40' => ! $blocked, 'opacity-70' => $blocked])>
+                                            <input type="radio" name="payment_method" value="{{ $key }}" @checked(! $blocked && old('payment_method', $selectable[0] ?? null) === $key) @disabled($blocked) class="mt-0.5">
+                                            <span><b>{{ $label }}</b><span @class(['block', 'text-muted' => ! $blocked, 'text-red-700' => $blocked])>{{ $methodHints[$key] }}</span></span>
                                         </label>
                                     @endforeach
                                 </fieldset>

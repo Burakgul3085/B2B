@@ -81,11 +81,12 @@ class PaymentSettings
             return [];
         }
 
-        return array_intersect_key(Order::PAYMENT_METHODS, array_filter([
+        $labels = array_replace(Order::PAYMENT_METHODS, ['pay_later' => $relationship->payLaterLabel()]);
+
+        return array_intersect_key($labels, array_filter([
             'card' => $this->cardAvailable(),
             'transfer' => $this->transferAvailable(),
-            'open_account' => $relationship->allow_open_account,
-            'on_delivery' => $relationship->allow_on_delivery,
+            'pay_later' => $relationship->allow_pay_later,
         ]));
     }
 

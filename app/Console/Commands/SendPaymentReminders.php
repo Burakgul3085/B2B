@@ -11,7 +11,8 @@ use App\Models\EmailSetting;
 use Illuminate\Console\Command;
 
 /**
- * Haftalık vade hatırlatması: vadesi geçmiş veya 7 gün içinde vadesi gelecek borcu olan bayilere.
+ * Günlük ödeme hatırlatması (docs/03 §6.1): bir borcun son ödeme gününe 3 gün kaldığında, son gün ve geciktiğinde
+ * (1. gün, sonra haftada bir) bayiye e-posta. Aynı gün bir bayiye en fazla bir e-posta gider.
  * Yalnızca hatırlatmayı açmış ve e-posta ayarı doğrulanmış işletmeler için çalışır.
  */
 class SendPaymentReminders extends Command
@@ -31,7 +32,9 @@ class SendPaymentReminders extends Command
                     ->filter(fn ($a) => $a->relationship->isActive());
 
                 foreach ($analysis->agingMany($accounts) as $accountId => $aging) {
-                    if (bccomp($aging['overdue'], '0', 2) > 0 || bccomp($aging['due_soon'], '0', 2) > 0) {
+                    $due = $aging['items']->contains(fn ($i) => in_array($i['days_left'], [3, 0], true)
+                        || ($i['bucket'] === 'overdue' && $i['days_overdue'] % 7 === 1));
+                    if ($due) {
                         $notifier->paymentReminder($accounts->firstWhere('id', $accountId)->relationship, $aging['overdue'], $aging['due_soon']);
                         $sent++;
                     }

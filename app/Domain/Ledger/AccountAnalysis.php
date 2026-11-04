@@ -7,83 +7,74 @@ use App\Models\CurrentAccount;
 use App\Models\CurrentAccountMovement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Vade yaşlandırma ve ekstre (docs/03-is-kurallari.md §6, C9). Hiçbir şey saklanmaz; her şey hareketlerden türetilir.
  *
- * FIFO eşleştirme: alacaklar (tahsilat, iade, alacak düzeltmesi, açılıştaki alacak) en eski vadeli borçtan başlayarak
- * kapatılır. Birbirini ters çeviren hareket çiftleri (iptal edilen sipariş/tahsilat) hesaba katılmaz.
+ * Eşleştirme: siparişe bağlı alacak (o siparişin kart / havale ödemesi, iadesi) önce o siparişin borcunu kapatır;
+ * artanı ve siparişe bağlı olmayan alacaklar (toplu ödeme, alacak düzeltmesi, açılıştaki alacak) en eski vadeli
+ * borçtan başlayarak kapatır (FIFO). Birbirini ters çeviren hareket çiftleri (iptal edilen sipariş/tahsilat) hesaba
+ * katılmaz. Sonra öde siparişinin vadesi siparişten okunur: teslimde yazılan son ödeme tarihi; teslim edilmediyse
+ * "teslim bekleniyor" (vadesi gelmemiş sayılır, sırada en sona kalır).
  */
 class AccountAnalysis
 {
     public const DUE_SOON_DAYS = 7;
+
+    private const PENDING_DUE = '9999-12-31';
 
     /**
      * @return array{overdue: string, due_soon: string, not_due: string, open: string, credit: string, items: Collection}
      */
     public function aging(CurrentAccount $account, ?string $asOf = null): array
     {
-        return $this->agingFromMovements(CurrentAccountMovement::where('current_account_id', $account->id)->orderBy('id')->get(), $asOf);
+        return $this->agingFromMovements($this->movements([$account->id])->get($account->id, collect()), $asOf);
     }
 
     /**
-     * Birden çok hesap için yaşlandırma (cari listesi, dashboard, rapor, hatırlatma) — tek SQL sorgusu.
+     * Birden çok hesap için yaşlandırma (cari listesi, dashboard, rapor, hatırlatma). Yalnızca borç bakiyeli
+     * hesapların hareketleri tek sorguda yüklenir.
      *
-     * FIFO'da alacaklar en eski vadeden kapatıldığı için açık kalan borçlar, vadesi en yeni olan (ters
-     * çevrilmemiş) borçlardır ve toplamları bakiyeye eşittir (ters kayıt çiftleri bakiyede birbirini sıfırlar).
-     * Bu yüzden bütün hareketleri yüklemek yerine borçlar vade sırasıyla tersten toplanır ve bakiyeyi
-     * dolduran kısım alınır. Sonuç agingFromMovements() ile birebir aynıdır (AccountAgingEquivalenceTest).
-     *
-     * @return array<int, array> hesap ID'sine göre; items içinde movement modeli yerine movement_id bulunur
+     * @return array<int, array> hesap ID'sine göre
      */
     public function agingMany(Collection $accounts, ?string $asOf = null): array
     {
-        $today = $asOf ?? LocalTime::today();
-        $soon = Carbon::parse($today)->addDays(self::DUE_SOON_DAYS)->toDateString();
-        $result = $accounts->mapWithKeys(fn ($a) => [$a->id => [
-            'overdue' => '0.00', 'due_soon' => '0.00', 'not_due' => '0.00', 'open' => '0.00',
-            'credit' => bccomp((string) $a->balance, '0', 2) < 0 ? bcmul((string) $a->balance, '-1', 2) : '0.00',
-            'items' => collect(),
-        ]])->all();
+        $positive = $accounts->filter(fn ($a) => bccomp((string) $a->balance, '0', 2) > 0)->pluck('id')->all();
+        $movements = $positive === [] ? collect() : $this->movements($positive);
 
-        $positive = $accounts->filter(fn ($a) => bccomp((string) $a->balance, '0', 2) > 0)->pluck('id')->values()->all();
-        if ($positive === []) {
-            return $result;
+        return $accounts->mapWithKeys(fn ($a) => [$a->id => in_array($a->id, $positive, true)
+            ? $this->agingFromMovements($movements->get($a->id, collect()), $asOf)
+            : [
+                'overdue' => '0.00', 'due_soon' => '0.00', 'not_due' => '0.00', 'open' => '0.00',
+                'credit' => bccomp((string) $a->balance, '0', 2) < 0 ? bcmul((string) $a->balance, '-1', 2) : '0.00',
+                'items' => collect(),
+            ]])->all();
+    }
+
+    /**
+     * Hesap başına toplam borç (siparişler) ve alacak (ödeme ve iadeler); birbirini ters çeviren çiftler (iptaller) hariç.
+     *
+     * @param  list<int>  $accountIds
+     * @return array<int, array{debit: string, credit: string}>
+     */
+    public function totals(array $accountIds): array
+    {
+        if ($accountIds === []) {
+            return [];
         }
 
-        $placeholders = implode(',', array_fill(0, count($positive), '?'));
-        $rows = DB::select("
-            SELECT r.id, r.current_account_id, r.debit, r.due, r.cum, ca.balance
-            FROM (
-                SELECT m.id, m.current_account_id, m.debit, COALESCE(m.due_date, m.movement_date) AS due,
-                       SUM(m.debit) OVER (PARTITION BY m.current_account_id ORDER BY COALESCE(m.due_date, m.movement_date) DESC, m.id DESC) AS cum
-                FROM current_account_movements m
-                WHERE m.current_account_id IN ({$placeholders}) AND m.debit > 0 AND m.reverses_movement_id IS NULL
-                  AND NOT EXISTS (SELECT 1 FROM current_account_movements r WHERE r.reverses_movement_id = m.id)
-            ) r
-            JOIN current_accounts ca ON ca.id = r.current_account_id
-            WHERE r.cum - r.debit < ca.balance
-            ORDER BY r.current_account_id, r.due, r.id", $positive);
+        return CurrentAccountMovement::query()->whereIn('current_account_id', $accountIds)->whereNull('reverses_movement_id')
+            ->whereNotExists(fn ($q) => $q->from('current_account_movements as r')->whereColumn('r.reverses_movement_id', 'current_account_movements.id'))
+            ->groupBy('current_account_id')->selectRaw('current_account_id, SUM(debit) d, SUM(credit) c')->get()
+            ->mapWithKeys(fn ($r) => [$r->current_account_id => ['debit' => bcadd((string) $r->d, '0', 2), 'credit' => bcadd((string) $r->c, '0', 2)]])->all();
+    }
 
-        foreach ($rows as $row) {
-            // Bakiyeyi dolduran borcun yalnızca kalan kısmı açıktır.
-            $open = bcsub((string) $row->balance, bcsub((string) $row->cum, (string) $row->debit, 2), 2);
-            $open = bccomp($open, (string) $row->debit, 2) > 0 ? bcadd((string) $row->debit, '0', 2) : $open;
-            $due = Carbon::parse($row->due)->toDateString();
-            $bucket = $due < $today ? 'overdue' : ($due <= $soon ? 'due_soon' : 'not_due');
-
-            $aging = &$result[$row->current_account_id];
-            $aging[$bucket] = bcadd($aging[$bucket], $open, 2);
-            $aging['open'] = bcadd($aging['open'], $open, 2);
-            $aging['items']->push([
-                'movement_id' => $row->id, 'open' => $open, 'due' => $due, 'bucket' => $bucket,
-                'days_overdue' => $bucket === 'overdue' ? Carbon::parse($due)->diffInDays(Carbon::parse($today)) : 0,
-            ]);
-            unset($aging);
-        }
-
-        return $result;
+    /** Siparişlerin açık kalan tutarı (yalnızca açık olanlar): sipariş ID'si => tutar. */
+    public function openByOrder(CurrentAccount $account): array
+    {
+        return $this->aging($account)['items']
+            ->filter(fn ($i) => $i['movement']->type === 'order_debit' && $i['movement']->order_id)
+            ->mapWithKeys(fn ($i) => [$i['movement']->order_id => $i['open']])->all();
     }
 
     public function agingFromMovements(Collection $movements, ?string $asOf = null): array
@@ -96,36 +87,49 @@ class AccountAnalysis
         $effective = $movements->reject(fn ($m) => $m->reverses_movement_id !== null || $reversed->has($m->id));
 
         $debits = $effective->filter(fn ($m) => bccomp((string) $m->debit, '0', 2) > 0)
-            ->sortBy(fn ($m) => ($m->due_date ?? $m->movement_date)->toDateString().'-'.str_pad((string) $m->id, 12, '0', STR_PAD_LEFT))
+            ->sortBy(fn ($m) => $this->dueOf($m).'-'.str_pad((string) $m->id, 12, '0', STR_PAD_LEFT))
             ->values();
-        $credit = $effective->reduce(fn ($c, $m) => bcadd($c, (string) $m->credit, 2), '0.00');
+        $open = $debits->mapWithKeys(fn ($m) => [$m->id => bcadd((string) $m->debit, '0', 2)])->all();
+        $orderDebits = $debits->filter(fn ($m) => $m->type === 'order_debit' && $m->order_id)->keyBy('order_id');
 
-        $remainingCredit = $credit;
+        // 1) Siparişe bağlı alacaklar önce o siparişi kapatır; artan genel alacağa geçer.
+        $general = '0.00';
+        foreach ($effective->filter(fn ($m) => bccomp((string) $m->credit, '0', 2) > 0) as $c) {
+            $amount = bcadd((string) $c->credit, '0', 2);
+            if ($c->order_id && ($d = $orderDebits->get($c->order_id))) {
+                $applied = bccomp($amount, $open[$d->id], 2) >= 0 ? $open[$d->id] : $amount;
+                $open[$d->id] = bcsub($open[$d->id], $applied, 2);
+                $amount = bcsub($amount, $applied, 2);
+            }
+            $general = bcadd($general, $amount, 2);
+        }
+
+        // 2) Genel alacak en eski vadeden başlayarak (FIFO).
         $totals = ['overdue' => '0.00', 'due_soon' => '0.00', 'not_due' => '0.00'];
         $items = collect();
-
         foreach ($debits as $m) {
-            $amount = (string) $m->debit;
-            $applied = bccomp($remainingCredit, $amount, 2) >= 0 ? $amount : $remainingCredit;
-            $remainingCredit = bcsub($remainingCredit, $applied, 2);
-            $open = bcsub($amount, $applied, 2);
-
-            if (bccomp($open, '0', 2) <= 0) {
+            $applied = bccomp($general, $open[$m->id], 2) >= 0 ? $open[$m->id] : $general;
+            $general = bcsub($general, $applied, 2);
+            $left = bcsub($open[$m->id], $applied, 2);
+            if (bccomp($left, '0', 2) <= 0) {
                 continue;
             }
 
-            $due = ($m->due_date ?? $m->movement_date)->toDateString();
-            $bucket = $due < $today ? 'overdue' : ($due <= $soon ? 'due_soon' : 'not_due');
-            $totals[$bucket] = bcadd($totals[$bucket], $open, 2);
+            $due = $this->dueOf($m);
+            $pending = $due === self::PENDING_DUE;
+            $bucket = $pending ? 'not_due' : ($due < $today ? 'overdue' : ($due <= $soon ? 'due_soon' : 'not_due'));
+            $totals[$bucket] = bcadd($totals[$bucket], $left, 2);
             $items->push([
-                'movement' => $m, 'open' => $open, 'due' => $due, 'bucket' => $bucket,
-                'days_overdue' => $bucket === 'overdue' ? Carbon::parse($due)->diffInDays(Carbon::parse($today)) : 0,
+                'movement' => $m, 'movement_id' => $m->id, 'order' => $m->type === 'order_debit' ? $m->order : null,
+                'open' => $left, 'due' => $pending ? null : $due, 'pending' => $pending, 'bucket' => $bucket,
+                'days_overdue' => $bucket === 'overdue' ? (int) Carbon::parse($due)->diffInDays(Carbon::parse($today)) : 0,
+                'days_left' => ! $pending && $due >= $today ? (int) Carbon::parse($today)->diffInDays(Carbon::parse($due)) : null,
             ]);
         }
 
         return $totals + [
             'open' => bcadd(bcadd($totals['overdue'], $totals['due_soon'], 2), $totals['not_due'], 2),
-            'credit' => $remainingCredit, // borçları aşan alacak (bayinin alacağı)
+            'credit' => $general, // borçları aşan alacak (bayinin alacağı)
             'items' => $items,
         ];
     }
@@ -155,5 +159,23 @@ class AccountAnalysis
         });
 
         return ['opening' => $opening, 'rows' => $rows, 'closing' => $running, 'debit_total' => $debitTotal, 'credit_total' => $creditTotal];
+    }
+
+    /** @param  list<int>  $accountIds */
+    private function movements(array $accountIds): Collection
+    {
+        return CurrentAccountMovement::whereIn('current_account_id', $accountIds)
+            ->with('order:id,business_id,order_no,status,payment_method,payment_status,payment_term_days,payment_due_on,grand_total,completed_at')
+            ->orderBy('id')->get()->groupBy('current_account_id');
+    }
+
+    /** Sonra öde siparişinin vadesi siparişten (teslimde yazılır); diğerlerinde hareketin vadesi. */
+    private function dueOf(CurrentAccountMovement $m): string
+    {
+        if ($m->type === 'order_debit' && $m->order?->payment_method === 'pay_later') {
+            return $m->order->payment_due_on?->toDateString() ?? self::PENDING_DUE;
+        }
+
+        return ($m->due_date ?? $m->movement_date)->toDateString();
     }
 }

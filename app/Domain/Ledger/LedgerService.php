@@ -22,21 +22,26 @@ use Illuminate\Support\Facades\DB;
  */
 class LedgerService
 {
-    public function __construct(private CurrentActor $actor, private AuditLogger $audit) {}
+    public function __construct(private CurrentActor $actor, private AuditLogger $audit, private AccountAnalysis $analysis) {}
 
     /** Sipariş borcu. Çağıran transaction açmış olmalı. */
     public function postOrderDebit(Order $order): CurrentAccountMovement
     {
         $this->assertInTransaction();
         $account = $this->lockAccount($order->dealer_relationship_id);
-        $termDays = (int) $order->relationship->payment_term_days;
+        // Kart / havale peşindir; sonra öde siparişinin vadesi teslimde siparişe yazılır (yaşlandırma oradan okur).
+        $due = match ($order->payment_method) {
+            'card', 'transfer' => LocalTime::today(),
+            'pay_later' => $order->payment_due_on?->toDateString(),
+            default => now()->addDays((int) $order->relationship->payment_term_days)->toDateString(),
+        };
 
         return $this->write($account, [
             'type' => 'order_debit',
             'debit' => (string) $order->grand_total,
             'credit' => '0',
             'movement_date' => LocalTime::today(),
-            'due_date' => now()->addDays($termDays)->toDateString(),
+            'due_date' => $due,
             'order_id' => $order->id,
             'description' => "Sipariş {$order->order_no}",
             'source_key' => "order:{$order->id}:debit",
@@ -139,6 +144,7 @@ class LedgerService
                 'source_key' => "opening:{$account->id}",
             ]);
             $this->audit->log('ledger.opening_set', $movement, [], ['amount' => $amount, 'date' => $date]);
+            $this->settleOrders($account);
 
             return $movement;
         });
@@ -166,15 +172,20 @@ class LedgerService
                 'description' => $note,
             ]);
             $this->audit->log('ledger.adjusted', $movement, [], compact('direction', 'amount', 'date', 'note'));
+            $this->settleOrders($account);
 
             return $movement;
         });
     }
 
-    /** Manuel tahsilat (C4): tahsilat kaydı + alacak hareketi + bakiye tek transaction'da. */
-    public function recordCollection(CurrentAccount $account, array $data, ?int $userId): CollectionEntry
+    /**
+     * Tahsilat (C4): tahsilat kaydı + alacak hareketi + bakiye tek transaction'da.
+     *
+     * @param  bool  $settle  false: siparişin kendi ödemesi (durumu çağıran günceller)
+     */
+    public function recordCollection(CurrentAccount $account, array $data, ?int $userId, bool $settle = true): CollectionEntry
     {
-        return DB::transaction(function () use ($account, $data, $userId) {
+        return DB::transaction(function () use ($account, $data, $userId, $settle) {
             $account = $this->lockAccount($account->dealer_relationship_id);
 
             if (! empty($data['order_id']) && ! Order::where('id', $data['order_id'])->where('dealer_relationship_id', $account->dealer_relationship_id)->exists()) {
@@ -202,6 +213,9 @@ class LedgerService
                 'source_key' => "collection:{$collection->id}",
             ]);
             $this->audit->log('ledger.collection_recorded', $collection, [], ['amount' => (string) $collection->amount, 'method' => $collection->method]);
+            if ($settle) {
+                $this->settleOrders($account);
+            }
 
             return $collection;
         });
@@ -234,7 +248,40 @@ class LedgerService
 
             $collection->forceFill(['cancelled_at' => now(), 'cancel_reason' => $reason])->save();
             $this->audit->log('ledger.collection_cancelled', $collection, [], ['reason' => $reason]);
+            $this->settleOrders($account);
         });
+    }
+
+    /**
+     * Cari eşleştirmesine göre siparişlerin ödeme durumunu günceller (toplu ödeme, düzeltme, tahsilat iptali sonrası):
+     * borcu tamamen kapanan ve ödeme bekleyen sipariş "Ödendi" olur; kendi ödeme kaydı olmadan ödendi sayılmış
+     * sipariş yeniden açılırsa (ör. toplu ödeme iptal edildi) tekrar ödeme beklenir. Çağıran transaction açmış olmalı.
+     */
+    public function settleOrders(CurrentAccount $account): void
+    {
+        $this->assertInTransaction();
+        $orders = Order::where('dealer_relationship_id', $account->dealer_relationship_id)
+            ->whereIn('payment_method', ['card', 'transfer', 'pay_later'])
+            ->whereNotNull('ledger_applied_at')->whereNull('ledger_reversed_at')
+            ->whereNotIn('status', ['rejected', 'cancelled'])
+            ->where(fn ($q) => $q->where('payment_status', 'awaiting')
+                ->orWhere(fn ($q) => $q->where('payment_status', 'paid')->whereDoesntHave('payments', fn ($p) => $p->whereIn('status', ['succeeded', 'refunded']))))
+            ->lockForUpdate()->get();
+        if ($orders->isEmpty()) {
+            return;
+        }
+
+        $open = $this->analysis->openByOrder($account);
+        foreach ($orders as $order) {
+            $covered = ! isset($open[$order->id]);
+            if ($order->payment_status === 'awaiting' && $covered) {
+                $order->update(['payment_status' => 'paid', 'paid_at' => now()]);
+                $this->audit->log('order.paid', $order, ['payment_status' => 'awaiting'], ['via' => 'cari']);
+            } elseif ($order->payment_status === 'paid' && ! $covered) {
+                $order->update(['payment_status' => 'awaiting', 'paid_at' => null]);
+                $this->audit->log('order.payment_reopened', $order, ['payment_status' => 'paid'], ['via' => 'cari']);
+            }
+        }
     }
 
     public function lockAccount(int $relationshipId): CurrentAccount

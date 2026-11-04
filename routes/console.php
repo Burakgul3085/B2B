@@ -25,7 +25,7 @@ Schedule::call(fn () => app(OpsStatus::class)->recordScheduler())->everyMinute()
 Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('ops:queue-heartbeat');
 
 // Haftalık vade hatırlatması (yalnızca hatırlatmayı açmış işletmeler).
-Schedule::command('ledger:send-reminders')->weeklyOn(1, '09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
+Schedule::command('ledger:send-reminders')->dailyAt('09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
 
 // Gece yedeği: veritabanı + yüklenen dosyalar (Platform → Yedekler). Son BACKUP_KEEP yedek saklanır.
 Artisan::command('backup:run', function () {

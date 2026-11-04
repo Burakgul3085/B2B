@@ -64,8 +64,7 @@
                 ['label' => 'Duyurular', 'route' => 'business.announcements.index', 'icon' => 'file', 'active' => 'business.announcements.*'],
             ]))],
             ['label' => 'Finans', 'items' => [
-                ['label' => 'Cari Hesaplar', 'route' => 'business.accounts.index', 'icon' => 'users', 'active' => 'business.accounts.*'],
-                ['label' => 'Tahsilatlar', 'route' => 'business.collections.index', 'icon' => 'check-circle', 'active' => 'business.collections.*'],
+                ['label' => 'Cari Hesaplar', 'route' => 'business.accounts.index', 'icon' => 'users', 'active' => ['business.accounts.*', 'business.collections.*']],
             ]],
             ['items' => array_values(array_filter([
                 ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'business.reports.index', 'icon' => 'layers', 'active' => 'business.reports.*'] : null,

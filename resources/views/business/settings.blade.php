@@ -56,7 +56,7 @@
                 <x-field name="ledger_post_on" label="Cari borç ne zaman oluşsun?" :value="$settings->ledger_post_on"
                     :options="['approval' => 'Sipariş onaylandığında', 'completion' => 'Sipariş tamamlandığında']"
                     hint="Her sipariş için cari borç yalnızca bir kez oluşur." />
-                <x-field name="default_payment_term_days" label="Varsayılan vade (gün)" type="number" min="0" max="365" :value="$settings->default_payment_term_days" required />
+                <x-field name="default_payment_term_days" label="Varsayılan sonra öde süresi (gün)" type="number" min="0" max="365" :value="$settings->default_payment_term_days" required hint="Yeni bayiye önerilen süre; teslimden itibaren sayılır." />
             </div>
             <div class="mt-5 flex flex-wrap items-start justify-between gap-3 border-t border-line pt-5">
                 <x-toggle name="order_alarm" label="Panelde sesli sipariş alarmı" :checked="$settings->order_alarm"

@@ -266,11 +266,11 @@ class Notifier
     public function paymentReminder(DealerRelationship $rel, string $overdue, string $dueSoon): EmailLog
     {
         $url = route('dealer.account.statement');
-        $this->toDealer($rel, 'ledger', 'Cari hesap vade hatırlatması', 'Vadesi geçmiş: '.Money::format($overdue).' · Yaklaşan: '.Money::format($dueSoon), $url);
+        $this->toDealer($rel, 'ledger', 'Ödeme hatırlatması', 'Son günü geçen: '.Money::format($overdue).' · 7 gün içinde: '.Money::format($dueSoon), $url);
 
         return $this->mailer->queue('payment_reminder', $this->dealerEmail($rel),
-            ['gecikmis' => Money::format($overdue), 'yaklasan' => Money::format($dueSoon)], ['url' => $url, 'label' => 'Ekstreyi görüntüle'],
-            ['Vadesi geçmiş' => Money::format($overdue), '7 gün içinde' => Money::format($dueSoon)], 'dealer_relationship', $rel->id);
+            ['gecikmis' => Money::format($overdue), 'yaklasan' => Money::format($dueSoon)], ['url' => $url, 'label' => 'Cari hesabıma git'],
+            ['Son günü geçen' => Money::format($overdue), '7 gün içinde' => Money::format($dueSoon)], 'dealer_relationship', $rel->id);
     }
 
     public function announcement(Announcement $announcement): int

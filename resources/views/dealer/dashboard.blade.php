@@ -26,7 +26,7 @@
                 <h1 class="truncate text-2xl font-bold tracking-tight">{{ $dealer->legal_name }}</h1>
                 <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/80">
                     <span>Bayi kodu <b class="font-semibold text-white">{{ $relationship->dealer_code }}</b></span>
-                    <span>· Ödeme vadesi {{ $relationship->payment_term_days }} gün</span>
+                    @if ($relationship->allow_pay_later)<span>· {{ $relationship->payLaterLabel() }}</span>@endif
                     @if ($relationship->approved_at)<span>· {{ $relationship->approved_at->timezone('Europe/Istanbul')->translatedFormat('F Y') }}'den beri bayimiz</span>@endif
                 </p>
             </div>

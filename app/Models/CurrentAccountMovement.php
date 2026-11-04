@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 /** Cari hareketi: yalnızca eklenir. Düzeltme ters kayıtla yapılır. */
@@ -28,6 +29,11 @@ class CurrentAccountMovement extends Model
     protected function casts(): array
     {
         return ['debit' => 'decimal:2', 'credit' => 'decimal:2', 'movement_date' => 'date', 'due_date' => 'date', 'created_at' => 'datetime'];
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     protected static function booted(): void

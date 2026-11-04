@@ -9,6 +9,7 @@ use App\Domain\Inventory\Quantity;
 use App\Domain\Inventory\StockService;
 use App\Domain\Ledger\LedgerService;
 use App\Domain\Payments\OrderPaymentService;
+use App\Domain\Payments\PayLaterPolicy;
 use App\Domain\Payments\PaymentSettings;
 use App\Domain\Pricing\PromotionService;
 use App\Domain\Support\LocalTime;
@@ -17,6 +18,7 @@ use App\Domain\Tenancy\TenantContext;
 use App\Models\BusinessCounter;
 use App\Models\BusinessSetting;
 use App\Models\CartItem;
+use App\Models\CurrentAccount;
 use App\Models\DealerAddress;
 use App\Models\DealerRelationship;
 use App\Models\Order;
@@ -52,6 +54,7 @@ class OrderService
         private PaymentSettings $paymentSettings,
         private OrderPaymentService $payments,
         private PromotionService $promotions,
+        private PayLaterPolicy $payLater,
     ) {}
 
     /**
@@ -95,6 +98,10 @@ class OrderService
             }
 
             $totals = $this->withDeliveryFee($summary['totals']);
+            $payLater = $methods !== [] && $paymentMethod === 'pay_later';
+            if ($payLater && ($reason = $this->payLater->blockReason($relationship, (string) $totals['grand_total']))) {
+                throw new DomainException($reason);
+            }
             $applied = $summary['promotion']['applied'];
             if ($summary['promotion']['code'] !== null && $summary['promotion']['error'] !== null) {
                 throw new DomainException('Kupon: '.$summary['promotion']['error'].' Kodu kaldırın veya düzeltin.');
@@ -107,6 +114,7 @@ class OrderService
                 'warehouse_id' => $warehouseId,
                 ...$totals,
                 'payment_method' => $methods === [] ? null : $paymentMethod,
+                'payment_term_days' => $payLater ? (int) $relationship->payment_term_days : null,
                 'dealer_note' => $note,
                 'ship_address_id' => $address->id,
                 'ship_title' => $address->title,
@@ -263,8 +271,8 @@ class OrderService
             $order->fill($this->withDeliveryFee(LineCalculator::totals($items->map->only(['line_subtotal', 'line_discount', 'order_discount', 'line_net', 'line_vat', 'line_total']))));
             $order->fill([
                 'requested_total' => $requested,
-                // Onaylanan tutar ödenir: kart, havale ve teslimde ödemede ödeme beklenir; açık hesapta beklenmez.
-                'payment_status' => in_array($order->payment_method, ['card', 'transfer', 'on_delivery'], true) ? 'awaiting' : null,
+                // Onaylanan tutar ödenir: kart, havale, sonra öde ve (eski) teslimde ödemede ödeme beklenir; açık hesapta beklenmez.
+                'payment_status' => in_array($order->payment_method, ['card', 'transfer', 'pay_later', 'on_delivery'], true) ? 'awaiting' : null,
                 'status' => 'approved',
                 'is_partial' => $isPartial,
                 'warehouse_id' => $warehouse->id,
@@ -280,6 +288,7 @@ class OrderService
             if ($this->ledgerPostOn() === 'approval') {
                 $this->ledger->postOrderDebit($order);
                 $order->forceFill(['ledger_applied_at' => now()])->save();
+                $this->settleFromCredit($order);
             }
 
             $this->history($order, $from, 'approved', $isPartial ? 'Kısmi onay' : null);
@@ -312,19 +321,26 @@ class OrderService
         return DB::transaction(function () use ($order) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             OrderStateMachine::assert($order->status, 'completed');
-            if ($order->awaitingPayment()) {
+            // Sonra öde siparişi ödenmeden teslim edilir; son ödeme tarihi teslimden sayılır.
+            if ($order->awaitingPayment() && ! $order->isPayLater()) {
                 throw new DomainException('Ödemesi alınmamış sipariş tamamlanamaz. Ödemeyi aldıysanız önce "Ödeme alındı" ile kaydedin.');
             }
+            $this->setPaymentDue($order);
 
+            $posted = false;
             if ($this->ledgerPostOn() === 'completion' && $order->ledger_applied_at === null) {
                 $this->ledger->postOrderDebit($order);
                 $order->ledger_applied_at = now();
+                $posted = true;
             }
 
             $from = $order->status;
             $order->fill(['status' => 'completed', 'completed_at' => now()])->save();
             $this->history($order, $from, 'completed');
             $this->audit->log('order.completed', $order, ['status' => $from]);
+            if ($posted) {
+                $this->settleFromCredit($order);
+            }
 
             return $order;
         });
@@ -390,6 +406,7 @@ class OrderService
         if ($order->status !== 'shipped') {
             return $order;
         }
+        $this->setPaymentDue($order);
         if ($this->ledgerPostOn() === 'completion' && $order->ledger_applied_at === null) {
             $this->ledger->postOrderDebit($order);
             $order->ledger_applied_at = now();
@@ -481,6 +498,23 @@ class OrderService
         $fee = $this->paymentSettings->deliveryFee((string) $totals['grand_total']);
 
         return ['delivery_fee' => $fee, 'grand_total' => bcadd((string) $totals['grand_total'], $fee, 2)] + $totals;
+    }
+
+    /** Sonra öde: teslimde (tamamlanınca) son ödeme tarihi = bugün + siparişteki süre. */
+    private function setPaymentDue(Order $order): void
+    {
+        if ($order->isPayLater() && $order->payment_due_on === null) {
+            $order->payment_due_on = LocalTime::now()->addDays((int) $order->payment_term_days)->toDateString();
+        }
+    }
+
+    /** Bayinin carisinde artan alacak varsa yeni yazılan sipariş borcu onunla kapanır (ödeme beklenmez). */
+    private function settleFromCredit(Order $order): void
+    {
+        if ($order->awaitingPayment()) {
+            $this->ledger->settleOrders(CurrentAccount::where('dealer_relationship_id', $order->dealer_relationship_id)->firstOrFail());
+            $order->refresh();
+        }
     }
 
     private function ledgerPostOn(): string

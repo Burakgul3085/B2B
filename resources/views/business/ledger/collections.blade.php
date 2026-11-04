@@ -1,6 +1,7 @@
 @php use App\Domain\Support\Money; use App\Models\CollectionEntry; @endphp
-<x-layouts.panel :area="\App\Domain\Auth\Area::Business" title="Tahsilatlar">
-    <x-page-header title="Tahsilatlar" subtitle="Elle kaydedilen tahsilatlar. İptal edilen tahsilat silinmez; cariye ters kayıt yazılır." />
+<x-layouts.panel :area="\App\Domain\Auth\Area::Business" title="Gelen ödemeler">
+    <x-page-header title="Cari Hesaplar" subtitle="Bayilerden gelen ödemeler. İptal edilen ödeme silinmez; cariye ters kayıt yazılır." />
+    @include('business.ledger._tabs')
 
     @error('ledger')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
@@ -15,12 +16,23 @@
                 <x-button variant="secondary" aria-label="Filtrele"><x-icon name="search" class="size-4" /></x-button>
             </div>
         </form>
-        <div class="flex items-center justify-between border-b border-line bg-slate-50/60 px-4 py-3 text-sm">
-            <span class="text-muted">Seçili dönemde geçerli tahsilat toplamı</span>
-            <span class="font-semibold tabular-nums">{{ Money::format($total) }}</span>
+        <div class="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-5">
+            <div class="bg-slate-50/60 px-4 py-3 sm:col-span-1">
+                <p class="text-xs text-muted">Dönem toplamı</p>
+                <p class="text-lg font-bold tabular-nums">{{ Money::format($total) }}</p>
+            </div>
+            @foreach (['card_online' => 'Kart (iyzico)', 'transfer' => 'Havale / EFT', 'cash' => 'Nakit', 'card_pos' => 'Fiziki POS'] as $key => $label)
+                <div class="bg-white px-4 py-3">
+                    <p class="text-xs text-muted">{{ $label }}</p>
+                    <p class="font-semibold tabular-nums">{{ Money::format($byMethod[$key]) }}</p>
+                </div>
+            @endforeach
         </div>
+        @if (bccomp($byMethod['other'], '0', 2) > 0)
+            <p class="border-b border-line px-4 py-2 text-xs text-muted">Eski yöntemlerle (çek, senet vb.) kayıtlı: {{ Money::format($byMethod['other']) }}</p>
+        @endif
         @if ($collections->isEmpty())
-            <x-empty-state icon="check-circle" title="Bu dönemde tahsilat yok" text="Tahsilatı ilgili bayinin cari hesap sayfasından ekleyin." />
+            <x-empty-state icon="check-circle" title="Bu dönemde ödeme yok" text="Kart ödemeleri kendiliğinden gelir; havale, nakit ve POS ödemelerini siparişten veya bayinin cari sayfasından kaydedin." />
         @else
             <div class="overflow-x-auto">
                 <table class="table-base">
@@ -39,7 +51,7 @@
                                     @else
                                         <details class="text-left">
                                             <summary class="cursor-pointer text-sm text-danger">İptal</summary>
-                                            <form method="POST" action="{{ route('business.collections.cancel', $c) }}" class="mt-2 flex gap-2" data-confirm="Tahsilat iptal edilsin mi?">
+                                            <form method="POST" action="{{ route('business.collections.cancel', $c) }}" class="mt-2 flex gap-2" data-confirm="Ödeme kaydı iptal edilsin mi? Cariye ters kayıt yazılır.">
                                                 @csrf
                                                 <input name="reason" required maxlength="500" class="field-input w-40 py-1" placeholder="Neden" aria-label="İptal nedeni">
                                                 <x-button variant="danger" size="sm">İptal et</x-button>

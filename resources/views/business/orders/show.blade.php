@@ -153,6 +153,9 @@
                         @if (bccomp((string) $order->delivery_fee, '0', 2) > 0)
                             <div class="flex justify-between gap-3"><dt class="text-muted">Teslimat ücreti</dt><dd class="tabular-nums">{{ Money::format($order->delivery_fee) }}</dd></div>
                         @endif
+                        @if ($order->isPayLater() && $order->payment_status !== 'paid')
+                            <div class="flex justify-between gap-3"><dt class="text-muted">Son ödeme</dt><dd class="tabular-nums">{{ $order->payment_due_on?->format('d.m.Y') ?? 'Teslimde belli olur' }}</dd></div>
+                        @endif
                         @if ($order->paid_at)
                             <div class="flex justify-between gap-3"><dt class="text-muted">Ödeme zamanı</dt><dd class="tabular-nums">{{ $order->paid_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }}</dd></div>
                         @endif
@@ -168,16 +171,21 @@
                             @endforeach
                         </ul>
                     @endif
-                    @if ($order->awaitingPayment() && in_array($order->status, Order::ACTIVE_FULFILMENT, true))
+                    @if ($order->awaitingPayment() && (in_array($order->status, Order::ACTIVE_FULFILMENT, true) || $order->inPayableStatus()))
+                        @php $manualMethods = in_array($order->payment_method, ['pay_later', 'on_delivery'], true) ? OrderPayment::MANUAL_METHODS : ['transfer' => OrderPayment::MANUAL_METHODS['transfer']]; @endphp
                         <p class="mt-4 rounded-lg bg-warning-soft px-3 py-2 text-sm text-amber-900">
-                            Bayinin {{ Money::format($order->grand_total) }} ödemesi bekleniyor.
-                            {{ in_array($order->payment_method, ['card', 'transfer'], true) ? 'Ödeme alınmadan sipariş hazırlanamaz.' : 'Teslimde ödemeyi alınca kaydedin; ödeme kaydedilmeden sipariş tamamlanamaz.' }}
+                            Bayinin {{ Money::format($dueAmount ?? $order->grand_total) }} ödemesi bekleniyor.
+                            {{ match ($order->payment_method) {
+                                'card', 'transfer' => 'Ödeme alınmadan sipariş hazırlanamaz.',
+                                'pay_later' => 'Sonra öde: sipariş ödenmeden teslim edilebilir. Teslimatta nakit / POS ile aldıysanız kaydedin.',
+                                default => 'Teslimde ödemeyi alınca kaydedin; ödeme kaydedilmeden sipariş tamamlanamaz.',
+                            } }}
                         </p>
                         <details class="mt-3" @if ($errors->has('paid_on') || $errors->has('method')) open @endif>
-                            <summary class="cursor-pointer text-sm font-medium text-primary">Ödeme alındı (havale / nakit / POS)</summary>
-                            <form method="POST" action="{{ route('business.orders.payments.store', $order) }}" class="mt-3 space-y-3" data-confirm="{{ Money::format($order->grand_total) }} ödeme alındı olarak kaydedilsin mi? Bayinin carisine tahsilat yazılacak.">
+                            <summary class="cursor-pointer text-sm font-medium text-primary">Ödeme alındı ({{ count($manualMethods) > 1 ? 'havale / nakit / POS' : 'havale' }})</summary>
+                            <form method="POST" action="{{ route('business.orders.payments.store', $order) }}" class="mt-3 space-y-3" data-confirm="{{ Money::format($dueAmount ?? $order->grand_total) }} ödeme alındı olarak kaydedilsin mi? Bayinin carisine tahsilat yazılacak.">
                                 @csrf
-                                <x-field name="method" label="Yöntem" :options="OrderPayment::MANUAL_METHODS" :value="old('method', $order->payment_method === 'transfer' ? 'transfer' : 'cash')" />
+                                <x-field name="method" label="Yöntem" :options="$manualMethods" :value="old('method', 'transfer')" />
                                 <x-field name="paid_on" label="Ödeme tarihi" type="date" :value="old('paid_on', now('Europe/Istanbul')->toDateString())" required />
                                 <x-field name="note" label="Not" placeholder="ör. dekont no" />
                                 <x-button size="sm" icon="check">Ödemeyi kaydet</x-button>
@@ -207,7 +215,7 @@
                         @if ($can('preparing') && $order->status === 'approved' && ! ($order->awaitingPayment() && in_array($order->payment_method, ['card', 'transfer'], true)))
                             <form method="POST" action="{{ route('business.orders.prepare', $order) }}">@csrf<x-button variant="secondary" size="sm">Hazırlanıyor</x-button></form>
                         @endif
-                        @if ($can('completed') && $order->status !== 'cancel_requested' && ! $order->awaitingPayment())
+                        @if ($can('completed') && $order->status !== 'cancel_requested' && ! ($order->awaitingPayment() && ! $order->isPayLater()))
                             <form method="POST" action="{{ route('business.orders.complete', $order) }}" data-confirm="Sipariş tamamlandı olarak kapatılsın mı?">@csrf<x-button size="sm" icon="check">Tamamlandı</x-button></form>
                         @endif
                     </div>
