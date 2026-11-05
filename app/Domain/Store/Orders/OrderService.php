@@ -62,10 +62,11 @@ class OrderService
             $this->event($order, 'paid', 'Ödeme alındı.'.$stockNote);
             if ($order->cart_id) {
                 // Yalnızca siparişe giren satırlar düşülür; ödeme sırasında sepete eklenen ürünler kalır.
-                $items = $order->items()->get(['variant_id', 'print_job_id']);
+                $items = $order->items()->get(['variant_id', 'print_job_id', 'payment_code_id']);
                 StoreCartItem::where('cart_id', $order->cart_id)->where(fn ($q) => $q
                     ->whereIn('variant_id', $items->pluck('variant_id')->filter()->all())
-                    ->orWhereIn('print_job_id', $items->pluck('print_job_id')->filter()->all()))->delete();
+                    ->orWhereIn('print_job_id', $items->pluck('print_job_id')->filter()->all())
+                    ->orWhereIn('payment_code_id', $items->pluck('payment_code_id')->filter()->all()))->delete();
             }
 
             return $order;

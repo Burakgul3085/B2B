@@ -202,6 +202,11 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::delete('kampanyalar/{storeDiscount}', [Admin\DiscountController::class, 'destroy'])->name('discounts.destroy');
             Route::post('kampanyalar/{storeDiscount}/kodlar', [Admin\DiscountController::class, 'generateCodes'])->middleware('throttle:10,1,store_admin.discounts.codes')->name('discounts.codes');
             Route::get('kampanyalar/{storeDiscount}/kodlar.csv', [Admin\DiscountController::class, 'exportCodes'])->name('discounts.codes.export');
+            // Özel ödeme kodları ve "Aradığınızı bulamadınız mı?" kutusu
+            Route::get('odeme-kodlari', [Admin\PaymentCodeController::class, 'index'])->name('payment-codes.index');
+            Route::post('odeme-kodlari', [Admin\PaymentCodeController::class, 'store'])->middleware('throttle:60,1,store_admin.payment-codes.store')->name('payment-codes.store');
+            Route::post('odeme-kodlari/{storePaymentCode}/iptal', [Admin\PaymentCodeController::class, 'cancel'])->name('payment-codes.cancel');
+            Route::put('odeme-kodlari/ayarlar', [Admin\PaymentCodeController::class, 'updateSettings'])->name('payment-codes.settings');
             Route::get('iadeler', [Admin\ReturnController::class, 'index'])->name('returns.index');
             Route::get('iadeler/{storeReturn}', [Admin\ReturnController::class, 'show'])->name('returns.show');
             Route::post('iadeler/{storeReturn}/onayla', [Admin\ReturnController::class, 'approve'])->name('returns.approve');
@@ -384,6 +389,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::delete('fotokopi/dosya/{token}', [Front\PrintController::class, 'destroy'])->name('print.destroy');
         Route::post('fotokopi/dosya/{token}/fiyat', [Front\PrintController::class, 'quote'])->middleware('throttle:240,1,print.quote')->name('print.quote');
         Route::post('fotokopi/dosya/{token}/sepet', [Front\PrintController::class, 'add'])->middleware('throttle:60,1,print.add')->name('print.add');
+
+        // Özel ödeme kodu: tutarı yönetici belirler; müşteri kodu girer (kaba kuvvete karşı sınırlı).
+        Route::post('odeme-kodu', [Front\PaymentCodeController::class, 'add'])->middleware(['throttle:10,1,payment-code.add', 'store.bot:0'])->name('payment-code.add');
 
         Route::get('sepet', [Front\CartController::class, 'show'])->name('cart');
         Route::get('sepet/cekmece', [Front\CartController::class, 'drawer'])->name('cart.drawer');

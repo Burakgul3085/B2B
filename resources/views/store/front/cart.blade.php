@@ -82,6 +82,26 @@
                             </div>
                         </li>
                     @endforeach
+                    @foreach ($summary->codes as $line)
+                        <li @class(['flex gap-4 p-4 sm:p-5', 'bg-danger-soft/30' => $line->issue])>
+                            <span class="flex size-20 shrink-0 items-center justify-center rounded-xl border border-line bg-puzzle-orange/5 text-puzzle-orange sm:size-24"><x-icon name="key" class="size-7" /></span>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="font-medium">{{ $line->name() }}</p>
+                                        <p class="text-sm text-muted">Ödeme kodu <span class="font-mono font-semibold tracking-wider">{{ $line->code->display() }}</span> · tutar mağazamızca belirlendi</p>
+                                    </div>
+                                    <p @class(["font-semibold tabular-nums", "text-muted line-through" => $line->issue])>{{ Money::format($line->total()) }}</p>
+                                </div>
+                                @if ($line->issue)
+                                    <p class="mt-2 text-sm font-medium text-danger">Bu ödeme kodu artık geçerli değil (kullanılmış, iptal edilmiş veya süresi dolmuş). Kaldırın ve mağazamızla iletişime geçin.</p>
+                                @endif
+                                <div class="mt-3">
+                                    <form method="POST" action="{{ route('store.cart.remove', $line->item->id) }}">@csrf @method('DELETE')<button class="text-sm text-muted hover:text-danger">Kaldır</button></form>
+                                </div>
+                            </div>
+                        </li>
+                    @endforeach
                 </ul>
 
                 <aside class="h-fit rounded-2xl border border-line p-6 lg:sticky lg:top-40">
@@ -89,6 +109,7 @@
                     <dl class="mt-4 space-y-2 text-sm">
                         @if ($summary->lines)<div class="flex justify-between"><dt class="text-muted">Ürünler ({{ collect($summary->orderable())->sum(fn ($l) => $l->quantity()) }} adet)</dt><dd class="tabular-nums">{{ Money::format($summary->productsSubtotal()) }}</dd></div>@endif
                         @if ($summary->prints)<div class="flex justify-between"><dt class="text-muted">Fotokopi ({{ count($summary->printsOrderable()) }} belge)</dt><dd class="tabular-nums">{{ Money::format($summary->printsSubtotal()) }}</dd></div>@endif
+                        @if ($summary->codes)<div class="flex justify-between"><dt class="text-muted">Özel ödeme</dt><dd class="tabular-nums">{{ Money::format($summary->codesSubtotal()) }}</dd></div>@endif
                         @if ($discount && bccomp($discount->amount, '0', 2) > 0)
                             <div class="flex justify-between text-green-800"><dt>{{ $discount->label() }}</dt><dd class="tabular-nums">−{{ Money::format($discount->amount) }}</dd></div>
                         @endif

@@ -4,6 +4,7 @@ namespace App\Domain\Store\Cart;
 
 use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
+use App\Domain\Store\PaymentCodes\PaymentCodeService;
 use App\Domain\Store\Print\PrintCart;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCartItem;
@@ -77,6 +78,9 @@ class CartService
         if ($item->print_job_id) {
             throw new DomainException('Fotokopide kopya adedi baskı seçeneklerinden belirlenir.');
         }
+        if ($item->payment_code_id) {
+            throw new DomainException('Ödeme kodunun adedi değiştirilemez.');
+        }
 
         $variant = $this->sellable($item->variant_id);
         $this->assertAvailable($variant, $quantity, 0);
@@ -107,6 +111,10 @@ class CartService
             StorePrintFile::where('cart_id', $guest->id)->update(['cart_id' => $cart->id]);
             StorePrintJob::where('cart_id', $guest->id)->update(['cart_id' => $cart->id]);
             $guest->items()->whereNotNull('print_job_id')->update(['cart_id' => $cart->id]);
+            // Ödeme kodları: hesabın sepetinde aynı kod yoksa taşınır.
+            foreach ($guest->items()->whereNotNull('payment_code_id')->get() as $item) {
+                StoreCartItem::firstOrCreate(['cart_id' => $cart->id, 'payment_code_id' => $item->payment_code_id], ['variant_id' => null, 'quantity' => 1]);
+            }
             foreach ($guest->items()->whereNotNull('variant_id')->get() as $item) {
                 $existing = StoreCartItem::where('cart_id', $cart->id)->where('variant_id', $item->variant_id)->first();
                 $wanted = ($existing?->quantity ?? 0) + $item->quantity;
@@ -152,13 +160,15 @@ class CartService
             return new CartSummary([]);
         }
 
-        $all = $cart->items()->with(['variant.product.primaryImage', 'printJob.file'])->get();
+        $all = $cart->items()->with(['variant.product.primaryImage', 'printJob.file', 'paymentCode.order'])->get();
+        [$codes, $all] = $all->partition(fn (StoreCartItem $item) => $item->payment_code_id !== null);
         [$prints, $items] = $all->partition(fn (StoreCartItem $item) => $item->print_job_id !== null);
         $available = $this->stock->available($items->pluck('variant_id')->all());
 
         return new CartSummary(
             $items->map(fn (StoreCartItem $item) => new CartLine($item, $available[$item->variant_id] ?? 0))->values()->all(),
             app(PrintCart::class)->lines($prints->values()),
+            app(PaymentCodeService::class)->lines($codes->values()),
         );
     }
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StoreCartItem extends Model
 {
-    protected $fillable = ['cart_id', 'variant_id', 'print_job_id', 'quantity'];
+    protected $fillable = ['cart_id', 'variant_id', 'print_job_id', 'payment_code_id', 'quantity'];
 
     protected function casts(): array
     {
@@ -23,5 +23,11 @@ class StoreCartItem extends Model
     public function printJob(): BelongsTo
     {
         return $this->belongsTo(StorePrintJob::class, 'print_job_id');
+    }
+
+    /** Ürün yerine özel ödeme kodu satırı; variant_id boştur, tutar kodun kaydından gelir. */
+    public function paymentCode(): BelongsTo
+    {
+        return $this->belongsTo(StorePaymentCode::class, 'payment_code_id');
     }
 }

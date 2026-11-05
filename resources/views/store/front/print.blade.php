@@ -237,7 +237,7 @@
                             <div x-show="f.special" x-cloak class="border-t border-line bg-puzzle-yellow-soft px-5 py-5 sm:px-6" role="status">
                                 <p class="flex items-center gap-2 font-display text-lg font-extrabold text-ink"><x-icon name="percent" class="size-5 text-puzzle-orange" /> {{ $threshold }} sayfa ve üzeri: size özel fiyat</p>
                                 <p class="mt-1 text-sm text-ink/80" x-text="specialText(f)"></p>
-                                <p class="mt-1 text-xs text-muted">Bu baskı internetten sipariş edilemez; teklif için bize ulaşın.</p>
+                                <p class="mt-1 text-xs text-muted">Bu baskı doğrudan sipariş edilemez; teklif için bize ulaşın.@if (app(\App\Domain\Store\PaymentCodes\PaymentCodeSettings::class)->enabled()) Fiyatta anlaştığımızda size bir ödeme kodu veririz; kodu sitemizin arama kutusuna yazıp güvenle ödersiniz.@endif</p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     @foreach ($phones as $phone)
                                         <a href="{{ $phone['tel'] }}" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs ring-1 ring-line hover:ring-puzzle-blue"><x-icon name="phone" class="size-4 text-puzzle-blue" /> {{ $phone['label'] }}: {{ $phone['number'] }}</a>

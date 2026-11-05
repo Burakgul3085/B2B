@@ -170,6 +170,9 @@
                         @foreach ($order->items as $item)
                             <tr>
                                 <td>{{ $item->product_name }}<p class="text-xs text-muted">@if ($item->option_label){{ $item->option_label }} · @endif{{ $item->sku }} · KDV %{{ (int) $item->vat_rate }}</p>
+                                    @if ($item->payment_code_id)
+                                        <p class="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200"><x-icon name="key" class="size-3.5" /> Ödeme kodu: tutarı yönetimde belirlendi @if ($item->paymentCode?->note)· {{ $item->paymentCode->note }}@endif</p>
+                                    @endif
                                     @if ($item->printJob)
                                         @php $job = $item->printJob; @endphp
                                         @if ($job->options['note'] ?? null)<p class="mt-1 text-xs">Müşteri notu: {{ $job->options['note'] }}</p>@endif

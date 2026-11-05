@@ -156,6 +156,16 @@ Excel ile ürün aktarma kaldırıldı; toplu ekleme klasörle yapılır (`katal
 - Ürün, varyantları, resimleri ve stoğu `CreateStoreProduct` ile tek transaction'da oluşturulur; stok "İlk stok" girişi olarak yazılır. İlk varyantın stok kodu veya barkodu mağazada varsa ürün atlanır.
 - Kod `App\Domain\Store\Catalog\FolderImport` içindedir; B2B'nin `App\Domain\Catalog\FolderImport` sınıfıyla kod paylaşmaz (yalnızca tarayıcı bileşeni ortaktır).
 
+### 8.7 Özel ödeme kodları ve "Aradığınızı bulamadınız mı?" kutusu (2026-11-05)
+
+Müşteriyle telefonda anlaşılan özel tutarlar (özel teklif eşiğini aşan fotokopi, sitede olmayan ama dükkânda bulunan ürün) için. Yönetim: Satış → Ödeme Kodları (`odeme-kodlari`).
+
+- **Tutarı yalnızca yönetici belirler.** Yönetici açıklama, KDV dahil tutar, KDV oranı ve isteğe bağlı geçerlilik süresiyle kod oluşturur; tutar sonradan değiştirilemez (yanlışsa kod iptal edilip yenisi oluşturulur). Müşteri yalnızca kodu yazar; sepet, ödeme ve sipariş tutarı kodun kaydından gelir (`store_payment_codes`).
+- **Kod:** 8 karakter, karışan harf ve rakamlar (0/O, 1/I/L) olmadan rastgele; yalnızca tam eşleşmede tanınır (`ABCD-EFGH`, küçük harf ve tire kabul edilir). Arama sayfası kod kartı gösterir; sepete ekleme rotası dakikada 10 denemeyle sınırlıdır.
+- **Tek kullanımlık:** Sipariş oluşurken kod satırı kilitlenir, yeniden denetlenir ve siparişe bağlanır (`PaymentCodeService::claim`); eşzamanlı ikinci sipariş geçemez. Sipariş iptal edilir veya ödemesi başarısız olursa kod yeniden kullanılabilir. Kullanılmış, iptal edilmiş, süresi dolmuş kod veya kapatılmış özellik sepette "sipariş edilemez" olur.
+- **Sepet ve kargo:** Kod stoksuz bir kalemdir (sepette adet 1). Ara toplama girer, dolayısıyla ücretsiz kargo sınırı ve kapıda ödeme kuralları diğer ürünlerdeki gibi uygulanır. Kampanya ve kuponlar kod tutarına uygulanmaz. Sipariş kalemi `ODEME-<kod>` stok koduyla faturaya geçer; iade talebi formuna girmez (iade yönetimden yapılır).
+- **Kutu:** Ürün listelerinin altında küçük, sonuçsuz aramada büyük gösterilir; başlık, mesaj, kalem adı ve kod alanı açıklaması yönetimden düzenlenir; altında iletişim bilgileri ve kod alanı vardır. Kod `App\Domain\Store\PaymentCodes` içindedir.
+
 ## 9. Dış entegrasyonlar (sürücü yapısı)
 
 Her entegrasyon bir arayüz ve sürücülerden oluşur. Yapılandırma mağaza panelinden yapılır; şifre ve anahtarlar veritabanında şifreli saklanır (B2B'deki Gmail şifresiyle aynı yöntem).

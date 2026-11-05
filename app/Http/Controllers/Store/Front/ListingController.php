@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Discounts\CampaignPage;
+use App\Domain\Store\PaymentCodes\PaymentCodeService;
 use App\Domain\Store\Storefront\Catalog;
 use App\Domain\Support\Money;
 use App\Http\Controllers\Controller;
@@ -92,13 +93,18 @@ class ListingController extends Controller
         ]);
     }
 
-    public function search(Request $request): View
+    public function search(Request $request, PaymentCodeService $codes): View
     {
         $term = trim((string) ($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? ''));
+        // Aranan yazı bir ödeme koduysa (yalnızca tam eşleşme) kod kartı gösterilir; tutar kodun kaydındandır.
+        $looksLikeCode = PaymentCodeService::normalize($term) !== null;
+        $paymentCode = $looksLikeCode ? $codes->find($term) : null;
 
         return $this->render($request, $term === '' ? $this->catalog->products()->whereRaw('1 = 0') : $this->catalog->search($term), [
-            'title' => $term === '' ? 'Arama' : "“{$term}” için sonuçlar",
+            'title' => $paymentCode ? 'Ödeme kodu' : ($term === '' ? 'Arama' : "“{$term}” için sonuçlar"),
             'searchTerm' => $term,
+            'paymentCode' => $paymentCode,
+            'codeNotFound' => $looksLikeCode && ! $paymentCode,
             'noindex' => true,
             'breadcrumbs' => [['Arama', null]],
         ]);

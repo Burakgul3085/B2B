@@ -10,6 +10,7 @@ use App\Domain\Store\Customers\AddressService;
 use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Notifications\AdminNotifier;
+use App\Domain\Store\PaymentCodes\PaymentCodeService;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Payments\PaymentService;
@@ -220,6 +221,24 @@ class CheckoutService
             ];
         }
 
+        // Özel ödeme kodları: tutarı yöneticinin belirlediği stoksuz kalem; kampanya ve kuponlar uygulanmaz.
+        foreach ($summary->codesOrderable() as $c) {
+            $lines[] = [
+                'variant_id' => null,
+                'payment_code_id' => $c->code->id,
+                'product_id' => null,
+                'product_name' => mb_substr($c->name(), 0, 200),
+                'option_label' => 'Ödeme kodu '.$c->code->display(),
+                'sku' => 'ODEME-'.$c->code->code,
+                'unit_price' => $c->total(),
+                'vat_rate' => $c->vatRate(),
+                'quantity' => 1,
+                'line_total' => $c->total(),
+                'discount_amount' => '0.00',
+                'vat_amount' => self::vatOf($c->total(), $c->vatRate()),
+            ];
+        }
+
         $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
         $vatTotal = array_reduce($lines, fn ($s, $l) => bcadd($s, $l['vat_amount'], 2), '0.00');
         $vatTotal = bcadd($vatTotal, $this->includedVat(bcadd($shippingFee, $codFee, 2)), 2);
@@ -325,11 +344,15 @@ class CheckoutService
             $order->forceFill(['order_no' => 'YB'.(100000 + $order->id)])->save();
             $order->items()->createMany($draft['lines']);
             $this->redeem($discount, $order, $draft);
+            // Ödeme kodları kilitlenip yeniden denetlenir ve siparişe bağlanır (tek kullanımlık); geçersizse sipariş oluşmaz.
+            $codeLines = array_filter($draft['lines'], fn ($l) => ! empty($l['payment_code_id']));
+            app(PaymentCodeService::class)->claim(array_values(array_column($codeLines, 'payment_code_id')), $order,
+                array_column($codeLines, 'line_total', 'payment_code_id'));
 
             $quantities = [];
             foreach ($draft['lines'] as $line) {
                 if ($line['variant_id'] === null) {
-                    continue; // baskı işi: stok yok
+                    continue; // baskı işi veya ödeme kodu: stok yok
                 }
                 $quantities[$line['variant_id']] = ($quantities[$line['variant_id']] ?? 0) + $line['quantity'];
             }

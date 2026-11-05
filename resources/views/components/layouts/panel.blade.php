@@ -93,6 +93,7 @@
                 ['label' => 'Mesajlar', 'route' => 'store_admin.messages.index', 'icon' => 'message-circle', 'active' => 'store_admin.messages.*',
                     'badge' => \App\Models\Store\StoreContactMessage::where('status', 'new')->count()],
                 ['label' => 'Kampanya ve Kuponlar', 'route' => 'store_admin.discounts.index', 'icon' => 'percent', 'active' => 'store_admin.discounts.*'],
+                ['label' => 'Ödeme Kodları', 'route' => 'store_admin.payment-codes.index', 'icon' => 'key', 'active' => 'store_admin.payment-codes.*'],
                 ['label' => 'Raporlar', 'route' => 'store_admin.reports.index', 'icon' => 'grid', 'active' => 'store_admin.reports.*'],
             ]],
             ['label' => 'Pazarlama', 'items' => [

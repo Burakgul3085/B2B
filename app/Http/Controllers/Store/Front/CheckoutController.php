@@ -202,7 +202,8 @@ class CheckoutController extends Controller
         $cart = $this->current->find($request);
         $summary = $this->carts->summary($cart);
         $lines = [...array_map(fn ($l) => [$l->variant->id, $l->quantity(), $l->unitPrice()], $summary->orderable()),
-            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->printsOrderable())];
+            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->printsOrderable()),
+            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->codesOrderable())];
         $expected = array_map(fn ($l) => [$l['variant_id'], $l['quantity'], $l['unit_price']], $draft['lines']);
 
         // Kod beklenirken sepet, fiyat veya kapıda ödeme uygunluğu değiştiyse sipariş oluşturulmaz.

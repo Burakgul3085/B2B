@@ -55,6 +55,8 @@ class ReturnService
 
     public const PRINT_ONLY = 'Fotokopi ve baskılar kişiye özel üretildiği için iade edilemez. Baskı hatası varsa bize ulaşın, ücretsiz yeniden basalım.';
 
+    public const CODE_ONLY = 'Ödeme koduyla yapılan ödemelerin iadesi için lütfen mağazamızla iletişime geçin.';
+
     public static function returnDays(): int
     {
         return max(14, (int) StoreSetting::get('return_days'));
@@ -79,7 +81,8 @@ class ReturnService
             ->groupBy('order_item_id')->selectRaw('order_item_id, SUM(quantity) as qty')->pluck('qty', 'order_item_id');
 
         // Baskı işleri (fotokopi) kişiye özel üretimdir; cayma hakkı kapsamı dışındadır, iade edilemez.
-        return $order->items()->whereNull('print_job_id')->get()->mapWithKeys(fn ($item) => [$item->id => max(0, $item->quantity - (int) ($requested[$item->id] ?? 0))])->all();
+        // Ödeme kodu kalemleri stoksuzdur; iadesi talep formuyla değil, mağazayla görüşülerek (yönetimden para iadesi) yapılır.
+        return $order->items()->whereNull('print_job_id')->whereNull('payment_code_id')->get()->mapWithKeys(fn ($item) => [$item->id => max(0, $item->quantity - (int) ($requested[$item->id] ?? 0))])->all();
     }
 
     /** Müşterinin talep açıp açamayacağı; açamıyorsa nedeni. */
@@ -92,8 +95,8 @@ class ReturnService
         if ($order->returns()->whereIn('status', StoreReturn::OPEN)->exists()) {
             return 'Bu sipariş için açık bir iade talebiniz var.';
         }
-        if (! $order->items()->whereNull('print_job_id')->exists()) {
-            return self::PRINT_ONLY;
+        if (! $order->items()->whereNull('print_job_id')->whereNull('payment_code_id')->exists()) {
+            return $order->items()->whereNotNull('print_job_id')->exists() ? self::PRINT_ONLY : self::CODE_ONLY;
         }
         if (array_sum($this->returnableQuantities($order)) === 0) {
             return 'Bu siparişteki tüm ürünler için iade talebi açılmış.';

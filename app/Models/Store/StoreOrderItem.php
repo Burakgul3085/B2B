@@ -29,6 +29,12 @@ class StoreOrderItem extends Model
         return $this->belongsTo(StorePrintJob::class, 'print_job_id');
     }
 
+    /** Özel ödeme kodu kalemi; variant_id boştur, iade talebiyle iade edilemez (yönetim para iadesi yapabilir). */
+    public function paymentCode(): BelongsTo
+    {
+        return $this->belongsTo(StorePaymentCode::class, 'payment_code_id');
+    }
+
     public function returnItems(): HasMany
     {
         return $this->hasMany(StoreReturnItem::class, 'order_item_id');

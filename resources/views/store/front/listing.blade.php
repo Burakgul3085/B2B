@@ -220,7 +220,13 @@
                     @endif
                 </div>
 
-                @if ($products->isEmpty() && $latest->isNotEmpty())
+                @if (! empty($paymentCode))
+                    @include('store.front._payment-code-card', ['code' => $paymentCode])
+                @endif
+
+                @if ($products->isEmpty() && ! empty($paymentCode))
+                    {{-- Ödeme kodu araması: ürün listesi yerine yalnızca kod kartı --}}
+                @elseif ($products->isEmpty() && $latest->isNotEmpty())
                     {{-- Yeni ürün yok: boş sayfa yerine son eklenenler --}}
                     <div class="mt-5 flex items-start gap-3 rounded-2xl border border-blue-200 bg-info-soft px-5 py-4 text-sky-900">
                         <x-icon name="alert" class="mt-0.5 size-5 shrink-0" />
@@ -236,11 +242,13 @@
                         @endforeach
                     </div>
                 @elseif ($products->isEmpty())
-                    <div class="mt-5 rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+                    <div class="mt-5 rounded-2xl border border-dashed border-line px-6 py-10 text-center">
                         <x-icon name="search" class="mx-auto size-8 text-slate-300" />
                         <p class="mt-3 font-medium">{{ isset($searchTerm) && $searchTerm === '' ? 'Aramak istediğiniz ürünü yazın.' : 'Aradığınız kriterlere uygun ürün bulunamadı.' }}</p>
                         @if ($hasFilters)<p class="mt-1 text-sm text-muted">Filtreleri azaltmayı deneyin.</p>@endif
+                        @if (! empty($codeNotFound))<p class="mt-1 text-sm text-muted">Yazdığınız bir ödeme koduna benziyor ama bulunamadı; kodu kontrol edin veya bize ulaşın.</p>@endif
                     </div>
+                    @include('store.front._help-box', ['full' => true])
                 @elseif ($view === 'liste')
                     <div class="mt-5 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
                         @foreach ($products as $product)
@@ -256,6 +264,11 @@
                 @endif
 
                 @if ($products->hasPages())<div class="mt-8">{{ $products->links() }}</div>@endif
+
+                {{-- Her listede küçük "Aradığınızı bulamadınız mı?" kutusu (sonuçsuz aramada yukarıda büyük gösterilir) --}}
+                @if ($products->isNotEmpty() || $latest->isNotEmpty())
+                    @include('store.front._help-box')
+                @endif
             </section>
         </div>
     </div>

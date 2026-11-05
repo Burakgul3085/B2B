@@ -499,3 +499,40 @@
     .dealer-slot,
     .dealer-piece { transition: none; }
 }
+
+/*
+| "Aradığınızı bulamadınız mı?" kutusu (ürün listeleri ve sonuçsuz arama): yapboz renklerinde yavaşça dönen kenar,
+| ara ara geçen parıltı ve simgede nabız. Hareket azaltma tercihinde hepsi durur.
+*/
+@property --hb-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+.help-box {
+    background: conic-gradient(from var(--hb-angle), var(--color-puzzle-orange), var(--color-puzzle-sun), var(--color-puzzle-green), var(--color-puzzle-blue), var(--color-puzzle-orange));
+    animation: help-box-spin 7s linear infinite;
+}
+.help-box:hover,
+.help-box:focus-within { animation-duration: 2.5s; }
+@keyframes help-box-spin { to { --hb-angle: 360deg; } }
+.help-box-shine {
+    background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.7), transparent);
+    animation: help-box-shine 6s ease-in-out infinite;
+}
+.dark .help-box-shine { background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.06), transparent); }
+@keyframes help-box-shine {
+    0%, 55% { transform: translateX(0) skewX(-14deg); }
+    100% { transform: translateX(450%) skewX(-14deg); }
+}
+.help-box-ping { animation: help-box-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
+@keyframes help-box-ping {
+    0% { transform: scale(1); opacity: 0.9; }
+    75%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .help-box,
+    .help-box-shine,
+    .help-box-ping { animation: none; }
+    .help-box-shine { display: none; }
+}
