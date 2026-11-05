@@ -82,7 +82,10 @@ export function stableCode(text) {
     return 'YK-' + (hash(1) + hash(7)).slice(0, 12).toUpperCase();
 }
 
-/** Bırakılan klasörü okur: [{ path: 'Ürünler/Boyalar/…/1.jpg', file }]. */
+/**
+ * Bırakılan klasörü okur: [{ path: 'Ürünler/Boyalar/…/1.jpg', file }]. Klasörler de { path, dir: true } olarak
+ * eklenir; böylece içinde dosya olmayan klasörler (ör. resmi olmayan seçenek) de görülür.
+ */
 async function readDropped(entries) {
     const out = [];
     const readAll = (dir) => new Promise((resolve, reject) => {
@@ -103,6 +106,7 @@ async function readDropped(entries) {
             const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
             out.push({ path: entry.fullPath.replace(/^\/+/, ''), file });
         } else if (entry.isDirectory) {
+            out.push({ path: entry.fullPath.replace(/^\/+/, ''), dir: true });
             await Promise.all((await readAll(entry)).map(walk));
         }
     };
@@ -113,7 +117,7 @@ async function readDropped(entries) {
 
 /**
  * Dosya listesinden ürünleri çıkarır. Sunucuya bir şey göndermez.
- * @param {{path: string, file: File}[]} files
+ * @param {{path: string, file?: File, dir?: boolean}[]} files  dir: içi boş olabilecek klasör kaydı (yalnızca sürükle-bırak)
  * @param {{mode: 'b2b'|'store', maxDepth: number, maxImages: number}} rules
  */
 export function scan(files, rules) {
@@ -136,8 +140,14 @@ export function scan(files, rules) {
         return folders.get(path);
     };
 
-    for (const { path, file } of files) {
+    for (const { path, file, dir } of files) {
         const segs = path.split('/').filter(Boolean);
+        if (dir) {
+            if (segs.length && !segs.some((s) => s.startsWith('.'))) {
+                folder(segs.join('/'));
+            }
+            continue;
+        }
         const name = segs.pop();
         if (HIDDEN.test(name) || segs.some((s) => s.startsWith('.'))) {
             continue;

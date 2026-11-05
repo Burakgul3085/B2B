@@ -215,13 +215,14 @@
         @else
             <div class="{{ $ok }} mt-3"><b>Mağazada:</b> seçenekler aynı ürünün varyantlarıdır (tek ürün sayfası, müşteri rengi seçer). Ürün klasöründeki ve seçenek klasörlerindeki tüm resimler sırayla ürünün resimleri olur (en fazla {{ $maxImages }}).</div>
         @endif
+        <div class="{{ $warn }} mt-3"><b>Resmi olmayan seçenek:</b> seçenek klasörü boş olabilir; o seçenek ürün klasöründeki resmi kullanır. Ancak boş klasörleri yalnızca <b>sürükle-bırak</b> görür; <i>Klasör seç</i> düğmesi içi boş klasörleri tarayıcıdan alamaz. Resmi olmayan seçenekleriniz varsa klasörü mutlaka sürükleyip bırakın.</div>
         <p class="mt-3">Seçeneği olmayan ürünün içinde alt klasör açmayın; açarsanız alt klasörler yok sayılır ve uyarı çıkar.</p>
 
         {{-- ================= YÜKLEME ================= --}}
         <h2 id="yukleme" class="{{ $h2 }}">9. Yükleme adım adım</h2>
         <ol class="list-decimal space-y-2 pl-5">
             <li><b>{{ $b2b ? 'Ürünler' : 'Katalog › Ürünler' }}</b> sayfasında sağ üstteki <b>Klasörden ekle</b> düğmesine basın.</li>
-            <li><b>Ürünler</b> klasörünüzü sayfadaki kutunun üzerine sürükleyip bırakın ya da <b>Klasör seç</b> düğmesiyle seçin. (Tarayıcı “dosyaları yüklemek istiyor musunuz?” diye sorarsa <i>Yükle</i> deyin; bu yalnızca okumak içindir, henüz hiçbir şey eklenmez.)</li>
+            <li><b>Ürünler</b> klasörünüzü sayfadaki kutunun üzerine sürükleyip bırakın (önerilen) ya da <b>Klasör seç</b> düğmesiyle seçin. <i>Klasör seç</i> içi boş klasörleri göremez; resmi olmayan seçenekleriniz varsa sürükle-bırak kullanın. (Tarayıcı “dosyaları yüklemek istiyor musunuz?” diye sorarsa <i>Yükle</i> deyin; bu yalnızca okumak içindir, henüz hiçbir şey eklenmez.)</li>
             <li>Sistem klasörü okur; binlerce üründe birkaç saniye sürebilir.</li>
             <li><b>Özet ekranını</b> inceleyin (bir sonraki bölüm).</li>
             <li>KDV oranlarını seçin, isterseniz kutuları işaretleyin ve <b>“… ürünü ekle”</b> düğmesine basın.</li>

@@ -16,6 +16,7 @@
                 <x-icon name="layers" class="size-4" /> Klasör seç
                 <input type="file" class="sr-only" webkitdirectory directory multiple @change="pick($event)">
             </label>
+            <p class="mx-auto mt-3 max-w-md text-xs text-muted">"Klasör seç" içi boş klasörleri göremez. Resmi olmayan seçenek klasörleriniz varsa (ör. resimsiz "Kırmızı") klasörü sürükleyip bırakın.</p>
         </div>
         <p class="mt-6 text-sm font-medium text-primary" x-show="phase === 'reading'" x-text="message"></p>
         <p class="mt-6 text-sm text-danger" x-show="phase === 'pick' && message" x-text="message"></p>
