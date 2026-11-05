@@ -20,7 +20,6 @@
     $types = [['PDF', 'bg-red-50 text-red-600'], ['Word', 'bg-puzzle-blue-soft text-puzzle-blue'], ['PowerPoint', 'bg-puzzle-orange-soft text-puzzle-orange'],
         ['Excel', 'bg-puzzle-green-soft text-puzzle-green'], ['JPG · PNG', 'bg-violet-50 text-violet-700']];
     $steps = [['upload', 'Belgeni yükle', 'Sayfa sayısı otomatik çıkarılır.'], ['settings', 'Baskıyı seç', 'Renk, yüz, düzen, cilt ve kopya.'], ['cart', 'Sepete ekle', 'Ürünlerinle birlikte tek ödeme.']];
-    $minSpiral = collect($settings['spiral'])->sortBy('to')->first();
     // Özel teklif eşiği ve kutusundaki iletişim bilgileri (Mağaza Ayarları → İletişim).
     $threshold = $settings['quote_threshold'];
     $phones = StorePhones::list($contact);
@@ -38,7 +37,7 @@
         ['İade edebilir miyim?', 'Baskılar kişiye özel hazırlandığı için cayma hakkı kapsamında değildir. Baskı hatası olursa ücretsiz olarak yeniden basılır.'],
     ];
 @endphp
-<x-layouts.store title="Fotokopi ve Belge Baskı" description="Belgenizi yükleyin, sayfa sayısı ve fiyat anında hesaplansın: renkli veya siyah-beyaz, önlü arkalı, zımbalı ya da spiral ciltli baskı. Ürünlerle aynı sepette sipariş verin." :canonical="route('store.print')">
+<x-layouts.store title="Fotokopi ve Belge Baskı" description="Belgenizi yükleyin, sayfa sayısı ve fiyat anında hesaplansın: renkli veya siyah-beyaz, önlü arkalı ya da spiral ciltli baskı. Ürünlerle aynı sepette sipariş verin." :canonical="route('store.print')">
     <div x-data="printOrder(@alpine($config))">
         {{-- Giriş bandı --}}
         <section class="relative isolate overflow-hidden bg-navy text-white">
@@ -192,8 +191,8 @@
 
                                 <div role="group" aria-label="Ciltleme">
                                     <p class="text-xs font-bold tracking-wider text-muted uppercase">Ciltleme</p>
-                                    <div class="mt-2 grid grid-cols-3 gap-2">
-                                        @foreach (['none' => ['Ciltsiz', 'Yaprak hâlinde'], 'staple' => ['Zımbalı', Money::format($settings['staple'])], 'spiral' => ['Spiral', $minSpiral ? Money::format($minSpiral['price'])."'dan" : '']] as $value => [$label, $hint])
+                                    <div class="mt-2 grid grid-cols-2 gap-2">
+                                        @foreach (['none' => ['Ciltsiz', 'Yaprak hâlinde'], 'spiral' => ['Spiral', Money::format($settings['spiral_price']).' / kopya']] as $value => [$label, $hint])
                                             <button type="button" class="flex flex-col items-center gap-0.5 rounded-2xl border px-2 py-3 text-center transition" :class="{{ $choice('binding', $value) }}" @click="choose(f, 'binding', '{{ $value }}')">
                                                 <span class="text-sm font-semibold">{{ $label }}</span>
                                                 <span class="text-[11px] font-medium opacity-70">{{ $hint }}</span>
@@ -306,10 +305,7 @@
                             </tbody>
                         </table>
                         <dl class="space-y-2 border-t border-line bg-surface px-5 py-4 text-sm">
-                            <div class="flex justify-between gap-3"><dt class="text-muted">Zımba <span class="text-xs">({{ $settings['staple_max_sheets'] }} yaprağa kadar)</span></dt><dd class="font-semibold tabular-nums">{{ Money::format($settings['staple']) }}</dd></div>
-                            @foreach ($settings['spiral'] as $row)
-                                <div class="flex justify-between gap-3"><dt class="text-muted">Spiral <span class="text-xs">({{ $row['to'] }} yaprağa kadar)</span></dt><dd class="font-semibold tabular-nums">{{ Money::format($row['price']) }}</dd></div>
-                            @endforeach
+                            <div class="flex justify-between gap-3"><dt class="text-muted">Spiral cilt <span class="text-xs">(kopya başına)</span></dt><dd class="font-semibold tabular-nums">{{ Money::format($settings['spiral_price']) }}</dd></div>
                         </dl>
                         <p class="border-t border-line px-5 py-3 text-[11px] text-muted">Yaprak fiyatı basılacak sayfa sayısına göre seçilir; önlü arkalı ve bir yüze çok sayfa baskı yaprak sayısını azaltır.@if (bccomp((string) $settings['min_total'], '0', 2) > 0) En düşük baskı tutarı {{ Money::format($settings['min_total']) }}.@endif</p>
                     </section>

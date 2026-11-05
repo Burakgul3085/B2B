@@ -78,7 +78,7 @@ class StorePrintTest extends TestCase
         $s = PrintSettings::DEFAULTS;
 
         return array_replace(['enabled' => $s['enabled'] ? '1' : '0', 'tiers' => $s['tiers'], 'a3_enabled' => '0', 'a3_multiplier' => '2,00',
-            'staple' => '5,00', 'staple_max_sheets' => 50, 'spiral' => $s['spiral'], 'min_total' => '0', 'vat_rate' => '20', 'max_mb' => 200,
+            'spiral_price' => '40,00', 'min_total' => '0', 'vat_rate' => '20', 'max_mb' => 200,
             'max_copies' => 100, 'unordered_days' => 7, 'ordered_days' => 30, 'prep_text' => 'Baskılar 1 iş günü içinde hazırlanır.'], $override);
     }
 
@@ -121,13 +121,15 @@ class StorePrintTest extends TestCase
         $this->assertArrayNotHasKey('tip', $q);
         $this->assertSame(['30 yaprak × 2 kopya × ₺2,00 (30 sayfa kademesi)', '₺120,00'], $q['lines'][0]);
 
-        // Önlü arkalı + bir yüze 2 sayfa: 10 yaprak; 3 kopya = 30 yaprak × 2,00 + zımba 3 × 5
-        $q = $pricing->quote(40, $opts(['duplex' => '1', 'layout' => 2, 'copies' => 3, 'binding' => 'staple']));
-        $this->assertSame([20, 10, '75.00'], [$q['sides'], $q['sheets'], $q['total']]);
+        // Önlü arkalı + bir yüze 2 sayfa: 10 yaprak; 3 kopya = 30 yaprak × 2,00 + spiral 3 × 40 (kopya başına sabit)
+        $q = $pricing->quote(40, $opts(['duplex' => '1', 'layout' => 2, 'copies' => 3, 'binding' => 'spiral']));
+        $this->assertSame([20, 10, '180.00'], [$q['sides'], $q['sheets'], $q['total']]);
+        $this->assertSame(['Spiral cilt × 3', '₺120,00'], $q['lines'][1]);
 
-        // 101+ sayfa kademesi: 120 yaprak renkli × 5,00; spiral (120 yaprak → 200'e kadar 55,00)
+        // 101+ sayfa kademesi: 120 yaprak renkli × 5,00; spiral yaprak sayısından bağımsız 40,00
         $q = $pricing->quote(120, $opts(['color' => 'color', 'binding' => 'spiral'], 120));
-        $this->assertSame('655.00', $q['total']);
+        $this->assertSame('640.00', $q['total']);
+        $this->assertSame('640.00', $pricing->quote(4000, $opts(['color' => 'color', 'binding' => 'spiral', 'range' => '1-120'], 4000))['total']);
 
         // Kademe sınırında düzeltme yok: 100 sayfa 1–100 kademesinde (₺2,00), 101 sayfa üst kademede (₺1,50).
         $this->assertSame('200.00', $pricing->quote(100, $opts([], 100))['total']);
@@ -143,9 +145,11 @@ class StorePrintTest extends TestCase
         // Sayfa aralığı yalnızca seçilen sayfaları basar.
         $this->assertSame(7, $pricing->quote(40, $opts(['range' => '1-5, 9, 9, 12']))['pages']);
 
-        // Zımba sınırı aşılırsa seçilemez; geçersiz seçenekler reddedilir.
+        // Zımba artık seçilemez; eski kayıttaki zımbalı iş fiyatlanmaz (sepette "sipariş edilemiyor" olur).
+        $this->assertThrows(fn () => $opts(['binding' => 'staple']), ValidationException::class);
+        $this->assertSame('Zımbalı', explode(' · ', PrintOptions::fromArray(['binding' => 'staple'])->summary(10))[3]);
         $this->expectException(\DomainException::class);
-        $pricing->quote(120, $opts(['binding' => 'staple'], 120));
+        $pricing->quote(20, PrintOptions::fromArray(['binding' => 'staple']));
     }
 
     public function test_invalid_options_are_rejected(): void
@@ -230,10 +234,10 @@ class StorePrintTest extends TestCase
         $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/sepet", ['color' => 'bw', 'duplex' => '1', 'copies' => 2, 'binding' => 'spiral', 'note' => 'Kapak renkli'])
             ->assertOk()->assertJson(['added' => true, 'count' => 2]);
         $job = StorePrintJob::firstOrFail();
-        // 15 yaprak × 2 kopya = 30 yaprak × 2,00 = 60 + spiral 2 × 30 = 120
-        $this->assertSame(['120.00', 15, 30], [$job->price, $job->sheets, $job->sides]);
+        // 15 yaprak × 2 kopya = 30 yaprak × 2,00 = 60 + spiral 2 × 40 = 140
+        $this->assertSame(['140.00', 15, 30], [$job->price, $job->sheets, $job->sides]);
 
-        $this->get(self::HOST.'/sepet')->assertOk()->assertSee('Fotokopi: Tez.pdf')->assertSee('Önlü arkalı')->assertSee('toplam 30 yaprak')->assertSee('₺220,00');
+        $this->get(self::HOST.'/sepet')->assertOk()->assertSee('Fotokopi: Tez.pdf')->assertSee('Önlü arkalı')->assertSee('toplam 30 yaprak')->assertSee('₺240,00');
         $this->put(self::HOST.'/sepet/'.$this->cart->items()->whereNotNull('print_job_id')->value('id'), ['quantity' => 3]); // adet değişmez
         $this->assertSame(1, $this->cart->items()->whereNotNull('print_job_id')->value('quantity'));
 
@@ -241,7 +245,7 @@ class StorePrintTest extends TestCase
         $tiers = PrintSettings::DEFAULTS['tiers'];
         $tiers[0]['bw'] = '2.50';
         app(PrintSettings::class)->save($this->settingsForm(['enabled' => '1', 'tiers' => $tiers]));
-        $this->get(self::HOST.'/sepet')->assertSee('₺235,00');
+        $this->get(self::HOST.'/sepet')->assertSee('₺255,00');
 
         StoreSetting::put(['cod_enabled' => '1', 'cod_max' => '3000.00', 'cod_fee' => '0.00', 'local_delivery_fee' => '0.00']);
         $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Fotokopi');
@@ -270,9 +274,9 @@ class StorePrintTest extends TestCase
         $this->post(self::HOST.'/odeme/dogrulama', ['code' => $m[1]]);
 
         $order = StoreOrder::firstOrFail();
-        $this->assertSame('235.00', $order->subtotal);
+        $this->assertSame('255.00', $order->subtotal);
         $printItem = $order->items()->whereNotNull('print_job_id')->firstOrFail();
-        $this->assertSame([null, 'FOTOKOPI-'.$job->id, '135.00', 1], [$printItem->variant_id, $printItem->sku, $printItem->line_total, $printItem->quantity]);
+        $this->assertSame([null, 'FOTOKOPI-'.$job->id, '155.00', 1], [$printItem->variant_id, $printItem->sku, $printItem->line_total, $printItem->quantity]);
         $this->assertSame($order->id, $job->fresh()->order_id);
         $this->assertTrue($file->fresh()->expires_at->isAfter(now()->addDays(29)), 'siparişteki belge daha uzun saklanır');
         $this->assertSame(1, StoreStockMovement::where('type', 'sale')->where('reference_id', $order->id)->count(), 'baskı stoktan düşmez');
@@ -315,8 +319,11 @@ class StorePrintTest extends TestCase
         $this->get(route('store_admin.print.edit'))->assertOk()->assertSee('Baskı fiyatları');
         $this->put(route('store_admin.print.update'), $this->settingsForm(['tiers' => [['from' => 5, 'bw' => '1', 'color' => '1']]]))
             ->assertSessionHasErrors('tiers');
-        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'staple' => '7,50']))->assertSessionHas('status');
-        $this->assertSame('7.50', app(PrintSettings::class)->get('staple'));
+        $this->get(route('store_admin.print.edit'))->assertSee('Spiral fiyatı')->assertDontSee('Zımba');
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'spiral_price' => '']))->assertSessionHasErrors('spiral_price');
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'spiral_price' => '45,50']))->assertSessionHas('status');
+        $this->assertSame('45.50', app(PrintSettings::class)->get('spiral_price'));
+        $this->get(self::HOST.'/fotokopi')->assertSee('₺45,50')->assertDontSee('Zımba');
     }
 
     public function test_special_quote_threshold_blocks_ordering_and_shows_contact(): void
@@ -369,7 +376,7 @@ class StorePrintTest extends TestCase
 
         $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 240, 'color' => 'bw', 'duplex' => '1', 'layout' => 2, 'copies' => 1, 'binding' => 'none']]))
             ->assertOk()->assertSee('toplam <strong>60 yaprak</strong>', false)->assertSee('Toplam: ₺90,00');
-        $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 240, 'binding' => 'staple']]))->assertSee('Zımba en fazla 50 yaprakta');
+        $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 240, 'binding' => 'staple']]))->assertSee('Ciltleme seçin.');
 
         // Üst kademe daha pahalıysa uyarı gösterilir, kayıt engellenmez.
         $tiers = PrintSettings::DEFAULTS['tiers'];
@@ -381,6 +388,14 @@ class StorePrintTest extends TestCase
         StoreSetting::put(['print' => json_encode(['enabled' => true, 'tiers' => [['from' => 1, 'bw' => '3.00', 'bw_duplex' => '2.50', 'color' => '8.00', 'color_duplex' => '7.00']]])]);
         $this->assertSame([['from' => 1, 'bw' => '3.00', 'color' => '8.00']], app(PrintSettings::class)->get('tiers'));
         $this->assertSame('30.00', app(PrintPricing::class)->quote(20, PrintOptions::fromInput(['duplex' => '1'], 20, app(PrintSettings::class)))['total']);
+
+        // Yaprak aralıklı spiral tablosu ve zımba fiyatı olan eski kayıt: yeni fiyat kaydedilene kadar en yüksek spiral fiyatı geçerli.
+        StoreSetting::put(['print' => json_encode(['enabled' => true, 'staple' => '5.00', 'staple_max_sheets' => 50,
+            'spiral' => [['to' => 50, 'price' => '30.00'], ['to' => 300, 'price' => '75.00'], ['to' => 100, 'price' => '40.00']]])]);
+        $all = app(PrintSettings::class)->all();
+        $this->assertSame('75.00', $all['spiral_price']);
+        $this->assertArrayNotHasKey('staple', $all);
+        $this->assertArrayNotHasKey('spiral', $all);
     }
 
     public function test_expired_files_are_pruned(): void

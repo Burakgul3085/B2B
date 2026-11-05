@@ -2,7 +2,6 @@
     $money = fn ($v) => $v === null || $v === '' ? '' : number_format((float) $v, 2, ',', '');
     $tiers = array_pad(old('tiers', $s['tiers']), max(5, count($s['tiers']) + 2), ['from' => '', 'bw' => '', 'color' => '']);
     $t = $trial['input'] + ['pages' => '', 'color' => 'bw', 'duplex' => '0', 'layout' => 1, 'size' => 'A4', 'copies' => 1, 'binding' => 'none'];
-    $spiral = array_pad(old('spiral', $s['spiral']), max(6, count($s['spiral']) + 2), ['to' => '', 'price' => '']);
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Fotokopi">
     <x-page-header title="Fotokopi" subtitle="Müşterilerin belge yükleyip baskı siparişi verdiği sayfanın fiyatları ve sınırları. Tutarlar KDV dahildir; fiyat her zaman sunucuda bu ayarlarla hesaplanır.">
@@ -63,24 +62,8 @@
         </x-card>
 
         <div class="grid gap-6 xl:grid-cols-2">
-            <x-card title="Zımba ve spiral cilt" description="Ciltleme fiyatı kopya başınadır. Spiral, kopya başı yaprak sayısına göre ilk uyan satırdan fiyatlanır; en büyük sınırı aşan belgede spiral seçilemez.">
-                <div class="space-y-5">
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        <x-field name="staple" label="Zımba (₺)" :value="$money($s['staple'])" inputmode="decimal" required />
-                        <x-field name="staple_max_sheets" label="Zımba en fazla yaprak" type="number" min="1" max="1000" :value="$s['staple_max_sheets']" required />
-                    </div>
-                    <table class="table-base">
-                        <thead><tr><th>Yaprak sayısı (en fazla)</th><th>Spiral fiyatı (₺)</th></tr></thead>
-                        <tbody class="divide-y divide-line">
-                            @foreach (array_values($spiral) as $i => $row)
-                                <tr>
-                                    <td><x-field :name="'spiral['.$i.'][to]'" label="Yaprak" class="[&>label]:sr-only" type="number" min="1" :value="$row['to']" /></td>
-                                    <td><x-field :name="'spiral['.$i.'][price]'" label="Fiyat" class="[&>label]:sr-only" inputmode="decimal" :value="$money($row['price'])" /></td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+            <x-card title="Spiral cilt" description="Tek sabit fiyattır ve kopya başına alınır (3 kopya = 3 spiral). Yaprak sayısı fiyatı değiştirmez.">
+                <x-field name="spiral_price" label="Spiral fiyatı (₺)" :value="$money($s['spiral_price'])" inputmode="decimal" class="max-w-48" required />
             </x-card>
 
             <x-card title="A3 baskı" description="Açıkken müşteri kağıt boyutunu seçebilir. A3 yaprak fiyatı, yukarıdaki A4 yaprak fiyatının çarpanla çarpımıdır.">

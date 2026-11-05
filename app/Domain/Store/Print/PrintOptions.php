@@ -14,7 +14,11 @@ final class PrintOptions
 
     public const LAYOUTS = [1 => 'Bir yüze 1 sayfa', 2 => 'Bir yüze 2 sayfa', 4 => 'Bir yüze 4 sayfa', 8 => 'Bir yüze 8 sayfa'];
 
-    public const BINDINGS = ['none' => 'Ciltsiz', 'staple' => 'Zımbalı', 'spiral' => 'Spiral cilt'];
+    /** Seçilebilen ciltlemeler. */
+    public const BINDINGS = ['none' => 'Ciltsiz', 'spiral' => 'Spiral cilt'];
+
+    /** Özetlerde görünen adlar; zımba artık seçilemez, eski kayıtlarda adı görünür. */
+    public const BINDING_LABELS = self::BINDINGS + ['staple' => 'Zımbalı'];
 
     public const SIZES = ['A4' => 'A4', 'A3' => 'A3'];
 
@@ -121,7 +125,7 @@ final class PrintOptions
             self::COLORS[$this->color] ?? $this->color,
             $this->duplex ? 'Önlü arkalı' : 'Tek yüz',
             $this->layout > 1 ? "Bir yüze {$this->layout} sayfa" : null,
-            $this->binding !== 'none' ? self::BINDINGS[$this->binding] : null,
+            $this->binding !== 'none' ? (self::BINDING_LABELS[$this->binding] ?? $this->binding) : null,
             $this->copies.' kopya',
             $sheets !== null ? 'toplam '.($sheets * $this->copies).' yaprak' : null,
         ]));

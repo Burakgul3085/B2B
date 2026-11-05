@@ -10,12 +10,12 @@ use App\Models\Store\StoreSetting;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Fotokopi ayarları (Mağaza yönetimi → Fotokopi): açık/kapalı, yaprak başı fiyat kademeleri, ciltleme fiyatları, sınırlar
+ * Fotokopi ayarları (Mağaza yönetimi → Fotokopi): açık/kapalı, yaprak başı fiyat kademeleri, spiral fiyatı, sınırlar
  * ve saklama süreleri. store_settings.print anahtarında JSON olarak tutulur. Fiyatlar KDV dahildir.
  *
  * Fiyat kademesi basılacak sayfa sayısına göre seçilir (önlü arkalı ve kopya kademeyi değiştirmez); her kademede siyah-beyaz
  * ve renkli yaprak fiyatı vardır. Basılacak sayfa özel teklif eşiğine (quote_threshold) ulaşırsa sipariş verilemez, müşteriye
- * quote_text ve iletişim bilgileri gösterilir; eşik boşsa (null) sınır yoktur. Spiral cilt kopya başına yaprak sayısına göre kademelidir.
+ * quote_text ve iletişim bilgileri gösterilir; eşik boşsa (null) sınır yoktur. Spiral cilt kopya başına tek sabit fiyattır; zımba yoktur.
  */
 class PrintSettings
 {
@@ -28,14 +28,7 @@ class PrintSettings
         ],
         'a3_enabled' => false,
         'a3_multiplier' => '2.00',
-        'staple' => '5.00',
-        'staple_max_sheets' => 50,
-        'spiral' => [
-            ['to' => 50, 'price' => '30.00'],
-            ['to' => 100, 'price' => '40.00'],
-            ['to' => 200, 'price' => '55.00'],
-            ['to' => 300, 'price' => '75.00'],
-        ],
+        'spiral_price' => '40.00',
         'quote_threshold' => null,
         'quote_text' => 'Bu kadar sayfalı baskılarda size özel indirimli (iskontolu) fiyat veriyoruz. Lütfen mağazamızla iletişime geçin.',
         'min_total' => '0.00',
@@ -57,6 +50,12 @@ class PrintSettings
         $all['tiers'] = array_map(fn (array $t) => ['from' => (int) $t['from'], 'bw' => (string) $t['bw'], 'color' => (string) $t['color']], $all['tiers']);
         $all['quote_threshold'] = $all['quote_threshold'] === null ? null : (int) $all['quote_threshold'];
         $all['quote_text'] = trim((string) $all['quote_text']) ?: self::DEFAULTS['quote_text'];
+        // Yaprak aralıklı spiral tablosu olan eski kayıt: yeni fiyat kaydedilene kadar tablodaki en yüksek fiyat kullanılır.
+        if (! isset($saved['spiral_price']) && ! empty($saved['spiral']) && is_array($saved['spiral'])) {
+            $all['spiral_price'] = (string) collect($saved['spiral'])->map(fn ($t) => (string) $t['price'])->sort(fn ($a, $b) => bccomp($a, $b, 2))->last();
+        }
+        $all['spiral_price'] = (string) $all['spiral_price'];
+        unset($all['staple'], $all['staple_max_sheets'], $all['spiral']);
 
         return $all;
     }
@@ -159,15 +158,6 @@ class PrintSettings
             $errors['tiers'] = 'Her kademenin başlangıcı farklı olmalıdır.';
         }
 
-        $spiral = [];
-        foreach (array_values((array) ($input['spiral'] ?? [])) as $i => $row) {
-            if (blank($row['to'] ?? null)) {
-                continue;
-            }
-            $spiral[] = ['to' => $int($row['to'], "spiral.{$i}.to", 1, 5000), 'price' => $money($row['price'] ?? null, "spiral.{$i}.price")];
-        }
-        usort($spiral, fn ($a, $b) => $a['to'] <=> $b['to']);
-
         $threshold = blank($input['quote_threshold'] ?? null) ? null : $int($input['quote_threshold'], 'quote_threshold', 2, 1000000);
         if ($threshold !== null && $tiers && $threshold <= max(array_column($tiers, 'from'))) {
             $errors['quote_threshold'] = 'Özel teklif eşiği son fiyat kademesinin başlangıcından büyük olmalıdır.';
@@ -178,9 +168,7 @@ class PrintSettings
             'tiers' => $tiers,
             'a3_enabled' => filter_var($input['a3_enabled'] ?? false, FILTER_VALIDATE_BOOL),
             'a3_multiplier' => $money($input['a3_multiplier'] ?? '2', 'a3_multiplier'),
-            'staple' => $money($input['staple'] ?? null, 'staple'),
-            'staple_max_sheets' => $int($input['staple_max_sheets'] ?? 50, 'staple_max_sheets', 1, 1000),
-            'spiral' => $spiral,
+            'spiral_price' => $money($input['spiral_price'] ?? null, 'spiral_price'),
             'quote_threshold' => $threshold,
             'quote_text' => mb_substr(trim((string) ($input['quote_text'] ?? '')), 0, 300) ?: self::DEFAULTS['quote_text'],
             'min_total' => $money($input['min_total'] ?? '0', 'min_total'),

@@ -13,7 +13,7 @@ use DomainException;
  *    önlü arkalıysa yüz ÷ 2. Kademe sınırında düzeltme yapılmaz (199 sayfa 100–199, 200 sayfa 200–299 kademesindedir).
  *  - Basılacak sayfa özel teklif eşiğine ulaşırsa fiyat verilmez (SpecialQuoteRequired): sepete eklenemez, sipariş verilemez.
  *  - A3 seçilirse yaprak fiyatı çarpanla çarpılır.
- *  - Ciltleme kopya başınadır: zımba sabit (en fazla N yaprak), spiral yaprak sayısına göre kademeli.
+ *  - Ciltleme yalnızca spiraldir: tek sabit fiyat, kopya başına (yaprak sınırı yok). Zımba sunulmaz.
  */
 class PrintPricing
 {
@@ -24,7 +24,7 @@ class PrintPricing
      *               binding_unit: string, binding_total: string, total: string, vat_rate: string, lines: list<array{0: string, 1: string}>}
      *
      * @throws SpecialQuoteRequired basılacak sayfa özel teklif eşiğindeyse
-     * @throws DomainException ciltleme bu yaprak sayısına uygun değilse
+     * @throws DomainException ciltleme artık sunulmuyorsa (eski kayıtta zımba)
      */
     public function quote(int $totalPages, PrintOptions $o): array
     {
@@ -46,11 +46,9 @@ class PrintPricing
         $lines = [[$label, Money::format($printTotal)]];
 
         $bindingUnit = match ($o->binding) {
-            'staple' => $sheets <= (int) $s['staple_max_sheets'] ? (string) $s['staple']
-                : throw new DomainException("Zımba en fazla {$s['staple_max_sheets']} yaprakta yapılabilir; bu belge {$sheets} yaprak. Spiral cilt seçin."),
-            'spiral' => (string) ((collect($s['spiral'])->sortBy('to')->first(fn ($t) => $sheets <= (int) $t['to']) ?? [])['price']
-                ?? throw new DomainException('Spiral cilt en fazla '.collect($s['spiral'])->max('to')." yaprakta yapılabilir; bu belge {$sheets} yaprak.")),
-            default => '0.00',
+            'none' => '0.00',
+            'spiral' => (string) $s['spiral_price'],
+            default => throw new DomainException('Bu ciltleme artık sunulmuyor; baskıyı yeniden ekleyin.'),
         };
         $bindingTotal = bcmul($bindingUnit, (string) $o->copies, 2);
         $total = bcadd($printTotal, $bindingTotal, 2);
