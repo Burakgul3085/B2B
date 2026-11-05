@@ -26,7 +26,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -217,9 +216,10 @@ class EInvoiceService
         if ($invoice->kind === 'sale' && ! in_array($invoice->order->status, self::BILLABLE, true)) {
             throw new DomainException('Sipariş iptal edilmiş veya ödemesi alınmamış; satış faturası kesilemez. Taslağı silebilirsiniz.');
         }
-        // Bireysel alıcıya satış faturası T.C. kimlik numarasıyla kesilir (11111111111 kullanılmaz). İade faturası satış faturasındaki kimlikle kesilir.
-        if ($invoice->kind === 'sale' && $invoice->buyer_type === 'individual' && ! self::validBuyerTckn((string) $invoice->buyer_tax_number)) {
-            throw new DomainException('Bireysel alıcının T.C. kimlik numarası eksik veya geçersiz. Taslakta alıcı bilgilerine 11 haneli T.C. kimlik numarasını yazıp kaydedin.');
+        // Bireysel alıcıda kimlik isteğe bağlıdır: boşsa UBL'ye 11111111111 yazılır. Yazılmışsa geçerli olmalıdır.
+        $buyerId = (string) $invoice->buyer_tax_number;
+        if ($invoice->buyer_type === 'individual' && $buyerId !== '' && $buyerId !== CheckoutService::ANONYMOUS_TCKN && ! self::validBuyerTckn($buyerId)) {
+            throw new DomainException('Bireysel alıcının T.C. kimlik numarası geçersiz. Taslakta düzeltin veya boş bırakın.');
         }
         $provider = $this->provider();
         if (! $provider->isConfigured()) {
@@ -230,7 +230,7 @@ class EInvoiceService
         $documentType = 'e_arsiv';
         $alias = null;
         $taxNumber = (string) $invoice->buyer_tax_number;
-        if ($taxNumber !== '' && $taxNumber !== '11111111111') {
+        if ($taxNumber !== '' && $taxNumber !== CheckoutService::ANONYMOUS_TCKN) {
             try {
                 $lookup = $provider->lookup($taxNumber);
             } catch (EInvoiceUncertain|EInvoiceRejected $e) {
@@ -554,12 +554,12 @@ class EInvoiceService
             'buyer_type' => ['required', 'in:individual,corporate'],
             'buyer_name' => ['required', 'string', 'max:160'],
             'buyer_tax_office' => ['nullable', 'required_if:buyer_type,corporate', 'string', 'max:80'],
-            'buyer_tax_number' => [Rule::requiredIf($invoice->kind === 'sale' && ($input['buyer_type'] ?? null) === 'individual'), 'nullable', 'string', 'max:14', function ($attribute, $value, $fail) use ($input, $invoice) {
+            'buyer_tax_number' => ['nullable', 'string', 'max:14', function ($attribute, $value, $fail) use ($input) {
                 $digits = preg_replace('/\D/', '', (string) $value);
                 if (($input['buyer_type'] ?? null) === 'corporate' && ! in_array(strlen($digits), [10, 11], true)) {
                     $fail('Kurumsal faturada 10 haneli VKN (şahıs firmasında 11 haneli TCKN) gerekir.');
-                } elseif (($input['buyer_type'] ?? null) === 'individual' && ($invoice->kind === 'sale' || $digits !== '') && ! self::validBuyerTckn($digits)) {
-                    $fail('Bireysel alıcının geçerli 11 haneli T.C. kimlik numarasını yazın.');
+                } elseif (($input['buyer_type'] ?? null) === 'individual' && $digits !== '' && $digits !== CheckoutService::ANONYMOUS_TCKN && ! self::validBuyerTckn($digits)) {
+                    $fail('Bireysel alıcının geçerli 11 haneli T.C. kimlik numarasını yazın veya alanı boş bırakın.');
                 }
             }],
             'buyer_address' => ['required', 'string', 'max:500'],

@@ -406,6 +406,43 @@ class StoreEInvoiceTest extends TestCase
         $this->assertSame('AccountingSupplierParty', $x->query('/*/cac:Signature')->item(0)->nextSibling->localName);
     }
 
+    public function test_ubl_without_buyer_id_discount_in_price_exemption_and_cash_note(): void
+    {
+        // Kimliksiz bireysel alıcı (kapıda ödeme), kupon indirimli satır ve %0 KDV'li satır.
+        $order = $this->paidOrder();
+        $order->forceFill(['payment_method' => 'cod'])->save();
+        $invoice = app(EInvoiceService::class)->createSale($order)->load('lines');
+        $form = $this->form($invoice, ['buyer_tax_number' => '']);
+        $form['lines'][0]['discount'] = '20';   // 2 × 100 TL kalem, 20 TL indirim → 180 TL
+        $form['lines'][1]['vat_rate'] = '0';    // basılı yayın
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $form + ['action' => 'save'])->assertSessionHasNoErrors();
+
+        $xml = app(UblBuilder::class)->xml($invoice->fresh(), 'e_arsiv');
+        $doc = new \DOMDocument;
+        $this->assertTrue($doc->loadXML($xml));
+        $x = new \DOMXPath($doc);
+        $x->registerNamespace('cbc', UblBuilder::NS_CBC);
+        $x->registerNamespace('cac', UblBuilder::NS_CAC);
+
+        $this->assertSame('11111111111', $x->evaluate('string(//cac:AccountingCustomerParty//cac:PartyIdentification/cbc:ID)'));
+        // İndirim iskonto olarak gösterilmez; satır indirimli fiyatla yazılır.
+        $this->assertSame(0.0, $x->evaluate('count(//cac:AllowanceCharge)'));
+        $this->assertSame('0.00', $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:AllowanceTotalAmount)'));
+        $this->assertSame('150.00', $x->evaluate('string(//cac:InvoiceLine[1]/cbc:LineExtensionAmount)'));
+        $this->assertSame('75.00', $x->evaluate('string(//cac:InvoiceLine[1]/cac:Price/cbc:PriceAmount)'));
+        $this->assertSame(
+            $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount)'),
+            $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:LineExtensionAmount)'),
+        );
+        // %0 KDV: basılı kitap / süreli yayın istisnası.
+        $this->assertSame('335', $x->evaluate('string(/*/cac:TaxTotal//cac:TaxCategory/cbc:TaxExemptionReasonCode)'));
+        $this->assertStringNotContainsString('351', $x->evaluate('string(//cbc:TaxExemptionReasonCode)'));
+        // Kapıda ödeme: ödeme şekli nakit.
+        $this->assertStringContainsString('Ödeme şekli: Nakit', $xml);
+        // Önizleme PDF'i de üretilebiliyor (iskonto sütunu yok).
+        $this->assertStringStartsWith('%PDF', app(EInvoiceService::class)->preview($invoice->fresh()));
+    }
+
     public function test_sole_proprietor_buyer_with_tckn_and_date_and_status_guards(): void
     {
         $order = $this->paidOrder();
@@ -416,20 +453,21 @@ class StoreEInvoiceTest extends TestCase
         $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['issue_date' => now('Europe/Istanbul')->subDays(3)->toDateString()]) + ['action' => 'save'])
             ->assertSessionHasErrors('issue_date');
 
-        // Bireysel alıcıda geçerli T.C. kimlik numarası zorunlu (11111111111 kullanılmaz).
-        foreach (['', '11111111111', '12345678901'] as $tckn) {
-            $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => $tckn]) + ['action' => 'save'])->assertSessionHasErrors('buyer_tax_number');
+        // Bireysel alıcıda kimlik isteğe bağlı: boş veya 11111111111 kabul edilir, yazılan numara geçerli olmalı.
+        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => '12345678901']) + ['action' => 'save'])->assertSessionHasErrors('buyer_tax_number');
+        foreach (['', '11111111111', '10000000146'] as $tckn) {
+            $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => $tckn]) + ['action' => 'save'])->assertSessionHasNoErrors();
         }
-        // Kimliksiz eski taslak (ör. zorunluluktan önceki sipariş) gönderilmez; numara yazılınca gönderilir.
-        $invoice->forceFill(['buyer_tax_number' => null])->save();
+        // Geçersiz kimlikli eski taslak gönderilmez.
+        $invoice->forceFill(['buyer_tax_number' => '12345678901'])->save();
         try {
             $service->send($invoice->fresh());
-            $this->fail('Kimliksiz bireysel fatura gönderilmemeli.');
+            $this->fail('Geçersiz kimlikli bireysel fatura gönderilmemeli.');
         } catch (\DomainException $e) {
-            $this->assertStringContainsString('T.C. kimlik numarası eksik', $e->getMessage());
+            $this->assertStringContainsString('T.C. kimlik numarası geçersiz', $e->getMessage());
         }
         $this->assertSame('draft', $invoice->fresh()->status);
-        $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_tax_number' => '10000000146']) + ['action' => 'save'])->assertSessionHasNoErrors();
+        $invoice->forceFill(['buyer_tax_number' => '10000000146'])->save();
 
         // Şahıs firması: kurumsal alıcı 11 haneli TCKN ile; UBL'de kişi adı da yazılır.
         $this->put(self::ADMIN.'/faturalar/'.$invoice->id, $this->form($invoice, ['buyer_type' => 'corporate', 'buyer_name' => 'Ali Veli',

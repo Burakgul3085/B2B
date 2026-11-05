@@ -48,6 +48,9 @@ class CheckoutService
     /** Teslimat ve kapıda ödeme bedeline uygulanan KDV oranı. */
     public const SERVICE_VAT_RATE = '20';
 
+    /** Kimlik numarası verilmeyen bireysel alıcı için GİB'in kabul ettiği numara. */
+    public const ANONYMOUS_TCKN = '11111111111';
+
     public function __construct(
         private DeliveryRules $delivery,
         private CodPolicy $cod,
@@ -500,11 +503,13 @@ class CheckoutService
         }
 
         if ($type === 'individual') {
+            // Bireysel alıcıda T.C. kimlik no isteğe bağlıdır (mali müşavir): boşsa e-Arşiv faturası 11111111111 ile kesilir.
+            // Yazılırsa geçerli olmalıdır; 11111111111 yazılması boş bırakmakla aynıdır.
             $tckn = preg_replace('/\D/', '', (string) ($input['billing_tckn'] ?? ''));
-            if ($tckn === '') {
-                $errors['billing_tckn'] = 'Fatura için T.C. kimlik numaranızı girin.';
-            } elseif (! self::validTckn($tckn)) {
-                $errors['billing_tckn'] = 'Geçerli bir T.C. kimlik numarası girin.';
+            if ($tckn === self::ANONYMOUS_TCKN) {
+                $tckn = '';
+            } elseif ($tckn !== '' && ! self::validTckn($tckn)) {
+                $errors['billing_tckn'] = 'Geçerli bir T.C. kimlik numarası girin veya alanı boş bırakın.';
             }
 
             return ['type' => 'individual', 'name' => null, 'tax_office' => null, 'tax_number' => $tckn ?: null, 'address' => $address];

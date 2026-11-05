@@ -22,6 +22,11 @@ final class UblBuilder
 
     public const NS_CBC = 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2';
 
+    /** %0 KDV istisna kodu: KDV 13/n md. basılı kitap ve süreli yayınların teslimleri. */
+    public const EXEMPTION_CODE = '335';
+
+    public const EXEMPTION_REASON = 'KDV 13/n md. Basılı Kitap ve Süreli Yayınların Teslimleri';
+
     private DOMDocument $doc;
 
     /**
@@ -33,7 +38,8 @@ final class UblBuilder
         $invoice->loadMissing('lines');
         $lines = $invoice->lines;
         $totals = InvoiceMath::totals($lines->map(fn ($l) => $l->only(['net_amount', 'vat_amount', 'line_total', 'vat_rate'])));
-        $allowance = $lines->reduce(fn ($sum, $l) => bcadd($sum, $this->netDiscount($l), 2), '0.00');
+        // İndirim (kupon, kampanya) faturada iskonto olarak gösterilmez: satır indirimli tutarıyla yazılır (mali müşavir).
+        $allowance = '0.00';
 
         $root = $this->doc->createElementNS(self::NS_INVOICE, 'Invoice');
         $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cac', self::NS_CAC);
@@ -53,6 +59,9 @@ final class UblBuilder
             $this->cbc($root, 'Note', $invoice->note);
         }
         $this->cbc($root, 'Note', 'Sipariş no: '.$invoice->order->order_no);
+        if ($invoice->order->payment_method === 'cod') {
+            $this->cbc($root, 'Note', 'Ödeme şekli: Nakit (kapıda ödeme)');
+        }
         $this->cbc($root, 'DocumentCurrencyCode', 'TRY');
         $this->cbc($root, 'LineCountNumeric', (string) $lines->count());
 
@@ -227,9 +236,9 @@ final class UblBuilder
         $this->cbc($sub, 'Percent', $rate);
         $category = $this->cac($sub, 'TaxCategory');
         if (bccomp($rate, '0', 2) === 0) {
-            // %0 KDV'de istisna kodu zorunludur; 351: istisna olmayan diğer (mali müşavirle teyit edilmeli).
-            $this->cbc($category, 'TaxExemptionReasonCode', '351');
-            $this->cbc($category, 'TaxExemptionReason', 'KDV - İstisna Olmayan Diğer');
+            // %0 KDV'de istisna kodu zorunludur. Mağazada %0 KDV'li ürün basılı kitap / süreli yayındır (mali müşavir teyitli).
+            $this->cbc($category, 'TaxExemptionReasonCode', self::EXEMPTION_CODE);
+            $this->cbc($category, 'TaxExemptionReason', self::EXEMPTION_REASON);
         }
         $scheme = $this->cac($category, 'TaxScheme');
         $this->cbc($scheme, 'Name', 'KDV');
@@ -242,13 +251,6 @@ final class UblBuilder
         $this->cbc($node, 'ID', (string) $no);
         $this->cbc($node, 'InvoicedQuantity', rtrim(rtrim((string) $line->quantity, '0'), '.'))->setAttribute('unitCode', 'C62');
         $this->amount($node, 'LineExtensionAmount', (string) $line->net_amount);
-        $discount = $this->netDiscount($line);
-        if (bccomp($discount, '0', 2) > 0) {
-            $charge = $this->cac($node, 'AllowanceCharge');
-            $this->cbc($charge, 'ChargeIndicator', 'false');
-            $this->amount($charge, 'Amount', $discount);
-            $this->amount($charge, 'BaseAmount', bcadd((string) $line->net_amount, $discount, 2));
-        }
         $tax = $this->cac($node, 'TaxTotal');
         $this->amount($tax, 'TaxAmount', (string) $line->vat_amount);
         $this->taxSubtotal($tax, (string) $line->net_amount, (string) $line->vat_amount, rtrim(rtrim((string) $line->vat_rate, '0'), '.'));
@@ -257,18 +259,22 @@ final class UblBuilder
         if ($line->sku) {
             $this->cbc($this->cac($item, 'SellersItemIdentification'), 'ID', $line->sku);
         }
-        $this->amount($this->cac($node, 'Price'), 'PriceAmount', InvoiceMath::netUnit((string) $line->unit_price, (string) $line->vat_rate));
+        $this->amount($this->cac($node, 'Price'), 'PriceAmount', $this->unitPrice($line));
     }
 
-    /** Satır indiriminin KDV hariç karşılığı: KDV hariç brüt − KDV hariç satır tutarı. */
-    private function netDiscount($line): string
+    /**
+     * KDV hariç birim fiyat. İndirimsiz satırda liste fiyatının KDV hariç karşılığıdır; indirimli satırda satır tutarı
+     * miktara bölünür (iskonto ayrıca gösterilmez). Tam bölünmeyen tutarda birim fiyat 4 haneye kadar yazılır.
+     */
+    private function unitPrice($line): string
     {
         if (bccomp((string) $line->discount, '0', 2) <= 0) {
-            return '0.00';
+            return InvoiceMath::netUnit((string) $line->unit_price, (string) $line->vat_rate);
         }
-        $gross = InvoiceMath::line((string) $line->quantity, (string) $line->unit_price, '0', (string) $line->vat_rate)['net_amount'];
+        $price = bcdiv((string) $line->net_amount, (string) $line->quantity, 4);
+        $price = rtrim(rtrim($price, '0'), '.');
 
-        return bcsub($gross, (string) $line->net_amount, 2);
+        return str_contains($price, '.') && strlen(substr(strrchr($price, '.'), 1)) >= 2 ? $price : number_format((float) $price, 2, '.', '');
     }
 
     private function cac(DOMElement $parent, string $name): DOMElement

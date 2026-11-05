@@ -143,8 +143,9 @@ class StoreCheckoutTest extends TestCase
 
         $this->post(self::HOST.'/odeme', $this->form(['billing_type' => 'corporate']))->assertSessionHasErrors(['billing_company', 'billing_tax_office', 'billing_tax_number']);
         $this->post(self::HOST.'/odeme', $this->form(['billing_tckn' => '12345678901']))->assertSessionHasErrors('billing_tckn');
-        // Bireysel siparişte T.C. kimlik numarası zorunlu (e-Arşiv faturası için).
-        $this->post(self::HOST.'/odeme', $this->form(['billing_tckn' => '']))->assertSessionHasErrors('billing_tckn');
+        // Bireysel siparişte T.C. kimlik numarası isteğe bağlı (boşsa e-Arşiv 11111111111 ile kesilir).
+        $this->post(self::HOST.'/odeme', $this->form(['billing_tckn' => '', 'consent' => '0']))->assertSessionHasErrors('consent')->assertSessionDoesntHaveErrors('billing_tckn');
+        $this->post(self::HOST.'/odeme', $this->form(['billing_tckn' => '11111111111', 'consent' => '0']))->assertSessionHasErrors('consent')->assertSessionDoesntHaveErrors('billing_tckn');
         // Kurumsalda 10 haneli VKN veya şahıs firmasında geçerli 11 haneli TCKN.
         $corporate = ['billing_type' => 'corporate', 'billing_company' => 'Ali Veli', 'billing_tax_office' => 'Tepebaşı'];
         $this->post(self::HOST.'/odeme', $this->form($corporate + ['billing_tax_number' => '12345678901']))->assertSessionHasErrors('billing_tax_number');

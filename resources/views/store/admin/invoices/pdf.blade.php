@@ -90,15 +90,15 @@
     </table>
 
     <table class="lines">
-        <thead><tr><th style="width: 4%;">#</th><th>Mal / hizmet</th><th class="r">Miktar</th><th class="r">Birim fiyat</th><th class="r">İndirim</th><th class="r">KDV</th><th class="r">KDV tutarı</th><th class="r">Tutar</th></tr></thead>
+        <thead><tr><th style="width: 4%;">#</th><th>Mal / hizmet</th><th class="r">Miktar</th><th class="r">Birim fiyat</th><th class="r">KDV</th><th class="r">KDV tutarı</th><th class="r">Tutar</th></tr></thead>
         <tbody>
             @foreach ($invoice->lines as $i => $line)
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $line->name }}@if ($line->sku)<div class="small muted">{{ $line->sku }}</div>@endif</td>
                     <td class="r">{{ $qty($line->quantity) }} Adet</td>
-                    <td class="r">{{ Money::format($line->unit_price) }}</td>
-                    <td class="r">{{ bccomp((string) $line->discount, '0', 2) > 0 ? Money::format($line->discount) : '—' }}</td>
+                    {{-- İndirim faturada ayrıca gösterilmez: indirimli satırda birim fiyat, indirimli tutarın miktara bölümüdür. --}}
+                    <td class="r">{{ Money::format(bccomp((string) $line->discount, '0', 2) > 0 ? bcdiv((string) $line->line_total, (string) $line->quantity, 2) : $line->unit_price) }}</td>
                     <td class="r">%{{ $rate($line->vat_rate) }}</td>
                     <td class="r">{{ Money::format($line->vat_amount) }}</td>
                     <td class="r">{{ Money::format($line->line_total) }}</td>

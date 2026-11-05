@@ -73,9 +73,13 @@ Not: Yerel Windows PHP'sinde CA sertifika paketi tanımlı değildir. Gerçek se
    - Gönderici VKN/TCKN = Uyumsoft hesabındaki kimlik. "Bağlantıyı dene" bunu gösterir ve farklıysa uyarır.
    - "Bağlantıyı dene" çalıştırılır.
 3. Mağaza ayarlarında firma unvanı, adres ve vergi dairesi doğru olmalıdır, çünkü faturada satıcı bilgisi olarak bunlar çıkar.
-4. Mali müşavirle teyit edin:
-   - %0 KDV istisna kodu (şimdilik 351)
-   - Kargo kaleminin KDV oranı
-   - Bireysel iadede e-Arşiv iade faturası mı, gider pusulası mı kesilecek
-   - 11111111111 için tutar sınırı
+4. Mali müşavir kararları (2026-11-05):
+   - Satıcı: EBRU BİRBİLEN, TCKN 18508621764, Eskişehir V.D. Başkanlığı; e-Fatura mükellefi. ETBİS ve ÖKC gerekmez. Faturalar müşavire Luca üzerinden ulaşır.
+   - %0 KDV istisna kodu 335 (KDV 13/n md. basılı kitap ve süreli yayınların teslimleri). Ürün KDV'si ürün başına %0 / %10 / %20 girilir.
+   - Kargo ve kapıda ödeme bedeli %20 KDV.
+   - Kupon / kampanya indirimi faturada iskonto olarak gösterilmez; satır indirimli fiyatla yazılır.
+   - Bireysel alıcıda TCKN isteğe bağlı; boşsa 11111111111. Kurumsal alıcıda VKN zorunlu.
+   - Fatura ödeme alınınca kesilir; kapıda ödemede tahsilatla (teslimde). Kapıda ödemeli faturaya "Ödeme şekli: Nakit" notu düşülür.
+   - İade: kurumsal (e-Fatura) alıcı iade faturasını kendisi keser. Bireysel alıcıda 7 gün içinde e-Arşiv faturası iptal edilir, sonrasında iade faturası kesilir. Kargodan önce iptalde de 7 gün içinde fatura iptal edilir. Kısmi iade yapılmaz. İade kargo bedeli kargo firmasının faturasıyla gider yazılır.
+   - Mağaza ve toptan için ayrı seri. Toptan (bayi) faturaları Uyumsoft portalından kesilir. iyzico komisyon faturalarını müşavir gider yazar.
 5. İlk gerçek siparişte faturayı kesip PDF'i ve Uyumsoft portalındaki kaydı kontrol edin.
