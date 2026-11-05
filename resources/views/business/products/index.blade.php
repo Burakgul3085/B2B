@@ -2,7 +2,7 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::Business" title="Ürünler">
     <x-page-header title="Ürünler" subtitle="Ürün bilgileri, fiyatlar ve satış durumu.">
         @if ($currentBusiness->moduleEnabled('import'))
-            <x-button variant="secondary" icon="upload" :href="route('business.products.import')">İçe aktar</x-button>
+            <x-button variant="secondary" icon="upload" :href="route('business.products.folder')">Klasörden ekle</x-button>
         @endif
         <x-button variant="secondary" icon="percent" :href="route('business.products.price', request()->only(['q', 'category', 'brand', 'status', 'stock']))">Toplu fiyat</x-button>
         <x-button icon="plus" :href="route('business.products.create')">Yeni ürün</x-button>
@@ -10,11 +10,11 @@
 
     @if (! $hasAnyProduct)
         <x-card>
-            <x-empty-state icon="package" title="Henüz ürün yok" text="İlk ürününüzü ekleyin veya Excel şablonuyla ürünlerinizi toplu olarak aktarın.">
+            <x-empty-state icon="package" title="Henüz ürün yok" text="İlk ürününüzü ekleyin veya ürün klasörünüzü bırakarak hepsini birden ekleyin.">
                 <div class="flex flex-wrap justify-center gap-2">
                     <x-button icon="plus" :href="route('business.products.create')">Ürün ekle</x-button>
                     @if ($currentBusiness->moduleEnabled('import'))
-                        <x-button variant="secondary" icon="upload" :href="route('business.products.import')">Excel ile aktar</x-button>
+                        <x-button variant="secondary" icon="upload" :href="route('business.products.folder')">Klasörden toplu ekle</x-button>
                     @endif
                 </div>
             </x-empty-state>

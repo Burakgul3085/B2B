@@ -35,7 +35,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Ürün iş kuralları. Ürün formu ve Excel/CSV içe aktarma aynı doğrulamayı kullanır.
+ * Ürün iş kuralları. Ürün formu ve klasörden toplu ekleme aynı doğrulamayı kullanır.
  */
 class ProductService
 {
@@ -198,7 +198,7 @@ class ProductService
      *  - single: tek tek; isteğe bağlı en az miktar, 1'er artar.
      *  - case:   koli halinde; artış = koli içi, en az = koli içi × en az koli.
      *  - custom: en az X, Y'er artar (koli içi 1).
-     * Şekil gönderilmediyse (içe aktarma, eski kayıt) kurallardan çıkarılır.
+     * Şekil gönderilmediyse (eski kayıt) kurallardan çıkarılır.
      */
     private function applySaleMode(array $input): array
     {

@@ -1,16 +1,16 @@
 @php use App\Domain\Support\Money; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Ürünler">
     <x-page-header title="Ürünler" subtitle="Mağazada satılan ürünler. Fiyatlar KDV dahildir.">
-        <x-button variant="secondary" icon="upload" :href="route('store_admin.products.import')">Excel ile aktar</x-button>
+        <x-button variant="secondary" icon="upload" :href="route('store_admin.products.folder')">Klasörden ekle</x-button>
         <x-button icon="plus" :href="route('store_admin.products.create')">Yeni ürün</x-button>
     </x-page-header>
 
     @if (! $hasAnyProduct)
         <x-card>
-            <x-empty-state icon="package" title="Henüz ürün yok" text="İlk ürününüzü ekleyin veya Excel şablonuyla ürünlerinizi toplu olarak aktarın.">
+            <x-empty-state icon="package" title="Henüz ürün yok" text="İlk ürününüzü ekleyin veya ürün klasörünüzü bırakarak hepsini birden ekleyin.">
                 <div class="flex flex-wrap justify-center gap-2">
                     <x-button icon="plus" :href="route('store_admin.products.create')">Ürün ekle</x-button>
-                    <x-button variant="secondary" icon="upload" :href="route('store_admin.products.import')">Excel ile aktar</x-button>
+                    <x-button variant="secondary" icon="upload" :href="route('store_admin.products.folder')">Klasörden ekle</x-button>
                 </div>
             </x-empty-state>
         </x-card>

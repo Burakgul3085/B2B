@@ -70,7 +70,7 @@ Fiyat, stok ve sipariş miktarı her zaman **adet** cinsindendir; koli yalnızca
 
 - Miktarlar tam sayıdır. Sipariş doğrulaması değişmedi: `miktar ≥ min_order_qty` ve `miktar`, `order_step`'in katı (§3).
 - **Birim yönetimi kaldırıldı:** "KDV ve Birimler" sayfası "KDV Oranları" oldu (`/toptanci/kdv-oranlari`; eski adres yönlendirilir). Yeni ürün her zaman adettir. Mevcut ürün birimini korur; stok hareketleri değiştirilemeyeceği için (S3) birim dönüştürülmez. `units` tablosu durur.
-- Excel içe aktarmada birim sütunu yok. "Koli İçi Adet / En Az Sipariş / Artış" sütunlarından şekil çıkarılır: koli içi = artış > 1 → koli halinde; artış > 1 → özel kural; diğer → tek tek. Üçü de boşsa yeni ürün tek tek satılır, mevcut ürünün şekli değişmez. Eski şablon başlıkları da okunur.
+- Klasörden toplu eklenen ürün tek tek satılır (§2.4); satış şekli sonradan ürün ekranından değiştirilir.
 - Geçişte mevcut ürünlerin şekli kurallarından aynı yöntemle çıkarıldı.
 
 ### 2.2 Ürün seçenekleri (2026-11-05)
@@ -97,6 +97,17 @@ Varyant grupları sayfası kaldırıldı. Renk, boyut gibi seçenekler ürünün
 - **Diğer seçenekler:** seçenek adı yazılınca satır satır girilir (değer, ürün kodu, barkod, isteğe bağlı bayi fiyatı, stok, görsel; en fazla 30). Her satır kendi kodu ve stoğu olan ayrı ürün olur ve §2.2'deki gibi bağlanır; diğer bilgiler ana üründen alınır. Formda tekrar eden kod, barkod veya değer reddedilir.
 - Hepsi **tek transaction**'dadır: bir adım hata verirse ürün, seçenekler, stok ve vitrin kaydı yazılmaz; diske yazılan görseller silinir. Hata dönüşünde tarayıcı seçilen dosyaları korumaz; kullanıcıya yeniden seçmesi söylenir.
 - "Yeni seçenek ekle" ekranı da görsel ve başlangıç stoğu alır. Düzenleme ekranı yalnızca bilgileri değiştirir; görsel, stok ve seçenekler ürün sayfasından yönetilmeye devam eder.
+
+### 2.4 Klasörden toplu ürün ekleme (2026-11-05)
+
+Excel/CSV ile içe aktarma kaldırıldı; toplu ürün ekleme klasörle yapılır (`/toptanci/urunler/klasorden-ekle`, modül `import`). Tek ürün ekleme ekranı değişmedi. Mağazada aynısı vardır (13-magaza-mimarisi.md §8.6).
+
+- **Düzen:** `[Ürünler/] Kategori/[Alt kategori/] Marka/Ürün adı ; Fiyat ; Barkod ; Stok/` ve içinde resimler (JPG, PNG, WEBP; ad sırasıyla, ilki kapak; en fazla 8) ile isteğe bağlı `aciklama.txt`. Ürünün bir üstü markadır (`Markasız` = markasız), üstündekiler kategoridir (en fazla 2 seviye). En dıştaki `Ürünler` klasörü sayılmaz.
+- **Seçenekli ürün:** ürün klasörünün adında `[Renk]`; her alt klasör bir seçenektir (`Değer ; Fiyat ; Barkod ; Stok`, fiyatı boşsa ürünün fiyatı). Her seçenek §2.2'deki gibi ayrı üründür; ilki ana üründür, resmi olmayan seçenek ürün klasöründeki resimleri alır.
+- **Ürün kodu:** barkod varsa barkod, yoksa kategori + marka + addan türetilen kararlı kod (`YK-…`). Aynı klasör yeniden yüklendiğinde aynı kodlar çıkar.
+- **Akış:** klasör tarayıcıda okunur ve özetlenir (eklenecek, zaten var, hatalı; yeni kategori/marka sayısı); hiçbir şey onaysız yazılmaz. KDV ana kategoriye göre seçilir; fiyatların KDV dahil olup olmadığı ve ürünlerin satışa açık eklenip eklenmeyeceği işaretlenir (varsayılan: kapalı). Onayda eksik kategori ve markalar tek transaction'da oluşturulur, sonra ürünler 4 paralel istekle tek tek gönderilir; resimler tarayıcıda küçültülür (en uzun kenar 2000 px).
+- **Kurallar:** her ürün sunucuda `CreateProduct` ile, tek ürün ekleme ekranıyla aynı doğrulamayla oluşturulur (kategori, marka ve KDV işletmenin kendi kayıtlarından olmalı). Kodu veya barkodu sistemde olan ürün **güncellenmez, atlanır**; bu yüzden yarıda kalan yükleme aynı klasör yeniden bırakılarak sürdürülür (seçenekli üründe yalnızca eksik seçenekler eklenir). Hatalı ürün diğerlerini durdurmaz; geçici ağ hatası yeniden denenir, oturum düşerse yükleme durur.
+- `import_jobs` / `import_errors` tabloları geçmiş kayıtlar için durur; yeni kayıt yazılmaz.
 
 ## 3. Sipariş
 
@@ -253,7 +264,7 @@ Toptancı siparişten "İade kaydı" açar: kalem ve miktar seçer (ilgili kalem
 - Bir bayiye veya seçili bayilere farklı indirim **kupon / kampanyayla** verilir (§4.4).
 - **Kaldırıldı (2026-11-04):** bayi grupları, grup fiyat listeleri, ürün/kategori indirim kuralları ve bayiye özel fiyatlar. Tablolar (`dealer_groups`, `price_lists`, `price_list_items`, `discount_rules`, `dealer_product_prices`) veri kaybı olmasın diye duruyor; fiyat hesabında kullanılmıyor, ekranları yok. Gruba yönelik kupon / kampanyalar o anki grup bayilerine "seçili bayiler" olarak çevrildi; gruba gösterilen vitrin slaytları pasife alındı. Eski grup duyuruları geçmiş kayıt olarak yalnızca o grubun bayilerine görünmeye devam eder; yeni duyuru ve slaytlar tüm bayilere gider. Tanınmayan kampanya hedefi hiçbir bayiye açılmaz.
 
-- **Tek satış fiyatı (2026-11-05):** "Liste fiyatı" ile "Standart bayi fiyatı" birleşti; formda yalnızca **Bayi fiyatı**, isteğe bağlı **Alış fiyatı** ve kapalı gelen **İndirim uygula** bölümü vardır. Geçişte her ürünün bugün uygulanan fiyatı (bayi fiyatı varsa o, yoksa liste fiyatı) `list_price`'a yazıldı ve `dealer_price` boşaltıldı; hiçbir bayinin fiyatı değişmedi. `dealer_price` sütunu eski kayıtlar için okunur, formdan ve içe aktarmadan girilmez. Excel'de sütun "Bayi Fiyatı"; eski şablondaki "Liste Fiyatı" yalnızca Bayi Fiyatı boşsa kullanılır.
+- **Tek satış fiyatı (2026-11-05):** "Liste fiyatı" ile "Standart bayi fiyatı" birleşti; formda yalnızca **Bayi fiyatı**, isteğe bağlı **Alış fiyatı** ve kapalı gelen **İndirim uygula** bölümü vardır. Geçişte her ürünün bugün uygulanan fiyatı (bayi fiyatı varsa o, yoksa liste fiyatı) `list_price`'a yazıldı ve `dealer_price` boşaltıldı; hiçbir bayinin fiyatı değişmedi. `dealer_price` sütunu eski kayıtlar için okunur, formdan ve toplu eklemeden girilmez.
 
 Alış fiyatı bayi tarafında hiçbir yanıtta (HTML, JSON, dışa aktarma) yer almaz.
 

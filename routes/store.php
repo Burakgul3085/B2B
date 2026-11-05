@@ -39,9 +39,11 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::get('urunler/yeni', [Admin\ProductController::class, 'create'])->name('products.create');
                 Route::post('urunler', [Admin\ProductController::class, 'store'])->name('products.store');
                 Route::post('urunler/toplu', [Admin\ProductController::class, 'bulk'])->name('products.bulk');
-                Route::get('urunler/ice-aktar', [Admin\ProductImportController::class, 'show'])->name('products.import');
-                Route::post('urunler/ice-aktar', [Admin\ProductImportController::class, 'store'])->middleware('throttle:10,1,products.import.store')->name('products.import.store');
-                Route::get('urunler/ice-aktar/sablon', [Admin\ProductImportController::class, 'template'])->name('products.import.template');
+                // Klasörden toplu ürün ekleme: ürün başına bir istek (4 paralel), bu yüzden sınır geniştir.
+                Route::get('urunler/klasorden-ekle', [Admin\ProductFolderImportController::class, 'index'])->name('products.folder');
+                Route::post('urunler/klasorden-ekle/kontrol', [Admin\ProductFolderImportController::class, 'lookup'])->middleware('throttle:120,1,store.products.folder.lookup')->name('products.folder.lookup');
+                Route::post('urunler/klasorden-ekle/hazirla', [Admin\ProductFolderImportController::class, 'prepare'])->middleware('throttle:30,1,store.products.folder.prepare')->name('products.folder.prepare');
+                Route::post('urunler/klasorden-ekle/urun', [Admin\ProductFolderImportController::class, 'store'])->middleware('throttle:1200,1,store.products.folder.store')->name('products.folder.store');
                 Route::get('urunler/{storeProduct}', [Admin\ProductController::class, 'edit'])->name('products.edit');
                 Route::put('urunler/{storeProduct}', [Admin\ProductController::class, 'update'])->name('products.update');
                 Route::delete('urunler/{storeProduct}', [Admin\ProductController::class, 'destroy'])->name('products.destroy');

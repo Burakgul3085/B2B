@@ -19,7 +19,6 @@ use App\Models\DealerRelationship;
 use App\Models\DiscountRule;
 use App\Models\EmailLog;
 use App\Models\HomeBanner;
-use App\Models\ImportJob;
 use App\Models\OrderReturnRequest;
 use App\Models\PlatformAdmin;
 use App\Models\PriceList;
@@ -102,7 +101,6 @@ trait BuildsWorld
                 'showcase' => Showcase::create(['name' => 'Vitrin', 'type' => 'manual'])->id,
                 'count' => $count->id,
                 'line' => StockCountLine::create(['stock_count_id' => $count->id, 'product_id' => $product->id, 'counted_qty' => '1'])->id,
-                'job' => ImportJob::create(['type' => 'products', 'original_name' => 'x.xlsx', 'created_by' => $user->id])->id,
                 'log' => EmailLog::create(['template_key' => 'order_submitted', 'to_email' => 'x@x.test', 'subject' => 'S', 'payload' => [], 'status' => 'failed'])->id,
                 'business_notification' => AppNotification::create(['recipient_side' => 'business', 'type' => 'x', 'title' => 'T', 'url' => '/toptanci'])->id,
                 'dealer_notification' => AppNotification::create(['recipient_side' => 'dealer', 'dealer_relationship_id' => $rel->id, 'type' => 'x', 'title' => 'T', 'url' => '/bayi'])->id,

@@ -84,7 +84,7 @@ class PagesRenderTest extends TestCase
         $this->get(route('store_admin.categories.index'))->assertOk()->assertSee('Jel Kalem');
         $this->get(route('store_admin.categories.index', ['duzenle' => $child->id]))->assertOk()->assertSee('Düzenle: Jel Kalem');
         $this->get(route('store_admin.brands.index'))->assertOk()->assertSee('Pensan');
-        $this->get(route('store_admin.products.import'))->assertOk();
+        $this->get(route('store_admin.products.folder'))->assertOk()->assertSee('Klasörden ürün ekle');
         $this->get(route('store_admin.activity'))->assertOk();
 
         // Stok (M3)
@@ -112,7 +112,7 @@ class PagesRenderTest extends TestCase
         $business = $this->makeBusiness();
         $this->actingAs($business->user, 'business');
 
-        $pages = ['/toptanci/urunler', '/toptanci/urunler/yeni', '/toptanci/urunler/toplu-fiyat', '/toptanci/urunler/ice-aktar',
+        $pages = ['/toptanci/urunler', '/toptanci/urunler/yeni', '/toptanci/urunler/toplu-fiyat', '/toptanci/urunler/klasorden-ekle',
             '/toptanci/kategoriler', '/toptanci/markalar',
             '/toptanci/kdv-oranlari', '/toptanci/stok', '/toptanci/stok/hareket', '/toptanci/stok/transfer',
             '/toptanci/stok-hareketleri', '/toptanci/depolar', '/toptanci/stok-sayimlari'];

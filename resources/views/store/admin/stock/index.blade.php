@@ -1,7 +1,6 @@
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Stok Durumu">
     <x-page-header title="Stok Durumu" subtitle="Mağaza stoğu B2B deposundan ayrı tutulur. Satılabilir = stok − ödeme aşamasında ayrılan.">
         <x-button variant="secondary" icon="refresh" :href="route('store_admin.stock.movements')">Stok hareketleri</x-button>
-        <x-button variant="secondary" icon="upload" :href="route('store_admin.products.import')">Excel ile güncelle</x-button>
     </x-page-header>
 
     <div class="mb-6 grid gap-4 sm:grid-cols-3">
@@ -19,7 +18,7 @@
         </form>
 
         @if ($variants->isEmpty())
-            <x-empty-state icon="layers" title="Gösterilecek ürün yok" text="Ürün ekledikten sonra stok girişini buradan veya Excel ile yapabilirsiniz." />
+            <x-empty-state icon="layers" title="Gösterilecek ürün yok" text="Ürün ekledikten sonra stok girişini buradan yapabilirsiniz." />
         @else
             <div class="overflow-x-auto">
                 <table class="table-base">

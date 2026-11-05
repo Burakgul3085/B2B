@@ -14,7 +14,7 @@ class Product extends Model
 {
     use BelongsToBusiness;
 
-    /** Formdan ve içe aktarmadan doldurulabilen alanlar. */
+    /** Formdan ve toplu eklemeden doldurulabilen alanlar. */
     public const EDITABLE = [
         'sku', 'barcode', 'name', 'description', 'category_id', 'brand_id', 'model', 'unit_id', 'sale_mode', 'pack_quantity',
         'purchase_price', 'list_price', 'dealer_sale_price', 'dealer_sale_starts_on', 'dealer_sale_ends_on',

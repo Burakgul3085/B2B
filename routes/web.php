@@ -274,10 +274,11 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('urunler/toplu-fiyat', [Business\ProductController::class, 'priceForm'])->name('products.price');
         Route::post('urunler/toplu-fiyat', [Business\ProductController::class, 'priceUpdate'])->name('products.price.update');
         Route::middleware('module:import')->group(function () {
-            Route::get('urunler/ice-aktar', [Business\ProductImportController::class, 'index'])->name('products.import');
-            Route::post('urunler/ice-aktar', [Business\ProductImportController::class, 'store'])->middleware('throttle:10,1,products.import.store')->name('products.import.store');
-            Route::get('urunler/ice-aktar/sablon', [Business\ProductImportController::class, 'template'])->name('products.import.template');
-            Route::get('urunler/ice-aktar/{job}', [Business\ProductImportController::class, 'show'])->name('products.import.show');
+            // Klasörden toplu ürün ekleme: ürün başına bir istek (4 paralel), bu yüzden sınır geniştir.
+            Route::get('urunler/klasorden-ekle', [Business\ProductFolderImportController::class, 'index'])->name('products.folder');
+            Route::post('urunler/klasorden-ekle/kontrol', [Business\ProductFolderImportController::class, 'lookup'])->middleware('throttle:120,1,products.folder.lookup')->name('products.folder.lookup');
+            Route::post('urunler/klasorden-ekle/hazirla', [Business\ProductFolderImportController::class, 'prepare'])->middleware('throttle:30,1,products.folder.prepare')->name('products.folder.prepare');
+            Route::post('urunler/klasorden-ekle/urun', [Business\ProductFolderImportController::class, 'store'])->middleware('throttle:1200,1,products.folder.store')->name('products.folder.store');
         });
         Route::get('urunler/{product}', [Business\ProductController::class, 'show'])->name('products.show');
         Route::get('urunler/{product}/duzenle', [Business\ProductController::class, 'edit'])->name('products.edit');

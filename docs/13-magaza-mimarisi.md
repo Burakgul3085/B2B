@@ -147,6 +147,15 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 - **Kendi teslimatım:** Eskişehir'deki izinli ilçeler için. Kart ve kapıda ödemenin ikisiyle de kullanılabilir. Ücret panelden belirlenir.
 - **Kargo:** Tüm Türkiye. Ücret kuralı: sabit ücret ve "X TL üzeri ücretsiz" (karar 2026-10-22: desiye göre ücret olmayacak; kargo firmasıyla anlaşılan sabit ücret uygulanır). İlk sürücü manuel kargodur: firma adı, takip numarası ve takip bağlantısı şablonu girilir.
 
+### 8.6 Klasörden toplu ürün ekleme (2026-11-05)
+
+Excel ile ürün aktarma kaldırıldı; toplu ekleme klasörle yapılır (`katalog/urunler/klasorden-ekle`). Tek ürün ekleme ekranı değişmedi. Düzen ve akış B2B ile aynıdır (03-is-kurallari.md §2.4); farklar:
+
+- Kategori en fazla 3 seviye; ürün başına en fazla 10 resim. Seçenekli üründe seçenekler aynı ürünün varyantlarıdır; ürün klasöründeki ve seçenek klasörlerindeki resimler sırayla ürünün resimleri olur.
+- Fiyatlar KDV dahildir; KDV oranı (%0, %1, %10, %20) ana kategoriye göre seçilir. Ürünler varsayılan olarak yayında değildir.
+- Ürün, varyantları, resimleri ve stoğu `CreateStoreProduct` ile tek transaction'da oluşturulur; stok "İlk stok" girişi olarak yazılır. İlk varyantın stok kodu veya barkodu mağazada varsa ürün atlanır.
+- Kod `App\Domain\Store\Catalog\FolderImport` içindedir; B2B'nin `App\Domain\Catalog\FolderImport` sınıfıyla kod paylaşmaz (yalnızca tarayıcı bileşeni ortaktır).
+
 ## 9. Dış entegrasyonlar (sürücü yapısı)
 
 Her entegrasyon bir arayüz ve sürücülerden oluşur. Yapılandırma mağaza panelinden yapılır; şifre ve anahtarlar veritabanında şifreli saklanır (B2B'deki Gmail şifresiyle aynı yöntem).
@@ -199,7 +208,7 @@ Metinlerin içeriğini müşterinin hukukçusu veya mali müşaviri onaylar. Sis
 |---|---|
 | **M0** | Bu doküman + `CLAUDE.md` güncellemesi → onay |
 | **M1** | B2B'yi tek toptancıya kilitleme (§4); alan adına göre rotalar; `store_admin` girişi; süper admin ve yönetici yönetimi; 2FA; işlem geçmişi; platformda "Mağaza" bölümü; mimari sınır testi |
-| **M2** | Katalog: kategori, marka, ürün, varyant, görsel, fiyat, KDV, SEO alanları, Excel içe aktarma |
+| **M2** | Katalog: kategori, marka, ürün, varyant, görsel, fiyat, KDV, SEO alanları, toplu ekleme (Excel; 2026-11-05'te klasörden eklemeye geçildi, §8.6) |
 | **M3** | Stok: giriş, sayım, kritik stok, hareket geçmişi, ayırma altyapısı |
 | **M4** | Vitrin: ana sayfa, banner, kategori, marka, arama ve filtre, ürün sayfası, SEO, site haritası |
 | **M5** | Müşteri: üyelik, misafir alışveriş, adres (il/ilçe), sepet, kupon altyapısı |

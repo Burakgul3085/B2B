@@ -12,7 +12,7 @@ class BusinessModule extends Model
         'email' => 'E-posta bildirimleri',
         'product_requests' => 'Stokta olmayan ürün talepleri',
         'reports' => 'Raporlama merkezi',
-        'import' => 'Excel/CSV içe aktarma',
+        'import' => 'Klasörden toplu ürün ekleme',
     ];
 
     protected $fillable = ['business_id', 'module_key', 'enabled'];

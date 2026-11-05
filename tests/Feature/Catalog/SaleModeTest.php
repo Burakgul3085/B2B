@@ -6,7 +6,6 @@ use App\Models\Product;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Tests\Concerns\CreatesOrders;
 use Tests\TestCase;
 
@@ -100,25 +99,6 @@ class SaleModeTest extends TestCase
 
         $this->actingAs($rel->dealer->user, 'dealer')->get(route('dealer.catalog.show', $product))->assertOk()
             ->assertSee('Koli: 24 adet · en az 1 koli')->assertSee('Koli fiyatı');
-    }
-
-    public function test_import_infers_sale_mode_from_rule_columns(): void
-    {
-        $business = $this->makeBusiness();
-        $lines = [
-            ['Ürün Kodu', 'Ürün Adı', 'Liste Fiyatı', 'KDV Oranı', 'Koli İçi Adet', 'En Az Sipariş', 'Artış'],
-            ['A-1', 'Tekli', '1', '20', '', '', ''],
-            ['A-2', 'Kolili', '1', '20', '24', '48', '24'],
-            ['A-3', 'Özel', '1', '20', '', '15', '15'],
-        ];
-        $csv = implode("\n", array_map(fn ($r) => implode(';', $r), $lines));
-
-        $this->actingAs($business->user, 'business')
-            ->post(route('business.products.import.store'), ['file' => UploadedFile::fake()->createWithContent('u.csv', $csv), 'create_missing' => '1'])
-            ->assertRedirect();
-
-        $this->assertSame(['A-1' => 'single', 'A-2' => 'case', 'A-3' => 'custom'],
-            $this->inTenant($business, fn () => Product::orderBy('sku')->pluck('sale_mode', 'sku')->all()));
     }
 
     public function test_unit_management_is_gone(): void
