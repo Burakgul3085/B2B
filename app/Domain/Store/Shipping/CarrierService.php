@@ -28,7 +28,10 @@ class CarrierService
                 fn ($attr, $value, $fail) => filter_var(str_replace('{takip}', 'X1', (string) $value), FILTER_VALIDATE_URL) ? null : $fail('Geçerli bir https adresi girin.')],
             'fee' => ['nullable', 'string', 'max:20'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
-        ], [], ['name' => 'firma adı', 'tracking_url' => 'takip bağlantısı', 'fee' => 'kargo ücreti', 'sort_order' => 'sıra'])->validate();
+            // Faturada taşıyıcı VKN'si (e-Arşiv internet satışı); boşluklar yok sayılır.
+            'tax_number' => ['nullable', 'string', 'max:20', fn ($attr, $value, $fail) => preg_match('/^(\d{10}|\d{11})$/', (string) preg_replace('/\s+/', '', (string) $value))
+                ? null : $fail('Vergi numarası 10 haneli VKN (şahıs firmasında 11 haneli TCKN) olmalı.')],
+        ], [], ['name' => 'firma adı', 'tracking_url' => 'takip bağlantısı', 'fee' => 'kargo ücreti', 'sort_order' => 'sıra', 'tax_number' => 'vergi numarası'])->validate();
 
         // Ücret boşsa firma müşteriye seçenek olarak sunulmaz (yalnızca gönderide seçilir).
         $fee = null;
@@ -43,6 +46,7 @@ class CarrierService
             'name' => trim($data['name']),
             'tracking_url' => trim((string) ($data['tracking_url'] ?? '')) ?: null,
             'fee' => $fee,
+            'tax_number' => preg_replace('/\s+/', '', (string) ($data['tax_number'] ?? '')) ?: null,
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => filter_var($input['is_active'] ?? false, FILTER_VALIDATE_BOOL),
         ];

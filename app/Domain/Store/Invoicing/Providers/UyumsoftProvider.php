@@ -168,14 +168,19 @@ final class UyumsoftProvider implements EInvoiceProvider
             default => 'DIGER',
         };
 
+        // Taşıyıcı: kargoda kargo firması (vergi numarası Kargo Firmaları'nda), mağaza teslimatında satıcının kendisi.
+        $carrier = $order->delivery_method === 'cargo' ? $order->carrierModel : null;
+        $carrierId = $carrier?->tax_number ?: UblBuilder::senderId();
+        $carrierName = $carrier ? $carrier->name : UblBuilder::sellerName();
+
         // WSDL: InternetSalesInfo öğeleri (WebAddress, PaymentMidierName, PaymentType, PaymentDate, ShipmentInfo) bu sırayla.
         return '<tem:InternetSalesInfo>'
-            .'<tem:WebAddress>'.$this->e('https://'.config('store.domain')).'</tem:WebAddress>'
+            .'<tem:WebAddress>'.$this->e('https://'.config('store.display_domain')).'</tem:WebAddress>'
             .'<tem:PaymentMidierName>'.($order->payment_method === 'card' ? 'iyzico' : '').'</tem:PaymentMidierName>'
             .'<tem:PaymentType>'.$type.'</tem:PaymentType>'
             .'<tem:PaymentDate>'.($order->paid_at ?? $order->created_at)->timezone('Europe/Istanbul')->format('Y-m-d\TH:i:s').'</tem:PaymentDate>'
             .'<tem:ShipmentInfo><tem:SendDate>'.($order->shipped_at ?? now())->timezone('Europe/Istanbul')->format('Y-m-d\TH:i:s').'</tem:SendDate>'
-            .'<tem:Carier SenderName="'.$this->e(mb_substr((string) ($order->carrier ?: 'Mağaza teslimatı'), 0, 100)).'"/></tem:ShipmentInfo>'
+            .'<tem:Carier SenderTcknVkn="'.$this->e($carrierId).'" SenderName="'.$this->e(mb_substr($carrierName, 0, 100)).'"/></tem:ShipmentInfo>'
             .'</tem:InternetSalesInfo>';
     }
 

@@ -13,6 +13,7 @@ use App\Domain\Store\Orders\OrderService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
 use App\Models\Store\StoreAdmin;
+use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreCreditNote;
 use App\Models\Store\StoreEInvoice;
 use App\Models\Store\StoreInvoice;
@@ -112,6 +113,9 @@ class StoreEInvoiceTest extends TestCase
         ])->assertRedirect('https://sandbox.iyzico.test/odeme');
         $order = StoreOrder::latest('id')->firstOrFail();
         $this->post(self::HOST.'/odeme/iyzico/donus', ['token' => 'tok-'.$order->id]);
+        // Kargo firması (faturada taşıyıcı): ücretsiz firma ödeme sayfasında sunulmaz, siparişe gönderide bağlanır.
+        $carrier = StoreCarrier::updateOrCreate(['name' => 'Aras Kargo'], ['tax_number' => '0720039666']);
+        $order->forceFill(['carrier_id' => $carrier->id, 'carrier' => $carrier->name])->save();
 
         return tap($order->refresh(), fn ($o) => $this->assertSame(['paid', '280.00'], [$o->status, $o->total]));
     }
@@ -363,8 +367,11 @@ class StoreEInvoiceTest extends TestCase
         // Bireysel alıcının TCKN'si de e-Fatura kaydı için sorgulanır (mükellef değil: e-Arşiv).
         $this->assertSame(['WhoAmI', 'IsEInvoiceUser', 'SendInvoice', 'GetOutboxInvoicePdf'], $this->soap);
         Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'efatura-test.uyumsoft.com.tr') && str_contains($r->body(), '<cbc:ProfileID>EARSIVFATURA</cbc:ProfileID>')
-            && str_contains($r->body(), 'schemeID="TCKN">18508621764') && str_contains($r->body(), '<cbc:Name>EBRU BİRBİLEN</cbc:Name>')
-            && str_contains($r->body(), '<cbc:FirstName>EBRU</cbc:FirstName>') && str_contains($r->body(), '<cbc:Name>Eskişehir Defterdarlığı</cbc:Name>')
+            && str_contains($r->body(), 'schemeID="TCKN">18508621764') && ! str_contains($r->body(), '<cbc:Name>EBRU BİRBİLEN</cbc:Name>')
+            && str_contains($r->body(), '<cbc:FirstName>EBRU</cbc:FirstName>') && str_contains($r->body(), '<cbc:FamilyName>BİRBİLEN</cbc:FamilyName>')
+            // Taşıyıcı: kargo firmasının vergi numarası (satıcınınki değil); web adresi okunur biçimde.
+            && str_contains($r->body(), 'SenderTcknVkn="0720039666" SenderName="Aras Kargo"')
+            && str_contains($r->body(), '<tem:WebAddress>https://'.config('store.display_domain').'</tem:WebAddress>') && str_contains($r->body(), '<cbc:Name>Eskişehir Defterdarlığı</cbc:Name>')
             && ! str_contains($r->body(), 'Yapboz Kırtasiye</cbc:Name>') && str_contains($r->body(), '<tem:Scenario>eArchive</tem:Scenario>')
             && str_contains($r->body(), '<tem:PaymentType>KREDIKARTI/BANKAKARTI</tem:PaymentType>') && str_contains($r->body(), '<tem:CreateDateUtc>')
             // Kimlik WS-Security başlığında; gövdede şifre yok.
@@ -381,6 +388,35 @@ class StoreEInvoiceTest extends TestCase
         $this->get(self::ADMIN.'/faturalar?tab=gonderilen')->assertOk()->assertSee('YAP2026000000001');
     }
 
+    public function test_cargo_invoice_needs_carrier_tax_number(): void
+    {
+        $order = $this->paidOrder();
+        $service = app(EInvoiceService::class);
+        $invoice = $service->createSale($order);
+
+        // Kargo firmasının vergi numarası yoksa e-Arşiv gönderilmez (taşıyıcı yerine satıcı yazılırdı).
+        StoreCarrier::where('name', 'Aras Kargo')->update(['tax_number' => null]);
+        try {
+            $service->send($invoice->fresh());
+            $this->fail('Taşıyıcı vergi numarası olmadan gönderilmemeli.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Aras Kargo vergi numarası girilmemiş', $e->getMessage());
+        }
+        $this->assertSame('draft', $invoice->fresh()->status);
+
+        // Kargo firması seçilmemiş kargolu sipariş de bekler; mağaza teslimatında taşıyıcı satıcının kendisidir.
+        $order->forceFill(['carrier_id' => null])->save();
+        $this->assertStringContainsString('kargo firması belli değil', EInvoiceService::carrierProblem($order->fresh()));
+        $order->forceFill(['delivery_method' => 'local'])->save();
+        $this->assertNull(EInvoiceService::carrierProblem($order->fresh()));
+
+        // Kargo Firmaları sayfasında vergi numarası girilir (10 / 11 hane).
+        $carrier = StoreCarrier::where('name', 'Aras Kargo')->sole();
+        $this->put(self::ADMIN.'/ayarlar/kargo-firmalari/'.$carrier->id, ['name' => 'Aras Kargo', 'tax_number' => '123', 'is_active' => '1'])->assertSessionHasErrors('tax_number');
+        $this->put(self::ADMIN.'/ayarlar/kargo-firmalari/'.$carrier->id, ['name' => 'Aras Kargo', 'tax_number' => '072 003 9666', 'is_active' => '1'])->assertSessionHasNoErrors();
+        $this->assertSame('0720039666', $carrier->fresh()->tax_number);
+    }
+
     public function test_ubl_document_structure(): void
     {
         $order = $this->paidOrder();
@@ -393,7 +429,8 @@ class StoreEInvoiceTest extends TestCase
         $x->registerNamespace('cbc', UblBuilder::NS_CBC);
         $x->registerNamespace('cac', UblBuilder::NS_CAC);
         $this->assertSame('TEMELFATURA', $x->evaluate('string(//cbc:ProfileID)'));
-        $this->assertSame('SATIS', $x->evaluate('string(//cbc:InvoiceTypeCode)'));
+        $this->assertSame('SATIS', $x->evaluate('string(//cbc:InvoiceTypeCode)')); // %0 KDV'li kalem yok
+        $this->assertSame('IADE', UblBuilder::typeCode('refund', ['0']));
         $this->assertSame('3', $x->evaluate('string(//cbc:LineCountNumeric)'));
         $this->assertSame('280.00', $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:PayableAmount)'));
         $this->assertSame('1770247133', $x->evaluate('string(//cac:AccountingSupplierParty//cac:PartyIdentification/cbc:ID)'));
@@ -434,7 +471,8 @@ class StoreEInvoiceTest extends TestCase
             $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount)'),
             $x->evaluate('string(//cac:LegalMonetaryTotal/cbc:LineExtensionAmount)'),
         );
-        // %0 KDV: basılı kitap / süreli yayın istisnası.
+        // %0 KDV: basılı kitap / süreli yayın istisnası; fatura tipi İSTİSNA.
+        $this->assertSame('ISTISNA', $x->evaluate('string(//cbc:InvoiceTypeCode)'));
         $this->assertSame('335', $x->evaluate('string(/*/cac:TaxTotal//cac:TaxCategory/cbc:TaxExemptionReasonCode)'));
         $this->assertStringNotContainsString('351', $x->evaluate('string(//cbc:TaxExemptionReasonCode)'));
         // Kapıda ödeme: ödeme şekli nakit.

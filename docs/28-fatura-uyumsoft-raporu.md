@@ -82,4 +82,9 @@ Not: Yerel Windows PHP'sinde CA sertifika paketi tanımlı değildir. Gerçek se
    - Fatura ödeme alınınca kesilir; kapıda ödemede tahsilatla (teslimde). Kapıda ödemeli faturaya "Ödeme şekli: Nakit" notu düşülür.
    - İade: kurumsal (e-Fatura) alıcı iade faturasını kendisi keser. Bireysel alıcıda 7 gün içinde e-Arşiv faturası iptal edilir, sonrasında iade faturası kesilir. Kargodan önce iptalde de 7 gün içinde fatura iptal edilir. Kısmi iade yapılmaz. İade kargo bedeli kargo firmasının faturasıyla gider yazılır.
    - Mağaza ve toptan için ayrı seri. Toptan (bayi) faturaları Uyumsoft portalından kesilir. iyzico komisyon faturalarını müşavir gider yazar.
+5. Uyumsoft'ta yapılanlar (2026-11-05):
+   - Seriler (Genel İşlemler & Ayarlar → Sayaçlar): e-Fatura YB1 (toptan), e-Arşiv EA1 (portaldan elle), e-Arşiv İnternet Satış EB1 (mağaza; web servis numarayı buradan alır). İlk mağaza faturası EB12026000000001.
+   - Web servis kullanıcısının rolleri yalnızca şunlardır: Integration & Ledger & Despatch Service Operator, TestConnection Service Operator, e-Fatura Web Servis Mükellef Listesi Sorgulama, Giden Fatura Operatörü, Web Servis Giden Fatura İşleme Operatörü, e-Arşiv Rapor Operatörü, Fatura İndirme. "Sadece İhracat Faturası Kesme", "Sadece …" ve "VK/TCKN Bazlı" roller kullanıcıyı kısıtlar; verilirse "Sadece ihracat faturası kesmeye izniniz bulunmaktadır" hatası alınır.
+   - Satışta %0 KDV'li kalem varsa fatura tipi İSTİSNA gider (335 SATIS tipinde kullanılamaz).
+   - Kargolu siparişte taşıyıcı olarak kargo firmasının vergi numarası gönderilir (Kargo Firmaları sayfası); girilmemişse fatura gönderilmez. Mağaza teslimatında taşıyıcı satıcının kendisidir.
 5. İlk gerçek siparişte faturayı kesip PDF'i ve Uyumsoft portalındaki kaydı kontrol edin.

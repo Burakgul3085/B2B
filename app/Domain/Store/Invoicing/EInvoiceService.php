@@ -248,6 +248,12 @@ class EInvoiceService
             }
         }
 
+        // e-Arşiv internet satışında gönderim bilgisi taşıyıcının VKN'siyle gider; eksikse Uyumsoft satıcının kimliğini yazar.
+        if ($documentType === 'e_arsiv' && ($problem = self::carrierProblem($invoice->order))) {
+            $invoice->update(['error_message' => $problem]);
+            throw new DomainException($problem);
+        }
+
         // Aynı taslak iki kez gönderilmesin: yalnızca taslak durumundaki kayıt "gönderiliyor"a geçebilir.
         $claimed = StoreEInvoice::whereKey($invoice->id)->where('status', 'draft')->update([
             'status' => 'sending', 'provider' => $provider->key(), 'document_type' => $documentType,
@@ -256,7 +262,7 @@ class EInvoiceService
         if ($claimed !== 1) {
             throw new DomainException('Bu fatura şu anda gönderiliyor veya gönderildi.');
         }
-        $invoice->refresh()->load(['lines', 'order']);
+        $invoice->refresh()->load(['lines', 'order.carrierModel']);
 
         try {
             $result = $provider->send($invoice, $documentType, $alias);
@@ -540,6 +546,23 @@ class EInvoiceService
         $invoice->subtotal = $totals['subtotal'];
         $invoice->vat_total = $totals['vat_total'];
         $invoice->total = $totals['total'];
+    }
+
+    /** Kargolu siparişte faturaya yazılacak taşıyıcı (kargo firması) ve vergi numarası eksikse nedeni. */
+    public static function carrierProblem(StoreOrder $order): ?string
+    {
+        if ($order->delivery_method !== 'cargo') {
+            return null;
+        }
+        $carrier = $order->loadMissing('carrierModel')->carrierModel;
+        if (! $carrier) {
+            return 'Siparişin kargo firması belli değil. Siparişte kargo firmasını seçip (gönderiye verince) faturayı sonra gönderin.';
+        }
+        if (! $carrier->tax_number) {
+            return "Faturada taşıyıcı olarak yazılacak {$carrier->name} vergi numarası girilmemiş. Kargo Firmaları sayfasında vergi numarasını girip yeniden gönderin.";
+        }
+
+        return null;
     }
 
     private static function validBuyerTckn(string $digits): bool

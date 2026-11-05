@@ -54,7 +54,7 @@ final class UblBuilder
         $this->cbc($root, 'UUID', (string) $invoice->ettn);
         $this->cbc($root, 'IssueDate', $invoice->issue_date->format('Y-m-d'));
         $this->cbc($root, 'IssueTime', now('Europe/Istanbul')->format('H:i:s'));
-        $this->cbc($root, 'InvoiceTypeCode', $invoice->kind === 'refund' ? 'IADE' : 'SATIS');
+        $this->cbc($root, 'InvoiceTypeCode', self::typeCode($invoice->kind, $lines->pluck('vat_rate')->all()));
         if ($invoice->note) {
             $this->cbc($root, 'Note', $invoice->note);
         }
@@ -90,6 +90,26 @@ final class UblBuilder
         return $root;
     }
 
+    /**
+     * Fatura tipi: iade faturası IADE. Satışta %0 KDV'li kalem varsa İSTİSNA (335 tam istisna kodu SATIS tipinde
+     * kullanılamaz; GİB'de SATIS + %0 yalnızca 351 ile geçer); yoksa SATIS.
+     *
+     * @param  list<string|int|float>  $vatRates
+     */
+    public static function typeCode(string $kind, array $vatRates): string
+    {
+        if ($kind === 'refund') {
+            return 'IADE';
+        }
+        foreach ($vatRates as $rate) {
+            if (bccomp((string) $rate, '0', 2) === 0) {
+                return 'ISTISNA';
+            }
+        }
+
+        return 'SATIS';
+    }
+
     public function xml(StoreEInvoice $invoice, string $documentType, ?array $reference = null): string
     {
         $root = $this->build($invoice, $documentType, $reference);
@@ -101,7 +121,7 @@ final class UblBuilder
     private function signature(DOMElement $root): void
     {
         $s = StoreSetting::values();
-        $id = $this->senderId();
+        $id = self::senderId();
         $signature = $this->cac($root, 'Signature');
         $this->cbc($signature, 'ID', $id)->setAttribute('schemeID', 'VKN_TCKN');
         $party = $this->cac($signature, 'SignatoryParty');
@@ -111,7 +131,7 @@ final class UblBuilder
         $this->cbc($this->cac($this->cac($signature, 'DigitalSignatureAttachment'), 'ExternalReference'), 'URI', '#Signature_'.$id);
     }
 
-    private function senderId(): string
+    public static function senderId(): string
     {
         $s = StoreSetting::values();
 
@@ -136,10 +156,13 @@ final class UblBuilder
     private function supplier(DOMElement $root): void
     {
         $s = StoreSetting::values();
-        $id = $this->senderId();
+        $id = self::senderId();
         $party = $this->cac($this->cac($root, 'AccountingSupplierParty'), 'Party');
         $this->identification($party, $id);
-        $this->cbc($this->cac($party, 'PartyName'), 'Name', self::sellerName());
+        // Şahıs firmasında (TCKN) satıcı Person ile yazılır; PartyName de eklenirse faturada ad iki kez çıkar.
+        if (strlen($id) !== 11) {
+            $this->cbc($this->cac($party, 'PartyName'), 'Name', self::sellerName());
+        }
         [$district, $city] = $this->supplierCity((string) $s['address']);
         $this->address($party, (string) $s['address'], $district, $city);
         $this->taxScheme($party, $s['invoice_tax_office'] ?: $s['company_tax_office']);

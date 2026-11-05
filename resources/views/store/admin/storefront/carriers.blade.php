@@ -56,8 +56,10 @@
                                     <input name="name" required maxlength="60" value="{{ $carrier->name }}" class="field-input mt-1.5"></label>
                                 <label class="text-sm font-medium sm:col-span-2">Kargo ücreti (₺)
                                     <input name="fee" maxlength="20" inputmode="decimal" value="{{ $money($carrier->fee) }}" placeholder="ör. 89,90" class="field-input mt-1.5"></label>
-                                <label class="text-sm font-medium sm:col-span-2">Sıra
+                                <label class="text-sm font-medium sm:col-span-1">Sıra
                                     <input name="sort_order" type="number" min="0" max="999" value="{{ $carrier->sort_order }}" class="field-input mt-1.5"></label>
+                                <label class="text-sm font-medium sm:col-span-1">Vergi no
+                                    <input name="tax_number" maxlength="20" inputmode="numeric" value="{{ $carrier->tax_number }}" placeholder="Faturada" class="field-input mt-1.5"></label>
                                 <label class="text-sm font-medium sm:col-span-6">Takip bağlantısı
                                     <input name="tracking_url" maxlength="300" value="{{ $carrier->tracking_url }}" placeholder="{{ $brand ? 'Otomatik: '.$brand['tracking_url'] : 'https://…{takip}' }}" class="field-input mt-1.5"></label>
                                 <div class="flex flex-wrap items-center justify-between gap-3 sm:col-span-6">
@@ -85,6 +87,8 @@
                         hint="Anlaştığınız fiyat (KDV dahil). Boş bırakılırsa firma müşteriye sunulmaz, yalnızca gönderide seçilir." />
                     <x-field name="tracking_url" label="Takip bağlantısı" maxlength="300" placeholder="https://…{takip}"
                         hint="Aşağıdaki firmalarda boş bırakın, kendiliğinden gelir. Diğerlerinde takip numarasının geleceği yere {takip} yazın." />
+                    <x-field name="tax_number" label="Vergi numarası" maxlength="20" inputmode="numeric" placeholder="10 haneli VKN" class="max-w-56"
+                        hint="Kargolu siparişin e-Arşiv faturasında taşıyıcı olarak yazılır; kargo firmasının faturasında bulunur. Girilmezse kargolu siparişin faturası gönderilmez." />
                     <x-field name="sort_order" label="Sıra" type="number" min="0" max="999" value="0" class="max-w-32" />
                     <x-button icon="plus">Ekle</x-button>
                 </form>

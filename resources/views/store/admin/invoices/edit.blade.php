@@ -196,7 +196,7 @@
                             </div>
                             <x-field name="buyer_name" label="Ad soyad / unvan" :value="$invoice->buyer_name" required maxlength="160" />
                             <x-field name="buyer_tax_number" label="VKN / TCKN" :value="$invoice->buyer_tax_number" maxlength="11" inputmode="numeric"
-                                hint="Kurumsalda 10 haneli VKN (şahıs firmasında TCKN). Bireyselde 11 haneli TCKN zorunlu. e-Fatura mükellefi olan alıcıya kendiliğinden e-Fatura kesilir." />
+                                hint="Kurumsalda 10 haneli VKN (şahıs firmasında TCKN). Bireyselde TCKN isteğe bağlı; boş bırakılırsa 11111111111 yazılır. e-Fatura mükellefi olan alıcıya kendiliğinden e-Fatura kesilir." />
                             <div x-show="isCorporate()">
                                 <x-field name="buyer_tax_office" label="Vergi dairesi" :value="$invoice->buyer_tax_office" maxlength="80" />
                             </div>
