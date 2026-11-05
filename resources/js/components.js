@@ -1340,7 +1340,7 @@ export function printOrder(config) {
     const fileUrl = (token, suffix) => config.urls.file.replace('__T__', token) + (suffix || '');
     const defaults = () => ({ color: 'bw', duplex: '0', layout: 1, size: 'A4', range: '', copies: 1, binding: 'none', note: '' });
     let uid = 0;
-    const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], tip: null, busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
+    const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], special: null, busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
 
     return {
         files: (config.files || []).map(prepare),
@@ -1469,12 +1469,18 @@ export function printOrder(config) {
                 f.total = res.data.total;
                 f.summary = res.data.summary;
                 f.lines = res.data.quote.lines;
-                f.tip = res.data.quote.tip;
+                f.special = null;
+                f.error = '';
+            } else if (res.data.special) {
+                // Özel teklif eşiği: fiyat verilmez, sepete eklenemez; iletişim bilgileri gösterilir.
+                f.total = null;
+                f.lines = [];
+                f.special = { text: res.data.message, pages: res.data.special.pages, threshold: res.data.special.threshold };
                 f.error = '';
             } else {
                 f.total = null;
                 f.lines = [];
-                f.tip = null;
+                f.special = null;
                 f.error = res.data.message || 'Fiyat hesaplanamadı.';
             }
         },
@@ -1559,6 +1565,9 @@ export function printOrder(config) {
         },
         canAdd(f) {
             return f.status === 'ready' && f.total !== null && !f.busy;
+        },
+        specialText(f) {
+            return f.special ? f.special.text : '';
         },
     };
 }

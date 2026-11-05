@@ -108,30 +108,37 @@ class StorePrintTest extends TestCase
         $settings = app(PrintSettings::class);
         $opts = fn (array $in, int $pages = 40) => PrintOptions::fromInput($in, $pages, $settings);
 
-        // 240 sayfa: yaprak = sayfa ÷ (bir yüzdeki sayfa × önlü arkalıysa 2); ücret yalnızca yaprağa göre.
-        foreach ([[[], 240, '360.00'], [['duplex' => '1'], 120, '180.00'], [['duplex' => '1', 'layout' => 2], 60, '120.00'],
-            [['duplex' => '1', 'layout' => 4], 30, '60.00'], [['duplex' => '1', 'layout' => 8], 15, '30.00']] as [$in, $sheets, $total]) {
+        // 240 sayfa → 101+ sayfa kademesi (₺1,50); önlü arkalı ve bir yüze çok sayfa kademeyi değiştirmez, yaprağı azaltır.
+        foreach ([[[], 240, '360.00'], [['duplex' => '1'], 120, '180.00'], [['duplex' => '1', 'layout' => 2], 60, '90.00'],
+            [['duplex' => '1', 'layout' => 4], 30, '45.00'], [['duplex' => '1', 'layout' => 8], 15, '22.50']] as [$in, $sheets, $total]) {
             $q = $pricing->quote(240, $opts($in, 240));
-            $this->assertSame([$sheets, $total], [$q['sheets'], $q['total']], json_encode($in));
+            $this->assertSame([$sheets, $total, '1.50'], [$q['sheets'], $q['total'], $q['sheet_price']], json_encode($in));
         }
 
-        // 30 sayfa, S-B tek yüz, 2 kopya = 60 yaprak × 2,00; önlü arkalı ipucu
+        // 30 sayfa, S-B tek yüz, 2 kopya = 30 yaprak × 2 kopya × 2,00; ipucu yok
         $q = $pricing->quote(30, $opts(['copies' => 2], 30));
         $this->assertSame([30, 60, '120.00'], [$q['sheets'], $q['all_sheets'], $q['total']]);
-        $this->assertSame('Önlü arkalı seçersen 30 yaprak olur, ₺60,00 daha az ödersin.', $q['tip']);
+        $this->assertArrayNotHasKey('tip', $q);
+        $this->assertSame(['30 yaprak × 2 kopya × ₺2,00 (30 sayfa kademesi)', '₺120,00'], $q['lines'][0]);
 
         // Önlü arkalı + bir yüze 2 sayfa: 10 yaprak; 3 kopya = 30 yaprak × 2,00 + zımba 3 × 5
         $q = $pricing->quote(40, $opts(['duplex' => '1', 'layout' => 2, 'copies' => 3, 'binding' => 'staple']));
-        $this->assertSame([20, 10, '75.00', null], [$q['sides'], $q['sheets'], $q['total'], $q['tip']]);
+        $this->assertSame([20, 10, '75.00'], [$q['sides'], $q['sheets'], $q['total']]);
 
-        // 101+ yaprak kademesi: 120 yaprak renkli × 5,00; spiral (120 yaprak → 200'e kadar 55,00)
+        // 101+ sayfa kademesi: 120 yaprak renkli × 5,00; spiral (120 yaprak → 200'e kadar 55,00)
         $q = $pricing->quote(120, $opts(['color' => 'color', 'binding' => 'spiral'], 120));
         $this->assertSame('655.00', $q['total']);
 
-        // Ters fiyat koruması: 100 yaprak × 2,00 = 200 yerine 101 yaprak × 1,50 = 151,50
-        $q = $pricing->quote(100, $opts([], 100));
-        $this->assertSame('151.50', $q['total']);
-        $this->assertSame(['100 yaprak (üst kademe tutarı: 101 yaprak × ₺1,50)', '₺151,50'], $q['lines'][0]);
+        // Kademe sınırında düzeltme yok: 100 sayfa 1–100 kademesinde (₺2,00), 101 sayfa üst kademede (₺1,50).
+        $this->assertSame('200.00', $pricing->quote(100, $opts([], 100))['total']);
+        $this->assertSame('151.50', $pricing->quote(101, $opts([], 101))['total']);
+        // 202 sayfa önlü arkalı = 101 yaprak ama kademe 202 sayfaya göre; kopya kademeyi değiştirmez.
+        $this->assertSame('1.50', $pricing->quote(202, $opts(['duplex' => '1'], 202))['sheet_price']);
+        $this->assertSame(['2.00', '600.00'], array_values(array_intersect_key($pricing->quote(50, $opts(['copies' => 6], 50)), ['sheet_price' => 1, 'total' => 1])));
+        // Sayfa aralığı: kademe aralıktaki sayfa sayısına göre (300 sayfalık belgenin 30–170'i = 141 sayfa → ₺1,50).
+        $q = $pricing->quote(300, $opts(['range' => '30-170'], 300));
+        $this->assertSame([141, '1.50', '211.50'], [$q['pages'], $q['sheet_price'], $q['total']]);
+        $this->assertSame('2.00', $pricing->quote(300, $opts(['range' => '1-50'], 300))['sheet_price']);
 
         // Sayfa aralığı yalnızca seçilen sayfaları basar.
         $this->assertSame(7, $pricing->quote(40, $opts(['range' => '1-5, 9, 9, 12']))['pages']);
@@ -312,20 +319,63 @@ class StorePrintTest extends TestCase
         $this->assertSame('7.50', app(PrintSettings::class)->get('staple'));
     }
 
+    public function test_special_quote_threshold_blocks_ordering_and_shows_contact(): void
+    {
+        StoreSetting::put(['phone' => '0222 111 22 33', 'email' => 'iletisim@ornek.com']);
+        $file = $this->upload('Kitap.pdf', self::pdf(320));
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/sepet", [])->assertOk(); // eşik yokken eklenebilir
+
+        // Eşik son kademe başlangıcından büyük olmalı.
+        $this->assertThrows(fn () => app(PrintSettings::class)->save($this->settingsForm(['enabled' => '1', 'quote_threshold' => '501'])), ValidationException::class);
+        $tiers = [['from' => 1, 'bw' => '2.00', 'color' => '6.00'], ['from' => 100, 'bw' => '1.75', 'color' => '5.00'], ['from' => 200, 'bw' => '1.50', 'color' => '4.00']];
+        app(PrintSettings::class)->save($this->settingsForm(['enabled' => '1', 'tiers' => $tiers, 'quote_threshold' => '300', 'quote_text' => 'İskonto için bizi arayın.']));
+        // 100 sayfa × 1,75 = 175 kopya başı; 3 kopya = 525. 199 sayfa 100–199, 200 sayfa 200–299 kademesinde.
+        $pricing = app(PrintPricing::class);
+        $opts = fn (array $in, int $pages) => PrintOptions::fromInput($in, $pages, app(PrintSettings::class));
+        $this->assertSame('525.00', $pricing->quote(100, $opts(['copies' => 3], 100))['total']);
+        $this->assertSame(['1.75', '1.50', '2.00'], [$pricing->quote(199, $opts([], 199))['sheet_price'], $pricing->quote(200, $opts(['duplex' => '1'], 200))['sheet_price'],
+            $pricing->quote(99, $opts([], 99))['sheet_price']]);
+
+        $this->get(self::HOST.'/fotokopi')->assertOk()->assertSee('300 sayfa ve üzeri: size özel fiyat')->assertSee('0222 111 22 33')
+            ->assertSee('iletisim@ornek.com')->assertSee('Özel teklif · bize ulaşın');
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", [])->assertStatus(422)
+            ->assertJson(['message' => 'İskonto için bizi arayın.', 'special' => ['pages' => 320, 'threshold' => 300]]);
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/sepet", [])->assertStatus(422)->assertJsonPath('special.threshold', 300);
+        $this->assertSame(1, StorePrintJob::count());
+
+        // Aralıkla eşiğin altına inen baskı fiyatlanır ve eklenir; 299 sayfa eşiğin altında, 300 eşikte.
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['range' => '1-299'])->assertOk()->assertJsonPath('quote.pages', 299);
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['range' => '1-300'])->assertStatus(422);
+        // Önlü arkalı eşiği aşmaktan kurtarmaz.
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['duplex' => '1', 'layout' => 2])->assertStatus(422);
+
+        // Eşikten önce sepete eklenmiş baskı siparişe dönüşemez.
+        $this->get(self::HOST.'/sepet')->assertSee('Bu baskı şu anda sipariş edilemiyor');
+        $this->get(self::HOST.'/odeme')->assertRedirect(route('store.cart'));
+
+        $admin = StoreAdmin::create(['name' => 'Yönetici', 'email' => 'yonetici@ornek.com', 'password' => 'Gizli-Parola-123', 'is_super' => true]);
+        $this->actingAs($admin, 'store_admin');
+        $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 350]]))->assertOk()
+            ->assertSee('Özel teklif: 350 sayfa, eşik (300) ve üzeri.');
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'quote_threshold' => '100']))->assertSessionHasErrors('quote_threshold');
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'quote_threshold' => '']))->assertSessionHas('status');
+        $this->assertNull(app(PrintSettings::class)->get('quote_threshold'));
+    }
+
     public function test_admin_trial_quote_warnings_and_legacy_tiers(): void
     {
         $admin = StoreAdmin::create(['name' => 'Yönetici', 'email' => 'yonetici@ornek.com', 'password' => 'Gizli-Parola-123', 'is_super' => true]);
         $this->actingAs($admin, 'store_admin');
 
         $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 240, 'color' => 'bw', 'duplex' => '1', 'layout' => 2, 'copies' => 1, 'binding' => 'none']]))
-            ->assertOk()->assertSee('toplam <strong>60 yaprak</strong>', false)->assertSee('Toplam: ₺120,00');
+            ->assertOk()->assertSee('toplam <strong>60 yaprak</strong>', false)->assertSee('Toplam: ₺90,00');
         $this->get(route('store_admin.print.edit', ['deneme' => ['pages' => 240, 'binding' => 'staple']]))->assertSee('Zımba en fazla 50 yaprakta');
 
         // Üst kademe daha pahalıysa uyarı gösterilir, kayıt engellenmez.
         $tiers = PrintSettings::DEFAULTS['tiers'];
         $tiers[1]['color'] = '7.00';
         $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'tiers' => $tiers]))->assertSessionHas('status');
-        $this->get(route('store_admin.print.edit'))->assertSee('Renkli: 101 yapraktan başlayan kademenin yaprak fiyatı (₺7,00) bir önceki kademeden (₺6,00) yüksek.');
+        $this->get(route('store_admin.print.edit'))->assertSee('Renkli: 101 sayfadan başlayan kademenin yaprak fiyatı (₺7,00) bir önceki kademeden (₺6,00) yüksek.');
 
         // Yüz başı fiyatlı eski kayıt: tek yüz fiyatları yaprak fiyatı olur.
         StoreSetting::put(['print' => json_encode(['enabled' => true, 'tiers' => [['from' => 1, 'bw' => '3.00', 'bw_duplex' => '2.50', 'color' => '8.00', 'color_duplex' => '7.00']]])]);

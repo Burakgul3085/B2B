@@ -79,12 +79,6 @@ final class PrintOptions
             $data['range'] ?? null, (int) ($data['copies'] ?? 1), (string) ($data['binding'] ?? 'none'), $data['note'] ?? null);
     }
 
-    /** Aynı seçenekler, önlü arkalı (fiyat ipucu için). */
-    public function withDuplex(): self
-    {
-        return new self($this->color, true, $this->layout, $this->size, $this->range, $this->copies, $this->binding, $this->note);
-    }
-
     public function toArray(): array
     {
         return ['color' => $this->color, 'duplex' => $this->duplex, 'layout' => $this->layout, 'size' => $this->size,

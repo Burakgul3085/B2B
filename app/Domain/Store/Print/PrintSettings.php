@@ -13,8 +13,9 @@ use Illuminate\Validation\ValidationException;
  * Fotokopi ayarları (Mağaza yönetimi → Fotokopi): açık/kapalı, yaprak başı fiyat kademeleri, ciltleme fiyatları, sınırlar
  * ve saklama süreleri. store_settings.print anahtarında JSON olarak tutulur. Fiyatlar KDV dahildir.
  *
- * Fiyat kademesi tüm kopyalardaki toplam yaprak sayısına göre seçilir; her kademede siyah-beyaz ve renkli yaprak fiyatı
- * vardır. Spiral cilt kopya başına yaprak sayısına göre kademelidir.
+ * Fiyat kademesi basılacak sayfa sayısına göre seçilir (önlü arkalı ve kopya kademeyi değiştirmez); her kademede siyah-beyaz
+ * ve renkli yaprak fiyatı vardır. Basılacak sayfa özel teklif eşiğine (quote_threshold) ulaşırsa sipariş verilemez, müşteriye
+ * quote_text ve iletişim bilgileri gösterilir; eşik boşsa (null) sınır yoktur. Spiral cilt kopya başına yaprak sayısına göre kademelidir.
  */
 class PrintSettings
 {
@@ -35,6 +36,8 @@ class PrintSettings
             ['to' => 200, 'price' => '55.00'],
             ['to' => 300, 'price' => '75.00'],
         ],
+        'quote_threshold' => null,
+        'quote_text' => 'Bu kadar sayfalı baskılarda size özel indirimli (iskontolu) fiyat veriyoruz. Lütfen mağazamızla iletişime geçin.',
         'min_total' => '0.00',
         'vat_rate' => '20',
         'max_mb' => 200,
@@ -52,6 +55,8 @@ class PrintSettings
         $all = array_replace(self::DEFAULTS, is_array($saved) ? $saved : []);
         // Yüz başı fiyatlı eski kayıtta (bw_duplex, color_duplex) tek yüz fiyatları yaprak fiyatı olarak kullanılır.
         $all['tiers'] = array_map(fn (array $t) => ['from' => (int) $t['from'], 'bw' => (string) $t['bw'], 'color' => (string) $t['color']], $all['tiers']);
+        $all['quote_threshold'] = $all['quote_threshold'] === null ? null : (int) $all['quote_threshold'];
+        $all['quote_text'] = trim((string) $all['quote_text']) ?: self::DEFAULTS['quote_text'];
 
         return $all;
     }
@@ -68,7 +73,7 @@ class PrintSettings
         foreach ($tiers->skip(1) as $i => $tier) {
             foreach (['bw' => 'Siyah-beyaz', 'color' => 'Renkli'] as $key => $label) {
                 if (bccomp($tier[$key], $tiers[$i - 1][$key], 2) > 0) {
-                    $warnings[] = "{$label}: {$tier['from']} yapraktan başlayan kademenin yaprak fiyatı (".Money::format($tier[$key]).') bir önceki kademeden ('.Money::format($tiers[$i - 1][$key]).') yüksek.';
+                    $warnings[] = "{$label}: {$tier['from']} sayfadan başlayan kademenin yaprak fiyatı (".Money::format($tier[$key]).') bir önceki kademeden ('.Money::format($tiers[$i - 1][$key]).') yüksek.';
                 }
             }
         }
@@ -148,7 +153,7 @@ class PrintSettings
         }
         usort($tiers, fn ($a, $b) => $a['from'] <=> $b['from']);
         if (! $tiers || $tiers[0]['from'] !== 1) {
-            $errors['tiers'] = 'İlk fiyat kademesi 1. yapraktan başlamalıdır.';
+            $errors['tiers'] = 'İlk fiyat kademesi 1. sayfadan başlamalıdır.';
         }
         if (count(array_unique(array_column($tiers, 'from'))) !== count($tiers)) {
             $errors['tiers'] = 'Her kademenin başlangıcı farklı olmalıdır.';
@@ -163,6 +168,11 @@ class PrintSettings
         }
         usort($spiral, fn ($a, $b) => $a['to'] <=> $b['to']);
 
+        $threshold = blank($input['quote_threshold'] ?? null) ? null : $int($input['quote_threshold'], 'quote_threshold', 2, 1000000);
+        if ($threshold !== null && $tiers && $threshold <= max(array_column($tiers, 'from'))) {
+            $errors['quote_threshold'] = 'Özel teklif eşiği son fiyat kademesinin başlangıcından büyük olmalıdır.';
+        }
+
         $data = [
             'enabled' => filter_var($input['enabled'] ?? false, FILTER_VALIDATE_BOOL),
             'tiers' => $tiers,
@@ -171,6 +181,8 @@ class PrintSettings
             'staple' => $money($input['staple'] ?? null, 'staple'),
             'staple_max_sheets' => $int($input['staple_max_sheets'] ?? 50, 'staple_max_sheets', 1, 1000),
             'spiral' => $spiral,
+            'quote_threshold' => $threshold,
+            'quote_text' => mb_substr(trim((string) ($input['quote_text'] ?? '')), 0, 300) ?: self::DEFAULTS['quote_text'],
             'min_total' => $money($input['min_total'] ?? '0', 'min_total'),
             'vat_rate' => in_array((string) ($input['vat_rate'] ?? '20'), ['0', '1', '10', '20'], true) ? (string) $input['vat_rate'] : '20',
             'max_mb' => $int($input['max_mb'] ?? 200, 'max_mb', 1, 500),

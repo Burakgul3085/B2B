@@ -7,10 +7,12 @@ use App\Domain\Store\Print\PrintCart;
 use App\Domain\Store\Print\PrintFiles;
 use App\Domain\Store\Print\PrintOptions;
 use App\Domain\Store\Print\PrintSettings;
+use App\Domain\Store\Print\SpecialQuoteRequired;
 use App\Domain\Support\Money;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\StorePrintFile;
+use App\Models\Store\StoreSetting;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +38,7 @@ class PrintController extends Controller
 
         return view('store.front.print', [
             'settings' => $this->settings->all(),
+            'contact' => StoreSetting::values(),
             'files' => $files->map(fn ($f) => $this->state($f))->values()->all(),
             'accept' => implode(',', array_map(fn ($e) => '.'.$e, array_keys(PrintFiles::TYPES))),
         ]);
@@ -100,6 +103,8 @@ class PrintController extends Controller
             ['quote' => $quote, 'options' => $options] = $prints->quote($this->own($request, $token), $request->all());
         } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first(), 'errors' => $e->errors()], 422);
+        } catch (SpecialQuoteRequired $e) {
+            return response()->json(['message' => $e->getMessage(), 'special' => ['pages' => $e->pages, 'threshold' => $e->threshold]], 422);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -115,6 +120,8 @@ class PrintController extends Controller
             $prints->add($cart, $file, $request->all());
         } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first(), 'errors' => $e->errors()], 422);
+        } catch (SpecialQuoteRequired $e) {
+            return response()->json(['message' => $e->getMessage(), 'special' => ['pages' => $e->pages, 'threshold' => $e->threshold]], 422);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

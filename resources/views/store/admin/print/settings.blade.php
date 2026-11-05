@@ -33,14 +33,14 @@
             </x-card>
         </div>
 
-        <x-card title="Baskı fiyatları (yaprak başı)" description="Ücret yaprak başınadır. Kademe, siparişteki tüm kopyalardaki toplam yaprak sayısına göre seçilir. Önlü arkalı ve bir yüze çok sayfa baskı ek ücret almaz, yalnızca yaprak sayısını azaltır. Kademe eşiğinin altındaki bir iş, üst kademenin başlangıç tutarından pahalıya gelmez. İlk kademe 1'den başlamalıdır; boş satırlar yok sayılır." :padding="false">
+        <x-card title="Baskı fiyatları (yaprak başı)" description="Ücret yaprak başınadır. Kademe, basılacak sayfa sayısına göre seçilir: sayfa aralığı yoksa belgenin tüm sayfaları, varsa aralıktaki sayfalar. Önlü arkalı, bir yüze çok sayfa ve kopya sayısı kademeyi değiştirmez; tutar = yaprak fiyatı × kopya başı yaprak × kopya. Örnek: 1, 100 ve 200 yazarsanız kademeler 1–99, 100–199 ve 200 ile üzeri olur. İlk kademe 1'den başlamalıdır; boş satırlar yok sayılır." :padding="false">
             @error('tiers')<p class="px-5 pt-4 text-sm text-danger">{{ $message }}</p>@enderror
             @foreach ($warnings as $warning)
                 <p class="mx-5 mt-4 flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"><x-icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $warning }}</p>
             @endforeach
             <div class="overflow-x-auto">
                 <table class="table-base">
-                    <thead><tr><th>Başlangıç (toplam yaprak)</th><th>Siyah-beyaz yaprak (₺)</th><th>Renkli yaprak (₺)</th></tr></thead>
+                    <thead><tr><th>Başlangıç (sayfa)</th><th>Siyah-beyaz yaprak (₺)</th><th>Renkli yaprak (₺)</th></tr></thead>
                     <tbody class="divide-y divide-line">
                         @foreach (array_values($tiers) as $i => $row)
                             <tr>
@@ -52,6 +52,14 @@
                     </tbody>
                 </table>
             </div>
+        </x-card>
+
+        <x-card title="Özel teklif" description="Basılacak sayfa sayısı bu eşiğe ulaşan baskılarda fiyat gösterilmez ve sipariş verilemez; müşteri aşağıdaki metni ve mağazanızın iletişim bilgilerini (Mağaza Ayarları → İletişim: telefon, WhatsApp, e-posta) görür. Boş bırakırsanız sınır olmaz.">
+            <div class="grid gap-5 lg:grid-cols-[14rem_1fr]">
+                <x-field name="quote_threshold" label="Eşik (sayfa)" type="number" min="2" :value="$s['quote_threshold']" hint="Örn. 300: 300 sayfa ve üzeri özel teklif." />
+                <x-field name="quote_text" label="Müşteriye gösterilecek metin" :value="$s['quote_text']" maxlength="300" textarea />
+            </div>
+            @error('quote_threshold')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
         </x-card>
 
         <div class="grid gap-6 xl:grid-cols-2">

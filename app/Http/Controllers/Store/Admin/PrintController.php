@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Store\Admin;
 use App\Domain\Store\Print\PrintOptions;
 use App\Domain\Store\Print\PrintPricing;
 use App\Domain\Store\Print\PrintSettings;
+use App\Domain\Store\Print\SpecialQuoteRequired;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StorePrintJob;
@@ -32,6 +33,8 @@ class PrintController extends Controller
                 $trial['quote'] = $pricing->quote($pages, $options) + ['summary' => $options->summary($pages)];
             } catch (ValidationException $e) {
                 $trial['error'] = collect($e->errors())->flatten()->first();
+            } catch (SpecialQuoteRequired $e) {
+                $trial['error'] = "Özel teklif: {$e->pages} sayfa, eşik ({$e->threshold}) ve üzeri. Müşteri sipariş veremez, şu metni ve iletişim bilgilerinizi görür: ".$e->getMessage();
             } catch (DomainException $e) {
                 $trial['error'] = $e->getMessage();
             }

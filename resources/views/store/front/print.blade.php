@@ -5,6 +5,8 @@
 @php
     use App\Domain\Store\Print\PrintFiles;
     use App\Domain\Store\Storefront\Palette;
+    use App\Domain\Store\Storefront\ProductPage;
+    use App\Domain\Store\Storefront\StorePhones;
     use App\Domain\Support\Money;
 
     $last = $settings['tiers'][count($settings['tiers']) - 1];
@@ -19,11 +21,16 @@
         ['Excel', 'bg-puzzle-green-soft text-puzzle-green'], ['JPG · PNG', 'bg-violet-50 text-violet-700']];
     $steps = [['upload', 'Belgeni yükle', 'Sayfa sayısı otomatik çıkarılır.'], ['settings', 'Baskıyı seç', 'Renk, yüz, düzen, cilt ve kopya.'], ['cart', 'Sepete ekle', 'Ürünlerinle birlikte tek ödeme.']];
     $minSpiral = collect($settings['spiral'])->sortBy('to')->first();
+    // Özel teklif eşiği ve kutusundaki iletişim bilgileri (Mağaza Ayarları → İletişim).
+    $threshold = $settings['quote_threshold'];
+    $phones = StorePhones::list($contact);
+    $whatsapp = ProductPage::whatsapp($contact['whatsapp'] ?? null);
+    $email = trim((string) ($contact['email'] ?? ''));
     // Seçim kartlarının görünümü (seçili / değil); değer karşılaştırması bileşende (isChoice).
     $choice = fn (string $key, string $value) => "isChoice(f, '{$key}', '{$value}') ? 'border-puzzle-blue bg-puzzle-blue-soft text-ink ring-2 ring-puzzle-blue/25' : 'border-line bg-white text-muted hover:border-slate-300 hover:text-ink'";
     $faq = [
         ['Sayfa sayısı nasıl hesaplanıyor?', 'Belgen yüklendiğinde sunucumuzda açılır ve sayfaları sayılır. Word, PowerPoint ve Excel dosyaları baskı için PDF\'e çevrilir; fiyat bu sayfa sayısına göre hesaplanır.'],
-        ['Fiyat nasıl hesaplanıyor?', 'Ücret yaprak (kağıt) başınadır. Önlü arkalı baskı ve bir yüze birden fazla sayfa ek ücret almaz, yalnızca yaprak sayısını azaltır: 240 sayfalık belge tek yüz 240, önlü arkalı 120, önlü arkalı ve bir yüze 2 sayfa 60 yaprak tutar. Toplam yaprak arttıkça yaprak fiyatı düşer.'],
+        ['Fiyat nasıl hesaplanıyor?', 'Ücret yaprak (kağıt) başınadır. Yaprak fiyatı, basılacak sayfa sayısına göre fiyat listesinden seçilir: sayfa aralığı yazmazsan belgenin tüm sayfaları, yazarsan yalnızca o sayfalar sayılır. Önlü arkalı baskı ve bir yüze birden fazla sayfa fiyat aralığını değiştirmez, yalnızca yaprak sayısını azaltır: 240 sayfalık belge tek yüz 240, önlü arkalı 120, önlü arkalı ve bir yüze 2 sayfa 60 yaprak tutar. Birden fazla kopyada tutar kopya sayısıyla çarpılır.'.($threshold ? " {$threshold} sayfa ve üzeri baskılar için özel fiyat veriyoruz; mağazamızla iletişime geç." : '')],
         ['Bir yüze 2, 4 veya 8 sayfa ne demek?', 'Belgenin 2, 4 ya da 8 sayfası küçültülerek kağıdın tek yüzüne yan yana basılır. Ders notu ve sunumlarda kağıttan ve ücretten tasarruf sağlar.'],
         ['Sayfa düzenim bozulur mu?', 'PDF dosyalar olduğu gibi basılır. Word ve PowerPoint dosyalarında yazı tipleri farklılık gösterebileceği için mümkünse belgeyi PDF olarak kaydedip yükle.'],
         ['Baskılarım nasıl teslim edilir?', 'Baskılar siparişinin parçasıdır; ürünlerinle birlikte ödeme adımında seçtiğin teslimat yöntemiyle gönderilir.'],
@@ -227,12 +234,30 @@
                                 </label>
                             </div>
 
+                            {{-- Özel teklif: eşiğe ulaşan baskıda fiyat yerine iletişim bilgileri --}}
+                            <div x-show="f.special" x-cloak class="border-t border-line bg-puzzle-yellow-soft px-5 py-5 sm:px-6" role="status">
+                                <p class="flex items-center gap-2 font-display text-lg font-extrabold text-ink"><x-icon name="percent" class="size-5 text-puzzle-orange" /> {{ $threshold }} sayfa ve üzeri: size özel fiyat</p>
+                                <p class="mt-1 text-sm text-ink/80" x-text="specialText(f)"></p>
+                                <p class="mt-1 text-xs text-muted">Bu baskı internetten sipariş edilemez; teklif için bize ulaşın.</p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    @foreach ($phones as $phone)
+                                        <a href="{{ $phone['tel'] }}" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs ring-1 ring-line hover:ring-puzzle-blue"><x-icon name="phone" class="size-4 text-puzzle-blue" /> {{ $phone['label'] }}: {{ $phone['number'] }}</a>
+                                    @endforeach
+                                    @if ($whatsapp)
+                                        <a href="https://wa.me/{{ $whatsapp }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs ring-1 ring-line hover:ring-puzzle-green"><x-icon name="message-circle" class="size-4 text-puzzle-green" /> WhatsApp</a>
+                                    @endif
+                                    @if ($email !== '')
+                                        <a href="mailto:{{ $email }}" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs ring-1 ring-line hover:ring-puzzle-blue"><x-icon name="mail" class="size-4 text-puzzle-blue" /> {{ $email }}</a>
+                                    @endif
+                                    <a href="{{ route('store.contact') }}" class="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold text-puzzle-blue hover:underline">İletişim sayfası <x-icon name="arrow-right" class="size-4" /></a>
+                                </div>
+                            </div>
+
                             {{-- Fiyat şeridi --}}
                             <div x-show="isReady(f)" class="flex flex-wrap items-center justify-between gap-4 bg-navy px-5 py-4 text-white sm:px-6">
                                 <div class="min-w-0">
                                     <p class="text-sm text-white/75" x-text="f.summary"></p>
                                     <template x-for="l in f.lines" :key="l[0]"><p class="text-xs text-white/50"><span x-text="l[0]"></span> = <span x-text="l[1]"></span></p></template>
-                                    <p x-show="f.tip" x-text="f.tip" class="mt-1 text-xs font-semibold text-puzzle-sun" x-cloak></p>
                                 </div>
                                 <div class="flex items-center gap-4">
                                     <p class="font-display text-3xl font-extrabold tabular-nums" x-text="f.total || '—'"></p>
@@ -258,20 +283,26 @@
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="text-[11px] tracking-wider text-muted uppercase">
-                                    <th class="px-5 py-2.5 text-left font-bold">Toplam yaprak</th>
+                                    <th class="px-5 py-2.5 text-left font-bold">Sayfa sayısı</th>
                                     <th class="px-2 py-2.5 text-right font-bold">S-B</th>
                                     <th class="px-5 py-2.5 text-right font-bold">Renkli</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($settings['tiers'] as $i => $tier)
-                                    @php $next = $settings['tiers'][$i + 1]['from'] ?? null; @endphp
+                                    @php $next = $settings['tiers'][$i + 1]['from'] ?? $threshold; @endphp
                                     <tr class="border-t border-line">
                                         <td class="px-5 py-2.5 font-semibold tabular-nums">{{ $next ? $tier['from'].' – '.($next - 1) : $tier['from'].' +' }}</td>
                                         <td class="px-2 py-2.5 text-right tabular-nums">{{ Money::format($tier['bw']) }}</td>
                                         <td class="px-5 py-2.5 text-right tabular-nums">{{ Money::format($tier['color']) }}</td>
                                     </tr>
                                 @endforeach
+                                @if ($threshold)
+                                    <tr class="border-t border-line bg-puzzle-yellow-soft">
+                                        <td class="px-5 py-2.5 font-semibold tabular-nums">{{ $threshold }} +</td>
+                                        <td colspan="2" class="px-5 py-2.5 text-right text-xs font-bold text-ink">Özel teklif · bize ulaşın</td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                         <dl class="space-y-2 border-t border-line bg-surface px-5 py-4 text-sm">
@@ -280,7 +311,7 @@
                                 <div class="flex justify-between gap-3"><dt class="text-muted">Spiral <span class="text-xs">({{ $row['to'] }} yaprağa kadar)</span></dt><dd class="font-semibold tabular-nums">{{ Money::format($row['price']) }}</dd></div>
                             @endforeach
                         </dl>
-                        <p class="border-t border-line px-5 py-3 text-[11px] text-muted">Önlü arkalı ve bir yüze çok sayfa baskı ek ücret almaz, yaprak sayısını azaltır.@if (bccomp((string) $settings['min_total'], '0', 2) > 0) En düşük baskı tutarı {{ Money::format($settings['min_total']) }}.@endif</p>
+                        <p class="border-t border-line px-5 py-3 text-[11px] text-muted">Yaprak fiyatı basılacak sayfa sayısına göre seçilir; önlü arkalı ve bir yüze çok sayfa baskı yaprak sayısını azaltır.@if (bccomp((string) $settings['min_total'], '0', 2) > 0) En düşük baskı tutarı {{ Money::format($settings['min_total']) }}.@endif</p>
                     </section>
 
                     <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-line">
