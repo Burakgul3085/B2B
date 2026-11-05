@@ -19,6 +19,7 @@ class StoreEmailRenderer
     public const FIGURES = [
         'siparis-alindi' => 'Siparişinizi hazırlayan Yapboz figürü el sallıyor',
         'kargoda' => 'Yapboz kargo aracı yolda',
+        'fatura-hazir' => 'Yapboz yazıcısı faturanızı basıyor',
     ];
 
     /** E-postada logonun gösterileceği yükseklik (px); görsel 2 katı çözünürlükte gömülür. */

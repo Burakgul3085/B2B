@@ -9,6 +9,7 @@ use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\OrderMailer;
 use App\Models\Store\District;
+use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,13 +75,16 @@ class StoreOrderEmailTest extends TestCase
         $this->assertStringContainsString('<h2', $html);
         $this->assertStringContainsString($order->order_no, $html);
 
-        // Kargoya verildi e-postasında kargo aracı figürü; diğer e-postalarda figür yok.
+        // Kargoya verildi e-postasında kargo aracı, fatura e-postasında fatura basan yazıcı figürü; diğer e-postalarda figür yok.
         $order->update(['status' => 'preparing', 'payment_status' => 'paid', 'delivery_method' => 'cargo', 'carrier' => 'Aras Kargo', 'tracking_number' => '123']);
         app(OrderMailer::class)->shipped($order->fresh());
+        app(OrderMailer::class)->invoiceReady($order->fresh(), new StoreInvoice(['invoice_no' => 'EB12026000000001']));
         app(OrderMailer::class)->cancelled($order->fresh());
         $this->app->terminate();
-        $mails = array_slice($this->mails, -2);
-        $this->assertSame(['kargoda', null], array_map(fn ($m) => $m['content']['figure'], $mails));
-        $this->assertCount(1, app(StoreEmailRenderer::class)->render('x', $mails[1]['content'])['inline'], 'yalnızca logo');
+        $mails = array_slice($this->mails, -3);
+        $this->assertSame(['kargoda', 'fatura-hazir', null], array_map(fn ($m) => $m['content']['figure'], $mails));
+        $invoiceGif = collect(app(StoreEmailRenderer::class)->render('x', $mails[1]['content'])['inline'])->firstWhere('cid', 'figur-fatura-hazir');
+        $this->assertSame('GIF89a', substr($invoiceGif['data'], 0, 6));
+        $this->assertCount(1, app(StoreEmailRenderer::class)->render('x', $mails[2]['content'])['inline'], 'yalnızca logo');
     }
 }

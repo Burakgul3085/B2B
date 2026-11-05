@@ -133,7 +133,7 @@ class OrderMailer
     public function invoiceReady(StoreOrder $order, StoreInvoice $invoice): void
     {
         $this->send($order, "Faturanız hazır — {$order->order_no}", 'Faturanız hazır',
-            "{$order->order_no} numaralı siparişinizin faturası ({$invoice->invoice_no}) hazır. Sipariş sayfasından indirebilirsiniz.", false);
+            "{$order->order_no} numaralı siparişinizin faturası ({$invoice->invoice_no}) hazır. Sipariş sayfasından indirebilirsiniz.", false, figure: 'fatura-hazir');
     }
 
     /**

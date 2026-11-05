@@ -5,6 +5,7 @@ Sipariş e-postalarının hareketli figürleri (Yapboz'a özgü blok karakter). 
 
 - siparis-alindi.gif : figür el sallar, yanında Yapboz kutusu ve onay rozeti, yapboz parçaları süzülür.
 - kargoda.gif        : figür Yapboz kargo arabasını sürer; tekerlekler döner, yol ve bulutlar akar.
+- fatura-hazir.gif   : figür el sallar, Yapboz slip yazıcısı faturayı basar, üstüne onay damgası vurulur.
 
 İlk kare tek başına da anlamlıdır (Outlook masaüstü yalnızca ilk kareyi gösterir). Çizim 2 kat büyük yapılıp küçültülür.
 Pillow gerekir.
@@ -248,8 +249,100 @@ def shipped(path):
     save(frames, path, 70)
 
 
+# --- fatura-hazir.gif: figür el sallar, Yapboz slip yazıcısı faturayı basar, onay damgası vurulur ---
+RECEIPT_GRAY = (203, 213, 225)
+RECEIPT_GRAY_D = (148, 163, 184)
+PAPER_EDGE = (226, 232, 240)
+
+PW, PH = 92, 140  # fiş boyutu (çizim birimi)
+
+
+def receipt(check_scale):
+    """Tam basılmış fiş (ayrı katman); yazıcı ağzından üstten başlayarak çıkar."""
+    img = Image.new('RGB', (PW * S, PH * S), WHITE)
+    d = ImageDraw.Draw(img)
+    # tırtıklı üst kenar
+    for k in range(0, PW, 8):
+        d.polygon([(k * S, 0), ((k + 4) * S, 5 * S), ((k + 8) * S, 0)], fill=PAPER_EDGE)
+    puzzle_piece(d, 10, 14, 9, ORANGE)
+    d.text((26 * S, 14 * S), 'FATURA', font=font(11), fill=NAVY)
+    for k in range(0, PW - 12, 6):
+        rect(d, 6 + k, 34, 3, 1.5, RECEIPT_GRAY_D)
+    y = 42
+    for k, w in enumerate([58, 44, 64, 38]):
+        rect(d, 8, y, w, 4, RECEIPT_GRAY)
+        rect(d, PW - 22, y, 14, 4, RECEIPT_GRAY_D)
+        y += 11
+    for k in range(0, PW - 12, 6):
+        rect(d, 6 + k, y + 2, 3, 1.5, RECEIPT_GRAY_D)
+    rect(d, 8, y + 10, 30, 7, NAVY)
+    rect(d, PW - 40, y + 10, 32, 7, ORANGE)
+    # barkod
+    bx = 12
+    for k in range(22):
+        w = 1 + (k * 7 % 3)
+        rect(d, bx, y + 26, w, 14, NAVY)
+        bx += w + 1.6
+    # onay damgası
+    if check_scale > 0:
+        cx, cy, r = PW - 26, 66, 17 * check_scale
+        d.ellipse([(cx - r) * S, (cy - r) * S, (cx + r) * S, (cy + r) * S], fill=GREEN)
+        d.line([((cx - r * 0.45) * S, cy * S), ((cx - r * 0.1) * S, (cy + r * 0.38) * S), ((cx + r * 0.5) * S, (cy - r * 0.35) * S)],
+               fill=WHITE, width=max(1, int(4 * S * check_scale)), joint='curve')
+    return img
+
+
+def printer(d, x, y, led_on, label):
+    """Slip yazıcı: lacivert gövde, üstte kâğıt ağzı, turuncu şerit ve ışık."""
+    box(d, x, y, 150, 62, NAVY, NAVY_SIDE, NAVY_2, 12)
+    rect(d, x + 22, y + 4, 106, 8, NAVY_SIDE)  # kâğıt ağzı
+    rect(d, x, y + 40, 150, 10, ORANGE)
+    d.text(((x + 75) * S, (y + 28) * S), 'YAPBOZ', font=label, fill=WHITE, anchor='mm')
+    led = GREEN if led_on else (20, 83, 45)
+    d.ellipse([(x + 130) * S, (y + 22) * S, (x + 140) * S, (y + 32) * S], fill=led)
+    rect(d, x + 8, y + 54, 20, 4, NAVY_2)
+    rect(d, x + 32, y + 54, 20, 4, NAVY_2)
+
+
+def invoice_frame(i, n, progress, check, label):
+    t = i / n
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    d.ellipse([110 * S, 204 * S, 470 * S, 228 * S], fill=GROUND)
+    for k in range(5):
+        p = (t + k / 5) % 1
+        px = [60, 500, 90, 520, 40][k] + math.sin((p + k) * math.tau) * 8
+        py = 200 - p * 170
+        if 0.05 < p < 0.95:
+            puzzle_piece(d, px, py, 12 + (k % 3) * 3, PIECES[k % 4])
+    bounce = abs(math.sin(t * math.tau * 2)) * 3
+    wave = -150 + math.sin(t * math.tau * 2) * 26
+    figure(d, 140, 100 - bounce, wave, blink=(i in (9, 10)))
+    px, py = 300, 146
+    slot = py + 8
+    h = int(PH * progress)
+    if h > 0:
+        paper = receipt(check).crop((0, 0, PW * S, h * S))
+        img.paste(paper, ((px + 75 - PW // 2) * S, (slot - h) * S))
+        rect(d, px + 75 + PW // 2, slot - h + 4, 3, h - 4, PAPER_EDGE)  # gölge
+    printer(d, px, py, led_on=(progress < 1 and i % 2 == 0) or progress >= 1, label=label)
+    return finish(img)
+
+
+def invoice_ready(out):
+    label = font(14)
+    seq = []
+    seq += [(1, 1)] * 7                                   # ilk kare: basılmış fatura + onay (Outlook yalnız bunu gösterir)
+    seq += [(k / 18, 0) for k in range(1, 19)]            # basılıyor
+    seq += [(1, s) for s in (0.4, 0.9, 1.25, 1.05, 1)]    # onay damgası
+    n = len(seq)
+    frames = [invoice_frame(i, n, p, c, label) for i, (p, c) in enumerate(seq)]
+    save(frames, out, 85)
+
+
 if __name__ == '__main__':
     out = sys.argv[1] if len(sys.argv) > 1 else '.'
     os.makedirs(out, exist_ok=True)
     order_received(os.path.join(out, 'siparis-alindi.gif'))
     shipped(os.path.join(out, 'kargoda.gif'))
+    invoice_ready(os.path.join(out, 'fatura-hazir.gif'))
