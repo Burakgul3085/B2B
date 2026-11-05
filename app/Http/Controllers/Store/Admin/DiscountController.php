@@ -162,7 +162,7 @@ class DiscountController extends Controller
     private function tree(Collection $all, ?int $parent = null, int $depth = 0): Collection
     {
         return $all->where('parent_id', $parent)->flatMap(fn (StoreCategory $c) => collect([$c->setAttribute('depth', $depth)])
-            ->merge($depth < 3 ? $this->tree($all, $c->id, $depth + 1) : []));
+            ->merge($depth + 1 < StoreCategory::MAX_DEPTH ? $this->tree($all, $c->id, $depth + 1) : []));
     }
 
     private function validateImage(Request $request): void

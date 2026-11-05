@@ -168,7 +168,7 @@ export function scan(files, rules) {
         if (ancestors.length < 2) {
             errors.push('Ürün klasörü "Kategori / Marka / Ürün" düzeninde olmalı; kategori veya marka klasörü eksik.');
         } else if (categories.length > rules.maxDepth) {
-            errors.push('Kategori en fazla ' + rules.maxDepth + ' seviye olabilir: ' + categories.join(' › ') + '.');
+            errors.push('Kategori klasörleri çok derin (en fazla ' + rules.maxDepth + ' seviye): ' + categories.join(' › ') + '.');
         }
         if ([...categories, brand].some((n) => n.length > 120)) {
             errors.push('Kategori ve marka adları en fazla 120 karakter olabilir.');

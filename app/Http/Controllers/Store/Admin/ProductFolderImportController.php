@@ -31,6 +31,12 @@ class ProductFolderImportController extends Controller
         ]);
     }
 
+    /** Klasör hazırlama kılavuzu (yazdırılabilir). */
+    public function guide(): View
+    {
+        return view('store.admin.catalog.folder-import-manual', ['maxImages' => ProductService::MAX_IMAGES]);
+    }
+
     public function lookup(Request $request): JsonResponse
     {
         $data = $request->validate([

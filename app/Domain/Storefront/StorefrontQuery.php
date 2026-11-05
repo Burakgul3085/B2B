@@ -103,7 +103,7 @@ class StorefrontQuery
 
     private function categoryWithChildren(?int $id): array
     {
-        return $id ? [$id, ...Category::where('parent_id', $id)->pluck('id')->all()] : [];
+        return $id ? Category::withDescendants($id) : [];
     }
 
     public function linkUrl(string $type, ?int $id): ?string

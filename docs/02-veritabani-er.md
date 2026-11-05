@@ -82,7 +82,7 @@ erDiagram
 
 | Tablo | Önemli alanlar / kısıtlar |
 |---|---|
-| `categories` | business_id, parent_id (en fazla 2 seviye), name, slug, sort, is_active |
+| `categories` | business_id, parent_id (sınırsız seviye; güvenlik sınırı 10), name, slug, sort, is_active |
 | `brands` | business_id, name — (business_id, name) UNIQUE |
 | `units` | business_id, code, name, allows_fraction (Adet, Koli, Paket, Kg…) |
 | `tax_rates` | business_id, name, rate (%0 / %1 / %10 / %20 başlangıç), is_active. Oran değişirse yeni kayıt; eski siparişler etkilenmez |

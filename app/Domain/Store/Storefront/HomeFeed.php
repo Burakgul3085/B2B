@@ -37,7 +37,10 @@ class HomeFeed
     {
         $roots = $this->catalog->menu()->take(8);
         foreach ($roots as $root) {
-            $ids = $root->children->pluck('id')->push($root->id)->all();
+            $ids = [];
+            for ($level = collect([$root]); $level->isNotEmpty(); $level = $level->flatMap(fn ($c) => $c->children)) {
+                array_push($ids, ...$level->pluck('id')->all());
+            }
             $root->setAttribute('product_count', $this->catalog->products()->whereIn('category_id', $ids)->count());
         }
 

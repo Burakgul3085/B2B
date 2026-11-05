@@ -1,6 +1,6 @@
 @php use App\Models\Store\StoreCategory; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Kategoriler">
-    <x-page-header title="Kategoriler" :subtitle="'Mağaza menüsü ve filtreleri bu ağaçtan oluşur. En fazla '.StoreCategory::MAX_DEPTH.' seviye.'" />
+    <x-page-header title="Kategoriler" :subtitle="'Mağaza menüsü ve filtreleri bu ağaçtan oluşur. İstediğiniz kadar alt kategori açabilirsiniz; menüde ilk üç seviye görünür, daha derindekiler kategori sayfasında ve filtrede listelenir.'" />
 
     @error('category')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 

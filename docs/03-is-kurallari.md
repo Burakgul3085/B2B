@@ -102,12 +102,16 @@ Varyant grupları sayfası kaldırıldı. Renk, boyut gibi seçenekler ürünün
 
 Excel/CSV ile içe aktarma kaldırıldı; toplu ürün ekleme klasörle yapılır (`/toptanci/urunler/klasorden-ekle`, modül `import`). Tek ürün ekleme ekranı değişmedi. Mağazada aynısı vardır (13-magaza-mimarisi.md §8.6).
 
-- **Düzen:** `[Ürünler/] Kategori/[Alt kategori/] Marka/Ürün adı ; Fiyat ; Barkod ; Stok/` ve içinde resimler (JPG, PNG, WEBP; ad sırasıyla, ilki kapak; en fazla 8) ile isteğe bağlı `aciklama.txt`. Ürünün bir üstü markadır (`Markasız` = markasız), üstündekiler kategoridir (en fazla 2 seviye). En dıştaki `Ürünler` klasörü sayılmaz.
+- **Düzen:** `[Ürünler/] Kategori/[Alt kategori/…] Marka/Ürün adı ; Fiyat ; Barkod ; Stok/` ve içinde resimler (JPG, PNG, WEBP; ad sırasıyla, ilki kapak; en fazla 8) ile isteğe bağlı `aciklama.txt`. Ürünün bir üstü markadır (`Markasız` = markasız), üstündekilerin hepsi kategoridir (seviye sınırı yok; güvenlik sınırı `Category::MAX_DEPTH` = 10). En dıştaki `Ürünler` klasörü sayılmaz. Kullanıcı kılavuzu panelde: `/toptanci/urunler/klasorden-ekle/kilavuz`.
 - **Seçenekli ürün:** ürün klasörünün adında `[Renk]`; her alt klasör bir seçenektir (`Değer ; Fiyat ; Barkod ; Stok`, fiyatı boşsa ürünün fiyatı). Her seçenek §2.2'deki gibi ayrı üründür; ilki ana üründür, resmi olmayan seçenek ürün klasöründeki resimleri alır.
 - **Ürün kodu:** barkod varsa barkod, yoksa kategori + marka + addan türetilen kararlı kod (`YK-…`). Aynı klasör yeniden yüklendiğinde aynı kodlar çıkar.
 - **Akış:** klasör tarayıcıda okunur ve özetlenir (eklenecek, zaten var, hatalı; yeni kategori/marka sayısı); hiçbir şey onaysız yazılmaz. KDV ana kategoriye göre seçilir; fiyatların KDV dahil olup olmadığı ve ürünlerin satışa açık eklenip eklenmeyeceği işaretlenir (varsayılan: kapalı). Onayda eksik kategori ve markalar tek transaction'da oluşturulur, sonra ürünler 4 paralel istekle tek tek gönderilir; resimler tarayıcıda küçültülür (en uzun kenar 2000 px).
 - **Kurallar:** her ürün sunucuda `CreateProduct` ile, tek ürün ekleme ekranıyla aynı doğrulamayla oluşturulur (kategori, marka ve KDV işletmenin kendi kayıtlarından olmalı). Kodu veya barkodu sistemde olan ürün **güncellenmez, atlanır**; bu yüzden yarıda kalan yükleme aynı klasör yeniden bırakılarak sürdürülür (seçenekli üründe yalnızca eksik seçenekler eklenir). Hatalı ürün diğerlerini durdurmaz; geçici ağ hatası yeniden denenir, oturum düşerse yükleme durur.
 - `import_jobs` / `import_errors` tabloları geçmiş kayıtlar için durur; yeni kayıt yazılmaz.
+
+### 2.5 Kategori ağacı (2026-11-05)
+
+Kategoriler istenildiği kadar alt seviyeye sahip olabilir (önceden 2 seviye). Ürün herhangi bir seviyedeki kategoriye bağlanabilir. Bir kategori kendisinin veya alt kategorisinin altına taşınamaz; ağaç en fazla `Category::MAX_DEPTH` (10) seviye olabilir (güvenlik sınırı). Filtrelerde (ürün listesi, stok, raporlar, bayi kataloğu, vitrin) bir kategori seçilince tüm alt seviyeleri kapsanır; panodaki "kategoriye göre satış" ana kategoriye göre toplanır.
 
 ## 3. Sipariş
 

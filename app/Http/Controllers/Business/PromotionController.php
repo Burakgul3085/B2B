@@ -98,7 +98,7 @@ class PromotionController extends Controller
         return [
             'promotion' => $promotion,
             'images' => $promotion->exists ? $promotion->images()->get() : collect(),
-            'categories' => Category::with('parent')->get()->sortBy(fn ($c) => $c->fullName())->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->all(),
+            'categories' => Category::paths(),
             'dealers' => DealerRelationship::with('dealer')->orderBy('dealer_code')->get()->mapWithKeys(fn ($r) => [$r->id => $r->dealer_code.' · '.$r->dealer->legal_name])->all(),
             'skus' => $promotion->product_ids ? Product::whereIn('id', $promotion->product_ids)->orderBy('sku')->pluck('sku')->implode("\n") : '',
             'redemptions' => collect(),

@@ -276,6 +276,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::middleware('module:import')->group(function () {
             // Klasörden toplu ürün ekleme: ürün başına bir istek (4 paralel), bu yüzden sınır geniştir.
             Route::get('urunler/klasorden-ekle', [Business\ProductFolderImportController::class, 'index'])->name('products.folder');
+            Route::get('urunler/klasorden-ekle/kilavuz', [Business\ProductFolderImportController::class, 'guide'])->name('products.folder.guide');
             Route::post('urunler/klasorden-ekle/kontrol', [Business\ProductFolderImportController::class, 'lookup'])->middleware('throttle:120,1,products.folder.lookup')->name('products.folder.lookup');
             Route::post('urunler/klasorden-ekle/hazirla', [Business\ProductFolderImportController::class, 'prepare'])->middleware('throttle:30,1,products.folder.prepare')->name('products.folder.prepare');
             Route::post('urunler/klasorden-ekle/urun', [Business\ProductFolderImportController::class, 'store'])->middleware('throttle:1200,1,products.folder.store')->name('products.folder.store');

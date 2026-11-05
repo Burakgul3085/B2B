@@ -44,7 +44,7 @@ class StockController extends Controller
                 $like = addcslashes($term, '%_\\');
                 $q->where(fn ($q) => $q->where('name', 'like', "%{$like}%")->orWhere('sku', 'like', "{$like}%")->orWhere('barcode', $term));
             })
-            ->when($filters['category'] ?? null, fn ($q, $c) => $q->where(fn ($q) => $q->where('category_id', $c)->orWhereIn('category_id', Category::where('parent_id', $c)->select('id'))))
+            ->when($filters['category'] ?? null, fn ($q, $c) => $q->whereIn('category_id', Category::withDescendants((int) $c)))
             ->when(($filters['level'] ?? null) === 'out', fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) <= 0"))
             ->when(($filters['level'] ?? null) === 'critical', fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0")->whereRaw("COALESCE({$qtyExpr}, 0) <= products.critical_stock_level"))
             ->when(($filters['level'] ?? null) === 'in', fn ($q) => $q->whereRaw("COALESCE({$qtyExpr}, 0) > 0"))
@@ -57,7 +57,7 @@ class StockController extends Controller
             'warehouses' => $warehouses,
             'warehouseId' => $warehouseId,
             'filters' => $filters,
-            'categories' => Category::with('parent')->get()->sortBy(fn ($c) => $c->fullName())->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->all(),
+            'categories' => Category::paths(),
         ]);
     }
 

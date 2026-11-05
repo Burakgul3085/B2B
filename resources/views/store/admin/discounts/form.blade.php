@@ -89,7 +89,7 @@
                         @else
                             <div class="mt-2 max-h-72 space-y-1 overflow-y-auto rounded-lg border border-line p-3">
                                 @foreach ($categories as $cat)
-                                    <label @class(['flex items-center gap-2 text-sm', 'ml-6' => $cat->depth === 1, 'ml-12' => $cat->depth >= 2, 'font-semibold' => $cat->depth === 0])>
+                                    <label @class(['flex items-center gap-2 text-sm', 'font-semibold' => $cat->depth === 0]) @if ($cat->depth) style="margin-left: {{ min($cat->depth, 6) * 1.5 }}rem" @endif>
                                         <input type="checkbox" name="category_ids[]" value="{{ $cat->id }}" @checked(in_array($cat->id, $selectedCats, true)) class="size-4 rounded text-primary"> {{ $cat->name }}
                                     </label>
                                 @endforeach

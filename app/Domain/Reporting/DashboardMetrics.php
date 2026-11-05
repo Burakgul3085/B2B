@@ -5,6 +5,7 @@ namespace App\Domain\Reporting;
 use App\Domain\Reporting\Reports\Options;
 use App\Domain\Support\LocalTime;
 use App\Domain\Tenancy\TenantContext;
+use App\Models\Category;
 use App\Models\CollectionEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -158,13 +159,33 @@ class DashboardMetrics
     /** Ana kategoriye göre net satış (kalem bazlı). @return array<string, float> */
     public function categories(array $range, array $f, int $limit = 8): array
     {
-        return $this->items($range, $f)
+        $byCategory = $this->items($range, $f)
             ->leftJoin('products', 'products.id', '=', 'order_items.product_id') // silinmiş ürün: "Kategorisiz"
-            ->leftJoin('categories as c', 'c.id', '=', 'products.category_id')
-            ->leftJoin('categories as p', 'p.id', '=', 'c.parent_id')
-            ->selectRaw("COALESCE(p.name, c.name, 'Kategorisiz') as label, SUM(order_items.line_net) as total")
-            ->groupBy('label')->orderByDesc('total')->limit($limit)
-            ->pluck('total', 'label')->map(fn ($v) => (float) $v)->all();
+            ->selectRaw('products.category_id as category_id, SUM(order_items.line_net) as total')
+            ->groupBy('products.category_id')
+            ->pluck('total', 'category_id');
+
+        // Alt kategorinin (her seviye) satışı ana kategorisine yazılır.
+        $roots = [];
+        $walk = function ($nodes, string $root) use (&$walk, &$roots) {
+            foreach ($nodes as $node) {
+                $roots[$node->id] = $root;
+                $walk($node->children, $root);
+            }
+        };
+        foreach (Category::tree(Category::get(['id', 'parent_id', 'name', 'sort'])) as $root) {
+            $roots[$root->id] = $root->name;
+            $walk($root->children, $root->name);
+        }
+
+        $totals = [];
+        foreach ($byCategory as $categoryId => $total) {
+            $label = $roots[(int) $categoryId] ?? 'Kategorisiz';
+            $totals[$label] = ($totals[$label] ?? 0) + (float) $total;
+        }
+        arsort($totals);
+
+        return array_slice($totals, 0, $limit, true);
     }
 
     /** En çok satış yapılan bayiler. @return array<string, float> */

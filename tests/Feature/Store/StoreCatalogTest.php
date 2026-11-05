@@ -149,8 +149,14 @@ class StoreCatalogTest extends TestCase
         $leaf = StoreCategory::where('name', 'Jel Kalem')->firstOrFail();
         $this->assertSame('Kırtasiye › Kalemler › Jel Kalem', $leaf->fullName());
 
-        // 4. seviye ve döngü engellenir
-        $this->post(route('store_admin.categories.store'), ['name' => 'Fazla', 'parent_id' => $leaf->id])->assertSessionHasErrors('parent_id');
+        // Sınırsız alt seviye (güvenlik sınırına kadar); döngü engellenir
+        $parent = $leaf;
+        for ($level = 4; $level <= StoreCategory::MAX_DEPTH; $level++) {
+            $this->post(route('store_admin.categories.store'), ['name' => "Seviye {$level}", 'parent_id' => $parent->id])->assertSessionHasNoErrors();
+            $parent = StoreCategory::where('name', "Seviye {$level}")->firstOrFail();
+        }
+        $this->assertSame(StoreCategory::MAX_DEPTH, $parent->depth());
+        $this->post(route('store_admin.categories.store'), ['name' => 'Fazla', 'parent_id' => $parent->id])->assertSessionHasErrors('parent_id');
         $this->put(route('store_admin.categories.update', $root), ['name' => 'Kırtasiye', 'parent_id' => $leaf->id, 'is_active' => '1'])->assertSessionHasErrors('parent_id');
 
         // Ürünü veya alt kategorisi olan silinemez

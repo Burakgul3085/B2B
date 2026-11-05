@@ -25,7 +25,8 @@ class StoreFolderImportTest extends TestCase
 
     public function test_page_renders_and_old_excel_import_is_gone(): void
     {
-        $this->get(route('store_admin.products.folder'))->assertOk()->assertSee('Klasörden ürün ekle');
+        $this->get(route('store_admin.products.folder'))->assertOk()->assertSee('Klasörden ürün ekle')->assertSee(route('store_admin.products.folder.guide'));
+        $this->get(route('store_admin.products.folder.guide'))->assertOk()->assertSee('Klasör hazırlama kılavuzu')->assertSee('KDV dahil satış fiyatı');
         $this->get(route('store_admin.products.index'))->assertOk()->assertSee('Klasörden ekle')->assertDontSee('Excel ile aktar');
         $this->get(route('store_admin.stock.index'))->assertOk()->assertDontSee('Excel ile güncelle');
     }
@@ -44,7 +45,10 @@ class StoreFolderImportTest extends TestCase
 
         $this->postJson(route('store_admin.products.folder.prepare'), $payload + ['create' => true])->assertOk()->assertJson(['new_categories' => 0, 'new_brands' => 0]);
         $this->assertSame(3, StoreCategory::count());
-        $this->postJson(route('store_admin.products.folder.prepare'), ['categories' => [['A', 'B', 'C', 'D']], 'brands' => []])->assertStatus(422);
+        // Seviye sınırı yok (yalnızca güvenlik sınırı): 5 seviye açılır, 11 seviye reddedilir.
+        $deep = $this->postJson(route('store_admin.products.folder.prepare'), ['categories' => [['A', 'B', 'C', 'D', 'E']], 'brands' => [], 'create' => true])->assertOk()->json();
+        $this->assertSame('A › B › C › D › E', StoreCategory::findOrFail($deep['categories'][0])->fullName());
+        $this->postJson(route('store_admin.products.folder.prepare'), ['categories' => [array_map('strval', range(1, StoreCategory::MAX_DEPTH + 1))], 'brands' => []])->assertStatus(422);
     }
 
     public function test_product_with_options_images_and_stock_is_created_once(): void

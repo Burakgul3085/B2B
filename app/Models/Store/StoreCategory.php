@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
 
-/** Mağaza kategorisi. En fazla üç seviye (ana › alt › alt). */
+/**
+ * Mağaza kategorisi: istenildiği kadar alt seviye (ana › alt › alt …). MAX_DEPTH yalnızca güvenlik sınırıdır
+ * (yanlışlıkla çok derin ağaç oluşmasın diye); pratikte kullanıcı bu sınıra takılmaz.
+ */
 class StoreCategory extends Model
 {
-    public const MAX_DEPTH = 3;
+    public const MAX_DEPTH = 10;
 
     /** Vitrin menüsünün önbellek anahtarı (Catalog::menu). */
     public const MENU_CACHE = 'store.menu';

@@ -13,7 +13,10 @@
 
         return route('dealer.catalog', $query);
     };
-    $categoryNames = $categories->flatMap(fn ($c) => collect([$c])->merge($c->children))->pluck('name', 'id');
+    $flatten = function ($nodes) use (&$flatten) {
+        return $nodes->flatMap(fn ($c) => collect([$c])->merge($flatten($c->children)));
+    };
+    $categoryNames = $flatten($categories)->pluck('name', 'id');
     $brandNames = $brands->pluck('name', 'id');
     $hasFilters = filled($filters['q'] ?? null) || $selectedCategories || $selectedBrands || ($filters['in_stock'] ?? false) || $showcase || $onlyNew || $onlyDiscounted || $campaign || $onlyCampaign;
     $newDays = (int) ($settings->new_product_days ?: 30);
@@ -71,22 +74,7 @@
                 <div role="group" aria-labelledby="f_cat_title" class="border-b border-line px-5 py-4">
                     <h3 id="f_cat_title" class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Kategoriler</h3>
                     <div class="filter-scroll max-h-72 space-y-0.5 overflow-y-auto pr-1">
-                        @foreach ($categories as $cat)
-                            @continue($cat->product_count === 0 && ! in_array($cat->id, $selectedCategories, true))
-                            <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
-                                <input type="checkbox" name="category[]" value="{{ $cat->id }}" @checked(in_array($cat->id, $selectedCategories, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
-                                <span class="flex-1 text-sm font-medium text-ink">{{ $cat->name }}</span>
-                                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted tabular-nums">{{ number_format($cat->product_count, 0, ',', '.') }}</span>
-                            </label>
-                            @foreach ($cat->children as $child)
-                                @continue($child->product_count === 0 && ! in_array($child->id, $selectedCategories, true))
-                                <label class="ml-5 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
-                                    <input type="checkbox" name="category[]" value="{{ $child->id }}" @checked(in_array($child->id, $selectedCategories, true)) data-autosubmit class="size-4 rounded border-slate-300 text-primary">
-                                    <span class="flex-1 text-sm text-ink/80">{{ $child->name }}</span>
-                                    <span class="text-[11px] text-muted tabular-nums">{{ number_format($child->product_count, 0, ',', '.') }}</span>
-                                </label>
-                            @endforeach
-                        @endforeach
+                        @include('dealer.catalog._category-filter', ['nodes' => $categories, 'depth' => 0])
                     </div>
                 </div>
 

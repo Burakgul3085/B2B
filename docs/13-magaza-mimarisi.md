@@ -151,7 +151,7 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 
 Excel ile ürün aktarma kaldırıldı; toplu ekleme klasörle yapılır (`katalog/urunler/klasorden-ekle`). Tek ürün ekleme ekranı değişmedi. Düzen ve akış B2B ile aynıdır (03-is-kurallari.md §2.4); farklar:
 
-- Kategori en fazla 3 seviye; ürün başına en fazla 10 resim. Seçenekli üründe seçenekler aynı ürünün varyantlarıdır; ürün klasöründeki ve seçenek klasörlerindeki resimler sırayla ürünün resimleri olur.
+- Kategori seviye sınırı yoktur (güvenlik sınırı `StoreCategory::MAX_DEPTH` = 10; önceden 3). Mağaza açılır menüsünde ana kategori ve altındaki iki seviye görünür; daha derinler kategori sayfasında ve filtrede listelenir. Ürün başına en fazla 10 resim. Kullanıcı kılavuzu panelde: `katalog/urunler/klasorden-ekle/kilavuz`. Seçenekli üründe seçenekler aynı ürünün varyantlarıdır; ürün klasöründeki ve seçenek klasörlerindeki resimler sırayla ürünün resimleri olur.
 - Fiyatlar KDV dahildir; KDV oranı (%0, %1, %10, %20) ana kategoriye göre seçilir. Ürünler varsayılan olarak yayında değildir.
 - Ürün, varyantları, resimleri ve stoğu `CreateStoreProduct` ile tek transaction'da oluşturulur; stok "İlk stok" girişi olarak yazılır. İlk varyantın stok kodu veya barkodu mağazada varsa ürün atlanır.
 - Kod `App\Domain\Store\Catalog\FolderImport` içindedir; B2B'nin `App\Domain\Catalog\FolderImport` sınıfıyla kod paylaşmaz (yalnızca tarayıcı bileşeni ortaktır).

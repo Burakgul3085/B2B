@@ -34,7 +34,7 @@ class StorefrontController extends Controller
             'banners' => HomeBanner::query()->orderByRaw("placement = 'hero' DESC")->orderBy('sort')->orderBy('id')->get(),
             'showcases' => Showcase::with('items.product:id,name,sku')->orderBy('sort')->orderBy('id')->get(),
             'targets' => [
-                'category' => Category::where('is_active', true)->with('parent:id,name')->orderBy('name')->get()->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->sort()->all(),
+                'category' => Category::paths(onlyActive: true),
                 'brand' => Brand::where('is_active', true)->orderBy('name')->pluck('name', 'id')->all(),
                 'product' => Product::notArchived()->orderBy('name')->limit(500)->get(['id', 'name', 'sku'])->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])->all(),
                 'showcase' => Showcase::orderBy('sort')->pluck('name', 'id')->all(),

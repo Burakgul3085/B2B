@@ -132,8 +132,8 @@ class Catalog
         $roots = $byParent->get(0, collect())->values();
         foreach ($roots as $i => $root) {
             $root->setAttribute('palette', Palette::forIndex($root->color, $i));
-            foreach ($root->children as $child) {
-                $child->setAttribute('palette', $root->palette);
+            for ($level = $root->children; $level->isNotEmpty(); $level = $level->flatMap(fn ($c) => $c->children)) {
+                $level->each(fn ($c) => $c->setAttribute('palette', $root->palette));
             }
         }
 

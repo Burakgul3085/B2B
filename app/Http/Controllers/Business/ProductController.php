@@ -32,7 +32,7 @@ class ProductController extends Controller
         $filters = $this->filters($request);
 
         $products = $this->filteredQuery($filters)
-            ->with(['brand', 'category.parent', 'unit', 'primaryImage'])
+            ->with(['brand', 'unit', 'primaryImage'])
             ->withSum('stocks as total_stock', 'quantity')
             ->orderBy(self::SORTS[$filters['sort'] ?? 'name'] ?? 'name', ($filters['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc')
             ->orderBy('id')
@@ -267,8 +267,7 @@ class ProductController extends Controller
         }
 
         if ($category = $filters['category'] ?? null) {
-            $query->where(fn ($q) => $q->where('category_id', $category)
-                ->orWhereIn('category_id', Category::where('parent_id', $category)->select('id')));
+            $query->whereIn('category_id', Category::withDescendants((int) $category));
         }
 
         if ($brand = $filters['brand'] ?? null) {
@@ -318,12 +317,9 @@ class ProductController extends Controller
         ];
     }
 
-    /** @return array<int, string> "Ana › Alt" biçiminde kategori listesi */
+    /** @return array<int, string> ağaç sırasıyla "Ana › Alt › …" biçiminde kategori listesi */
     private function categoryOptions(): array
     {
-        return Category::with('parent')->get()
-            ->sortBy(fn ($c) => mb_strtolower($c->fullName()))
-            ->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])
-            ->all();
+        return Category::paths();
     }
 }

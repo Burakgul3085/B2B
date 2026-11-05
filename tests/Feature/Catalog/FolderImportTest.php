@@ -36,7 +36,8 @@ class FolderImportTest extends TestCase
         $business = $this->makeBusiness();
         $this->actingAs($business->user, 'business');
 
-        $this->get(route('business.products.folder'))->assertOk()->assertSee('Klasörden ürün ekle')->assertSee('Klasör nasıl hazırlanır?');
+        $this->get(route('business.products.folder'))->assertOk()->assertSee('Klasörden ürün ekle')->assertSee('Klasör nasıl hazırlanır?')->assertSee(route('business.products.folder.guide'));
+        $this->get(route('business.products.folder.guide'))->assertOk()->assertSee('Klasör hazırlama kılavuzu')->assertSee('Altın kural')->assertSee('Bayi fiyatı');
         $this->get(route('business.products.index'))->assertOk()->assertSee('Klasörden ekle')->assertDontSee('Excel ile aktar');
         $this->get('/toptanci/urunler/ice-aktar')->assertNotFound();
     }
@@ -66,8 +67,11 @@ class FolderImportTest extends TestCase
         $this->postJson(route('business.products.folder.prepare'), $payload + ['create' => true])->assertOk()->assertJson(['new_categories' => 0, 'new_brands' => 0]);
         $this->assertSame(3, $this->inTenant($business, fn () => Category::count()));
 
-        // En fazla iki seviye.
-        $this->postJson(route('business.products.folder.prepare'), ['categories' => [['A', 'B', 'C']], 'brands' => []])->assertStatus(422);
+        // Seviye sınırı yok (yalnızca güvenlik sınırı): var olan dalın altına derin yol açılır, 11 seviye reddedilir.
+        $deep = $this->postJson(route('business.products.folder.prepare'), ['categories' => [['Boyalar', 'Pastel Boya', 'Yağlı', 'Çantalı']], 'brands' => [], 'create' => true])
+            ->assertOk()->assertJson(['new_categories' => 2])->json();
+        $this->assertSame('Boyalar › Pastel Boya › Yağlı › Çantalı', $this->inTenant($business, fn () => Category::findOrFail($deep['categories'][0])->fullName()));
+        $this->postJson(route('business.products.folder.prepare'), ['categories' => [array_map('strval', range(1, Category::MAX_DEPTH + 1))], 'brands' => []])->assertStatus(422);
     }
 
     public function test_product_is_created_with_images_and_opening_stock_and_never_duplicated(): void

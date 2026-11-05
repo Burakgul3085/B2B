@@ -4,7 +4,7 @@
     </x-page-header>
 
     <div class="space-y-6">
-        @include('partials.folder-import-guide', ['maxDepth' => $maxDepth, 'maxImages' => $maxImages])
+        @include('partials.folder-import-guide', ['maxImages' => $maxImages, 'guideUrl' => route('store_admin.products.folder.guide')])
         @include('partials.folder-import', [
             'config' => [
                 'mode' => 'store',

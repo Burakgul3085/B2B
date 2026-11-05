@@ -22,10 +22,16 @@ class CatalogStructureController extends Controller
 {
     public function __construct(private AuditLogger $audit, private TenantContext $tenant) {}
 
-    public function categories(): View
+    /** Kategori ağacı (her seviye); düzenleme ?duzenle=id, alt kategori ekleme ?ust=id ile soldaki formda açılır. */
+    public function categories(Request $request): View
     {
+        $editing = $request->integer('duzenle') ? Category::find($request->integer('duzenle')) : null;
+
         return view('business.catalog.categories', [
-            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('sort')->orderBy('name')->get(),
+            'tree' => Category::tree(),
+            'parents' => Category::paths(),
+            'editing' => $editing,
+            'editParents' => $editing ? Category::paths($editing) : [],
             'productCounts' => Product::notArchived()->selectRaw('category_id, count(*) c')->groupBy('category_id')->pluck('c', 'category_id'),
         ]);
     }
@@ -56,15 +62,11 @@ class CatalogStructureController extends Controller
     {
         $data = $this->validateCategory($request, $category);
 
-        if (! empty($data['parent_id']) && $category->children()->exists()) {
-            return back()->withErrors(['parent_id' => 'Alt kategorisi olan bir kategori başka kategorinin altına taşınamaz (en fazla iki seviye).']);
-        }
-
         $old = $category->only(array_keys($data));
         $category->update($data);
         $this->audit->log('catalog.category_updated', $category, $old, $data);
 
-        return back()->with('status', 'Kategori güncellendi.');
+        return redirect()->route('business.categories.index')->with('status', 'Kategori güncellendi.');
     }
 
     /** Ürünü veya alt kategorisi olan kategori silinmez; pasifleştirilir. */
@@ -77,7 +79,7 @@ class CatalogStructureController extends Controller
         $category->delete();
         $this->audit->log('catalog.category_deleted', $category);
 
-        return back()->with('status', 'Kategori silindi.');
+        return redirect()->route('business.categories.index')->with('status', 'Kategori silindi.');
     }
 
     public function storeBrand(Request $request): RedirectResponse
@@ -145,19 +147,29 @@ class CatalogStructureController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'parent_id' => ['nullable', 'integer',
-                Rule::exists('categories', 'id')->where('business_id', $businessId)->whereNull('parent_id'),
-                Rule::notIn(array_filter([$category?->id]))],
+            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['boolean'],
-        ], ['parent_id.exists' => 'Üst kategori yalnızca ana kategorilerden seçilebilir.'], ['name' => 'kategori adı', 'parent_id' => 'üst kategori']);
+        ], [], ['name' => 'kategori adı', 'parent_id' => 'üst kategori']);
+
+        // Kendisinin veya alt kategorisinin altına taşınamaz (döngü); ağaç güvenlik sınırını aşamaz.
+        $parent = empty($data['parent_id']) ? null : Category::findOrFail($data['parent_id']);
+        if ($parent && $category && in_array($parent->id, Category::withDescendants($category->id), true)) {
+            abort(back()->withErrors(['parent_id' => 'Bir kategori kendisinin veya alt kategorisinin altına taşınamaz.'])->withInput());
+        }
+        if (($parent?->depth() ?? 0) + ($category?->height() ?? 1) > Category::MAX_DEPTH) {
+            abort(back()->withErrors(['parent_id' => 'Kategori ağacı en fazla '.Category::MAX_DEPTH.' seviye olabilir.'])->withInput());
+        }
 
         $duplicate = Category::where('name', $data['name'])
             ->where(fn ($q) => empty($data['parent_id']) ? $q->whereNull('parent_id') : $q->where('parent_id', $data['parent_id']))
             ->when($category, fn ($q) => $q->whereKeyNot($category->id))
             ->exists();
 
-        abort_if($duplicate, back()->withErrors(['name' => 'Aynı seviyede bu adda bir kategori zaten var.'])->withInput());
+        // Hata yalnızca gerçekten varsa oturuma yazılır (abort_if'in argümanı her durumda çalışırdı).
+        if ($duplicate) {
+            abort(back()->withErrors(['name' => 'Aynı seviyede bu adda bir kategori zaten var.'])->withInput());
+        }
 
         return $data + ['sort' => 0];
     }

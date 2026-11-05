@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
-/** Mağaza kategorileri: en fazla üç seviye; ürünü veya alt kategorisi olan kategori silinemez. */
+/** Mağaza kategorileri: istenildiği kadar alt seviye (güvenlik sınırı StoreCategory::MAX_DEPTH); ürünü veya alt kategorisi olan kategori silinemez. */
 class CategoryService
 {
     public function __construct(private AuditLogger $audit) {}

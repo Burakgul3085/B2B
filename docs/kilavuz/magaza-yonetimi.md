@@ -30,7 +30,8 @@ Mağaza kapalıyken **Mağaza Ayarları → Önizleme** bağlantısıyla siteyi 
 
 ## 3. Katalog ve stok
 
-- **Katalog → Kategoriler:** Ağaç yapısında kategoriler. ↑ / ↓ düğmeleriyle sıralanır.
+- **Katalog → Kategoriler:** Ağaç yapısında kategoriler; istediğiniz kadar alt kategori açılabilir (menüde ilk üç seviye görünür). ↑ / ↓ düğmeleriyle sıralanır.
+- **Katalog → Ürünler → Klasörden ekle:** Ürünleri klasörlerden toplu ekleme. Klasörün nasıl hazırlanacağı, sayfadaki **ayrıntılı kılavuz** bağlantısında adım adım anlatılır (yazdırılabilir).
 - **Katalog → Markalar:** Logolu markalar.
 - **Katalog → Ürünler:**
   - Ürün grubunun açıklaması, SEO alanları ve görselleri tanımlanır.

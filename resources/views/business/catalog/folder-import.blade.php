@@ -10,7 +10,7 @@
         <div role="alert" class="rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">Ürün eklemek için önce Ayarlar › KDV Oranları sayfasından en az bir KDV oranı tanımlayın.</div>
     @else
         <div class="space-y-6">
-            @include('partials.folder-import-guide', ['maxDepth' => \App\Domain\Catalog\FolderImport::MAX_DEPTH, 'maxImages' => $maxImages])
+            @include('partials.folder-import-guide', ['maxImages' => $maxImages, 'guideUrl' => route('business.products.folder.guide')])
             @include('partials.folder-import', [
                 'config' => [
                     'mode' => 'b2b',

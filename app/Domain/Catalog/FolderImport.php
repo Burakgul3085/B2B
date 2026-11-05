@@ -26,7 +26,8 @@ class FolderImport
 {
     public const MAX_LOOKUP = 2000;
 
-    public const MAX_DEPTH = 2;
+    /** Kategori seviyesi sınırı yoktur; yalnızca kategori ağacının güvenlik sınırı geçerlidir. */
+    public const MAX_DEPTH = Category::MAX_DEPTH;
 
     public function __construct(private CreateProduct $create, private AuditLogger $audit, private TenantContext $tenant) {}
 

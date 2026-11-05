@@ -19,6 +19,8 @@ Toptancı paneli Yapboz Kırtasiye'nin bayilerle çalıştığı yerdir: ürünl
 
 ## 2. Ürünler ve katalog
 
+- Kategoriler: istediğiniz kadar alt kategori açabilirsiniz; ürün herhangi bir seviyede durabilir.
+- Toplu ürün ekleme: Ürünler → **Klasörden ekle**. Klasörün nasıl hazırlanacağı sayfadaki **ayrıntılı kılavuz** bağlantısında adım adım anlatılır (yazdırılabilir).
 - Ürün: ad, kod (SKU), barkod, kategori, marka, birim, KDV oranı, liste fiyatı ve bayi fiyatı, en az sipariş miktarı ve sipariş adımı (ör. 12'nin katları), kritik stok seviyesi, görseller.
 - Arşivlenen ürün bayilere görünmez. Geçmiş siparişler etkilenmez, çünkü sipariş kalemi ürünün o anki adını, fiyatını ve KDV'sini kendi üzerinde saklar.
 - **Katalog → Vitrin:** Bayi ana sayfasındaki slaytlar (görsel veya en fazla 50 MB video) ve ürün vitrinleri.

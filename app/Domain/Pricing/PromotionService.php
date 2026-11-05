@@ -324,14 +324,7 @@ class PromotionService
     /** @return list<int> */
     private function withDescendants(array $ids): array
     {
-        $parents = Category::pluck('parent_id', 'id');
-        $result = array_map('intval', $ids);
-        do {
-            $added = $parents->filter(fn ($parent, $id) => $parent !== null && in_array((int) $parent, $result, true) && ! in_array((int) $id, $result, true))->keys()->all();
-            $result = array_merge($result, array_map('intval', $added));
-        } while ($added !== []);
-
-        return $result;
+        return Category::withDescendants($ids);
     }
 
     /** @return array{promotion: Promotion, missing: string}|null en düşük tutara takılan en yakın kampanya */

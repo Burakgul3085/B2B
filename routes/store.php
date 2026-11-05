@@ -41,6 +41,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::post('urunler/toplu', [Admin\ProductController::class, 'bulk'])->name('products.bulk');
                 // Klasörden toplu ürün ekleme: ürün başına bir istek (4 paralel), bu yüzden sınır geniştir.
                 Route::get('urunler/klasorden-ekle', [Admin\ProductFolderImportController::class, 'index'])->name('products.folder');
+                Route::get('urunler/klasorden-ekle/kilavuz', [Admin\ProductFolderImportController::class, 'guide'])->name('products.folder.guide');
                 Route::post('urunler/klasorden-ekle/kontrol', [Admin\ProductFolderImportController::class, 'lookup'])->middleware('throttle:120,1,store.products.folder.lookup')->name('products.folder.lookup');
                 Route::post('urunler/klasorden-ekle/hazirla', [Admin\ProductFolderImportController::class, 'prepare'])->middleware('throttle:30,1,store.products.folder.prepare')->name('products.folder.prepare');
                 Route::post('urunler/klasorden-ekle/urun', [Admin\ProductFolderImportController::class, 'store'])->middleware('throttle:1200,1,store.products.folder.store')->name('products.folder.store');

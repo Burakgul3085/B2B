@@ -19,8 +19,7 @@ final class Options
 
     public static function categories(): array
     {
-        return ['' => 'Tüm kategoriler'] + Category::with('parent')->get()->sortBy(fn ($c) => $c->fullName())
-            ->mapWithKeys(fn ($c) => [$c->id => $c->fullName()])->all();
+        return ['' => 'Tüm kategoriler'] + Category::paths();
     }
 
     public static function brands(): array
@@ -33,10 +32,10 @@ final class Options
         return ($all ? ['' => 'Tüm depolar'] : []) + Warehouse::orderBy('name')->pluck('name', 'id')->all();
     }
 
-    /** Kategori ve alt kategorileri. */
+    /** Kategori ve tüm alt kategorileri (her seviye). */
     public static function categoryIds(int $id): array
     {
-        return [$id, ...Category::where('parent_id', $id)->pluck('id')->all()];
+        return Category::withDescendants($id);
     }
 
     public static function dateFilters(string $defaultFrom = 'month'): array

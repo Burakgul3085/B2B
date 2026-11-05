@@ -74,10 +74,8 @@ class CatalogController extends Controller
         $selectedBrands = array_map('intval', $filters['brand']);
         // Ana sayfadaki elle seçilmiş bir vitrinin "Tümünü gör" bağlantısı.
         $showcase = ! empty($filters['showcase']) ? Showcase::where('type', 'manual')->find($filters['showcase']) : null;
-        // Ana kategori seçilirse alt kategorileri de kapsanır.
-        $categoryIds = $selectedCategories
-            ? array_merge($selectedCategories, Category::whereIn('parent_id', $selectedCategories)->pluck('id')->all())
-            : [];
+        // Bir kategori seçilirse tüm alt kategorileri de (her seviye) kapsanır.
+        $categoryIds = $selectedCategories ? Category::withDescendants($selectedCategories) : [];
 
         // Arama ve stok filtresi tüm sonuçlara ve filtre sayılarına uygulanır.
         $base = fn () => CartService::orderableProducts()
@@ -111,13 +109,15 @@ class CatalogController extends Controller
         $brandCounts = $base()->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->whereNotNull('brand_id')->groupBy('brand_id')->selectRaw('brand_id, COUNT(*) as c')->pluck('c', 'brand_id');
 
-        $categories = Category::where('is_active', true)->whereNull('parent_id')
-            ->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort')->orderBy('name')])
-            ->orderBy('sort')->orderBy('name')->get()
-            ->each(function ($cat) use ($categoryCounts) {
-                $cat->children->each(fn ($child) => $child->setAttribute('product_count', (int) ($categoryCounts[$child->id] ?? 0)));
-                $cat->setAttribute('product_count', (int) ($categoryCounts[$cat->id] ?? 0) + $cat->children->sum('product_count'));
-            });
+        // Aktif kategori ağacı; her kategorinin sayısı alt kategorileriyle birlikte.
+        $categories = Category::tree(Category::where('is_active', true)->orderBy('sort')->orderBy('name')->get());
+        $count = function ($node) use (&$count, $categoryCounts): int {
+            $total = (int) ($categoryCounts[$node->id] ?? 0) + $node->children->sum(fn ($child) => $count($child));
+            $node->setAttribute('product_count', $total);
+
+            return $total;
+        };
+        $categories->each(fn ($root) => $count($root));
 
         $brands = Brand::where('is_active', true)->whereIn('id', $brandCounts->keys()->merge($selectedBrands))->orderBy('name')->get(['id', 'name'])
             ->each(fn ($b) => $b->setAttribute('product_count', (int) ($brandCounts[$b->id] ?? 0)));
