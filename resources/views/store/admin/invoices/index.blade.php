@@ -67,10 +67,19 @@
                                     <td>{{ $order->billing_name }}<p class="text-xs text-muted">{{ $order->billing_type === 'corporate' ? 'Kurumsal · VKN '.$order->billing_tax_number : 'Bireysel' }}</p></td>
                                     <td class="text-sm">{{ \App\Models\Store\StoreOrder::PAYMENT_METHODS[$order->payment_method] ?? $order->payment_method }}
                                         @if ($tab === 'iade')<p class="text-xs text-muted">{{ bccomp((string) $order->refunded_total, '0', 2) > 0 ? 'İade: '.Money::format($order->refunded_total) : 'İptal edildi' }} · Fatura {{ $order->invoice?->invoice_no }}</p>@endif
+                                        @foreach ($order->eInvoices as $rejected)
+                                            <p class="mt-1 max-w-xs text-xs text-danger">Önceki belge {{ $rejected->invoice_no }} Uyumsoft'ta reddedildi; yeniden hazırlayın.</p>
+                                        @endforeach
                                     </td>
                                     <td class="text-right tabular-nums">{{ Money::format($order->total) }}</td>
                                     <td class="text-right">
-                                        <button type="submit" form="create-{{ $order->id }}" class="text-sm font-medium text-primary hover:underline">{{ $tab === 'iade' ? 'İade faturası hazırla' : 'Fatura hazırla' }}</button>
+                                        @php($cancelSale = $tab === 'iade' ? \App\Domain\Store\Invoicing\EInvoiceService::cancelInsteadOfRefund($order) : null)
+                                        @if ($cancelSale)
+                                            <a href="{{ route('store_admin.invoices.edit', $cancelSale) }}#iptal" class="text-sm font-medium text-primary hover:underline">Satış faturasını iptal et</a>
+                                            <p class="mt-1 text-xs text-muted">Tam iade, 7 gün dolmadı: iade faturası gerekmez<br>(son gün {{ \App\Domain\Store\Invoicing\EInvoiceService::cancelDeadline($cancelSale)->format('d.m.Y') }}).</p>
+                                        @else
+                                            <button type="submit" form="create-{{ $order->id }}" class="text-sm font-medium text-primary hover:underline">{{ $tab === 'iade' ? 'İade faturası hazırla' : 'Fatura hazırla' }}</button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

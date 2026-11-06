@@ -56,12 +56,12 @@ class InvoiceController extends Controller
         ];
 
         $rows = match ($tab) {
-            'bekleyen' => $search(EInvoiceService::awaitingSale())->latest('id'),
-            'iade' => $search(EInvoiceService::awaitingRefund())->with('invoice')->latest('id'),
+            'bekleyen' => $search(EInvoiceService::awaitingSale())->with(['eInvoices' => fn ($q) => $q->where('status', 'failed')])->latest('id'),
+            'iade' => $search(EInvoiceService::awaitingRefund())->with(['invoice', 'eInvoices' => fn ($q) => $q->where('status', 'failed')])->latest('id'),
             'taslak' => $search($documents()->where('status', 'draft')->whereNull('error_message'), 'order')->latest('id'),
             'sorunlu' => $search($documents()->where(fn ($w) => $w->whereIn('status', ['unknown', 'sending'])->orWhere(fn ($d) => $d->where('status', 'draft')->whereNotNull('error_message'))), 'order')->latest('id'),
             'gonderilen' => $search($documents()->where('status', 'sent'), 'order')->latest('sent_at'),
-            'iptal' => $search($documents()->where('status', 'cancelled'), 'order')->latest('cancelled_at'),
+            'iptal' => $search($documents()->whereIn('status', StoreEInvoice::CLOSED), 'order')->latest('updated_at'),
         };
 
         return view('store.admin.invoices.index', [
@@ -128,6 +128,24 @@ class InvoiceController extends Controller
         }
 
         return $redirect->with('status', $message);
+    }
+
+    /** Gönderilmiş faturanın Uyumsoft'taki son durumu (GİB reddi, portaldan iptal). */
+    public function status(StoreEInvoice $storeEInvoice): RedirectResponse
+    {
+        return $this->attempt(function () use ($storeEInvoice) {
+            $state = $this->invoices->syncStatus($storeEInvoice);
+            $status = $storeEInvoice->fresh()->provider_status;
+
+            return back()->with('status', match ($state) {
+                'ok' => "Fatura geçerli ({$status}).",
+                'pending' => "Fatura Uyumsoft'ta işleniyor ({$status}); birkaç dakika sonra yeniden bakın.",
+                'error' => 'Fatura Uyumsoft / GİB tarafından reddedildi; ayrıntı aşağıda. Sipariş yeniden faturalanabilir.',
+                'cancelled' => 'Fatura Uyumsoft portalında iptal edilmiş; panelde de iptal edildi.',
+                'missing' => 'Uyumsoft bu faturanın durumunu döndürmedi; portaldan kontrol edin.',
+                default => "Uyumsoft durumu: {$status}.",
+            });
+        });
     }
 
     public function check(StoreEInvoice $storeEInvoice): RedirectResponse

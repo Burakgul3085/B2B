@@ -148,6 +148,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::put('faturalar/{storeEInvoice}', [Admin\InvoiceController::class, 'update'])->middleware('throttle:60,1,store_admin.invoices.update')->name('invoices.update');
             Route::delete('faturalar/{storeEInvoice}', [Admin\InvoiceController::class, 'destroy'])->name('invoices.destroy');
             Route::post('faturalar/{storeEInvoice}/sorgula', [Admin\InvoiceController::class, 'check'])->middleware('throttle:20,1,store_admin.invoices.check')->name('invoices.check');
+            Route::post('faturalar/{storeEInvoice}/durum', [Admin\InvoiceController::class, 'status'])->middleware('throttle:20,1,store_admin.invoices.status')->name('invoices.status');
             Route::post('faturalar/{storeEInvoice}/taslaga-al', [Admin\InvoiceController::class, 'release'])->name('invoices.release');
             Route::post('faturalar/{storeEInvoice}/iptal', [Admin\InvoiceController::class, 'cancel'])->name('invoices.cancel');
             Route::post('faturalar/{storeEInvoice}/pdf-al', [Admin\InvoiceController::class, 'refetchPdf'])->middleware('throttle:20,1,store_admin.invoices.pdf-fetch')->name('invoices.refetch-pdf');

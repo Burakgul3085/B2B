@@ -275,8 +275,8 @@
                 <p class="mt-1 text-sm text-slate-600">{{ $order->billing_address }}</p>
                 @php
                     $eInvoices = $order->eInvoices()->where('status', '!=', 'cancelled')->get();
-                    $canSale = in_array($order->status, \App\Domain\Store\Invoicing\EInvoiceService::BILLABLE, true) && ! $order->invoice && $eInvoices->where('kind', 'sale')->isEmpty();
-                    $canRefund = \App\Domain\Store\Invoicing\EInvoiceService::awaitingRefund()->whereKey($order->id)->exists();
+                    $canSale = in_array($order->status, \App\Domain\Store\Invoicing\EInvoiceService::BILLABLE, true) && ! $order->invoice && $eInvoices->where('kind', 'sale')->where('status', '!=', 'failed')->isEmpty();
+                    $canRefund = \App\Domain\Store\Invoicing\EInvoiceService::awaitingRefund()->whereKey($order->id)->exists() && ! \App\Domain\Store\Invoicing\EInvoiceService::cancelInsteadOfRefund($order);
                     $manualInvoice = ! $order->invoice || $order->invoice->provider === 'manual';
                 @endphp
                 <div class="mt-4 border-t border-line pt-4">

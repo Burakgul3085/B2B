@@ -44,7 +44,11 @@
         </x-card>
     @endif
 
-    @if ($invoice->status === 'sent' || $invoice->status === 'cancelled')
+    @if ($invoice->status === 'failed')
+        <div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900"><span class="font-semibold">Reddedildi:</span> {{ $invoice->error_message }}</div>
+    @endif
+
+    @if (in_array($invoice->status, ['sent', 'cancelled', 'failed'], true))
         <div class="grid gap-6 xl:grid-cols-3">
             <x-card title="Fatura bilgileri" class="xl:col-span-1">
                 <dl class="space-y-2 text-sm">
@@ -54,15 +58,21 @@
                     <div class="flex justify-between gap-3"><dt class="text-muted">Fatura tarihi</dt><dd>{{ $invoice->issue_date->format('d.m.Y') }}</dd></div>
                     <div class="flex justify-between gap-3"><dt class="text-muted">Gönderildi</dt><dd>{{ $at($invoice->sent_at) }}</dd></div>
                     <div><dt class="text-muted">ETTN</dt><dd class="font-mono text-xs break-all">{{ $invoice->ettn }}</dd></div>
+                    @if ($invoice->provider === 'uyumsoft')
+                        <div class="flex justify-between gap-3"><dt class="text-muted">Uyumsoft durumu</dt><dd>{{ $invoice->provider_status ?: 'Sorgulanmadı' }}@if ($invoice->provider_checked_at)<span class="block text-right text-xs text-muted">{{ $at($invoice->provider_checked_at) }}</span>@endif</dd></div>
+                    @endif
                     @if ($invoice->status === 'cancelled')
                         <div class="flex justify-between gap-3"><dt class="text-muted">İptal</dt><dd>{{ $at($invoice->cancelled_at) }}</dd></div>
                         <div><dt class="text-muted">İptal nedeni</dt><dd>{{ $invoice->cancel_reason }}</dd></div>
                     @endif
                 </dl>
+                @if ($invoice->status === 'sent' && $invoice->provider === 'uyumsoft')
+                    <form method="POST" action="{{ route('store_admin.invoices.status', $invoice) }}" class="mt-4">@csrf<x-button variant="secondary" icon="refresh">Uyumsoft'tan durumu sorgula</x-button></form>
+                @endif
                 @if ($invoice->status === 'sent' && ! $invoice->pdf_path)
                     <form method="POST" action="{{ route('store_admin.invoices.refetch-pdf', $invoice) }}" class="mt-4">@csrf<x-button variant="secondary" icon="refresh">PDF'i sağlayıcıdan al</x-button></form>
                 @endif
-                @if ($invoice->status === 'sent' && $invoice->kind === 'sale' && \App\Domain\Store\Invoicing\EInvoiceService::awaitingRefund()->whereKey($order->id)->exists())
+                @if ($invoice->status === 'sent' && $invoice->kind === 'sale' && \App\Domain\Store\Invoicing\EInvoiceService::awaitingRefund()->whereKey($order->id)->exists() && ! \App\Domain\Store\Invoicing\EInvoiceService::cancelInsteadOfRefund($order))
                     <form method="POST" action="{{ route('store_admin.invoices.create-refund', $order) }}" class="mt-3">@csrf<x-button variant="secondary">İade faturası hazırla</x-button></form>
                 @endif
             </x-card>
@@ -106,6 +116,7 @@
 
         @if ($invoice->status === 'sent')
             @php($cancelDeadline = $invoice->document_type === 'e_arsiv' ? \App\Domain\Store\Invoicing\EInvoiceService::cancelDeadline($invoice) : null)
+            <div id="iptal"></div>
             <x-card title="Faturayı iptal et" class="mt-6" :description="match (true) {
                 $invoice->document_type !== 'e_arsiv' => 'e-Fatura sistemden iptal edilemez. Düzeltme için iade faturası kesin ya da alıcıyla GİB portalından iptal sürecini yürütün.',
                 now()->gt($cancelDeadline) => 'e-Arşiv faturası düzenlendiği tarihten itibaren 7 gün içinde iptal edilebilir; bu süre '.$cancelDeadline->format('d.m.Y').' tarihinde doldu. Düzeltme için iade faturası kesin.',

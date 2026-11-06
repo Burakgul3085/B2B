@@ -48,6 +48,11 @@ class DenemeProvider implements EInvoiceProvider
         return null; // deneme sürücüsünde gönderim hiçbir yere gitmediği için sonucu belirsiz kalan fatura kesilmemiştir
     }
 
+    public function status(StoreEInvoice $invoice): ?array
+    {
+        return ['state' => 'ok', 'status' => 'Deneme', 'message' => null]; // deneme sürücüsünde kesilen fatura hemen geçerlidir
+    }
+
     public function cancel(StoreEInvoice $invoice, string $reason): void {}
 
     public function test(): string

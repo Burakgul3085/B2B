@@ -24,7 +24,8 @@ use Throwable;
  * (VKN 9000068418) uçtan uca denendi.
  *
  * Kullanılan işlemler: WhoAmI (bağlantı denemesi), IsEInvoiceUser + GetUserAliasses (alıcı e-Fatura mükellefi mi,
- * posta kutusu etiketi), SendInvoice, GetOutboxInvoice (ETTN ile sorgu), GetOutboxInvoicePdf, CancelEArchiveInvoice.
+ * posta kutusu etiketi), SendInvoice, GetOutboxInvoice (ETTN ile sorgu), QueryOutboxInvoiceStatus (son durum),
+ * GetOutboxInvoicePdf, CancelEArchiveInvoice.
  */
 final class UyumsoftProvider implements EInvoiceProvider
 {
@@ -120,6 +121,29 @@ final class UyumsoftProvider implements EInvoiceProvider
         }
 
         return ['invoice_no' => $number, 'ettn' => $invoice->ettn, 'pdf' => $this->pdf($invoice->ettn)];
+    }
+
+    /** Uyumsoft InvoiceStatus değerlerinin karşılığı (WSDL: NotPrepared … Error). */
+    private const STATES = [
+        'SentToGib' => 'ok', 'Approved' => 'ok', 'WaitingForAprovement' => 'ok',
+        'NotPrepared' => 'pending', 'NotSend' => 'pending', 'Draft' => 'pending', 'Queued' => 'pending', 'Processing' => 'pending',
+        'Error' => 'error', 'Declined' => 'error',
+        'Canceled' => 'cancelled', 'EArchivedCanceled' => 'cancelled',
+    ];
+
+    public function status(StoreEInvoice $invoice): ?array
+    {
+        if (! $invoice->ettn) {
+            return null;
+        }
+        $result = $this->call('QueryOutboxInvoiceStatus', '<tem:invoiceIds><tem:string>'.$this->e($invoice->ettn).'</tem:string></tem:invoiceIds>', reject: true);
+        $value = $this->first($result, 'Value');
+        $status = (string) $value?->getAttribute('Status');
+        if ($status === '') {
+            return null;
+        }
+
+        return ['state' => self::STATES[$status] ?? 'other', 'status' => $status, 'message' => trim((string) $value->getAttribute('Message')) ?: null];
     }
 
     public function cancel(StoreEInvoice $invoice, string $reason): void

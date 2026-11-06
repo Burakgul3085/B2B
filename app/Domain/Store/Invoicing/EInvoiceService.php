@@ -58,7 +58,7 @@ class EInvoiceService
     public static function awaitingSale(): Builder
     {
         return StoreOrder::query()->whereIn('status', self::BILLABLE)->whereDoesntHave('invoice')
-            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->where('status', '!=', 'cancelled'));
+            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->whereNotIn('status', StoreEInvoice::CLOSED));
     }
 
     /**
@@ -70,7 +70,7 @@ class EInvoiceService
         return StoreOrder::query()->whereHas('invoice')
             ->where(fn ($q) => $q->where('refunded_total', '>', 0)->orWhereIn('status', ['cancelled', 'not_delivered']))
             ->whereDoesntHave('creditNotes')
-            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'refund')->where('status', '!=', 'cancelled'))
+            ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'refund')->whereNotIn('status', StoreEInvoice::CLOSED))
             ->whereDoesntHave('eInvoices', fn ($q) => $q->where('kind', 'sale')->where('status', 'sent')->where('document_type', 'e_fatura'));
     }
 
@@ -99,7 +99,7 @@ class EInvoiceService
         if ($order->invoice()->exists()) {
             throw new DomainException('Bu siparişin faturası zaten var.');
         }
-        if ($existing = $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')->first()) {
+        if ($existing = $order->eInvoices()->where('kind', 'sale')->whereNotIn('status', StoreEInvoice::CLOSED)->first()) {
             return $existing; // açık taslak varsa o açılır
         }
 
@@ -128,8 +128,12 @@ class EInvoiceService
         if (! $sale) {
             throw new DomainException('Önce siparişin satış faturası kesilmelidir; iade faturası satış faturasına dayanır.');
         }
-        if ($existing = $order->eInvoices()->where('kind', 'refund')->where('status', '!=', 'cancelled')->whereIn('status', ['draft', 'sending', 'unknown'])->first()) {
+        if ($existing = $order->eInvoices()->where('kind', 'refund')->whereIn('status', ['draft', 'sending', 'unknown'])->first()) {
             return $existing;
+        }
+        if ($sent = self::cancelInsteadOfRefund($order)) {
+            throw new DomainException("Sipariş tamamen iade edildi ve satış faturası {$sent->invoice_no} henüz iptal edilebilir (son gün "
+                .self::cancelDeadline($sent)->format('d.m.Y').'). İade faturası kesmeyin; satış faturasını iptal edin.');
         }
         $return = $returnId ? $order->returns()->with('items')->find($returnId) : null;
         $items = $order->items()->orderBy('id')->get()->keyBy('id');
@@ -456,11 +460,110 @@ class EInvoiceService
             'total' => (string) $invoice->total, 'expected_total' => (string) $invoice->expected_total,
         ]);
 
-        if ($invoice->notify_customer && $invoice->kind === 'sale' && ($record = $invoice->order->invoice()->first())) {
-            $this->mailer->invoiceReady($invoice->order, $record);
+        // Uyumsoft numarayı verdikten sonra GİB denetimini yapar; müşteri e-postası durum onaylanınca gider (syncStatus).
+        if ($invoice->provider !== 'uyumsoft') {
+            $this->notifyCustomer($invoice);
         }
 
         return $invoice;
+    }
+
+    /**
+     * Gönderilmiş faturanın sağlayıcıdaki son durumunu alır ve uygular: reddedildiyse "Reddedildi" (müşteriden kaldırılır,
+     * yeni belge hazırlanabilir), sağlayıcının portalından iptal edildiyse "İptal", onaylandıysa müşteriye bildirim.
+     * Sonuç: ok | pending | error | cancelled | other | missing.
+     *
+     * @throws DomainException sağlayıcıya ulaşılamazsa
+     */
+    public function syncStatus(StoreEInvoice $invoice): string
+    {
+        if ($invoice->status !== 'sent') {
+            throw new DomainException('Yalnızca gönderilmiş faturanın durumu sorgulanır.');
+        }
+        try {
+            $info = $invoice->provider === 'deneme' ? app(DenemeProvider::class)->status($invoice) : $this->provider()->status($invoice);
+        } catch (EInvoiceUncertain|EInvoiceRejected $e) {
+            throw new DomainException('Sağlayıcıya ulaşılamadı, biraz sonra yeniden deneyin. ('.$e->getMessage().')');
+        }
+        if (! $info) {
+            $invoice->update(['provider_checked_at' => now()]);
+
+            return 'missing';
+        }
+        $invoice->update(['provider_status' => mb_substr($info['status'], 0, 30), 'provider_checked_at' => now()]);
+
+        match ($info['state']) {
+            'error' => $this->closeFromProvider($invoice, 'failed', $info),
+            'cancelled' => $this->closeFromProvider($invoice, 'cancelled', $info),
+            'ok' => $this->notifyCustomer($invoice),
+            default => null,
+        };
+
+        return $info['state'];
+    }
+
+    /**
+     * Durumu sorgulanacak gönderilmiş faturalar: e-Arşiv iptal süresi (7 gün) ve birkaç gün payı içinde kesilenler.
+     * Henüz sonuçlanmamış olanlar her seferinde, sonuçlananlar en fazla 15 dakikada bir sorgulanır.
+     */
+    public static function statusCandidates(): Builder
+    {
+        return StoreEInvoice::query()->where('status', 'sent')->where('provider', 'uyumsoft')->where('sent_at', '>=', now()->subDays(10))
+            ->where(fn ($q) => $q->whereNull('provider_status')->orWhereIn('provider_status', ['NotPrepared', 'NotSend', 'Draft', 'Queued', 'Processing'])
+                ->orWhereNull('provider_checked_at')->orWhere('provider_checked_at', '<', now()->subMinutes(15)))
+            ->orderBy('provider_checked_at');
+    }
+
+    /**
+     * Sipariş tamamen iade edildiyse (ya da iptal / teslim edilemedi) ve satış faturası henüz iptal edilebiliyorsa o fatura:
+     * bu durumda iade faturası kesilmez, satış faturası iptal edilir. Kısmi iadede ve 7 gün geçtiyse null.
+     */
+    public static function cancelInsteadOfRefund(StoreOrder $order): ?StoreEInvoice
+    {
+        $full = in_array($order->status, ['cancelled', 'not_delivered'], true) || bccomp((string) $order->refunded_total, (string) $order->total, 2) >= 0;
+        if (! $full) {
+            return null;
+        }
+        $sale = $order->eInvoices()->where('kind', 'sale')->where('status', 'sent')->latest('id')->first();
+
+        return $sale && self::cancellable($sale) ? $sale : null;
+    }
+
+    /** Sağlayıcıda reddedilen ya da portaldan iptal edilen faturayı kapatır; müşteriye görünen kayıt kaldırılır. */
+    private function closeFromProvider(StoreEInvoice $invoice, string $status, array $info): void
+    {
+        $failed = $status === 'failed';
+        $message = $failed
+            ? mb_substr('Uyumsoft / GİB faturayı reddetti ('.$info['status'].'): '.($info['message'] ?? 'ayrıntı için Uyumsoft portalındaki kayıtlara bakın').' Belgeyi düzeltip yeniden hazırlayın.', 0, 500)
+            : null;
+        DB::transaction(function () use ($invoice, $failed, $message) {
+            $invoice->update($failed
+                ? ['status' => 'failed', 'error_message' => $message]
+                : ['status' => 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => 'Uyumsoft portalında iptal edildi']);
+            if ($invoice->kind === 'sale') {
+                StoreInvoice::where('order_id', $invoice->order_id)->where('invoice_no', $invoice->invoice_no)->delete();
+            } else {
+                StoreCreditNote::where('order_id', $invoice->order_id)->where('number', $invoice->invoice_no)->delete();
+            }
+            $actor = $this->actor->get();
+            $invoice->order->events()->create(['status' => 'invoice', 'actor_type' => $actor['type'], 'actor_id' => $actor['id'],
+                'note' => $failed ? "Fatura Uyumsoft'ta reddedildi: {$invoice->invoice_no}" : "Fatura Uyumsoft portalında iptal edilmiş: {$invoice->invoice_no}"]);
+        });
+        $this->audit->log($failed ? 'store.e_invoice_failed' : 'store.e_invoice_cancelled_at_provider', $invoice->order, [], [
+            'invoice_no' => $invoice->invoice_no, 'provider_status' => $info['status'], 'message' => $info['message'],
+        ]);
+    }
+
+    /** "Faturanız hazır" e-postası (bir kez; müşteri bildirimi açıksa ve satış faturasıysa). */
+    private function notifyCustomer(StoreEInvoice $invoice): void
+    {
+        if ($invoice->customer_notified_at || ! $invoice->notify_customer || $invoice->kind !== 'sale') {
+            return;
+        }
+        $claimed = StoreEInvoice::whereKey($invoice->id)->whereNull('customer_notified_at')->update(['customer_notified_at' => now()]);
+        if ($claimed === 1 && ($record = $invoice->order->invoice()->first())) {
+            $this->mailer->invoiceReady($invoice->order, $record);
+        }
     }
 
     private function storePdf(StoreEInvoice $invoice, string $pdf): void

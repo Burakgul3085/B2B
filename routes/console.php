@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::call(fn () => app(OpsStatus::class)->recordScheduler())->everyMinute()->name('ops:scheduler-heartbeat');
 Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('ops:queue-heartbeat');
 
+// Mağaza faturaları: Uyumsoft'taki son durum (GİB reddi, portaldan iptal, onay → müşteri e-postası).
+Schedule::command('store:invoice-status')->everyMinute()->withoutOverlapping()->name('store:invoice-status');
+
 // Haftalık vade hatırlatması (yalnızca hatırlatmayı açmış işletmeler).
 Schedule::command('ledger:send-reminders')->dailyAt('09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
 

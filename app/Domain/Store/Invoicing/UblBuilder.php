@@ -69,6 +69,8 @@ final class UblBuilder
             $ref = $this->cac($this->cac($root, 'BillingReference'), 'InvoiceDocumentReference');
             $this->cbc($ref, 'ID', $reference['invoice_no']);
             $this->cbc($ref, 'IssueDate', $reference['issue_date']);
+            // GİB şematron kuralı: IADE tipli faturada dayanılan faturanın belge tipi kodu "IADE" olmalıdır.
+            $this->cbc($ref, 'DocumentTypeCode', 'IADE');
         }
 
         $this->signature($root);

@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\CurrentActor;
 use App\Domain\Support\Decimal;
 use App\Models\Store\StoreCreditNote;
+use App\Models\Store\StoreEInvoice;
 use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreOrder;
 use DomainException;
@@ -54,7 +55,7 @@ class InvoiceService
         $oldPath = $existing?->file_path;
 
         $invoice = DB::transaction(function () use ($order, $data, $path, $existing, $actor) {
-            $drafts = $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')->lockForUpdate()->get();
+            $drafts = $order->eInvoices()->where('kind', 'sale')->whereNotIn('status', StoreEInvoice::CLOSED)->lockForUpdate()->get();
             if ($drafts->contains(fn ($d) => $d->status !== 'draft' || $d->ettn !== null)) {
                 throw new DomainException('Bu siparişin faturası Faturalar ekranından hazırlanıyor veya kesildi; elle değiştirilemez.');
             }
@@ -90,7 +91,7 @@ class InvoiceService
 
     private function blockingEInvoices(StoreOrder $order)
     {
-        return $order->eInvoices()->where('kind', 'sale')->where('status', '!=', 'cancelled')
+        return $order->eInvoices()->where('kind', 'sale')->whereNotIn('status', StoreEInvoice::CLOSED)
             ->where(fn ($q) => $q->where('status', '!=', 'draft')->orWhereNotNull('ettn'));
     }
 

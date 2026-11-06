@@ -43,6 +43,17 @@ interface EInvoiceProvider
      */
     public function find(StoreEInvoice $invoice): ?array;
 
+    /**
+     * Kesilmiş faturanın sağlayıcıdaki son durumu. Numara alındıktan sonra GİB denetimi hata verebilir ya da fatura
+     * sağlayıcının portalından iptal edilebilir. state: ok (GİB'e iletildi / onaylandı), pending (işleniyor),
+     * error (reddedildi), cancelled (iptal edildi), other (başka bir durum; işlem yapılmaz). Bulunamazsa null.
+     *
+     * @return array{state: string, status: string, message: ?string}|null
+     *
+     * @throws EInvoiceUncertain|EInvoiceRejected
+     */
+    public function status(StoreEInvoice $invoice): ?array;
+
     /** e-Arşiv faturasını iptal eder (e-Faturada iptal sağlayıcıdan yapılamaz). @throws EInvoiceRejected|EInvoiceUncertain */
     public function cancel(StoreEInvoice $invoice, string $reason): void;
 

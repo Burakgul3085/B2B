@@ -9,6 +9,7 @@ use App\Domain\Store\Invoicing\InvoiceMath;
 use App\Domain\Store\Invoicing\Providers\DenemeProvider;
 use App\Domain\Store\Invoicing\Providers\EInvoiceUncertain;
 use App\Domain\Store\Invoicing\UblBuilder;
+use App\Domain\Store\Orders\OrderMailer;
 use App\Domain\Store\Orders\OrderService;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
@@ -44,6 +45,12 @@ class StoreEInvoiceTest extends TestCase
     /** @var list<string> Uyumsoft'a giden SOAP işlemleri */
     private array $soap = [];
 
+    /** Uyumsoft'a gönderilen fatura sayısı (her gönderiye ayrı numara ve ETTN). */
+    private int $sentCount = 0;
+
+    /** QueryOutboxInvoiceStatus yanıtı: [Status, Message] */
+    private array $statusReply = ['Approved', ''];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -74,7 +81,10 @@ class StoreEInvoiceTest extends TestCase
             return Http::response(match ($m[1] ?? '') {
                 'WhoAmI' => $this->soapResult('WhoAmI', '<Value><Customer><Name>EBRU BİRBİLEN</Name><VkTckNo>18508621764</VkTckNo></Customer></Value>'),
                 'IsEInvoiceUser' => $this->soapResult('IsEInvoiceUser', '', 'Value="false"'),
-                'SendInvoice' => $this->soapResult('SendInvoice', '<Value Id="11111111-2222-3333-4444-555555555555" Number="YAP2026000000001"/>'),
+                'SendInvoice' => $this->soapResult('SendInvoice', sprintf('<Value Id="11111111-2222-3333-4444-%012d" Number="YAP%d"/>',
+                    555555555554 + ++$this->sentCount, 2026000000000 + $this->sentCount)),
+                'QueryOutboxInvoiceStatus' => $this->soapResult('QueryOutboxInvoiceStatus',
+                    '<Value Status="'.$this->statusReply[0].'" StatusCode="0" InvoiceId="x" Message="'.e($this->statusReply[1]).'"/>'),
                 'GetOutboxInvoicePdf' => $this->soapResult('GetOutboxInvoicePdf', '<Value><Data>'.base64_encode('%PDF-1.4 uyumsoft').'</Data></Value>'),
                 default => $this->soapResult($m[1] ?? 'X', '', 'IsSucceded="false" Message="Bilinmeyen"'),
             });
@@ -320,10 +330,86 @@ class StoreEInvoiceTest extends TestCase
         $note = StoreCreditNote::where('order_id', $order->id)->sole();
         $this->assertSame([$refund->invoice_no, '100.00'], [$note->number, $note->amount]);
         Storage::disk('local')->assertExists($note->file_path);
-        $this->assertStringContainsString('IADE', app(UblBuilder::class)->xml($refund, 'e_arsiv', ['invoice_no' => $sale->invoice_no, 'issue_date' => $sale->issue_date->format('Y-m-d')]));
+        $refundXml = app(UblBuilder::class)->xml($refund, 'e_arsiv', ['invoice_no' => $sale->invoice_no, 'issue_date' => $sale->issue_date->format('Y-m-d')]);
+        // GİB şematronu: iade faturası dayandığı faturayı "IADE" belge tipi koduyla gösterir.
+        $this->assertStringContainsString('<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>'.$sale->invoice_no.'</cbc:ID><cbc:IssueDate>'
+            .$sale->issue_date->format('Y-m-d').'</cbc:IssueDate><cbc:DocumentTypeCode>IADE</cbc:DocumentTypeCode>', $refundXml);
 
         // İade faturası varken satış faturası iptal edilemez.
         $this->post(self::ADMIN.'/faturalar/'.$sale->id.'/iptal', ['cancel_reason' => 'Deneme'])->assertSessionHasErrors('invoice');
+    }
+
+    public function test_full_refund_within_seven_days_cancels_sale_instead_of_refund_invoice(): void
+    {
+        $order = $this->paidOrder();
+        $service = app(EInvoiceService::class);
+        $sale = $service->send($service->createSale($order));
+
+        // Tam iade, 7 gün dolmadı: iade faturası kesilmez, satış faturası iptal edilir.
+        $order->update(['refunded_total' => '280.00', 'payment_status' => 'refunded']);
+        $this->assertSame($sale->id, EInvoiceService::cancelInsteadOfRefund($order->fresh())?->id);
+        $this->get(self::ADMIN.'/faturalar?tab=iade')->assertOk()->assertSee('Satış faturasını iptal et');
+        $this->post(self::ADMIN."/siparisler/{$order->id}/iade-faturasi-taslagi")->assertSessionHasErrors('invoice');
+        $this->assertFalse(StoreEInvoice::where('kind', 'refund')->exists());
+        $this->get(self::ADMIN.'/faturalar/'.$sale->id)->assertOk()->assertSee('id="iptal"', false);
+
+        // 7 gün geçince iptal edilemez: iade faturası yolu açılır.
+        $this->travel(8)->days();
+        $this->assertNull(EInvoiceService::cancelInsteadOfRefund($order->fresh()));
+        $this->post(self::ADMIN."/siparisler/{$order->id}/iade-faturasi-taslagi")->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertTrue(StoreEInvoice::where('kind', 'refund')->exists());
+    }
+
+    public function test_uyumsoft_status_rejection_portal_cancel_and_notification_after_approval(): void
+    {
+        StoreSetting::put(['invoice_driver' => 'uyumsoft', 'uyumsoft_mode' => 'test', 'uyumsoft_username' => 'Uyumsoft', 'invoice_sender_id' => '18508621764']);
+        StoreSetting::putSecret('uyumsoft_password', 'gizli');
+        $mailer = $this->spy(OrderMailer::class);
+        $service = app(EInvoiceService::class);
+
+        // Numara alındı ama Uyumsoft henüz işliyor: müşteriye e-posta gitmez.
+        $order = $this->paidOrder();
+        $draft = $service->createSale($order);
+        $draft->update(['notify_customer' => true]);
+        $invoice = $service->send($draft->fresh());
+        $this->assertSame('sent', $invoice->status);
+        $this->statusReply = ['Processing', ''];
+        $this->artisan('store:invoice-status')->assertSuccessful();
+        $this->assertSame('Processing', $invoice->fresh()->provider_status);
+        $mailer->shouldNotHaveReceived('invoiceReady');
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->body(), '<tem:invoiceIds><tem:string>'.$invoice->ettn.'</tem:string>'));
+
+        // Onaylanınca bir kez bildirilir.
+        $this->statusReply = ['Approved', ''];
+        $this->artisan('store:invoice-status')->assertSuccessful();
+        $this->travel(20)->minutes();
+        $this->artisan('store:invoice-status')->assertSuccessful();
+        $mailer->shouldHaveReceived('invoiceReady')->once();
+        $this->assertNotNull($invoice->fresh()->customer_notified_at);
+
+        // GİB reddi: fatura "Reddedildi", müşteriden kaldırılır, sipariş yeniden faturalanabilir.
+        $second = $this->paidOrder();
+        $rejected = $service->send($service->createSale($second));
+        $this->statusReply = ['Error', 'SCHEMATRON KONTROL SONUCU HATALI'];
+        $this->post(self::ADMIN.'/faturalar/'.$rejected->id.'/durum')->assertSessionHasNoErrors();
+        $rejected->refresh();
+        $this->assertSame('failed', $rejected->status);
+        $this->assertStringContainsString('SCHEMATRON', $rejected->error_message);
+        $this->assertFalse(StoreInvoice::where('order_id', $second->id)->exists());
+        $this->assertContains($second->id, EInvoiceService::awaitingSale()->pluck('id')->all());
+        $this->get(self::ADMIN.'/faturalar?tab=bekleyen')->assertOk()->assertSee($rejected->invoice_no);
+        $this->get(self::ADMIN.'/faturalar?tab=iptal')->assertOk()->assertSee('Reddedildi');
+        $this->get(self::ADMIN.'/faturalar/'.$rejected->id)->assertOk()->assertSee('SCHEMATRON');
+        $this->assertNotSame($rejected->id, $service->createSale($second->fresh())->id);
+
+        // Uyumsoft portalında elle iptal edilen fatura panelde de iptal olur.
+        $third = $this->paidOrder();
+        $cancelled = $service->send($service->createSale($third));
+        $this->statusReply = ['EArchivedCanceled', ''];
+        $this->artisan('store:invoice-status')->assertSuccessful();
+        $this->assertSame(['cancelled', 'Uyumsoft portalında iptal edildi'], [$cancelled->fresh()->status, $cancelled->fresh()->cancel_reason]);
+        $this->assertFalse(StoreInvoice::where('order_id', $third->id)->exists());
+        $mailer->shouldHaveReceived('invoiceReady')->once();
     }
 
     public function test_bulk_drafts_and_bulk_send_skip_unconfirmed_difference(): void

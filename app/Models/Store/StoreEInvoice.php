@@ -18,7 +18,11 @@ class StoreEInvoice extends Model
         'unknown' => 'Sonuç belirsiz',
         'sent' => 'Gönderildi',
         'cancelled' => 'İptal edildi',
+        'failed' => 'Reddedildi',
     ];
+
+    /** Kapanmış belgeler: iptal edildi ya da sağlayıcıda reddedildi. Siparişe yeni belge hazırlanmasını engellemez. */
+    public const CLOSED = ['cancelled', 'failed'];
 
     public const KINDS = ['sale' => 'Satış faturası', 'refund' => 'İade faturası'];
 
@@ -33,6 +37,7 @@ class StoreEInvoice extends Model
         return [
             'issue_date' => 'date', 'sent_at' => 'datetime', 'cancelled_at' => 'datetime',
             'difference_confirmed_at' => 'datetime', 'notify_customer' => 'boolean',
+            'provider_checked_at' => 'datetime', 'customer_notified_at' => 'datetime',
         ];
     }
 
@@ -77,7 +82,7 @@ class StoreEInvoice extends Model
         return match (true) {
             $this->status === 'sent' => 'success',
             $this->status === 'cancelled' => 'neutral',
-            $this->status === 'unknown', $this->status === 'draft' && $this->error_message !== null => 'danger',
+            $this->status === 'unknown', $this->status === 'failed', $this->status === 'draft' && $this->error_message !== null => 'danger',
             default => 'warning',
         };
     }
