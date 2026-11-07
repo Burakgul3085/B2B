@@ -195,6 +195,8 @@
                 </x-card>
             @endif
 
+            @include('business.invoices._order-card', ['order' => $order, 'returns' => $returns])
+
             <x-card title="Sevk adresi" description="Sipariş anındaki adres.">
                 <div class="space-y-1 text-sm">@foreach ($order->shippingLines() as $line)<p>{{ $line }}</p>@endforeach</div>
                 @if ($order->stock_applied_at && ($order->delivery_planned_on || $order->delivery_note || $order->delivery_recipient))

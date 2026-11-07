@@ -35,7 +35,7 @@ class ResetBusinessData extends Command
         'migrations', 'jobs', 'failed_jobs', 'job_batches', 'audit_logs', 'system_settings', 'platform_admins',
         // B2B: işletme, toptancı kullanıcısı ve ayarlar
         'businesses', 'business_users', 'business_settings', 'business_modules', 'business_counters', 'licenses',
-        'email_settings', 'email_templates', 'warehouses', 'units', 'tax_rates',
+        'email_settings', 'email_templates', 'warehouses', 'units', 'tax_rates', 'invoice_settings',
         // Mağaza: yöneticiler, ayarlar ve içerik
         'store_admins', 'store_settings', 'store_carriers', 'store_legal_documents', 'store_pages',
         'store_blog_categories', 'store_blog_posts', 'store_banners', 'tr_provinces', 'tr_districts',
@@ -57,7 +57,7 @@ class ResetBusinessData extends Command
         // B2B: sipariş, iade, cari
         'carts', 'cart_items', 'orders', 'order_items', 'order_payments', 'order_status_history', 'order_returns',
         'order_return_items', 'order_return_requests', 'order_return_request_items', 'current_accounts',
-        'current_account_movements', 'collections',
+        'current_account_movements', 'collections', 'invoices', 'invoice_lines',
         // B2B: iletişim ve vitrin
         'conversations', 'conversation_reads', 'messages', 'announcements', 'home_banners', 'showcases',
         'showcase_products', 'saved_reports',
@@ -83,7 +83,7 @@ class ResetBusinessData extends Command
         'store/reviews', 'store/returns', 'store/discounts', 'store/collections', 'store/newsletter'];
 
     /** businesses/{id}/ altındaki klasörler. */
-    public const BUSINESS_DIRECTORIES = ['products', 'brands', 'applications', 'messages', 'promotions', 'storefront', 'announcements'];
+    public const BUSINESS_DIRECTORIES = ['products', 'brands', 'applications', 'messages', 'promotions', 'storefront', 'announcements', 'invoices'];
 
     public function handle(AuditLogger $audit, BackupService $backups): int
     {

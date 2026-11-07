@@ -27,6 +27,9 @@ Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('ops:queue-heartbeat
 // Mağaza faturaları: Uyumsoft'taki son durum (GİB reddi, portaldan iptal, onay → müşteri e-postası).
 Schedule::command('store:invoice-status')->everyMinute()->withoutOverlapping()->name('store:invoice-status');
 
+// B2B: bayi faturaları — belirsiz gönderimleri ve Uyumsoft durumunu sorgular, açıksa otomatik keser (mağazadan ayrı).
+Schedule::command('b2b:invoices')->everyMinute()->withoutOverlapping(10)->name('b2b:invoices');
+
 // Haftalık vade hatırlatması (yalnızca hatırlatmayı açmış işletmeler).
 Schedule::command('ledger:send-reminders')->dailyAt('09:00')->timezone('Europe/Istanbul')->withoutOverlapping();
 

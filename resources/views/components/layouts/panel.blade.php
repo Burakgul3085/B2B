@@ -38,6 +38,8 @@
                     'badge' => \App\Models\Order::whereIn('status', ['submitted', 'cancel_requested'])->count()],
                 ['label' => 'İade Talepleri', 'route' => 'business.returns.index', 'icon' => 'refresh', 'active' => 'business.returns.*',
                     'badge' => \App\Models\OrderReturnRequest::where('status', 'requested')->count()],
+                ['label' => 'Faturalar', 'route' => 'business.invoices.index', 'icon' => 'printer', 'active' => 'business.invoices.*',
+                    'badge' => \App\Domain\Invoicing\InvoiceService::awaitingSale()->count() + \App\Models\Invoice::where(fn ($q) => $q->where('status', 'draft')->orWhereIn('status', \App\Models\Invoice::UNSETTLED))->count()],
                 ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Ürün Talepleri', 'route' => 'business.product-requests.index', 'icon' => 'inbox', 'active' => 'business.product-requests.*',
                     'badge' => \App\Models\ProductRequest::where('status', 'new')->count()] : null,
             ]))],
@@ -72,6 +74,7 @@
             ['label' => 'Ayarlar', 'items' => [
                 ['label' => 'İşletme Ayarları', 'route' => 'business.settings.edit', 'icon' => 'settings', 'active' => 'business.settings.*'],
                 ['label' => 'Ödeme Ayarları', 'route' => 'business.payments.edit', 'icon' => 'lock', 'active' => 'business.payments.*'],
+                ['label' => 'Fatura Ayarları', 'route' => 'business.invoice-settings.edit', 'icon' => 'printer', 'active' => 'business.invoice-settings.*'],
                 ['label' => 'E-posta Ayarları', 'route' => 'business.email.settings', 'icon' => 'refresh', 'active' => 'business.email.*'],
                 ['label' => 'KDV Oranları', 'route' => 'business.catalog.settings', 'icon' => 'file', 'active' => 'business.catalog.settings'],
                 ['label' => 'Destek Erişimi', 'route' => 'business.support-access.index', 'icon' => 'key', 'active' => 'business.support-access.*'],
@@ -162,6 +165,7 @@
         ($currentBusiness?->moduleEnabled('messaging') ?? false) ? ['label' => 'Mesajlar', 'route' => 'dealer.messages.index', 'icon' => 'inbox', 'active' => 'dealer.messages.*'] : null,
         ($currentBusiness?->moduleEnabled('reports') ?? false) ? ['label' => 'Raporlar', 'route' => 'dealer.reports.index', 'icon' => 'layers', 'active' => 'dealer.reports.*'] : null,
         ($currentBusiness?->moduleEnabled('product_requests') ?? false) ? ['label' => 'Taleplerim', 'route' => 'dealer.requests.index', 'icon' => 'package', 'active' => 'dealer.requests.*'] : null,
+        ['label' => 'Faturalarım', 'route' => 'dealer.invoices.index', 'icon' => 'printer', 'active' => 'dealer.invoices.*'],
         ['label' => 'Hesap Özeti', 'route' => 'dealer.dashboard', 'icon' => 'home', 'active' => 'dealer.dashboard'],
     ])) : [];
 

@@ -149,6 +149,9 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::get('ayarlar/odeme', [Business\PaymentSettingsController::class, 'edit'])->name('payments.edit');
         Route::put('ayarlar/odeme', [Business\PaymentSettingsController::class, 'update'])->name('payments.update');
         Route::delete('ayarlar/odeme/anahtarlar', [Business\PaymentSettingsController::class, 'removeKeys'])->name('payments.keys.destroy');
+        Route::get('ayarlar/fatura', [Business\InvoiceSettingsController::class, 'edit'])->name('invoice-settings.edit');
+        Route::put('ayarlar/fatura', [Business\InvoiceSettingsController::class, 'update'])->name('invoice-settings.update');
+        Route::post('ayarlar/fatura/baglanti-testi', [Business\InvoiceSettingsController::class, 'test'])->middleware('throttle:10,10,business.invoice-settings.test')->name('invoice-settings.test');
         Route::get('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'index'])->name('support-access.index');
         Route::post('ayarlar/destek-erisimi', [Business\SupportAccessController::class, 'store'])->name('support-access.store');
         Route::delete('ayarlar/destek-erisimi/{grant}', [Business\SupportAccessController::class, 'destroy'])->whereNumber('grant')->name('support-access.destroy');
@@ -173,6 +176,25 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::post('iade-talepleri/{returnRequest}/teslim-al', [Business\ReturnRequestController::class, 'receive'])->whereNumber('returnRequest')->name('returns.receive');
         Route::get('iade-talepleri/{returnRequest}/foto/{attachment}', [Business\ReturnRequestController::class, 'photo'])->whereNumber(['returnRequest', 'attachment'])->name('returns.photo');
         Route::post('siparisler/{order}/odeme', [Business\OrderPaymentController::class, 'store'])->name('orders.payments.store');
+
+        // Faturalar (bayi satış / iade faturaları; mağaza faturalarından ayrı)
+        Route::get('faturalar', [Business\InvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('faturalar/toplu-taslak', [Business\InvoiceController::class, 'createMany'])->middleware('throttle:10,1,business.invoices.create-many')->name('invoices.create-many');
+        Route::post('faturalar/toplu-gonder', [Business\InvoiceController::class, 'sendMany'])->middleware('throttle:5,1,business.invoices.send-many')->name('invoices.send-many');
+        Route::get('faturalar/{invoice}', [Business\InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
+        Route::put('faturalar/{invoice}', [Business\InvoiceController::class, 'update'])->whereNumber('invoice')->name('invoices.update');
+        Route::delete('faturalar/{invoice}', [Business\InvoiceController::class, 'destroy'])->whereNumber('invoice')->name('invoices.destroy');
+        Route::post('faturalar/{invoice}/gonder', [Business\InvoiceController::class, 'send'])->whereNumber('invoice')->middleware('throttle:20,1,business.invoices.send')->name('invoices.send');
+        Route::post('faturalar/{invoice}/sorgula', [Business\InvoiceController::class, 'check'])->whereNumber('invoice')->middleware('throttle:20,1,business.invoices.check')->name('invoices.check');
+        Route::post('faturalar/{invoice}/taslaga-al', [Business\InvoiceController::class, 'release'])->whereNumber('invoice')->name('invoices.release');
+        Route::post('faturalar/{invoice}/iptal', [Business\InvoiceController::class, 'cancel'])->whereNumber('invoice')->middleware('throttle:10,1,business.invoices.cancel')->name('invoices.cancel');
+        Route::post('faturalar/{invoice}/durum', [Business\InvoiceController::class, 'status'])->whereNumber('invoice')->middleware('throttle:20,1,business.invoices.status')->name('invoices.status');
+        Route::post('faturalar/{invoice}/pdf-al', [Business\InvoiceController::class, 'refetchPdf'])->whereNumber('invoice')->middleware('throttle:10,1,business.invoices.refetch')->name('invoices.refetch');
+        Route::get('faturalar/{invoice}/pdf', [Business\InvoiceController::class, 'pdf'])->whereNumber('invoice')->middleware('throttle:60,1,business.invoices.pdf')->name('invoices.pdf');
+        Route::get('faturalar/{invoice}/onizleme', [Business\InvoiceController::class, 'preview'])->whereNumber('invoice')->middleware('throttle:30,1,business.invoices.preview')->name('invoices.preview');
+        Route::post('siparisler/{order}/fatura', [Business\InvoiceController::class, 'createSale'])->name('orders.invoices.sale');
+        Route::post('siparisler/{order}/iade-faturasi', [Business\InvoiceController::class, 'createRefund'])->name('orders.invoices.refund');
+        Route::post('siparisler/{order}/fatura/elle', [Business\InvoiceController::class, 'attachManual'])->middleware('throttle:20,1,business.invoices.manual')->name('orders.invoices.manual');
 
         // İletişim
         Route::middleware('module:messaging')->group(function () {
@@ -394,6 +416,8 @@ Route::prefix('bayi')->name('dealer.')->group(function () use ($authRoutes, $acc
         Route::get('siparislerim', [Dealer\OrderController::class, 'index'])->name('orders.index');
         Route::get('siparislerim/{order}', [Dealer\OrderController::class, 'show'])->name('orders.show');
         Route::post('siparislerim/{order}/iptal', [Dealer\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::get('faturalarim', [Dealer\InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('faturalarim/{invoice}/pdf', [Dealer\InvoiceController::class, 'pdf'])->whereNumber('invoice')->middleware('throttle:60,1,dealer.invoices.pdf')->name('invoices.pdf');
         Route::post('siparislerim/{order}/iade-talebi', [Dealer\ReturnRequestController::class, 'store'])->middleware('throttle:10,1,returns.store')->name('returns.store');
         Route::post('iade-talepleri/{returnRequest}/geri-cek', [Dealer\ReturnRequestController::class, 'cancel'])->whereNumber('returnRequest')->name('returns.cancel');
         Route::get('iade-talepleri/{returnRequest}/foto/{attachment}', [Dealer\ReturnRequestController::class, 'photo'])->whereNumber(['returnRequest', 'attachment'])->name('returns.photo');

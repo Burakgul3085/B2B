@@ -120,6 +120,23 @@
                 @endif
             </x-card>
 
+            @php $orderInvoices = \App\Http\Controllers\Dealer\InvoiceController::visible()->where('order_id', $order->id)->orderBy('id')->get(); @endphp
+            @if ($orderInvoices->isNotEmpty())
+                <x-card title="Fatura" class="print:hidden">
+                    <ul class="divide-y divide-line text-sm">
+                        @foreach ($orderInvoices as $inv)
+                            <li class="flex items-center justify-between gap-3 py-2">
+                                <span><span class="font-medium text-ink">{{ $inv->invoice_no }}</span>
+                                    <span class="block text-xs text-muted">{{ $inv->label() }} · {{ $inv->issue_date->format('d.m.Y') }} · {{ \App\Domain\Support\Money::format($inv->total) }}</span></span>
+                                @if ($inv->pdf_path)
+                                    <x-button size="sm" variant="secondary" icon="download" :href="route('dealer.invoices.pdf', $inv)" target="_blank" rel="noopener">İndir</x-button>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-card>
+            @endif
+
             <x-card title="Durum geçmişi" class="print:hidden">@include('partials.order-history', ['order' => $order])</x-card>
 
             @if ($canCancel)

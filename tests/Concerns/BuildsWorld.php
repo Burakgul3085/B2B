@@ -19,6 +19,7 @@ use App\Models\DealerRelationship;
 use App\Models\DiscountRule;
 use App\Models\EmailLog;
 use App\Models\HomeBanner;
+use App\Models\Invoice;
 use App\Models\OrderReturnRequest;
 use App\Models\PlatformAdmin;
 use App\Models\PriceList;
@@ -88,6 +89,9 @@ trait BuildsWorld
                 'promotionImage' => PromotionImage::create(['promotion_id' => $promotionId, 'path' => 'yok.webp', 'is_cover' => true])->id,
                 'rule' => DiscountRule::create(['name' => 'Kural', 'scope' => 'product', 'product_id' => $product->id, 'target' => 'all', 'percent' => '5'])->id,
                 'order' => $order->id,
+                'invoice' => Invoice::create(['order_id' => $order->id, 'kind' => 'sale', 'status' => 'sent', 'source' => 'manual', 'provider' => 'manual', 'document_type' => 'e_arsiv',
+                    'local_id' => 'W-'.Str::random(10), 'buyer_name' => 'Bayi', 'buyer_address' => 'Adres', 'buyer_city' => 'İstanbul', 'issue_date' => now()->toDateString(),
+                    'expected_total' => '1.00', 'total' => '1.00', 'invoice_no' => 'BYA'.random_int(2026000000000, 2026999999999), 'pdf_path' => 'yok.pdf'])->id,
                 'returnRequest' => $returnRequestId = OrderReturnRequest::create(['order_id' => $order->id, 'dealer_relationship_id' => $rel->id, 'request_no' => 'IADE-'.Str::random(8), 'reason' => 'other'])->id,
                 'return_attachment' => $this->attachment('order_return_request', $returnRequestId),
                 'productRequest' => ProductRequest::create(['dealer_relationship_id' => $rel->id, 'product_id' => $product->id, 'quantity' => '1'])->id,

@@ -116,6 +116,18 @@ final class EmailTemplates
             'intro' => "{bayi}, {siparis_no} numaralı siparişin ödemesini yaptı.\n\nTutar: {tutar}\nYöntem: {yontem}\n\nÖdeme bayinin carisine tahsilat olarak işlendi. Siparişi hazırlamaya başlayabilirsiniz.",
             'note' => 'Kart ödemeleri iyzico hesabınıza, havaleler banka hesabınıza geçer.',
         ],
+        'invoice_ready' => [
+            'label' => 'Faturanız hazır (bayiye)',
+            'eyebrow' => 'Fatura',
+            'subject' => '{siparis_no} siparişinizin faturası hazır',
+            'intro' => '{siparis_no} numaralı siparişinizin faturası kesildi.
+
+Fatura no: {fatura_no}
+Tutar: {tutar}
+
+Faturanızı panelinizdeki sipariş sayfasından veya Faturalarım ekranından PDF olarak indirebilirsiniz.',
+            'note' => 'Güvenliğiniz için fatura e-postaya eklenmez; indirmek için panelinize giriş yapmanız gerekir.',
+        ],
         'cancel_requested' => [
             'label' => 'İptal talebi (size)',
             'eyebrow' => 'İptal talebi',

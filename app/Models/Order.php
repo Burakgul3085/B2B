@@ -81,6 +81,12 @@ class Order extends Model
         return $this->hasMany(OrderPayment::class)->orderBy('id');
     }
 
+    /** Siparişin faturaları (satış ve iade; e-Fatura / e-Arşiv ya da elle kesilmiş). */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class)->orderBy('id');
+    }
+
     /** Onaylanan tutar ödenmeden hazırlanmaz (kart / havale); teslimde ödemede ödeme tamamlanmadan kapanmaz. */
     public function awaitingPayment(): bool
     {

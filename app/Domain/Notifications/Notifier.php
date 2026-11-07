@@ -14,6 +14,7 @@ use App\Models\DealerApplication;
 use App\Models\DealerRelationship;
 use App\Models\DealerUser;
 use App\Models\EmailLog;
+use App\Models\Invoice;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\OrderReturnRequest;
@@ -170,6 +171,18 @@ class Notifier
         $this->mailBusiness('order_paid', ['bayi' => $dealer, 'siparis_no' => $order->order_no, 'tutar' => $total, 'yontem' => $method],
             ['url' => route('business.orders.show', $order), 'label' => 'Siparişi görüntüle'], ['Tutar' => $total, 'Yöntem' => $method], $order);
         $this->toDealer($order->relationship, 'order', "Ödemeniz alındı: {$order->order_no}", "{$total} · {$method}. Siparişiniz hazırlanacak.", route('dealer.orders.show', $order));
+    }
+
+    /** Fatura kesildi: bayiye uygulama içi bildirim + e-posta (ek yok; PDF panelden, girişle indirilir). */
+    public function invoiceReady(Invoice $invoice): void
+    {
+        $order = $invoice->order;
+        $url = route('dealer.orders.show', $order);
+        $total = Money::format($invoice->total);
+        $this->toDealer($order->relationship, 'order', "Faturanız hazır: {$order->order_no}", "Fatura no {$invoice->invoice_no} · {$total}", $url);
+        $this->mailer->queue('invoice_ready', $this->dealerEmail($order->relationship),
+            ['siparis_no' => $order->order_no, 'fatura_no' => $invoice->invoice_no, 'tutar' => $total],
+            ['url' => $url, 'label' => 'Faturayı görüntüle'], ['Fatura no' => $invoice->invoice_no, 'Tutar' => $total], 'invoice', $invoice->id);
     }
 
     public function cancelRequested(Order $order): void
