@@ -10,12 +10,14 @@ use DomainException;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * E-postayla giriş doğrulaması (toptancı, bayi, mağaza yönetimi; platformda doğrulama uygulaması kalır).
  * Parola doğruysa oturum açılmaz; kişinin kendi e-postasına 4 haneli rastgele kod gider ve kod girilince giriş tamamlanır.
  * Bekleyen giriş yalnızca o alanın oturumunda tutulur (kodun kendisi değil, HMAC özeti). Kod 10 dakika geçerlidir,
  * 5 yanlış denemede veya süre dolunca giriş baştan yapılır; yeniden gönderim 60 saniyede bir, en fazla 5 kez.
+ * Hesap başına bir saatte 10 yanlış koddan sonra kod girişi (ve yeni kod gönderimi) bir saat durur.
  * E-posta: toptancı ve bayiye toptancının kurumsal şablonuyla (BusinessMailer), mağaza yöneticisine mağaza şablonuyla.
  * Acil durumda sunucuda LOGIN_EMAIL_CODE=false ile kapatılabilir (config b2b.login_code).
  */
@@ -33,6 +35,14 @@ class LoginCode
 
     private const RESEND_AFTER = 60;
 
+    /**
+     * Oturumdan bağımsız sınır: aynı hesapta bir saat içinde bu kadar yanlış kod girilirse kod girişi o hesap için
+     * bir saat durur (parolayı bilen birinin girişi tekrarlayarak kodu tahmin etmesine karşı). Doğru kod sayacı sıfırlar.
+     */
+    public const MAX_FAILURES_PER_HOUR = 10;
+
+    private const FAILURE_DECAY = 3600;
+
     public function __construct(private AccountEmailService $accounts, private TenantContext $tenant, private AuditLogger $audit) {}
 
     public static function appliesTo(Area $area): bool
@@ -47,6 +57,7 @@ class LoginCode
      */
     public function start(Area $area, Model $user, Session $session): void
     {
+        $this->assertNotLocked($area, (int) $user->id);
         $session->put(self::KEY, ['area' => $area->value, 'user_id' => $user->id, 'sends' => 0, 'attempts' => 0]);
         $this->send($area, $user, $session);
     }
@@ -86,7 +97,20 @@ class LoginCode
             $session->forget(self::KEY);
             throw new DomainException('Kodun süresi doldu, lütfen yeniden giriş yapın.');
         }
+        try {
+            $this->assertNotLocked($area, (int) $state['user_id']);
+        } catch (DomainException $e) {
+            $session->forget(self::KEY);
+            throw $e;
+        }
+
         if (! hash_equals($state['hash'], $this->hash($state, $code))) {
+            RateLimiter::hit($this->failureKey($area, (int) $state['user_id']), self::FAILURE_DECAY);
+            if (RateLimiter::tooManyAttempts($this->failureKey($area, (int) $state['user_id']), self::MAX_FAILURES_PER_HOUR)) {
+                $session->forget(self::KEY);
+                $this->audit->log('auth.login_code_locked', null, [], ['area' => $area->value, 'user_id' => $state['user_id']], actorArea: $area);
+                $this->assertNotLocked($area, (int) $state['user_id']);
+            }
             $state['attempts']++;
             if ($state['attempts'] >= self::MAX_ATTEMPTS) {
                 $session->forget(self::KEY);
@@ -99,8 +123,24 @@ class LoginCode
         }
 
         $session->forget(self::KEY);
+        RateLimiter::clear($this->failureKey($area, (int) $state['user_id']));
 
         return (int) $state['user_id'];
+    }
+
+    /** @throws DomainException hesapta son bir saatte çok fazla yanlış kod girildi */
+    private function assertNotLocked(Area $area, int $userId): void
+    {
+        $key = $this->failureKey($area, $userId);
+        if (RateLimiter::tooManyAttempts($key, self::MAX_FAILURES_PER_HOUR)) {
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($key) / 60));
+            throw new DomainException("Bu hesapta çok fazla yanlış kod girildi. Güvenliğiniz için kod girişi durduruldu; {$minutes} dakika sonra yeniden deneyin.");
+        }
+    }
+
+    private function failureKey(Area $area, int $userId): string
+    {
+        return 'login-code-fail:'.$area->value.':'.$userId;
     }
 
     public function cancel(Session $session): void

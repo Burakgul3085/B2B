@@ -34,9 +34,9 @@ $authRoutes = function (string $name) {
         Route::post('login/dogrulama', [LoginController::class, 'verifyCode'])->middleware('throttle:20,1,login.code')->name('login.code.verify');
         Route::post('login/dogrulama/yeni-kod', [LoginController::class, 'resendCode'])->middleware('throttle:6,10,login.code.resend')->name('login.code.resend');
         Route::get('parolami-unuttum', [PasswordResetController::class, 'request'])->name('password.request');
-        Route::post('parolami-unuttum', [PasswordResetController::class, 'email'])->name('password.email');
+        Route::post('parolami-unuttum', [PasswordResetController::class, 'email'])->middleware('throttle:10,10,password.email')->name('password.email');
         Route::get('parola-sifirla/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
-        Route::post('parola-sifirla', [PasswordResetController::class, 'update'])->name('password.update');
+        Route::post('parola-sifirla', [PasswordResetController::class, 'update'])->middleware('throttle:10,10,password.update')->name('password.update');
     });
 
     Route::post('cikis', [LoginController::class, 'destroy'])->middleware("auth:{$name}")->name('logout');

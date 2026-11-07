@@ -389,7 +389,7 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::post('fotokopi/dosya/{token}/parca', [Front\PrintController::class, 'chunk'])->middleware('throttle:900,10,print.chunk')->name('print.chunk');
         Route::get('fotokopi/dosya/{token}', [Front\PrintController::class, 'status'])->middleware('throttle:240,1,print.status')->name('print.status');
         Route::get('fotokopi/dosya/{token}/onizleme', [Front\PrintController::class, 'preview'])->name('print.preview');
-        Route::delete('fotokopi/dosya/{token}', [Front\PrintController::class, 'destroy'])->name('print.destroy');
+        Route::delete('fotokopi/dosya/{token}', [Front\PrintController::class, 'destroy'])->middleware('throttle:60,1,print.destroy')->name('print.destroy');
         Route::post('fotokopi/dosya/{token}/fiyat', [Front\PrintController::class, 'quote'])->middleware('throttle:240,1,print.quote')->name('print.quote');
         Route::post('fotokopi/dosya/{token}/sepet', [Front\PrintController::class, 'add'])->middleware('throttle:60,1,print.add')->name('print.add');
 
@@ -401,9 +401,9 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         Route::post('sepet', [Front\CartController::class, 'add'])->middleware('throttle:60,1,cart.add')->name('cart.add');
         // Kod denemesi (kaba kuvvet) sınırlı.
         Route::post('sepet/kupon', [Front\CartController::class, 'applyCoupon'])->middleware('throttle:10,1,cart.coupon')->name('cart.coupon');
-        Route::delete('sepet/kupon', [Front\CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
-        Route::put('sepet/{item}', [Front\CartController::class, 'update'])->whereNumber('item')->name('cart.update');
-        Route::delete('sepet/{item}', [Front\CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
+        Route::delete('sepet/kupon', [Front\CartController::class, 'removeCoupon'])->middleware('throttle:120,1,cart.change')->name('cart.coupon.remove');
+        Route::put('sepet/{item}', [Front\CartController::class, 'update'])->whereNumber('item')->middleware('throttle:120,1,cart.change')->name('cart.update');
+        Route::delete('sepet/{item}', [Front\CartController::class, 'remove'])->whereNumber('item')->middleware('throttle:120,1,cart.change')->name('cart.remove');
 
         // Görseller oturumsuz sunulur: bir sayfadaki onlarca görsel isteği oturum okuyup yazmaz (veritabanı yükü,
         // PHP işçisi kuyruğu). Mağaza kapalı/önizleme denetimi çerezle yapılır, oturum gerekmez.

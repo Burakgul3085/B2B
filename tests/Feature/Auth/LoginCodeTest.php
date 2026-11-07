@@ -7,6 +7,7 @@ use App\Domain\Mail\SecretBox;
 use App\Domain\Store\Mail\StoreEmailRenderer;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Tenancy\TenantContext;
+use App\Models\AuditLog;
 use App\Models\Business;
 use App\Models\EmailLog;
 use App\Models\EmailSetting;
@@ -179,6 +180,42 @@ class LoginCodeTest extends TestCase
         $this->post(route('store_admin.login.code.verify'), ['code' => $mail['content']['code']])->assertRedirect(route('store_admin.dashboard'));
         $this->get(route('store_admin.dashboard'))->assertOk()->assertSee('Hoş geldiniz, Onur');
         $this->get(route('store_admin.account'))->assertOk()->assertSee('Giriş doğrulaması');
+    }
+
+    public function test_repeating_the_password_login_does_not_give_unlimited_code_guesses(): void
+    {
+        $admin = StoreAdmin::create(['name' => 'Onur', 'email' => 'onur@magaza.local', 'password' => self::PASSWORD, 'is_super' => true]);
+        $login = fn () => $this->post(route('store_admin.login.store'), ['email' => $admin->email, 'password' => self::PASSWORD]);
+        $wrongFor = fn () => $this->storeMails[count($this->storeMails) - 1]['content']['code'] === '0000' ? '1111' : '0000';
+
+        // İlk tur: 5 yanlış kod girişi baştan başlatır.
+        $login()->assertRedirect(route('store_admin.login.code'));
+        $wrong = $wrongFor();
+        for ($i = 1; $i <= 5; $i++) {
+            $this->post(route('store_admin.login.code.verify'), ['code' => $wrong]);
+        }
+
+        // İkinci tur: hesapta saatteki 10. yanlış kodda kod girişi durur.
+        $login()->assertRedirect(route('store_admin.login.code'));
+        $wrong = $wrongFor();
+        for ($i = 1; $i <= 4; $i++) {
+            $this->post(route('store_admin.login.code.verify'), ['code' => $wrong])->assertSessionHasErrors('code');
+        }
+        $this->post(route('store_admin.login.code.verify'), ['code' => $wrong])
+            ->assertRedirect(route('store_admin.login'))->assertSessionHasErrors('email');
+        $this->assertTrue(AuditLog::where('action', 'auth.login_code_locked')->exists());
+
+        // Parola yeniden doğru girilse de kod gönderilmez; bir saat sonra giriş normal çalışır.
+        $sent = count($this->storeMails);
+        $login()->assertSessionHasErrors('email');
+        $this->assertCount($sent, $this->storeMails);
+        $this->assertGuest('store_admin');
+
+        $this->travel(61)->minutes();
+        $login()->assertRedirect(route('store_admin.login.code'));
+        $code = $this->storeMails[count($this->storeMails) - 1]['content']['code'];
+        $this->post(route('store_admin.login.code.verify'), ['code' => $code])->assertRedirect(route('store_admin.dashboard'));
+        $this->assertAuthenticatedAs($admin, 'store_admin');
     }
 
     public function test_store_mail_rendering_shows_the_code_box(): void
