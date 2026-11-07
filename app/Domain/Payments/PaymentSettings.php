@@ -86,7 +86,7 @@ class PaymentSettings
         return array_intersect_key($labels, array_filter([
             'card' => $this->cardAvailable(),
             'transfer' => $this->transferAvailable(),
-            'pay_later' => $relationship->allow_pay_later,
+            'pay_later' => $relationship->payLaterEnabled(),
         ]));
     }
 

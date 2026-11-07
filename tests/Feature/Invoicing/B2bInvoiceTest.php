@@ -66,6 +66,7 @@ class B2bInvoiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['b2b.pay_later_enabled' => true]); // eski sonra öde siparişlerinin faturası da sınanır
         Storage::fake('local');
         $this->business = $this->makeBusiness();
         $this->business->update(['tax_number' => '1234567890', 'tax_office' => 'Eskişehir', 'address' => 'Hoşnudiye Mah. 1', 'city' => 'Eskişehir', 'district' => 'Tepebaşı']);

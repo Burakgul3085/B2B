@@ -46,8 +46,8 @@
         </div>
         <div class="text-sm text-muted sm:text-right">
             <p>Ödeme şekliniz</p>
-            <p class="font-semibold text-ink">{{ $rel->allow_pay_later ? $rel->payLaterLabel() : 'Kart veya havale (peşin)' }}</p>
-            @if ($rel->allow_pay_later && $rel->credit_limit !== null)
+            <p class="font-semibold text-ink">{{ $rel->payLaterEnabled() ? $rel->payLaterLabel() : 'Kart veya havale (peşin)' }}</p>
+            @if ($rel->payLaterEnabled() && $rel->credit_limit !== null)
                 <p class="text-xs">Borç limiti {{ Money::format($rel->credit_limit) }}</p>
             @endif
         </div>

@@ -7,7 +7,7 @@
                 <div><dt class="text-muted">İşletme unvanı</dt><dd class="font-medium">{{ $dealer->legal_name }}</dd></div>
                 <div><dt class="text-muted">Vergi dairesi / no</dt><dd class="font-medium">{{ trim(($dealer->tax_office ?? '').' '.($dealer->tax_number ?? '')) ?: '—' }}</dd></div>
                 <div><dt class="text-muted">Bayi kodunuz</dt><dd class="font-medium">{{ $currentRelationship->dealer_code }}</dd></div>
-                <div><dt class="text-muted">Ödeme</dt><dd class="font-medium">{{ $currentRelationship->allow_pay_later ? $currentRelationship->payLaterLabel() : 'Kart veya havale (peşin)' }}</dd></div>
+                <div><dt class="text-muted">Ödeme</dt><dd class="font-medium">{{ $currentRelationship->payLaterEnabled() ? $currentRelationship->payLaterLabel() : 'Kart veya havale (peşin)' }}</dd></div>
             </dl>
         </x-card>
         <x-card title="İletişim bilgileri">

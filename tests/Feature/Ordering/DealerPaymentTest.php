@@ -7,6 +7,7 @@ use App\Domain\Ledger\LedgerService;
 use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Payments\OrderPaymentService;
+use App\Domain\Payments\PayLaterPolicy;
 use App\Domain\Payments\PaymentSettings;
 use App\Models\AppNotification;
 use App\Models\Business;
@@ -46,6 +47,7 @@ class DealerPaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['b2b.pay_later_enabled' => true]); // sonra öde canlıda kapalı; kuralları açıkken sınanır
         $this->business = $this->makeBusiness();
         $this->rel = $this->orderingDealer($this->business);
         $this->product = $this->makeProduct($this->business, ['dealer_price' => '10.00', 'name' => 'Defter A4']);
@@ -200,6 +202,38 @@ class DealerPaymentTest extends TestCase
         $this->get(route('dealer.cart'))->assertSee('Vadesi geçmiş');
         $this->post(route('dealer.cart.submit'), ['address_id' => $this->rel->addresses()->value('id'), 'submit_token' => (string) Str::uuid(), 'payment_method' => 'pay_later'])
             ->assertSessionHasErrors('cart');
+    }
+
+    public function test_pay_later_switched_off_in_code_cannot_be_used_or_enabled_from_panel(): void
+    {
+        config(['b2b.pay_later_enabled' => false]);
+        $this->inTenant($this->business, fn () => $this->rel->update(['allow_pay_later' => true, 'payment_term_days' => 30, 'credit_limit' => '500.00']));
+        $address = $this->inTenant($this->business, fn () => $this->rel->addresses()->value('id'));
+
+        // Bayi: izin kaydı olsa da sepette görünmez, gönderimde ve yöntem değiştirmede reddedilir.
+        $this->actingAs($this->rel->dealer->user, 'dealer');
+        $this->inTenant($this->business, fn () => app(CartService::class)->add($this->rel, $this->product->id, '2'));
+        $this->get(route('dealer.cart'))->assertOk()->assertSee('Havale / EFT')->assertDontSee('Sonra öde');
+        $this->post(route('dealer.cart.submit'), ['address_id' => $address, 'submit_token' => (string) Str::uuid(), 'payment_method' => 'pay_later'])
+            ->assertSessionHasErrors('cart');
+        $this->assertSame(0, $this->inTenant($this->business, fn () => Order::count()));
+        $this->post(route('dealer.cart.submit'), ['address_id' => $address, 'submit_token' => (string) Str::uuid(), 'payment_method' => 'transfer'])->assertRedirect();
+        $order = $this->approve($this->inTenant($this->business, fn () => Order::with('items')->firstOrFail()), '2');
+        $this->flushSession();
+        $this->actingAs($this->rel->dealer->user, 'dealer');
+        $this->post(route('dealer.orders.payment-method', $order), ['payment_method' => 'pay_later']);
+        $this->assertSame('transfer', $this->inTenant($this->business, fn () => $order->fresh()->payment_method));
+        $this->assertNotNull($this->inTenant($this->business, fn () => app(PayLaterPolicy::class)->blockReason($this->rel->fresh(), '1')));
+
+        // Toptancı: anahtar ve vade alanları panelde yok; gönderilen değerler yok sayılır, kayıt değişmez.
+        $this->flushSession();
+        $this->actingAs($this->business->user, 'business')->get(route('business.dealers.show', $this->rel))->assertOk()
+            ->assertDontSee('Sonra ödeyebilir')->assertDontSee('Borç limiti (₺)');
+        $this->put(route('business.dealers.update', $this->rel), ['dealer_code' => 'YENI-1', 'payment_term_days' => '0', 'allow_pay_later' => '0', 'credit_limit' => ''])
+            ->assertSessionHasNoErrors();
+        $rel = $this->inTenant($this->business, fn () => $this->rel->fresh());
+        $this->assertSame(['YENI-1', true, 30, '500.00'], [$rel->dealer_code, $rel->allow_pay_later, (int) $rel->payment_term_days, (string) $rel->credit_limit]);
+        $this->assertFalse($rel->payLaterEnabled());
     }
 
     public function test_business_sets_pay_later_terms(): void

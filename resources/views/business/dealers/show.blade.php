@@ -42,6 +42,9 @@
                         @csrf @method('PUT')
                         <x-field name="dealer_code" label="Bayi kodu" :value="$r->dealer_code" required />
                         <x-toggle name="can_edit_addresses" label="Bayi sevk adreslerini değiştirebilir" :checked="$r->can_edit_addresses" class="sm:col-span-2" />
+                        @if (! config('b2b.pay_later_enabled'))
+                            <p class="rounded-xl border border-line p-4 text-sm text-muted sm:col-span-3">Bayi kartla veya havaleyle (peşin) öder. "Sonra öde" seçeneği sistemde kapalıdır.</p>
+                        @else
                         <div class="space-y-4 rounded-xl border border-line p-4 sm:col-span-3">
                             <x-toggle name="allow_pay_later" label="Sonra ödeyebilir" :checked="$r->allow_pay_later" />
                             <p class="-mt-2 text-xs text-muted">Kapalıysa bayi yalnızca kartla veya havaleyle (peşin) öder. Açıksa sepette "Sonra öde" seçeneğini de görür; ödemeyi kartla, havaleyle veya teslimatta nakit / POS ile yapar.</p>
@@ -51,6 +54,7 @@
                             </div>
                             <p class="text-xs text-muted">Vadesi geçmiş borcu olan bayi, ödeyene kadar yeni siparişte sonra öde seçemez.</p>
                         </div>
+                        @endif
                         <div class="sm:text-right"><x-button variant="secondary">Kaydet</x-button></div>
                     </form>
                 </x-card>

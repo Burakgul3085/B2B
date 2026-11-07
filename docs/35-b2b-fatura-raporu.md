@@ -12,7 +12,7 @@ Uyumsoft portalında elle fatura kesmek de mümkün kalır. Elle kesilen fatura 
 |---|---|---|
 | Kart (iyzico) | Ödeme alınınca | Ödeme anında satış kesinleşir |
 | Havale / EFT | Toptancı "Ödeme alındı" ile kaydedince | Para hesaba geçince |
-| Sonra öde, eski açık hesap / teslimde ödeme | Mal "Yola çıktı" olunca | VUK 231/5: fatura teslimden itibaren 7 gün içinde düzenlenir. Vade gününü beklemek bu süreyi aşar. |
+| Sonra öde (şu an kodla kapalı, `b2b.pay_later_enabled`), eski açık hesap / teslimde ödeme | Mal "Yola çıktı" olunca | VUK 231/5: fatura teslimden itibaren 7 gün içinde düzenlenir. Vade gününü beklemek bu süreyi aşar. |
 
 Sipariş onaylanmış (ve iptal / ret edilmemiş) olmalıdır.
 

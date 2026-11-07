@@ -25,6 +25,12 @@ return [
         'from_name' => env('SYSTEM_MAIL_FROM_NAME', 'B2B Platform'),
     ],
 
+    // "Sonra öde" (vadeli) ödeme yöntemi. Kapalıyken (false) bayi sepette göremez, ödeme yöntemini ona çeviremez,
+    // toptancı panelinde bayiye açılamaz; bayi kartlarındaki eski izin kayıtları silinmez, yalnızca etkisizdir.
+    // Daha önce açılmış sonra öde siparişleri (tahsilat, sevkte fatura) eskisi gibi işler. Açmak için true yapın
+    // ve yayınlayın (bilinçli olarak .env'e bağlanmadı: yalnızca kod değişikliğiyle açılır).
+    'pay_later_enabled' => false,
+
     'activation_ttl_hours' => 72,
     'password_reset_ttl_minutes' => 60,
 

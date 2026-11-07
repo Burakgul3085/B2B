@@ -69,7 +69,7 @@ Sunucu 23.10.2026'da kuruldu (docs/kilavuz/kurulum.md §0): HTTPS, güvenlik duv
 B2B eksikleri tamamlandı (docs/24-b2b-eksikler-raporu.md): destek erişimi, hata kayıtları, yedekler, başvuruya web üzerinden ek bilgi yanıtı, kayıtlı rapor filtreleri, koyu tema (yönetim panelleri).
 - [x] **B2B faturaları** (docs/35-b2b-fatura-raporu.md, 2026-11-07): toptancı → bayi satış / iade faturası (e-Arşiv / e-Fatura, Uyumsoft), mağazadan ayrı tablo, ayar ve seri. Kart / havalede ödemede, sonra ödede sevkte; isteğe bağlı otomatik kesim; elle kesilen fatura kaydı; bayide Faturalarım.
 - [ ] B2B faturaları için Uyumsoft'ta bayi serilerinin (e-Arşiv / e-Fatura) tanımlanması ve test ortamında, numaranın bu seriden geldiğinin kontrolü (toptancı). Ardından canlı ortam ve isterse otomatik kesim.
-- [ ] Karar bekliyor: "Sonra öde" seçeneğinin kalıcı olarak kapatılması (kullanıcı önerdi; onay verilmedi, yapılmadı).
+- [x] "Sonra öde" pasif (2026-11-07): silinmedi, `config/b2b.php` → `pay_later_enabled` = false. Bayi göremez / seçemez, toptancı panelinden açılamaz; bayi kartlarındaki eski izinler korunur ama etkisizdir. Açmak için değeri true yapıp yayınlayın.
 - [x] Mağaza vitrini (müşteri tarafı) için koyu tema: üst bilgide ay/güneş düğmesi (açık ↔ koyu); Gizlilik ve Çerez Politikası'na `tema` tercih çerezi eklendi.
 - Vitrin yenilemesi (logodaki dört yapboz rengi + lacivert; sahte aciliyet/puan yok, yalnızca gerçek veri):
   - [x] Aşama 1: kimlik, üst şerit, geniş menü, canlı arama, mini sepet, mobil alt menü.

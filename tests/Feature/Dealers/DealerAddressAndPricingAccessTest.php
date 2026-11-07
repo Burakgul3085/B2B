@@ -113,10 +113,12 @@ class DealerAddressAndPricingAccessTest extends TestCase
         $this->post('/toptanci/indirimler', ['name' => 'X'])->assertNotFound();
 
         // Bayi koşulları kaydedilirken gönderilen grup alanı yazılmaz.
+        $term = (int) $this->inTenant($business, fn () => $rel->fresh()->payment_term_days);
         $this->put(route('business.dealers.update', $rel), ['dealer_code' => $rel->dealer_code, 'payment_term_days' => '45', 'dealer_group_id' => $group->id])
             ->assertSessionHasNoErrors();
         $rel->refresh();
-        $this->assertSame([45, null], [(int) $rel->payment_term_days, $rel->dealer_group_id]);
+        // Sonra öde kodla kapalıyken (b2b.pay_later_enabled) vade günü de panelden değişmez.
+        $this->assertSame([$term, null], [(int) $rel->payment_term_days, $rel->dealer_group_id]);
         $this->assertSame(0, $this->inTenant($business, fn () => DealerProductPrice::count() + PriceListItem::count() + DiscountRule::count()));
     }
 }

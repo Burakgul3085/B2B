@@ -52,6 +52,12 @@ class DealerRelationship extends Model
     }
 
     /** Sepette görünen "Sonra öde" adı: süre 0 ise teslimatta, değilse teslimden N gün sonra. */
+    /** Bayi şu an "sonra öde" seçebilir mi: özellik sistemde açık (config b2b.pay_later_enabled) ve bayiye izin verilmiş. */
+    public function payLaterEnabled(): bool
+    {
+        return (bool) config('b2b.pay_later_enabled') && (bool) $this->allow_pay_later;
+    }
+
     public function payLaterLabel(): string
     {
         return Order::payLaterLabelFor((int) $this->payment_term_days);

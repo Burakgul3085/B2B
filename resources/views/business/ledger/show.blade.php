@@ -3,7 +3,7 @@
     @include('partials.statement-print', ['business' => $currentBusiness, 'account' => $account, 'aging' => $aging,
         'statementArgs' => ['action' => route('business.accounts.show', $account), 'orderRoute' => null]])
     <div class="print:hidden">
-    <x-page-header :title="$r->dealer->legal_name" :subtitle="'Cari kodu '.$account->code.' · '.($r->allow_pay_later ? $r->payLaterLabel() : 'Peşin (kart / havale)').($r->allow_pay_later && $r->credit_limit !== null ? ' · limit '.Money::format($r->credit_limit) : '')">
+    <x-page-header :title="$r->dealer->legal_name" :subtitle="'Cari kodu '.$account->code.' · '.($r->payLaterEnabled() ? $r->payLaterLabel() : 'Peşin (kart / havale)').($r->payLaterEnabled() && $r->credit_limit !== null ? ' · limit '.Money::format($r->credit_limit) : '')">
         <x-slot:breadcrumb><a href="{{ route('business.accounts.index') }}" class="hover:underline">Cari Hesaplar</a></x-slot:breadcrumb>
         <x-button variant="secondary" size="sm" :href="route('business.dealers.show', $r)">Bayi ayarları</x-button>
     </x-page-header>

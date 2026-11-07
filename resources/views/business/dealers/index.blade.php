@@ -35,7 +35,7 @@
                                         <a href="{{ route('business.dealers.show', $r) }}" class="font-medium hover:text-primary">{{ $r->dealer->legal_name }}</a>
                                         <p class="text-xs text-muted">{{ $r->dealer_code }} · {{ $r->dealer->city }}</p>
                                     </td>
-                                    <td class="hidden sm:table-cell">{{ $r->allow_pay_later ? $r->payLaterLabel() : 'Peşin' }}</td>
+                                    <td class="hidden sm:table-cell">{{ $r->payLaterEnabled() ? $r->payLaterLabel() : 'Peşin' }}</td>
                                     <td>@if ($r->dealer->user?->status === 'pending_activation')<x-badge tone="warning">Şifre bekliyor</x-badge>@elseif ($r->dealer->user?->status === 'disabled')<x-badge>Kapalı</x-badge>@else<x-badge tone="success">Etkin</x-badge>@endif</td>
                                     <td><x-badge :tone="['active' => 'success', 'suspended' => 'warning', 'closed' => 'neutral'][$r->status]">{{ DealerRelationship::STATUSES[$r->status] }}</x-badge></td>
                                 </tr>

@@ -25,6 +25,9 @@ class PayLaterPolicy
      */
     public function blockReason(DealerRelationship $relationship, string $amount, ?int $exceptOrderId = null): ?string
     {
+        if (! config('b2b.pay_later_enabled')) {
+            return 'Sonra öde seçeneği şu anda kullanılamıyor. Kartla veya havaleyle ödeyebilirsiniz.';
+        }
         if (! $relationship->allow_pay_later) {
             return 'Sonra öde seçeneği hesabınızda açık değil.';
         }

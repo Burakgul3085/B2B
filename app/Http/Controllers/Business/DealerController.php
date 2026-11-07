@@ -111,14 +111,20 @@ class DealerController extends Controller
             'allow_pay_later' => $request->boolean('allow_pay_later'),
             'credit_limit' => is_string($limit) ? (trim($limit) === '' ? null : (Decimal::parse($limit, 2) ?? $limit)) : $limit,
         ]);
-        $data = $request->validate([
+        $rules = [
             'dealer_code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('dealer_relationships', 'dealer_code')->where('business_id', $request->user()->business_id)->ignore($dealer->id)],
             'payment_term_days' => ['required', 'integer', 'min:0', 'max:365'],
             'can_edit_addresses' => ['boolean'],
             'allow_pay_later' => ['boolean'],
             'credit_limit' => ['nullable', 'decimal:0,2', 'gt:0', 'max:9999999999999'],
-        ], [], $this->attributes() + ['credit_limit' => 'borç limiti']);
+        ];
+        // Sonra öde sistemde kapalıyken (config b2b.pay_later_enabled) vade koşulları panelden değiştirilemez;
+        // gelen değerler yok sayılır, kayıtlı değerler olduğu gibi kalır.
+        if (! config('b2b.pay_later_enabled')) {
+            $rules = array_diff_key($rules, array_flip(['payment_term_days', 'allow_pay_later', 'credit_limit']));
+        }
+        $data = $request->validate($rules, [], $this->attributes() + ['credit_limit' => 'borç limiti']);
 
         $old = $dealer->only(array_keys($data));
         $dealer->update($data);
