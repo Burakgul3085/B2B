@@ -121,6 +121,11 @@ Route::prefix('platform')->name('platform.')->middleware('platform.ip')->group(f
             Route::put('magaza-yoneticileri/{storeAdmin}', [Platform\StoreAdminController::class, 'update'])->name('store-admins.update');
             Route::put('magaza-yoneticileri/{storeAdmin}/sifre', [Platform\StoreAdminController::class, 'password'])->name('store-admins.password');
             Route::put('magaza-yoneticileri/{storeAdmin}/durum', [Platform\StoreAdminController::class, 'status'])->name('store-admins.status');
+            Route::delete('magaza-yoneticileri/{storeAdmin}', [Platform\StoreAdminController::class, 'destroy'])->middleware('throttle:10,1,platform.store-admins.destroy')->name('store-admins.destroy');
+
+            // Platform yöneticileri (kendini ve son etkin platform yöneticisini silemez)
+            Route::get('yoneticiler', [Platform\PlatformAdminController::class, 'index'])->name('admins.index');
+            Route::delete('yoneticiler/{platformAdmin}', [Platform\PlatformAdminController::class, 'destroy'])->middleware('throttle:10,1,platform.admins.destroy')->name('admins.destroy');
 
             Route::get('denetim-kayitlari', Platform\AuditLogController::class)->name('audit-logs');
             Route::get('e-posta-durumu', Platform\EmailStatusController::class)->name('email-status');

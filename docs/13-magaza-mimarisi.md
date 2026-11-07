@@ -59,11 +59,12 @@ Mevcut çok işletmeli altyapı (`BelongsToBusiness`, `SetBusinessContext`, işl
 |---|---|---|---|
 | Mağazadaki tüm işler (katalog, stok, sipariş, ayarlar…) | ✓ | ✓ | — |
 | Yönetici açma | ✓ | ✗ | ✓ |
-| Yöneticiyi pasife alma, şifresini sıfırlama | ✓ | ✗ | ✓ |
-| Süper admin açma, pasife alma, şifre sıfırlama | ✗ | ✗ | ✓ |
+| Yöneticiyi pasife alma, şifresini sıfırlama, silme | ✓ | ✗ | ✓ |
+| Süper admin açma, pasife alma, şifre sıfırlama, silme | ✗ | ✗ | ✓ |
 | Kendi e-posta ve şifresini değiştirme | ✓ | ✓ | — |
 
-- Hesaplar silinmez, **pasife alınır.** Böylece işlem geçmişindeki "kim yaptı" bilgisi korunur.
+- Geçici durdurmak için hesap **pasife alınır**; kalıcı olarak gerekmiyorsa silinir (onaylı, geri alınamaz, `store.admin_deleted` denetim kaydına ad ve e-postayla yazılır). Kimse kendini silemez; son etkin süper admin silinemez. Silinen kişinin işlem geçmişi ve yanıtları kalır ("Silinmiş yönetici" görünür), kayıtlı raporları silinir.
+- Platform yöneticileri Platform → Platform Yöneticileri'nden silinir (`platform.admin_deleted`); kendini ve son etkin platform yöneticisini silemez. Hesap açma `platform:create-admin` komutuyladır. B2B'de toptancı ve bayi tek kullanıcılıdır; silme yoktur, hesap bilgisi değiştirilir.
 - Aktivasyon bağlantısı yoktur. Hesabı açan kişi e-postayı ve şifreyi belirler, hesap hemen etkindir (B2B ile aynı model). Parolamı unuttum vardır.
 - Her girişte şifreden sonra yöneticinin e-postasına 4 haneli kod gider (mağaza e-posta şablonu ve hesabıyla); kod girilince oturum açılır (`App\Domain\Auth\LoginCode`). Doğrulama uygulaması (TOTP) yalnızca platformdadır.
 - **İşlem geçmişi:** Fiyat, stok, sipariş durumu, ayarlar ve kullanıcı değişikliklerinin hepsi "kim, ne zaman, eski değer → yeni değer" olarak kaydedilir. Kayıtlar yalnızca eklenir.

@@ -54,7 +54,7 @@
                 @foreach ($logs as $log)
                     @php
                         $who = match ($log->actor_type) {
-                            'store_admin' => $names[$log->actor_id] ?? 'Yönetici #'.$log->actor_id,
+                            'store_admin' => $names[$log->actor_id] ?? 'Silinmiş yönetici',
                             'platform' => 'Platform yöneticisi',
                             'customer' => 'Müşteri',
                             default => '—',

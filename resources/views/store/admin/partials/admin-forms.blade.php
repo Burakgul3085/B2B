@@ -25,4 +25,13 @@
             <x-button :variant="$target->is_active ? 'danger' : 'primary'">{{ $target->is_active ? 'Pasife al' : 'Kullanıma aç' }}</x-button>
         </form>
     </x-card>
+
+    @isset($routes['destroy'])
+        <x-card title="Hesabı sil" description="Hesap kalıcı olarak silinir ve geri alınamaz; kişi panele giremez. Yanıtladığı mesajlar ve işlem geçmişi kalır, kayıtlı raporları silinir.">
+            <form method="POST" action="{{ $routes['destroy'] }}" data-confirm="{{ $target->name }} hesabı kalıcı olarak silinsin mi? Bu işlem geri alınamaz.">
+                @csrf @method('DELETE')
+                <x-button variant="danger">Hesabı sil</x-button>
+            </form>
+        </x-card>
+    @endisset
 </div>

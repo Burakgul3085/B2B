@@ -5,6 +5,7 @@ namespace App\Domain\Store\Admins;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Auth\Area;
 use App\Domain\Auth\AuthTokenService;
+use App\Models\AuthToken;
 use App\Models\Store\StoreAdmin;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ use Illuminate\Support\Str;
  *  - Platform: süper admin ve yönetici açar; herkesi pasife alır, şifresini ve bilgilerini değiştirir.
  *  - Süper admin: yalnızca yönetici açar; yalnızca yöneticileri yönetir. Kendini ve diğer süper adminleri yönetemez.
  *  - Yönetici: kimseyi yönetemez; yalnızca kendi profilini (Profil ve Güvenlik) değiştirir.
- * Hesaplar silinmez, pasife alınır: işlem geçmişindeki "kim yaptı" bilgisi korunur.
+ * Silme: süper admin yalnızca yöneticileri, platform herkesi siler; son etkin süper admin silinemez (mağaza yönetimsiz
+ * kalmasın). İşlem geçmişindeki kayıtlar kalır ("Silinmiş yönetici" görünür); silinenin adı ve e-postası geçmişe yazılır.
  */
 class StoreAdminService
 {
@@ -106,6 +108,30 @@ class StoreAdminService
             }
             $target->forceFill($values)->save();
             $this->audit->log('store.admin_updated', $target, $old, ['name' => $target->name, 'email' => $target->email]);
+        });
+    }
+
+    /**
+     * Hesabı kalıcı olarak siler. Açık oturumu bir sonraki istekte düşer (kullanıcı bulunamaz); kayıtlı raporları silinir,
+     * yanıtları ve ödeme kodları "silinmiş yönetici" ile kalır.
+     *
+     * @throws DomainException
+     */
+    public function delete(StoreAdmin $target, ?StoreAdmin $actor): void
+    {
+        $this->assertCanManage($target, $actor);
+
+        DB::transaction(function () use ($target) {
+            // Etkin süper adminler kilitlenir: iki eşzamanlı silme son süper admini birlikte götüremez.
+            $supers = StoreAdmin::where('is_super', true)->where('is_active', true)->lockForUpdate()->pluck('id');
+            $target = StoreAdmin::whereKey($target->id)->lockForUpdate()->firstOrFail();
+            if ($target->is_super && $target->is_active && $supers->reject(fn ($id) => $id === $target->id)->isEmpty()) {
+                throw new DomainException('Son etkin süper admin silinemez; önce başka bir süper admin açın.');
+            }
+
+            AuthToken::where('guard', Area::StoreAdmin->value)->where('user_id', $target->id)->delete();
+            $this->audit->log('store.admin_deleted', $target, ['name' => $target->name, 'email' => $target->email, 'is_super' => $target->is_super], []);
+            $target->delete();
         });
     }
 

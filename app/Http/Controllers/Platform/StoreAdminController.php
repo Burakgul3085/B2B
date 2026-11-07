@@ -13,7 +13,7 @@ use Illuminate\View\View;
 
 /**
  * Platform → Mağaza yöneticileri. Süper admini yalnızca platform açar ve yönetir; gerektiğinde yöneticileri de
- * yönetebilir (pasife alma, şifre).
+ * yönetebilir (pasife alma, şifre, silme). Son etkin süper admin silinemez.
  */
 class StoreAdminController extends Controller
 {
@@ -78,6 +78,17 @@ class StoreAdminController extends Controller
 
         return $this->attempt(fn () => $this->admins->setActive($storeAdmin, $active, null),
             $active ? 'Hesap yeniden kullanıma açıldı.' : 'Hesap pasife alındı.');
+    }
+
+    public function destroy(StoreAdmin $storeAdmin): RedirectResponse
+    {
+        try {
+            $this->admins->delete($storeAdmin, null);
+        } catch (DomainException $e) {
+            return back()->withErrors(['admin' => $e->getMessage()]);
+        }
+
+        return redirect()->route('platform.store-admins.index')->with('status', "{$storeAdmin->name} hesabı silindi.");
     }
 
     private function attempt(callable $action, string $message): RedirectResponse

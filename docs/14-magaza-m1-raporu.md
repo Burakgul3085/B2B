@@ -33,7 +33,7 @@
 | Bilgi/şifre değiştirme, pasife alma, 2FA sıfırlama | Yalnızca yöneticiler; kendisi ve diğer süper adminler hariç | ✗ | Herkes |
 
 - Formdan `is_super` gönderilse bile süper admin yalnızca yönetici açar.
-- Hesaplar silinmez, pasife alınır. Pasife alınan kişinin açık oturumu bir sonraki istekte kapanır; "beni hatırla" belirteci ve sıfırlama bağlantıları geçersiz olur.
+- Hesaplar pasife alınır ya da silinir (bkz. docs/13 §5). Pasife alınan kişinin açık oturumu bir sonraki istekte kapanır; "beni hatırla" belirteci ve sıfırlama bağlantıları geçersiz olur.
 - **2FA:** süper admin için zorunludur (ilk girişte kurulum). Yönetici "Profil ve Güvenlik"ten açıp mevcut şifresiyle kapatabilir. Kaybedilen uygulama için süper admin veya platform 2FA'yı sıfırlar.
 - **Parolamı unuttum:** bağlantı sistem e-postasıyla gider (platform yöneticisindeki gibi), çünkü mağaza hesapları B2B işletmesinin Gmail'ine bağlı değildir.
 

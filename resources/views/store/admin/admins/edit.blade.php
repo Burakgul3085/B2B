@@ -11,6 +11,7 @@
             'update' => route('store_admin.admins.update', $target),
             'password' => route('store_admin.admins.password', $target),
             'status' => route('store_admin.admins.status', $target),
+            'destroy' => route('store_admin.admins.destroy', $target),
         ],
     ])
 </x-layouts.panel>

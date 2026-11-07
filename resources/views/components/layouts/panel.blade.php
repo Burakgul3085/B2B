@@ -22,6 +22,7 @@
                     'badge' => \App\Models\DealerApplication::withoutBusinessScope()->whereIn('status', \App\Models\DealerApplication::OPEN)->count() ?: null],
                 ['label' => 'Bayi Hesapları', 'route' => 'platform.dealer-accounts.index', 'icon' => 'users', 'active' => 'platform.dealer-accounts.*'],
                 ['label' => 'Mağaza Yöneticileri', 'route' => 'platform.store-admins.index', 'icon' => 'cart', 'active' => 'platform.store-admins.*'],
+                ['label' => 'Platform Yöneticileri', 'route' => 'platform.admins.index', 'icon' => 'users', 'active' => 'platform.admins.*'],
                 ['label' => 'E-posta Altyapısı', 'route' => 'platform.email-status', 'icon' => 'inbox', 'active' => 'platform.email-status'],
                 ['label' => 'Denetim Kayıtları', 'route' => 'platform.audit-logs', 'icon' => 'file', 'active' => 'platform.audit-logs'],
                 ['label' => 'Hata Kayıtları', 'route' => 'platform.errors', 'icon' => 'alert', 'active' => 'platform.errors*',

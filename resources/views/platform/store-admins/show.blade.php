@@ -13,6 +13,7 @@
             'update' => route('platform.store-admins.update', $target),
             'password' => route('platform.store-admins.password', $target),
             'status' => route('platform.store-admins.status', $target),
+            'destroy' => route('platform.store-admins.destroy', $target),
         ],
     ])
 </x-layouts.panel>

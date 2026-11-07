@@ -13,7 +13,7 @@ use Illuminate\View\View;
 
 /**
  * Yönetici hesapları (yalnızca süper admin, bkz. store.super). Süper admin yönetici açar, bilgilerini ve şifresini
- * değiştirir, pasife alır. Kendini ve diğer süper adminleri yönetemez; onları platform yönetir.
+ * değiştirir, pasife alır, siler. Kendini ve diğer süper adminleri yönetemez; onları platform yönetir.
  */
 class AdminController extends Controller
 {
@@ -81,6 +81,20 @@ class AdminController extends Controller
 
         return $this->attempt(fn () => $this->admins->setActive($storeAdmin, $active, $request->user('store_admin')),
             $active ? 'Hesap yeniden kullanıma açıldı.' : 'Hesap pasife alındı; açık oturumu kapandı.');
+    }
+
+    public function destroy(Request $request, StoreAdmin $storeAdmin): RedirectResponse
+    {
+        $actor = $request->user('store_admin');
+        abort_unless($this->admins->canManage($storeAdmin, $actor), 403);
+
+        try {
+            $this->admins->delete($storeAdmin, $actor);
+        } catch (DomainException $e) {
+            return back()->withErrors(['admin' => $e->getMessage()]);
+        }
+
+        return redirect()->route('store_admin.admins.index')->with('status', "{$storeAdmin->name} hesabı silindi.");
     }
 
     private function attempt(callable $action, string $message): RedirectResponse

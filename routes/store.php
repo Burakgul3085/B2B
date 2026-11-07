@@ -254,6 +254,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
                 Route::put('yoneticiler/{storeAdmin}', [Admin\AdminController::class, 'update'])->name('admins.update');
                 Route::put('yoneticiler/{storeAdmin}/sifre', [Admin\AdminController::class, 'password'])->name('admins.password');
                 Route::put('yoneticiler/{storeAdmin}/durum', [Admin\AdminController::class, 'status'])->name('admins.status');
+                Route::delete('yoneticiler/{storeAdmin}', [Admin\AdminController::class, 'destroy'])->middleware('throttle:10,1,store_admin.admins.destroy')->name('admins.destroy');
                 // Fatura sağlayıcısı (Uyumsoft) ayarları
                 Route::get('ayarlar/fatura', [Admin\InvoiceSettingsController::class, 'edit'])->name('invoice-settings.edit');
                 Route::put('ayarlar/fatura', [Admin\InvoiceSettingsController::class, 'update'])->name('invoice-settings.update');
