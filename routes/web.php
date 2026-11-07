@@ -329,6 +329,7 @@ Route::prefix('toptanci')->name('business.')->group(function () use ($authRoutes
         Route::put('kategoriler/{category}', [Business\CatalogStructureController::class, 'updateCategory'])->name('categories.update');
         Route::delete('kategoriler/{category}', [Business\CatalogStructureController::class, 'destroyCategory'])->name('categories.destroy');
         Route::post('markalar', [Business\CatalogStructureController::class, 'storeBrand'])->name('brands.store');
+        Route::get('markalar/kutuphane/{slug}/logo', [Business\CatalogStructureController::class, 'libraryLogo'])->where('slug', '[a-z0-9-]{1,80}')->name('brands.library-logo');
         Route::put('markalar/{brand}', [Business\CatalogStructureController::class, 'updateBrand'])->name('brands.update');
         Route::delete('markalar/{brand}', [Business\CatalogStructureController::class, 'destroyBrand'])->name('brands.destroy');
         Route::post('markalar/{brand}/logo', [Business\CatalogStructureController::class, 'updateBrandLogo'])->name('brands.logo.update');

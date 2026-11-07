@@ -70,7 +70,7 @@ Mağaza tabloları B2B tablolarına bağlanmaz (mimari test denetler).
   - Görseller: çoklu yükleme, ana yap, kaldır.
   - Mağaza adresi önizlemesi, silme.
 - **Kategoriler:** Ağaç görünümü, alt kategori ekleme, sıralama, düzenleme (üst kategori, açıklama, adres, SEO, görünürlük), silme.
-- **Markalar:** Liste, satırda düzenleme, logo yükleme ve kaldırma, silme.
+- **Markalar:** Liste, satırda düzenleme, logo yükleme ve kaldırma, silme. Yeni marka eklerken hazır marka kütüphanesinden logolu öneri çıkar; seçilen marka logosuyla eklenir, listede olmayan elle eklenir (2026-11-07, ayrıntı: `docs/03-is-kurallari.md` §2.2).
 - **Excel ile aktar:** Şablon indirme, yükleme, sonuç raporu.
 
 Katalog işlerini tüm mağaza yöneticileri yapabilir; yalnızca yönetici hesapları süper admine özeldir.

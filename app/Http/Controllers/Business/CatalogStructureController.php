@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Business;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Catalog\BrandLogo;
+use App\Domain\Support\BrandLibrary;
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Kategoriler ve markalar — ayrı sayfalar (mağaza yönetimindeki gibi). Varyant grupları kaldırıldı; seçenekler ürün sayfasından eklenir. */
@@ -36,11 +38,24 @@ class CatalogStructureController extends Controller
         ]);
     }
 
-    public function brands(): View
+    public function brands(BrandLibrary $library): View
     {
+        $brands = Brand::withCount(['products' => fn ($q) => $q->whereNull('archived_at')])->orderBy('name')->get();
+
         return view('business.catalog.brands', [
-            'brands' => Brand::withCount(['products' => fn ($q) => $q->whereNull('archived_at')])->orderBy('name')->get(),
+            'brands' => $brands,
+            'library' => $library->suggestions(fn (string $slug) => route('business.brands.library-logo', $slug)),
+            'existing' => $brands->pluck('name')->all(),
         ]);
+    }
+
+    /** Kütüphane logosu önizlemesi (yalnızca kütüphanedeki dosyalar). */
+    public function libraryLogo(BrandLibrary $library, string $slug): BinaryFileResponse
+    {
+        $path = $library->logoPath($slug);
+        abort_unless($path, 404);
+
+        return response()->file($path, ['Cache-Control' => 'private, max-age=86400', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     /** Eski "Kategori ve Markalar" adresi: sekmesine göre yeni sayfaya. */
@@ -82,13 +97,27 @@ class CatalogStructureController extends Controller
         return redirect()->route('business.categories.index')->with('status', 'Kategori silindi.');
     }
 
-    public function storeBrand(Request $request): RedirectResponse
+    /** Kütüphaneden seçildiyse ad ve logo kütüphaneden gelir (tarayıcıdan gelen ad değil); değilse yazılan adla eklenir. */
+    public function storeBrand(Request $request, BrandLibrary $library, BrandLogo $logos): RedirectResponse
     {
+        $picked = $library->find($request->input('library'));
+        if ($picked) {
+            $request->merge(['name' => $picked['name']]);
+        }
         $data = $this->validateBrand($request);
         $brand = Brand::create($data);
         $this->audit->log('catalog.brand_created', $brand, [], $data);
 
-        return redirect()->route('business.brands.index')->with('status', 'Marka eklendi.');
+        $logo = $picked ? $library->logoUpload($picked['slug']) : null;
+        if ($logo) {
+            try {
+                $logos->replace($brand, $logo);
+            } catch (DomainException) {
+                return redirect()->route('business.brands.index')->with('status', "\"{$brand->name}\" eklendi; logo eklenemedi, elle yükleyebilirsiniz.");
+            }
+        }
+
+        return redirect()->route('business.brands.index')->with('status', $logo ? "\"{$brand->name}\" logosuyla eklendi." : 'Marka eklendi.');
     }
 
     public function updateBrand(Request $request, Brand $brand): RedirectResponse

@@ -67,6 +67,7 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
 
                 Route::get('markalar', [Admin\BrandController::class, 'index'])->name('brands.index');
                 Route::post('markalar', [Admin\BrandController::class, 'store'])->name('brands.store');
+                Route::get('markalar/kutuphane/{slug}/logo', [Admin\BrandController::class, 'libraryLogo'])->where('slug', '[a-z0-9-]{1,80}')->name('brands.library-logo');
                 Route::put('markalar/{storeBrand}', [Admin\BrandController::class, 'update'])->name('brands.update');
                 Route::delete('markalar/{storeBrand}', [Admin\BrandController::class, 'destroy'])->name('brands.destroy');
                 Route::post('markalar/{storeBrand}/logo', [Admin\BrandController::class, 'logo'])->name('brands.logo');

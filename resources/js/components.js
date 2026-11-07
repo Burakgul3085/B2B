@@ -1745,3 +1745,80 @@ export function optionRows(initial, errors, max) {
         },
     };
 }
+
+/**
+ * Marka ekleme: yazdıkça hazır marka kütüphanesinden logolu öneriler. Seçilen marka adı ve kütüphane kodu (slug)
+ * forma yazılır; sunucu logoyu kütüphaneden kendisi kopyalar. Listede olmayan marka yazılıp elle eklenebilir.
+ * library: [{n: ad, s: kod, c: kategoriler, l: önizleme adresi}], existing: eklenmiş marka adları.
+ */
+export function brandPicker(library, existing, initial) {
+    const fold = (text) => String(text || '').toLocaleLowerCase('tr').normalize('NFKD').replace(/[^a-z0-9ı]/g, '').replace(/ı/g, 'i');
+
+    return {
+        query: initial || '',
+        slug: '',
+        open: false,
+        active: 0,
+        added: (existing || []).map(fold),
+        get matches() {
+            const q = fold(this.query);
+            if (q.length < 2) {
+                return [];
+            }
+            const starts = [];
+            const contains = [];
+            for (const item of library) {
+                const name = fold(item.n);
+                if (name.startsWith(q)) {
+                    starts.push(item);
+                } else if (name.indexOf(q) !== -1) {
+                    contains.push(item);
+                }
+                if (starts.length >= 8) {
+                    break;
+                }
+            }
+
+            return starts.concat(contains).slice(0, 8);
+        },
+        get selected() {
+            return library.find((item) => item.s === this.slug) || null;
+        },
+        isAdded(item) {
+            return this.added.indexOf(fold(item.n)) !== -1;
+        },
+        typed() {
+            const chosen = this.selected;
+            if (chosen && chosen.n !== this.query) {
+                this.slug = '';
+            }
+            this.open = true;
+            this.active = 0;
+        },
+        choose(item) {
+            if (this.isAdded(item)) {
+                return;
+            }
+            this.query = item.n;
+            this.slug = item.s;
+            this.open = false;
+        },
+        move(step) {
+            const count = this.matches.length;
+            if (count > 0) {
+                this.open = true;
+                this.active = (this.active + step + count) % count;
+            }
+        },
+        enter(event) {
+            const item = this.matches[this.active];
+            if (this.open && item && !this.slug) {
+                event.preventDefault();
+                this.choose(item);
+            }
+        },
+        close() {
+            this.open = false;
+        },
+    };
+}

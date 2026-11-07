@@ -7,11 +7,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <x-card title="Yeni marka">
-            <form method="POST" action="{{ route('business.brands.store') }}" class="space-y-4">
-                @csrf
-                <x-field name="name" label="Marka adı" required />
-                <x-button icon="plus">Ekle</x-button>
-            </form>
+            <x-brand-picker :action="route('business.brands.store')" :library="$library" :existing="$existing" />
         </x-card>
         <x-card title="Markalar" class="lg:col-span-2" :padding="false">
             @if ($brands->isEmpty())

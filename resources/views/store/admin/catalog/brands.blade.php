@@ -51,11 +51,7 @@
         </x-card>
 
         <x-card title="Yeni marka">
-            <form method="POST" action="{{ route('store_admin.brands.store') }}" class="space-y-4">
-                @csrf
-                <x-field name="name" label="Marka adı" required maxlength="120" />
-                <x-button icon="plus">Ekle</x-button>
-            </form>
+            <x-brand-picker :action="route('store_admin.brands.store')" :library="$library" :existing="$existing" />
             <p class="mt-4 text-xs text-muted">Logo: JPG, PNG veya WEBP, en fazla 2 MB. Kare veya şeffaf arka planlı logolar en iyi görünür.</p>
         </x-card>
     </div>

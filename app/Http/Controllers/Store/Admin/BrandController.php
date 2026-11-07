@@ -3,30 +3,56 @@
 namespace App\Http\Controllers\Store\Admin;
 
 use App\Domain\Store\Catalog\BrandService;
+use App\Domain\Support\BrandLibrary;
 use App\Http\Controllers\Controller;
 use App\Models\Store\StoreBrand;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /** Mağaza markaları ve logoları. */
 class BrandController extends Controller
 {
     public function __construct(private BrandService $brands) {}
 
-    public function index(): View
+    public function index(BrandLibrary $library): View
     {
+        $brands = StoreBrand::withCount('products')->orderBy('name')->get();
+
         return view('store.admin.catalog.brands', [
-            'brands' => StoreBrand::withCount('products')->orderBy('name')->get(),
+            'brands' => $brands,
+            'library' => $library->suggestions(fn (string $slug) => route('store_admin.brands.library-logo', $slug)),
+            'existing' => $brands->pluck('name')->all(),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    /** Kütüphaneden seçildiyse ad ve logo kütüphaneden gelir (tarayıcıdan gelen ad değil); değilse yazılan adla eklenir. */
+    public function store(Request $request, BrandLibrary $library): RedirectResponse
     {
-        $brand = $this->brands->create($request->only('name') + ['is_active' => true]);
+        $picked = $library->find($request->input('library'));
+        $brand = $this->brands->create(['name' => $picked['name'] ?? $request->input('name'), 'is_active' => true]);
 
-        return back()->with('status', "\"{$brand->name}\" markası eklendi.");
+        $logo = $picked ? $library->logoUpload($picked['slug']) : null;
+        if ($logo) {
+            try {
+                $this->brands->setLogo($brand, $logo);
+            } catch (DomainException) {
+                return back()->with('status', "\"{$brand->name}\" markası eklendi; logo eklenemedi, elle yükleyebilirsiniz.");
+            }
+        }
+
+        return back()->with('status', "\"{$brand->name}\" markası ".($logo ? 'logosuyla ' : '').'eklendi.');
+    }
+
+    /** Kütüphane logosu önizlemesi (yalnızca kütüphanedeki dosyalar). */
+    public function libraryLogo(BrandLibrary $library, string $slug): BinaryFileResponse
+    {
+        $path = $library->logoPath($slug);
+        abort_unless($path, 404);
+
+        return response()->file($path, ['Cache-Control' => 'private, max-age=86400', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     public function update(Request $request, StoreBrand $storeBrand): RedirectResponse

@@ -1,0 +1,4671 @@
+[
+ {
+  "name": "2K Kaymaz",
+  "slug": "2k-kaymaz",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "3M",
+  "slug": "3m",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "3m.webp"
+ },
+ {
+  "name": "4M",
+  "slug": "4m",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Abka",
+  "slug": "abka",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "abka.webp"
+ },
+ {
+  "name": "Adel",
+  "slug": "adel",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "adel.webp"
+ },
+ {
+  "name": "Adore Toys",
+  "slug": "adore-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Airfix",
+  "slug": "airfix",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "airfix.webp"
+ },
+ {
+  "name": "Akademi",
+  "slug": "akademi",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Alemdar",
+  "slug": "alemdar",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Alpino",
+  "slug": "alpino",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Amos",
+  "slug": "amos",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Amscan",
+  "slug": "amscan",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Anagram",
+  "slug": "anagram",
+  "categories": [
+   "parti"
+  ],
+  "logo": "anagram.webp"
+ },
+ {
+  "name": "Anatolian",
+  "slug": "anatolian",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Androni",
+  "slug": "androni",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Aquabeads",
+  "slug": "aquabeads",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ark",
+  "slug": "ark",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Art Puzzle",
+  "slug": "art-puzzle",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "art-puzzle.webp"
+ },
+ {
+  "name": "Artdeco",
+  "slug": "artdeco",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Artebella",
+  "slug": "artebella",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Arteza",
+  "slug": "arteza",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "arteza.webp"
+ },
+ {
+  "name": "Artline",
+  "slug": "artline",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "artline.webp"
+ },
+ {
+  "name": "Artscholar",
+  "slug": "artscholar",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Arvix",
+  "slug": "arvix",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Asmodee",
+  "slug": "asmodee",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "asmodee.webp"
+ },
+ {
+  "name": "Asorty",
+  "slug": "asorty",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Atlas",
+  "slug": "atlas",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "atlas.webp"
+ },
+ {
+  "name": "Aurora",
+  "slug": "aurora",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "aurora.webp"
+ },
+ {
+  "name": "Avery",
+  "slug": "avery",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "avery.webp"
+ },
+ {
+  "name": "B. toys",
+  "slug": "b-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Baby Alive",
+  "slug": "baby-alive",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "baby-alive.webp"
+ },
+ {
+  "name": "Baby Born",
+  "slug": "baby-born",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "baby-born.webp"
+ },
+ {
+  "name": "Bakugan",
+  "slug": "bakugan",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Balonevi",
+  "slug": "balonevi",
+  "categories": [
+   "parti"
+  ],
+  "logo": "balonevi.webp"
+ },
+ {
+  "name": "Bandai",
+  "slug": "bandai",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bandai.webp"
+ },
+ {
+  "name": "Bandai Namco",
+  "slug": "bandai-namco",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bandai-namco.webp"
+ },
+ {
+  "name": "Bantex",
+  "slug": "bantex",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Barbie",
+  "slug": "barbie",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "barbie.webp"
+ },
+ {
+  "name": "Barunson",
+  "slug": "barunson",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Battat",
+  "slug": "battat",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "battat.webp"
+ },
+ {
+  "name": "Bburago",
+  "slug": "bburago",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bburago.webp"
+ },
+ {
+  "name": "Belbal",
+  "slug": "belbal",
+  "categories": [
+   "parti"
+  ],
+  "logo": "belbal.webp"
+ },
+ {
+  "name": "Beleduc",
+  "slug": "beleduc",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "beleduc.webp"
+ },
+ {
+  "name": "Benetton",
+  "slug": "benetton",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "benetton.webp"
+ },
+ {
+  "name": "Berg",
+  "slug": "berg",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "berg.webp"
+ },
+ {
+  "name": "Bestway",
+  "slug": "bestway",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Betallic",
+  "slug": "betallic",
+  "categories": [
+   "parti"
+  ],
+  "logo": "betallic.webp"
+ },
+ {
+  "name": "Bic",
+  "slug": "bic",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "bic.webp"
+ },
+ {
+  "name": "Bigpoint",
+  "slug": "bigpoint",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "bigpoint.webp"
+ },
+ {
+  "name": "Bilim Parkı",
+  "slug": "bilim-parki",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bilim-parki.webp"
+ },
+ {
+  "name": "Bion",
+  "slug": "bion",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bisbal",
+  "slug": "bisbal",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bitzee",
+  "slug": "bitzee",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bontempi",
+  "slug": "bontempi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Boss Tape",
+  "slug": "boss-tape",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bostik",
+  "slug": "bostik",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "bostik.webp"
+ },
+ {
+  "name": "Bratz",
+  "slug": "bratz",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bratz.webp"
+ },
+ {
+  "name": "Bright Starts",
+  "slug": "bright-starts",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Brio",
+  "slug": "brio",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "brio.webp"
+ },
+ {
+  "name": "Brons",
+  "slug": "brons",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Brother",
+  "slug": "brother",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "brother.webp"
+ },
+ {
+  "name": "Bruder",
+  "slug": "bruder",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "bruder.webp"
+ },
+ {
+  "name": "Bruno Visconti",
+  "slug": "bruno-visconti",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bu-Bu",
+  "slug": "bu-bu",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "bu-bu.webp"
+ },
+ {
+  "name": "Bubble Fun",
+  "slug": "bubble-fun",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Buket",
+  "slug": "buket",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Bunch O Balloons",
+  "slug": "bunch-o-balloons",
+  "categories": [
+   "parti",
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "CA Games",
+  "slug": "ca-games",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cambridge Polo Club",
+  "slug": "cambridge-polo-club",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Canem",
+  "slug": "canem",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Canon",
+  "slug": "canon",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "canon.webp"
+ },
+ {
+  "name": "Canson",
+  "slug": "canson",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "canson.webp"
+ },
+ {
+  "name": "Caran d'Ache",
+  "slug": "caran-d-ache",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "caran-d-ache.webp"
+ },
+ {
+  "name": "Caretta",
+  "slug": "caretta",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Carioca",
+  "slug": "carioca",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Carrera",
+  "slug": "carrera",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "carrera.webp"
+ },
+ {
+  "name": "Casio",
+  "slug": "casio",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "casio.webp"
+ },
+ {
+  "name": "Cassa",
+  "slug": "cassa",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Castorland",
+  "slug": "castorland",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "castorland.webp"
+ },
+ {
+  "name": "Catiga",
+  "slug": "catiga",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cattex",
+  "slug": "cattex",
+  "categories": [
+   "parti"
+  ],
+  "logo": "cattex.webp"
+ },
+ {
+  "name": "Ceo",
+  "slug": "ceo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cernit",
+  "slug": "cernit",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Chicco",
+  "slug": "chicco",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "chicco.webp"
+ },
+ {
+  "name": "Chillafish",
+  "slug": "chillafish",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "chillafish.webp"
+ },
+ {
+  "name": "Cicciobello",
+  "slug": "cicciobello",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "cicciobello.webp"
+ },
+ {
+  "name": "Citizen",
+  "slug": "citizen",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "citizen.webp"
+ },
+ {
+  "name": "Clairefontaine",
+  "slug": "clairefontaine",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "clairefontaine.webp"
+ },
+ {
+  "name": "Clementoni",
+  "slug": "clementoni",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "clementoni.webp"
+ },
+ {
+  "name": "Cobi",
+  "slug": "cobi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "cobi.webp"
+ },
+ {
+  "name": "Colop",
+  "slug": "colop",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "colop.webp"
+ },
+ {
+  "name": "Comix",
+  "slug": "comix",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Command",
+  "slug": "command",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Conté à Paris",
+  "slug": "conte-a-paris",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "conte-a-paris.webp"
+ },
+ {
+  "name": "Cookeez Makery",
+  "slug": "cookeez-makery",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "cookeez-makery.webp"
+ },
+ {
+  "name": "Copic",
+  "slug": "copic",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "copic.webp"
+ },
+ {
+  "name": "Copier Bond",
+  "slug": "copier-bond",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Corolle",
+  "slug": "corolle",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cra-Z-Art",
+  "slug": "cra-z-art",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Craft and Arts",
+  "slug": "craft-and-arts",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Crayola",
+  "slug": "crayola",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": "crayola.webp"
+ },
+ {
+  "name": "Crazoo",
+  "slug": "crazoo",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Creatto",
+  "slug": "creatto",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cretacolor",
+  "slug": "cretacolor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "cretacolor.webp"
+ },
+ {
+  "name": "Cross",
+  "slug": "cross",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "cross.webp"
+ },
+ {
+  "name": "Cry Babies",
+  "slug": "cry-babies",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Cubic Fun",
+  "slug": "cubic-fun",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Daler-Rowney",
+  "slug": "daler-rowney",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "daler-rowney.webp"
+ },
+ {
+  "name": "DAS",
+  "slug": "das",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Daxi",
+  "slug": "daxi",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "daxi.webp"
+ },
+ {
+  "name": "Dede",
+  "slug": "dede",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Deli",
+  "slug": "deli",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "deli.webp"
+ },
+ {
+  "name": "Delta",
+  "slug": "delta",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Derwent",
+  "slug": "derwent",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "derwent.webp"
+ },
+ {
+  "name": "Dickie Toys",
+  "slug": "dickie-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "dickie-toys.webp"
+ },
+ {
+  "name": "Dilman",
+  "slug": "dilman",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Diramix",
+  "slug": "diramix",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "diramix.webp"
+ },
+ {
+  "name": "Djeco",
+  "slug": "djeco",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Dolphin",
+  "slug": "dolphin",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Dolu",
+  "slug": "dolu",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "dolu.webp"
+ },
+ {
+  "name": "Dong-A",
+  "slug": "dong-a",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Double A",
+  "slug": "double-a",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "double-a.webp"
+ },
+ {
+  "name": "Dulcop",
+  "slug": "dulcop",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "dulcop.webp"
+ },
+ {
+  "name": "Dunlop",
+  "slug": "dunlop",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "dunlop.webp"
+ },
+ {
+  "name": "Duplo",
+  "slug": "duplo",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "duplo.webp"
+ },
+ {
+  "name": "Durable",
+  "slug": "durable",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "durable.webp"
+ },
+ {
+  "name": "Duracell",
+  "slug": "duracell",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "duracell.webp"
+ },
+ {
+  "name": "Dymo",
+  "slug": "dymo",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "dymo.webp"
+ },
+ {
+  "name": "Eastpak",
+  "slug": "eastpak",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "eastpak.webp"
+ },
+ {
+  "name": "Ece",
+  "slug": "ece",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ecoiffier",
+  "slug": "ecoiffier",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Edding",
+  "slug": "edding",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "edding.webp"
+ },
+ {
+  "name": "Eddy Magic",
+  "slug": "eddy-magic",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Educa",
+  "slug": "educa",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Efor",
+  "slug": "efor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Elif",
+  "slug": "elif",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Elmer's",
+  "slug": "elmer-s",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ema",
+  "slug": "ema",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Energizer",
+  "slug": "energizer",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "energizer.webp"
+ },
+ {
+  "name": "Eolo Sport",
+  "slug": "eolo-sport",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Epoch",
+  "slug": "epoch",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Epson",
+  "slug": "epson",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "epson.webp"
+ },
+ {
+  "name": "Erdem Oyuncak",
+  "slug": "erdem-oyuncak",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ermet",
+  "slug": "ermet",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "ermet.webp"
+ },
+ {
+  "name": "Erpa",
+  "slug": "erpa",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Escool",
+  "slug": "escool",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Escrito",
+  "slug": "escrito",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "escrito.webp"
+ },
+ {
+  "name": "Esselte",
+  "slug": "esselte",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "esselte.webp"
+ },
+ {
+  "name": "Etona",
+  "slug": "etona",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Eurographics",
+  "slug": "eurographics",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "eurographics.webp"
+ },
+ {
+  "name": "Evolis",
+  "slug": "evolis",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "evolis.webp"
+ },
+ {
+  "name": "Exacompta",
+  "slug": "exacompta",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "exacompta.webp"
+ },
+ {
+  "name": "Exxo",
+  "slug": "exxo",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Faber-Castell",
+  "slug": "faber-castell",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "faber-castell.webp"
+ },
+ {
+  "name": "Faller",
+  "slug": "faller",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "faller.webp"
+ },
+ {
+  "name": "Famosa",
+  "slug": "famosa",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "famosa.webp"
+ },
+ {
+  "name": "Fanart",
+  "slug": "fanart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Fatih",
+  "slug": "fatih",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Feber",
+  "slug": "feber",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "feber.webp"
+ },
+ {
+  "name": "Fellowes",
+  "slug": "fellowes",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "fellowes.webp"
+ },
+ {
+  "name": "Fen Toys",
+  "slug": "fen-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Fimo",
+  "slug": "fimo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Fisher-Price",
+  "slug": "fisher-price",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "fisher-price.webp"
+ },
+ {
+  "name": "Folat",
+  "slug": "folat",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Funko",
+  "slug": "funko",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "funko.webp"
+ },
+ {
+  "name": "Funmix",
+  "slug": "funmix",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Furkan Toys",
+  "slug": "furkan-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "furkan-toys.webp"
+ },
+ {
+  "name": "Galeri Ekin",
+  "slug": "galeri-ekin",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Galt",
+  "slug": "galt",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Galtoys",
+  "slug": "galtoys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "GBC",
+  "slug": "gbc",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "gbc.webp"
+ },
+ {
+  "name": "Gelly Roll",
+  "slug": "gelly-roll",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Gemar",
+  "slug": "gemar",
+  "categories": [
+   "parti"
+  ],
+  "logo": "gemar.webp"
+ },
+ {
+  "name": "Geomag",
+  "slug": "geomag",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "geomag.webp"
+ },
+ {
+  "name": "Ginger Ray",
+  "slug": "ginger-ray",
+  "categories": [
+   "parti"
+  ],
+  "logo": "ginger-ray.webp"
+ },
+ {
+  "name": "Giochi Preziosi",
+  "slug": "giochi-preziosi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "giochi-preziosi.webp"
+ },
+ {
+  "name": "Giotto",
+  "slug": "giotto",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "giotto.webp"
+ },
+ {
+  "name": "Globber",
+  "slug": "globber",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "globber.webp"
+ },
+ {
+  "name": "Globox",
+  "slug": "globox",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Godan",
+  "slug": "godan",
+  "categories": [
+   "parti"
+  ],
+  "logo": "godan.webp"
+ },
+ {
+  "name": "Goliath",
+  "slug": "goliath",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "goliath.webp"
+ },
+ {
+  "name": "GP Batteries",
+  "slug": "gp-batteries",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "gp-batteries.webp"
+ },
+ {
+  "name": "Grabo",
+  "slug": "grabo",
+  "categories": [
+   "parti"
+  ],
+  "logo": "grabo.webp"
+ },
+ {
+  "name": "Graf von Faber-Castell",
+  "slug": "graf-von-faber-castell",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "graf-von-faber-castell.webp"
+ },
+ {
+  "name": "GraviTrax",
+  "slug": "gravitrax",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Grimm's",
+  "slug": "grimm-s",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "grimm-s.webp"
+ },
+ {
+  "name": "Gund",
+  "slug": "gund",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Gürbüz",
+  "slug": "gurbuz",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Gıpta",
+  "slug": "gipta",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "gipta.webp"
+ },
+ {
+  "name": "Haba",
+  "slug": "haba",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "haba.webp"
+ },
+ {
+  "name": "Hahnemühle",
+  "slug": "hahnemuhle",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "hahnemuhle.webp"
+ },
+ {
+  "name": "Hape",
+  "slug": "hape",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "hape.webp"
+ },
+ {
+  "name": "Hasbro",
+  "slug": "hasbro",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "hasbro.webp"
+ },
+ {
+  "name": "Hatas",
+  "slug": "hatas",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hatchimals",
+  "slug": "hatchimals",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Helix",
+  "slug": "helix",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "helix.webp"
+ },
+ {
+  "name": "Heller",
+  "slug": "heller",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "heller.webp"
+ },
+ {
+  "name": "Helvacıoğlu",
+  "slug": "helvacioglu",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Herboy",
+  "slug": "herboy",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Herlitz",
+  "slug": "herlitz",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "herlitz.webp"
+ },
+ {
+  "name": "Herma",
+  "slug": "herma",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "herma.webp"
+ },
+ {
+  "name": "Hi-Text",
+  "slug": "hi-text",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hobby",
+  "slug": "hobby",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hobby Boss",
+  "slug": "hobby-boss",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Holotoyz",
+  "slug": "holotoyz",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "holotoyz.webp"
+ },
+ {
+  "name": "Hootyballoo",
+  "slug": "hootyballoo",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hopax",
+  "slug": "hopax",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Horizon Candle",
+  "slug": "horizon-candle",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hornby",
+  "slug": "hornby",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "hornby.webp"
+ },
+ {
+  "name": "Hot Shots",
+  "slug": "hot-shots",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Hot Wheels",
+  "slug": "hot-wheels",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "hot-wheels.webp"
+ },
+ {
+  "name": "HP",
+  "slug": "hp",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "hp.webp"
+ },
+ {
+  "name": "Image Coloraction",
+  "slug": "image-coloraction",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Imaginext",
+  "slug": "imaginext",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "IMC Toys",
+  "slug": "imc-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Infantino",
+  "slug": "infantino",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "infantino.webp"
+ },
+ {
+  "name": "Injusa",
+  "slug": "injusa",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "injusa.webp"
+ },
+ {
+  "name": "Interpano",
+  "slug": "interpano",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "interpano.webp"
+ },
+ {
+  "name": "Intex",
+  "slug": "intex",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "intex.webp"
+ },
+ {
+  "name": "Italeri",
+  "slug": "italeri",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "italeri.webp"
+ },
+ {
+  "name": "İdeal",
+  "slug": "ideal",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "İnter",
+  "slug": "inter",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Jada Toys",
+  "slug": "jada-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "jada-toys.webp"
+ },
+ {
+  "name": "Jakks Pacific",
+  "slug": "jakks-pacific",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "jakks-pacific.webp"
+ },
+ {
+  "name": "Janod",
+  "slug": "janod",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "JanSport",
+  "slug": "jansport",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "jansport.webp"
+ },
+ {
+  "name": "Jazwares",
+  "slug": "jazwares",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "jazwares.webp"
+ },
+ {
+  "name": "Jellycat",
+  "slug": "jellycat",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "jellycat.webp"
+ },
+ {
+  "name": "Jenga",
+  "slug": "jenga",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "jenga.webp"
+ },
+ {
+  "name": "Johann Faber",
+  "slug": "johann-faber",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Jovi",
+  "slug": "jovi",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "jovi.webp"
+ },
+ {
+  "name": "Just Play",
+  "slug": "just-play",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "just-play.webp"
+ },
+ {
+  "name": "K'NEX",
+  "slug": "k-nex",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "k-nex.webp"
+ },
+ {
+  "name": "Kalisan",
+  "slug": "kalisan",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kangaro",
+  "slug": "kangaro",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kanz",
+  "slug": "kanz",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "kanz.webp"
+ },
+ {
+  "name": "Kappa",
+  "slug": "kappa",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "kappa.webp"
+ },
+ {
+  "name": "Kaukko",
+  "slug": "kaukko",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kaweco",
+  "slug": "kaweco",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "kaweco.webp"
+ },
+ {
+  "name": "Kayyum",
+  "slug": "kayyum",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "kayyum.webp"
+ },
+ {
+  "name": "Keenway",
+  "slug": "keenway",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Keep Smiling",
+  "slug": "keep-smiling",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kejea",
+  "slug": "kejea",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kensington",
+  "slug": "kensington",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "kensington.webp"
+ },
+ {
+  "name": "Keskin Color",
+  "slug": "keskin-color",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Keyroad",
+  "slug": "keyroad",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kid Kreations",
+  "slug": "kid-kreations",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kidkraft",
+  "slug": "kidkraft",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "kidkraft.webp"
+ },
+ {
+  "name": "Kikajoy",
+  "slug": "kikajoy",
+  "categories": [
+   "parti"
+  ],
+  "logo": "kikajoy.webp"
+ },
+ {
+  "name": "Kinetic Sand",
+  "slug": "kinetic-sand",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "kinetic-sand.webp"
+ },
+ {
+  "name": "Kodak",
+  "slug": "kodak",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "kodak.webp"
+ },
+ {
+  "name": "Koh-i-Noor",
+  "slug": "koh-i-noor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "koh-i-noor.webp"
+ },
+ {
+  "name": "Kores",
+  "slug": "kores",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "kores.webp"
+ },
+ {
+  "name": "Kosida",
+  "slug": "kosida",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kosmos",
+  "slug": "kosmos",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "kosmos.webp"
+ },
+ {
+  "name": "Kraf",
+  "slug": "kraf",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "KS Games",
+  "slug": "ks-games",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "ks-games.webp"
+ },
+ {
+  "name": "Kumtoys",
+  "slug": "kumtoys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Kuretake",
+  "slug": "kuretake",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "kuretake.webp"
+ },
+ {
+  "name": "KW-Trio",
+  "slug": "kw-trio",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "L.O.L. Surprise!",
+  "slug": "l-o-l-surprise",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "l-o-l-surprise.webp"
+ },
+ {
+  "name": "Lamy",
+  "slug": "lamy",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "lamy.webp"
+ },
+ {
+  "name": "Laço Games",
+  "slug": "laco-games",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Learning Fun",
+  "slug": "learning-fun",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Learning Resources",
+  "slug": "learning-resources",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Legamaster",
+  "slug": "legamaster",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "legamaster.webp"
+ },
+ {
+  "name": "LEGO",
+  "slug": "lego",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "lego.webp"
+ },
+ {
+  "name": "Leitz",
+  "slug": "leitz",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "leitz.webp"
+ },
+ {
+  "name": "Lets",
+  "slug": "lets",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "lets.webp"
+ },
+ {
+  "name": "Leuchtturm1917",
+  "slug": "leuchtturm1917",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "leuchtturm1917.webp"
+ },
+ {
+  "name": "Lexibook",
+  "slug": "lexibook",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "lexibook.webp"
+ },
+ {
+  "name": "Lilart",
+  "slug": "lilart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Lilliputiens",
+  "slug": "lilliputiens",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "lilliputiens.webp"
+ },
+ {
+  "name": "Lino",
+  "slug": "lino",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Lionel",
+  "slug": "lionel",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "lionel.webp"
+ },
+ {
+  "name": "Liqeo",
+  "slug": "liqeo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Liquitex",
+  "slug": "liquitex",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "liquitex.webp"
+ },
+ {
+  "name": "Lisciani",
+  "slug": "lisciani",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Little Live Pets",
+  "slug": "little-live-pets",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "little-live-pets.webp"
+ },
+ {
+  "name": "Little Tikes",
+  "slug": "little-tikes",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "little-tikes.webp"
+ },
+ {
+  "name": "Lizy",
+  "slug": "lizy",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "lizy.webp"
+ },
+ {
+  "name": "Logitech",
+  "slug": "logitech",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "logitech.webp"
+ },
+ {
+  "name": "Lukas",
+  "slug": "lukas",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Lumberjack",
+  "slug": "lumberjack",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "lumberjack.webp"
+ },
+ {
+  "name": "Lutart",
+  "slug": "lutart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Lyra",
+  "slug": "lyra",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "lyra.webp"
+ },
+ {
+  "name": "Lyreco",
+  "slug": "lyreco",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "lyreco.webp"
+ },
+ {
+  "name": "Magformers",
+  "slug": "magformers",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Magic Mixies",
+  "slug": "magic-mixies",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "magic-mixies.webp"
+ },
+ {
+  "name": "Maisto",
+  "slug": "maisto",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Majorette",
+  "slug": "majorette",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "majorette.webp"
+ },
+ {
+  "name": "Manu",
+  "slug": "manu",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Maped",
+  "slug": "maped",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "maped.webp"
+ },
+ {
+  "name": "Mapi",
+  "slug": "mapi",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Marie's",
+  "slug": "marie-s",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Marioinex",
+  "slug": "marioinex",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "marioinex.webp"
+ },
+ {
+  "name": "Marla",
+  "slug": "marla",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Marvy Uchida",
+  "slug": "marvy-uchida",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "marvy-uchida.webp"
+ },
+ {
+  "name": "Mas",
+  "slug": "mas",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mas Net",
+  "slug": "mas-net",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Masis",
+  "slug": "masis",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Matchbox",
+  "slug": "matchbox",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "matchbox.webp"
+ },
+ {
+  "name": "Mattel",
+  "slug": "mattel",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "mattel.webp"
+ },
+ {
+  "name": "Max",
+  "slug": "max",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Maxell",
+  "slug": "maxell",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "maxell.webp"
+ },
+ {
+  "name": "McFarlane Toys",
+  "slug": "mcfarlane-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "mcfarlane-toys.webp"
+ },
+ {
+  "name": "Me Çanta",
+  "slug": "me-canta",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mead",
+  "slug": "mead",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "mead.webp"
+ },
+ {
+  "name": "Mega Bloks",
+  "slug": "mega-bloks",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mehano",
+  "slug": "mehano",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "mehano.webp"
+ },
+ {
+  "name": "Melissa & Doug",
+  "slug": "melissa-doug",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "melissa-doug.webp"
+ },
+ {
+  "name": "Meri Meri",
+  "slug": "meri-meri",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Meteksan",
+  "slug": "meteksan",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "MGA Entertainment",
+  "slug": "mga-entertainment",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "mga-entertainment.webp"
+ },
+ {
+  "name": "Micro",
+  "slug": "micro",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "micro.webp"
+ },
+ {
+  "name": "Mikro",
+  "slug": "mikro",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Milan",
+  "slug": "milan",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "milan.webp"
+ },
+ {
+  "name": "Mileo",
+  "slug": "mileo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mimaks",
+  "slug": "mimaks",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "mimaks.webp"
+ },
+ {
+  "name": "Mindware",
+  "slug": "mindware",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mini Brands",
+  "slug": "mini-brands",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mission",
+  "slug": "mission",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mitsubishi Pencil",
+  "slug": "mitsubishi-pencil",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "mitsubishi-pencil.webp"
+ },
+ {
+  "name": "Moleskine",
+  "slug": "moleskine",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "moleskine.webp"
+ },
+ {
+  "name": "Molotow",
+  "slug": "molotow",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Molto",
+  "slug": "molto",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "molto.webp"
+ },
+ {
+  "name": "Monalisa",
+  "slug": "monalisa",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Monami",
+  "slug": "monami",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "monami.webp"
+ },
+ {
+  "name": "Monart",
+  "slug": "monart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "monart.webp"
+ },
+ {
+  "name": "Mondi",
+  "slug": "mondi",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "mondi.webp"
+ },
+ {
+  "name": "Mondo",
+  "slug": "mondo",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "mondo.webp"
+ },
+ {
+  "name": "Monopoly",
+  "slug": "monopoly",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "monopoly.webp"
+ },
+ {
+  "name": "Montblanc",
+  "slug": "montblanc",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "montblanc.webp"
+ },
+ {
+  "name": "Moose Toys",
+  "slug": "moose-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mopak",
+  "slug": "mopak",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "mopak.webp"
+ },
+ {
+  "name": "Motex",
+  "slug": "motex",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Muggle",
+  "slug": "muggle",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Munchkin",
+  "slug": "munchkin",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "munchkin.webp"
+ },
+ {
+  "name": "Mungyo",
+  "slug": "mungyo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mynote",
+  "slug": "mynote",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Mythos",
+  "slug": "mythos",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Märklin",
+  "slug": "marklin",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "marklin.webp"
+ },
+ {
+  "name": "Na! Na! Na! Surprise",
+  "slug": "na-na-na-surprise",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Navigator",
+  "slug": "navigator",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "navigator.webp"
+ },
+ {
+  "name": "Neco Toys",
+  "slug": "neco-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Nenuco",
+  "slug": "nenuco",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Nerf",
+  "slug": "nerf",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "nerf.webp"
+ },
+ {
+  "name": "Neviti",
+  "slug": "neviti",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Newart",
+  "slug": "newart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Nici",
+  "slug": "nici",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "nici.webp"
+ },
+ {
+  "name": "Noki",
+  "slug": "noki",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "noki.webp"
+ },
+ {
+  "name": "Northstar Balloons",
+  "slug": "northstar-balloons",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Notix",
+  "slug": "notix",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Notte",
+  "slug": "notte",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "notte.webp"
+ },
+ {
+  "name": "Nova Color",
+  "slug": "nova-color",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Novus",
+  "slug": "novus",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Nurgün",
+  "slug": "nurgun",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Odak",
+  "slug": "odak",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ofica",
+  "slug": "ofica",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "ofica.webp"
+ },
+ {
+  "name": "Ohuhu",
+  "slug": "ohuhu",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "ohuhu.webp"
+ },
+ {
+  "name": "Okutan Hobi",
+  "slug": "okutan-hobi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Olfa",
+  "slug": "olfa",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "olfa.webp"
+ },
+ {
+  "name": "Online",
+  "slug": "online",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "online.webp"
+ },
+ {
+  "name": "Orchard Toys",
+  "slug": "orchard-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "orchard-toys.webp"
+ },
+ {
+  "name": "Otto",
+  "slug": "otto",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ottonya",
+  "slug": "ottonya",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Our Generation",
+  "slug": "our-generation",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "our-generation.webp"
+ },
+ {
+  "name": "Oxford",
+  "slug": "oxford",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Oyal",
+  "slug": "oyal",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Paladone",
+  "slug": "paladone",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "paladone.webp"
+ },
+ {
+  "name": "Panasonic",
+  "slug": "panasonic",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "panasonic.webp"
+ },
+ {
+  "name": "Panda",
+  "slug": "panda",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Panini",
+  "slug": "panini",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Paper Mate",
+  "slug": "paper-mate",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "paper-mate.webp"
+ },
+ {
+  "name": "Paperblanks",
+  "slug": "paperblanks",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "paperblanks.webp"
+ },
+ {
+  "name": "Papo",
+  "slug": "papo",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Parker",
+  "slug": "parker",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Parsis",
+  "slug": "parsis",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "PartyDeco",
+  "slug": "partydeco",
+  "categories": [
+   "parti"
+  ],
+  "logo": "partydeco.webp"
+ },
+ {
+  "name": "Partyfunlights",
+  "slug": "partyfunlights",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pattex",
+  "slug": "pattex",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "pattex.webp"
+ },
+ {
+  "name": "Pebeo",
+  "slug": "pebeo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "pebeo.webp"
+ },
+ {
+  "name": "Peg Perego",
+  "slug": "peg-perego",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "peg-perego.webp"
+ },
+ {
+  "name": "Pelikan",
+  "slug": "pelikan",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "pelikan.webp"
+ },
+ {
+  "name": "Penmark",
+  "slug": "penmark",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pensan",
+  "slug": "pensan",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pentel",
+  "slug": "pentel",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "pentel.webp"
+ },
+ {
+  "name": "Philips",
+  "slug": "philips",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "philips.webp"
+ },
+ {
+  "name": "Picador",
+  "slug": "picador",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pikmi Pops",
+  "slug": "pikmi-pops",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pilot",
+  "slug": "pilot",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "pilot.webp"
+ },
+ {
+  "name": "Pilsan",
+  "slug": "pilsan",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "pilsan.webp"
+ },
+ {
+  "name": "Pinypon",
+  "slug": "pinypon",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Plan Toys",
+  "slug": "plan-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "plan-toys.webp"
+ },
+ {
+  "name": "Play Monster",
+  "slug": "play-monster",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "play-monster.webp"
+ },
+ {
+  "name": "Play-Doh",
+  "slug": "play-doh",
+  "categories": [
+   "kirtasiye",
+   "oyuncak"
+  ],
+  "logo": "play-doh.webp"
+ },
+ {
+  "name": "Playmind",
+  "slug": "playmind",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Playmobil",
+  "slug": "playmobil",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "playmobil.webp"
+ },
+ {
+  "name": "Plotek",
+  "slug": "plotek",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Plus",
+  "slug": "plus",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Polesie",
+  "slug": "polesie",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Polly Pocket",
+  "slug": "polly-pocket",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ponart",
+  "slug": "ponart",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pop Mart",
+  "slug": "pop-mart",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "pop-mart.webp"
+ },
+ {
+  "name": "Posca",
+  "slug": "posca",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Post-it",
+  "slug": "post-it",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "post-it.webp"
+ },
+ {
+  "name": "President",
+  "slug": "president",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Pressman",
+  "slug": "pressman",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "pressman.webp"
+ },
+ {
+  "name": "Prestij Oyuncak",
+  "slug": "prestij-oyuncak",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Princo",
+  "slug": "princo",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Prismacolor",
+  "slug": "prismacolor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "prismacolor.webp"
+ },
+ {
+  "name": "Pritt",
+  "slug": "pritt",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "pritt.webp"
+ },
+ {
+  "name": "Procos",
+  "slug": "procos",
+  "categories": [
+   "parti",
+   "oyuncak"
+  ],
+  "logo": "procos.webp"
+ },
+ {
+  "name": "Promiks",
+  "slug": "promiks",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "promiks.webp"
+ },
+ {
+  "name": "Qualatex",
+  "slug": "qualatex",
+  "categories": [
+   "parti"
+  ],
+  "logo": "qualatex.webp"
+ },
+ {
+  "name": "Quercetti",
+  "slug": "quercetti",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "quercetti.webp"
+ },
+ {
+  "name": "Quokka",
+  "slug": "quokka",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Rainbow High",
+  "slug": "rainbow-high",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Rapid",
+  "slug": "rapid",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "rapid.webp"
+ },
+ {
+  "name": "Rastar",
+  "slug": "rastar",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "rastar.webp"
+ },
+ {
+  "name": "Rave Neon",
+  "slug": "rave-neon",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ravensburger",
+  "slug": "ravensburger",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "ravensburger.webp"
+ },
+ {
+  "name": "Razor",
+  "slug": "razor",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "razor.webp"
+ },
+ {
+  "name": "Rebul",
+  "slug": "rebul",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Redka",
+  "slug": "redka",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Rembrandt",
+  "slug": "rembrandt",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "rembrandt.webp"
+ },
+ {
+  "name": "Revell",
+  "slug": "revell",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "revell.webp"
+ },
+ {
+  "name": "Rexel",
+  "slug": "rexel",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "rexel.webp"
+ },
+ {
+  "name": "Rhodia",
+  "slug": "rhodia",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "rhodia.webp"
+ },
+ {
+  "name": "Rich",
+  "slug": "rich",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Rio",
+  "slug": "rio",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Robercolor",
+  "slug": "robercolor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Robotime",
+  "slug": "robotime",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "robotime.webp"
+ },
+ {
+  "name": "Rolife",
+  "slug": "rolife",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "rolife.webp"
+ },
+ {
+  "name": "Roll-Up",
+  "slug": "roll-up",
+  "categories": [
+   "parti"
+  ],
+  "logo": "roll-up.webp"
+ },
+ {
+  "name": "Rotring",
+  "slug": "rotring",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "rotring.webp"
+ },
+ {
+  "name": "Royal Talens",
+  "slug": "royal-talens",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "royal-talens.webp"
+ },
+ {
+  "name": "Rubenis",
+  "slug": "rubenis",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Rubie's",
+  "slug": "rubie-s",
+  "categories": [
+   "parti",
+   "oyuncak"
+  ],
+  "logo": "rubie-s.webp"
+ },
+ {
+  "name": "Rubik's",
+  "slug": "rubik-s",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "rubik-s.webp"
+ },
+ {
+  "name": "Saip",
+  "slug": "saip",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sakura",
+  "slug": "sakura",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Samsonite",
+  "slug": "samsonite",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "samsonite.webp"
+ },
+ {
+  "name": "Sarff",
+  "slug": "sarff",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sasta",
+  "slug": "sasta",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Schleich",
+  "slug": "schleich",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "schleich.webp"
+ },
+ {
+  "name": "Schmincke",
+  "slug": "schmincke",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Schneider",
+  "slug": "schneider",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "schneider.webp"
+ },
+ {
+  "name": "Schuco",
+  "slug": "schuco",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "schuco.webp"
+ },
+ {
+  "name": "Scotch",
+  "slug": "scotch",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Scrabble",
+  "slug": "scrabble",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "scrabble.webp"
+ },
+ {
+  "name": "Scrikss",
+  "slug": "scrikss",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "scrikss.webp"
+ },
+ {
+  "name": "Sempertex",
+  "slug": "sempertex",
+  "categories": [
+   "parti"
+  ],
+  "logo": "sempertex.webp"
+ },
+ {
+  "name": "Sennelier",
+  "slug": "sennelier",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "sennelier.webp"
+ },
+ {
+  "name": "Sens",
+  "slug": "sens",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sentor",
+  "slug": "sentor",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "sentor.webp"
+ },
+ {
+  "name": "Serve",
+  "slug": "serve",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ses Creative",
+  "slug": "ses-creative",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sevi",
+  "slug": "sevi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sharpie",
+  "slug": "sharpie",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "sharpie.webp"
+ },
+ {
+  "name": "Sheaffer",
+  "slug": "sheaffer",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "sheaffer.webp"
+ },
+ {
+  "name": "Shotay",
+  "slug": "shotay",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Siku",
+  "slug": "siku",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "siku.webp"
+ },
+ {
+  "name": "Silka",
+  "slug": "silka",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Silverlit",
+  "slug": "silverlit",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "silverlit.webp"
+ },
+ {
+  "name": "Simba",
+  "slug": "simba",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "simba.webp"
+ },
+ {
+  "name": "Sinerji",
+  "slug": "sinerji",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sketch",
+  "slug": "sketch",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Skip Hop",
+  "slug": "skip-hop",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Slazenger",
+  "slug": "slazenger",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "slazenger.webp"
+ },
+ {
+  "name": "Sluban",
+  "slug": "sluban",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Smart Games",
+  "slug": "smart-games",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "smart-games.webp"
+ },
+ {
+  "name": "Smart Kids",
+  "slug": "smart-kids",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Smarta",
+  "slug": "smarta",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Smead",
+  "slug": "smead",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "smead.webp"
+ },
+ {
+  "name": "Smiffys",
+  "slug": "smiffys",
+  "categories": [
+   "parti"
+  ],
+  "logo": "smiffys.webp"
+ },
+ {
+  "name": "Smoby",
+  "slug": "smoby",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "smoby.webp"
+ },
+ {
+  "name": "Snowman",
+  "slug": "snowman",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Spark",
+  "slug": "spark",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Speco",
+  "slug": "speco",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Spin Master",
+  "slug": "spin-master",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "spin-master.webp"
+ },
+ {
+  "name": "Squishmallows",
+  "slug": "squishmallows",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "squishmallows.webp"
+ },
+ {
+  "name": "Stabilo",
+  "slug": "stabilo",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "stabilo.webp"
+ },
+ {
+  "name": "Staedtler",
+  "slug": "staedtler",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "staedtler.webp"
+ },
+ {
+  "name": "Stanley",
+  "slug": "stanley",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "stanley.webp"
+ },
+ {
+  "name": "Starcopy",
+  "slug": "starcopy",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "starcopy.webp"
+ },
+ {
+  "name": "STD",
+  "slug": "std",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Steelpen",
+  "slug": "steelpen",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Steiff",
+  "slug": "steiff",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "steiff.webp"
+ },
+ {
+  "name": "Step2",
+  "slug": "step2",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "step2.webp"
+ },
+ {
+  "name": "Sunka",
+  "slug": "sunka",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sunman",
+  "slug": "sunman",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "sunman.webp"
+ },
+ {
+  "name": "Sweet Party",
+  "slug": "sweet-party",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Sylvanian Families",
+  "slug": "sylvanian-families",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Syma",
+  "slug": "syma",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Südor",
+  "slug": "sudor",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "sudor.webp"
+ },
+ {
+  "name": "Sırdaş",
+  "slug": "sirdas",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Takara Tomy",
+  "slug": "takara-tomy",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "takara-tomy.webp"
+ },
+ {
+  "name": "Talens",
+  "slug": "talens",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "talens.webp"
+ },
+ {
+  "name": "Talking Tables",
+  "slug": "talking-tables",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tamagotchi",
+  "slug": "tamagotchi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tamagotchi.webp"
+ },
+ {
+  "name": "Tamiya",
+  "slug": "tamiya",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tamiya.webp"
+ },
+ {
+  "name": "Tanex",
+  "slug": "tanex",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Targus",
+  "slug": "targus",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "targus.webp"
+ },
+ {
+  "name": "Tarifold",
+  "slug": "tarifold",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "tarifold.webp"
+ },
+ {
+  "name": "Taros",
+  "slug": "taros",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tech Deck",
+  "slug": "tech-deck",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tech-deck.webp"
+ },
+ {
+  "name": "Teknoloji",
+  "slug": "teknoloji",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tender Leaf Toys",
+  "slug": "tender-leaf-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tender-leaf-toys.webp"
+ },
+ {
+  "name": "Tesa",
+  "slug": "tesa",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "tesa.webp"
+ },
+ {
+  "name": "Thames & Kosmos",
+  "slug": "thames-kosmos",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "thames-kosmos.webp"
+ },
+ {
+  "name": "The Learning Journey",
+  "slug": "the-learning-journey",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "The Noble Collection",
+  "slug": "the-noble-collection",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ticon",
+  "slug": "ticon",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tiko",
+  "slug": "tiko",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tiny Love",
+  "slug": "tiny-love",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tiny-love.webp"
+ },
+ {
+  "name": "Tipp-Ex",
+  "slug": "tipp-ex",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tombow",
+  "slug": "tombow",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "tombow.webp"
+ },
+ {
+  "name": "Tomy",
+  "slug": "tomy",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "tomy.webp"
+ },
+ {
+  "name": "Top Bright",
+  "slug": "top-bright",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Topps",
+  "slug": "topps",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "topps.webp"
+ },
+ {
+  "name": "Toysan",
+  "slug": "toysan",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "toysan.webp"
+ },
+ {
+  "name": "Transformers",
+  "slug": "transformers",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Tratto",
+  "slug": "tratto",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Treasure X",
+  "slug": "treasure-x",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Trefl",
+  "slug": "trefl",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Trodat",
+  "slug": "trodat",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "trodat.webp"
+ },
+ {
+  "name": "Trudi",
+  "slug": "trudi",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "trudi.webp"
+ },
+ {
+  "name": "Trunki",
+  "slug": "trunki",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ttec",
+  "slug": "ttec",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "ttec.webp"
+ },
+ {
+  "name": "Tuftex",
+  "slug": "tuftex",
+  "categories": [
+   "parti"
+  ],
+  "logo": "tuftex.webp"
+ },
+ {
+  "name": "Tursan",
+  "slug": "tursan",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Ty",
+  "slug": "ty",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "U.S. Polo Assn.",
+  "slug": "u-s-polo-assn",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "u-s-polo-assn.webp"
+ },
+ {
+  "name": "UHU",
+  "slug": "uhu",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "uhu.webp"
+ },
+ {
+  "name": "Ulaş",
+  "slug": "ulas",
+  "categories": [
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Umix",
+  "slug": "umix",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Umur",
+  "slug": "umur",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "umur.webp"
+ },
+ {
+  "name": "uni-ball",
+  "slug": "uni-ball",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "uni-ball.webp"
+ },
+ {
+  "name": "Unick Color",
+  "slug": "unick-color",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Unicus",
+  "slug": "unicus",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Unique Party",
+  "slug": "unique-party",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "UNO",
+  "slug": "uno",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "uno.webp"
+ },
+ {
+  "name": "Uğur",
+  "slug": "ugur",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Vagon Life",
+  "slug": "vagon-life",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "vagon-life.webp"
+ },
+ {
+  "name": "Van Gogh",
+  "slug": "van-gogh",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "van-gogh.webp"
+ },
+ {
+  "name": "Varta",
+  "slug": "varta",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "varta.webp"
+ },
+ {
+  "name": "Vege",
+  "slug": "vege",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Victoria's Journals",
+  "slug": "victoria-s-journals",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "victoria-s-journals.webp"
+ },
+ {
+  "name": "Viking Toys",
+  "slug": "viking-toys",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Vilac",
+  "slug": "vilac",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "vilac.webp"
+ },
+ {
+  "name": "Vincent",
+  "slug": "vincent",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Voit",
+  "slug": "voit",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "VTech",
+  "slug": "vtech",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Waboba",
+  "slug": "waboba",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "waboba.webp"
+ },
+ {
+  "name": "Wader",
+  "slug": "wader",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "wader.webp"
+ },
+ {
+  "name": "Waterman",
+  "slug": "waterman",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "waterman.webp"
+ },
+ {
+  "name": "Welly",
+  "slug": "welly",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Westcott",
+  "slug": "westcott",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "westcott.webp"
+ },
+ {
+  "name": "Widmann",
+  "slug": "widmann",
+  "categories": [
+   "parti"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Winfun",
+  "slug": "winfun",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "winfun.webp"
+ },
+ {
+  "name": "Winsor & Newton",
+  "slug": "winsor-newton",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "winsor-newton.webp"
+ },
+ {
+  "name": "Woody",
+  "slug": "woody",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "WowWee",
+  "slug": "wowwee",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Writech",
+  "slug": "writech",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "writech.webp"
+ },
+ {
+  "name": "Xerox",
+  "slug": "xerox",
+  "categories": [
+   "ofis"
+  ],
+  "logo": "xerox.webp"
+ },
+ {
+  "name": "Yaygan",
+  "slug": "yaygan",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "yaygan.webp"
+ },
+ {
+  "name": "Yener",
+  "slug": "yener",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "yener.webp"
+ },
+ {
+  "name": "Yıldızlar",
+  "slug": "yildizlar",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Zapf Creation",
+  "slug": "zapf-creation",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": null
+ },
+ {
+  "name": "Zebra",
+  "slug": "zebra",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "zebra.webp"
+ },
+ {
+  "name": "ZIG",
+  "slug": "zig",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "zig.webp"
+ },
+ {
+  "name": "Zimpli Kids",
+  "slug": "zimpli-kids",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "zimpli-kids.webp"
+ },
+ {
+  "name": "Zuru",
+  "slug": "zuru",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "zuru.webp"
+ },
+ {
+  "name": "Zvezda",
+  "slug": "zvezda",
+  "categories": [
+   "oyuncak"
+  ],
+  "logo": "zvezda.webp"
+ },
+ {
+  "name": "Zweikell",
+  "slug": "zweikell",
+  "categories": [
+   "kirtasiye"
+  ],
+  "logo": "zweikell.webp"
+ },
+ {
+  "name": "Önder",
+  "slug": "onder",
+  "categories": [
+   "kirtasiye",
+   "ofis"
+  ],
+  "logo": "onder.webp"
+ }
+]

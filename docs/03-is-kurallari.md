@@ -85,6 +85,7 @@ Varyant grupları sayfası kaldırıldı. Renk, boyut gibi seçenekler ürünün
 - Bayi ürün sayfasında seçenek adıyla (ör. "Renk") diğer seçeneklere geçer; sipariş satırında ad "Defter (Kırmızı)" olarak yazılır.
 - Geçişte eski grup özellikleri ve değerleri yeni alanlara taşındı (birden çok özellik " / " ile birleşti). `variant_values` sütunu ve `variant_groups` tablosu veri kaybı olmasın diye duruyor.
 - Kategoriler ve Markalar ayrı sayfalardır (`/toptanci/kategoriler`, `/toptanci/markalar`); eski "Kategori ve Markalar" adresi yönlendirilir.
+- **Hazır marka kütüphanesi (2026-11-07):** "Yeni marka" alanına ad yazıldıkça kırtasiye, ofis, parti ve oyuncak markalarından öneri çıkar (logosuyla). Seçilen marka logosuyla birlikte eklenir; ad ve logo sunucuda kütüphaneden alınır (tarayıcıdan gelen ad kullanılmaz). Listede olmayan marka elle yazılıp eklenir, logosu sonra yüklenir. Kütüphane kodla gelen sabit dosyadır (`resources/brand-library`, `App\Domain\Support\BrandLibrary`); mağaza da aynı listeyi kullanır ama her taraf kendi marka kaydını ve logo kopyasını oluşturur.
 
 ### 2.3 Ürünü tek ekranda oluşturma (2026-11-05)
 
