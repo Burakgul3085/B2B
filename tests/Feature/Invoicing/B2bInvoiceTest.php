@@ -9,6 +9,7 @@ use App\Domain\Ordering\CartService;
 use App\Domain\Ordering\LineCalculator;
 use App\Domain\Ordering\OrderService;
 use App\Domain\Ordering\ReturnService;
+use App\Domain\Support\LocalTime;
 use App\Http\Controllers\Business\InvoiceController;
 use App\Models\AppNotification;
 use App\Models\AuditLog;
@@ -535,14 +536,14 @@ class B2bInvoiceTest extends TestCase
         $order = $this->paidOrder();
         $draft = $this->inBusiness(fn () => $this->service()->createSale($order));
 
-        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'ABC123', 'issue_date' => now()->toDateString(), 'document_type' => 'e_arsiv', 'total' => '170'])
+        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'ABC123', 'issue_date' => LocalTime::today(), 'document_type' => 'e_arsiv', 'total' => '170'])
             ->assertSessionHasErrors('invoice_no');
-        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => now()->toDateString(), 'document_type' => 'e_arsiv', 'total' => '150'])
+        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => LocalTime::today(), 'document_type' => 'e_arsiv', 'total' => '150'])
             ->assertSessionHasErrors('total');
-        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => now()->toDateString(), 'document_type' => 'e_arsiv', 'total' => '170',
+        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => LocalTime::today(), 'document_type' => 'e_arsiv', 'total' => '170',
             'pdf' => UploadedFile::fake()->createWithContent('fatura.pdf', 'merhaba')])->assertSessionHasErrors('pdf');
 
-        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => now()->toDateString(), 'document_type' => 'e_arsiv', 'total' => '170,00',
+        $this->post(route('business.orders.invoices.manual', $order), ['kind' => 'sale', 'invoice_no' => 'BYA2026000000500', 'issue_date' => LocalTime::today(), 'document_type' => 'e_arsiv', 'total' => '170,00',
             'pdf' => UploadedFile::fake()->createWithContent('fatura.pdf', '%PDF-1.4 elle')])->assertRedirect()->assertSessionHasNoErrors();
 
         $manual = $this->inBusiness(fn () => Invoice::where('source', 'manual')->sole());
@@ -550,7 +551,7 @@ class B2bInvoiceTest extends TestCase
         $this->assertNull($this->inBusiness(fn () => Invoice::find($draft->id)), 'Açık taslak elle kesilen faturayla değişir.');
         $this->assertSame(0, $this->inBusiness(fn () => InvoiceService::awaitingSale()->count()));
         $this->expectException(DomainException::class);
-        $this->inBusiness(fn () => $this->service()->attachManual($order, 'sale', null, ['invoice_no' => 'BYA2026000000501', 'issue_date' => now()->toDateString(), 'document_type' => 'e_arsiv', 'total' => '170'], null));
+        $this->inBusiness(fn () => $this->service()->attachManual($order, 'sale', null, ['invoice_no' => 'BYA2026000000501', 'issue_date' => LocalTime::today(), 'document_type' => 'e_arsiv', 'total' => '170'], null));
     }
 
     /* ---------------- Yalıtım ve sayfalar ---------------- */
