@@ -21,6 +21,9 @@ class PrintSettings
 {
     public const DEFAULTS = [
         'enabled' => false,
+        // Makine arızasında bir renk geçici kapatılabilir; en az biri açık kalır.
+        'bw_enabled' => true,
+        'color_enabled' => true,
         'tiers' => [
             ['from' => 1, 'bw' => '2.00', 'color' => '6.00'],
             ['from' => 101, 'bw' => '1.50', 'color' => '5.00'],
@@ -88,6 +91,19 @@ class PrintSettings
     public function enabled(): bool
     {
         return (bool) $this->get('enabled');
+    }
+
+    /** @return list<string> müşterinin seçebileceği renkler ('bw', 'color'), PrintOptions::COLORS sırasıyla */
+    public function colors(): array
+    {
+        $all = $this->all();
+
+        return array_values(array_filter(array_keys(PrintOptions::COLORS), fn (string $c) => (bool) $all[$c.'_enabled']));
+    }
+
+    public function colorEnabled(string $color): bool
+    {
+        return in_array($color, $this->colors(), true);
     }
 
     public function a3Enabled(): bool
@@ -163,8 +179,16 @@ class PrintSettings
             $errors['quote_threshold'] = 'Özel teklif eşiği son fiyat kademesinin başlangıcından büyük olmalıdır.';
         }
 
+        $bw = filter_var($input['bw_enabled'] ?? true, FILTER_VALIDATE_BOOL);
+        $color = filter_var($input['color_enabled'] ?? true, FILTER_VALIDATE_BOOL);
+        if (! $bw && ! $color) {
+            $errors['color_enabled'] = 'Siyah-beyaz ve renkliden en az biri açık olmalıdır. Fotokopiyi tamamen kapatmak için "Fotokopi siparişi açık" anahtarını kapatın.';
+        }
+
         $data = [
             'enabled' => filter_var($input['enabled'] ?? false, FILTER_VALIDATE_BOOL),
+            'bw_enabled' => $bw,
+            'color_enabled' => $color,
             'tiers' => $tiers,
             'a3_enabled' => filter_var($input['a3_enabled'] ?? false, FILTER_VALIDATE_BOOL),
             'a3_multiplier' => $money($input['a3_multiplier'] ?? '2', 'a3_multiplier'),
@@ -185,6 +209,8 @@ class PrintSettings
 
         $old = $this->all();
         StoreSetting::put(['print' => json_encode($data)]);
-        $this->audit->log('store.print_settings_updated', null, ['enabled' => $old['enabled']], ['enabled' => $data['enabled']]);
+        $this->audit->log('store.print_settings_updated', null,
+            ['enabled' => $old['enabled'], 'bw_enabled' => $old['bw_enabled'], 'color_enabled' => $old['color_enabled']],
+            ['enabled' => $data['enabled'], 'bw_enabled' => $bw, 'color_enabled' => $color]);
     }
 }

@@ -208,6 +208,8 @@ Route::domain(config('store.admin_domain'))->name('store_admin.')->group(functio
             Route::get('odeme-kodlari', [Admin\PaymentCodeController::class, 'index'])->name('payment-codes.index');
             Route::post('odeme-kodlari', [Admin\PaymentCodeController::class, 'store'])->middleware('throttle:60,1,store_admin.payment-codes.store')->name('payment-codes.store');
             Route::post('odeme-kodlari/{storePaymentCode}/iptal', [Admin\PaymentCodeController::class, 'cancel'])->name('payment-codes.cancel');
+            Route::post('odeme-kodlari/{storePaymentCode}/ac', [Admin\PaymentCodeController::class, 'reactivate'])->name('payment-codes.reactivate');
+            Route::delete('odeme-kodlari/{storePaymentCode}', [Admin\PaymentCodeController::class, 'destroy'])->name('payment-codes.destroy');
             Route::put('odeme-kodlari/ayarlar', [Admin\PaymentCodeController::class, 'updateSettings'])->name('payment-codes.settings');
             Route::get('iadeler', [Admin\ReturnController::class, 'index'])->name('returns.index');
             Route::get('iadeler/{storeReturn}', [Admin\ReturnController::class, 'show'])->name('returns.show');

@@ -8,6 +8,7 @@ use App\Domain\Support\Decimal;
 use App\Models\Store\StoreCart;
 use App\Models\Store\StoreCartItem;
 use App\Models\Store\StoreOrder;
+use App\Models\Store\StoreOrderItem;
 use App\Models\Store\StorePaymentCode;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -107,6 +108,43 @@ class PaymentCodeService
         });
     }
 
+    /** Pasif kodu yeniden kullanıma açar (süresi dolmuşsa "süresi doldu" olarak kalır). */
+    public function reactivate(StorePaymentCode $code): void
+    {
+        DB::transaction(function () use ($code) {
+            $code = StorePaymentCode::whereKey($code->id)->lockForUpdate()->firstOrFail();
+            if (! $code->is_cancelled) {
+                return;
+            }
+            $code->forceFill(['is_cancelled' => false])->save();
+            $this->audit->log('store.payment_code_reactivated', $code, [], ['code' => $code->code]);
+        });
+    }
+
+    /** Hiçbir siparişe girmemiş kod silinebilir; siparişte (iptal edilmiş olsa da) geçen kod kayıt için kalır. */
+    public static function deletable(StorePaymentCode $code): bool
+    {
+        return $code->order_id === null && ! StoreOrderItem::where('payment_code_id', $code->id)->exists();
+    }
+
+    /**
+     * Kodu tamamen siler; müşterilerin sepetlerindeki satırı da kalkar.
+     *
+     * @throws DomainException
+     */
+    public function delete(StorePaymentCode $code): void
+    {
+        DB::transaction(function () use ($code) {
+            $code = StorePaymentCode::whereKey($code->id)->lockForUpdate()->firstOrFail();
+            if (! self::deletable($code)) {
+                throw new DomainException('Bu kod bir siparişte kullanıldığı için silinemez; sipariş ve fatura kaydında görünür. Kullanılmasını engellemek için pasif edin.');
+            }
+            StoreCartItem::where('payment_code_id', $code->id)->delete();
+            $this->audit->log('store.payment_code_deleted', null, ['code' => $code->code, 'title' => $code->title, 'amount' => (string) $code->amount], []);
+            $code->delete();
+        });
+    }
+
     /**
      * Kodu sepete ekler (aynı kod sepette varsa yeniden eklenmez).
      *
@@ -167,7 +205,7 @@ class PaymentCodeService
     {
         $message = match ($code->state()) {
             'used' => 'Bu ödeme kodu kullanıldı.',
-            'cancelled' => 'Bu ödeme kodu iptal edildi.',
+            'cancelled' => 'Bu ödeme kodu şu anda kullanıma kapalı.',
             'expired' => 'Bu ödeme kodunun süresi doldu.',
             default => null,
         };

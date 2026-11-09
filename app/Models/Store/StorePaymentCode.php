@@ -19,7 +19,7 @@ class StorePaymentCode extends Model
         'active' => ['Kullanılabilir', 'success'],
         'used' => ['Kullanıldı', 'info'],
         'expired' => ['Süresi doldu', 'neutral'],
-        'cancelled' => ['İptal edildi', 'danger'],
+        'cancelled' => ['Pasif', 'danger'],
     ];
 
     protected $fillable = ['code', 'title', 'amount', 'vat_rate', 'note', 'expires_at', 'created_by'];

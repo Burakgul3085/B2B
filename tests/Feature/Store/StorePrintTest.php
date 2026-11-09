@@ -300,6 +300,38 @@ class StorePrintTest extends TestCase
         $this->get(route('store_admin.orders.print-file', [$order, $job, 'pdf']))->assertOk()->assertDownload($order->order_no.'-'.$job->id.'-Tez.pdf');
     }
 
+    public function test_a_color_can_be_switched_off_when_its_machine_is_broken(): void
+    {
+        $file = $this->upload('Not.pdf', self::pdf(2));
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/sepet", ['color' => 'color'])->assertOk();
+        $this->get(self::HOST.'/fotokopi')->assertOk()->assertSee('Siyah-beyaz')->assertSee('Renkli')->assertSee('grid grid-cols-2', false);
+
+        // İkisi birden kapatılamaz.
+        $admin = StoreAdmin::create(['name' => 'Yönetici', 'email' => 'yonetici@ornek.com', 'password' => 'Gizli-Parola-123', 'is_super' => true]);
+        $this->actingAs($admin, 'store_admin');
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'bw_enabled' => '0', 'color_enabled' => '0']))->assertSessionHasErrors('color_enabled');
+        $this->get(route('store_admin.print.edit'))->assertSee('Renkli baskı açık');
+
+        // Renkli makine arızalı: yalnızca siyah-beyaz, tek düğme ortada ve seçili.
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'bw_enabled' => '1', 'color_enabled' => '0']))->assertSessionHas('status');
+        $this->assertSame(['bw'], app(PrintSettings::class)->colors());
+        $page = $this->get(self::HOST.'/fotokopi')->assertOk();
+        $page->assertSee('flex justify-center', false)->assertSee('&quot;colors&quot;:[&quot;bw&quot;]', false)->assertDontSee('conic-gradient', false);
+
+        // Sunucu kapalı rengi kabul etmez; sepetteki renkli baskı siparişe dönüşemez.
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['color' => 'color'])->assertStatus(422)->assertJsonValidationErrors('color');
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/sepet", ['color' => 'color'])->assertStatus(422);
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['color' => 'bw'])->assertOk();
+        $this->get(self::HOST.'/sepet')->assertSee('Bu baskı şu anda sipariş edilemiyor');
+        $this->get(self::HOST.'/odeme')->assertRedirect(route('store.cart'));
+
+        // Siyah-beyaz arızalı: yalnızca renkli; renkli baskı yeniden sipariş edilebilir.
+        $this->put(route('store_admin.print.update'), $this->settingsForm(['enabled' => '1', 'bw_enabled' => '0', 'color_enabled' => '1']))->assertSessionHas('status');
+        $this->get(self::HOST.'/fotokopi')->assertSee('&quot;colors&quot;:[&quot;color&quot;]', false)->assertSee('conic-gradient', false);
+        $this->postJson(self::HOST."/fotokopi/dosya/{$file->token}/fiyat", ['color' => 'bw'])->assertStatus(422);
+        $this->get(self::HOST.'/sepet')->assertDontSee('Bu baskı şu anda sipariş edilemiyor');
+    }
+
     public function test_disabled_feature_and_minimum_total_and_settings_page(): void
     {
         $file = $this->upload('Not.pdf', self::pdf(2));

@@ -22,7 +22,7 @@
         </div>
     @endif
 
-    <x-card title="Yeni ödeme kodu" description="Açıklama müşteriye, sepette, siparişte ve faturada görünür. Tutar KDV dahildir ve kod oluşturulduktan sonra değiştirilemez; yanlışsa kodu iptal edip yenisini oluşturun.">
+    <x-card title="Yeni ödeme kodu" description="Açıklama müşteriye, sepette, siparişte ve faturada görünür. Tutar KDV dahildir ve kod oluşturulduktan sonra değiştirilemez; yanlışsa kodu silip yenisini oluşturun.">
         <form method="POST" action="{{ route('store_admin.payment-codes.store') }}" class="grid gap-5 lg:grid-cols-[1fr_12rem_8rem_10rem]">
             @csrf
             <x-field name="title" label="Açıklama" maxlength="150" required placeholder="Örn. 500 sayfa fotokopi, özel fiyat" />
@@ -78,12 +78,25 @@
                                     @endif
                                 </td>
                                 <td class="text-right">
-                                    @if (in_array($codeState, ['active', 'expired'], true))
-                                        <form method="POST" action="{{ route('store_admin.payment-codes.cancel', $code) }}" data-confirm="{{ $code->display() }} kodu iptal edilsin mi? Müşteri bu kodla ödeme yapamaz.">
-                                            @csrf
-                                            <button class="text-sm font-medium text-danger hover:underline">İptal et</button>
-                                        </form>
-                                    @endif
+                                    <div class="flex items-center justify-end gap-3 whitespace-nowrap">
+                                        @if ($codeState !== 'used' && ! $code->is_cancelled)
+                                            <form method="POST" action="{{ route('store_admin.payment-codes.cancel', $code) }}" data-confirm="{{ $code->display() }} kodu pasif edilsin mi? Müşteri bu kodla ödeme yapamaz; istediğiniz zaman yeniden açabilirsiniz.">
+                                                @csrf
+                                                <button class="text-sm font-medium text-ink hover:underline">Pasif et</button>
+                                            </form>
+                                        @elseif ($code->is_cancelled && $codeState !== 'used')
+                                            <form method="POST" action="{{ route('store_admin.payment-codes.reactivate', $code) }}">
+                                                @csrf
+                                                <button class="text-sm font-medium text-primary hover:underline">Yeniden aç</button>
+                                            </form>
+                                        @endif
+                                        @if (PaymentCodeService::deletable($code))
+                                            <form method="POST" action="{{ route('store_admin.payment-codes.destroy', $code) }}" data-confirm="{{ $code->display() }} kodu silinsin mi? Bu işlem geri alınamaz; kod müşterilerin sepetlerinden de kalkar.">
+                                                @csrf @method('DELETE')
+                                                <button class="text-sm font-medium text-danger hover:underline">Sil</button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

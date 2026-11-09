@@ -10,7 +10,14 @@
     use App\Domain\Support\Money;
 
     $last = $settings['tiers'][count($settings['tiers']) - 1];
+    // Açık renkler (makine arızasında biri kapatılabilir); tek renk kalırsa düğmesi ortalanır ve seçili gelir.
+    $colors = array_values(array_filter(['bw', 'color'], fn ($c) => $settings[$c.'_enabled']));
+    $colorButtons = [
+        'bw' => ['Siyah-beyaz', 'bg-gradient-to-br from-slate-200 via-slate-500 to-slate-900'],
+        'color' => ['Renkli', 'bg-[conic-gradient(#ea580c,#facc15,#16a34a,#0284c7,#ea580c)]'],
+    ];
     $config = [
+        'colors' => $colors,
         'urls' => ['start' => route('store.print.start'), 'file' => route('store.print.status', '__T__')],
         'files' => $files,
         'maxBytes' => (int) $settings['max_mb'] * 1024 * 1024,
@@ -58,7 +65,7 @@
                         <p class="mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">Ders notu, ödev, tez, sunum… Sayfa sayısını biz sayalım, fiyatı seçeneklerine göre anında gör. Baskılarını kırtasiye ürünleriyle aynı sepette sipariş et.</p>
                     </div>
                     <div class="flex flex-wrap gap-3 lg:justify-end">
-                        @foreach (['Siyah-beyaz' => $last['bw'], 'Renkli' => $last['color']] as $label => $price)
+                        @foreach (array_intersect_key(['bw' => ['Siyah-beyaz', $last['bw']], 'color' => ['Renkli', $last['color']]], array_flip($colors)) as [$label, $price])
                             <div class="min-w-36 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur">
                                 <p class="text-xs font-medium text-white/60">{{ $label }}</p>
                                 <p class="mt-0.5 font-display text-2xl font-extrabold tabular-nums">{{ Money::format($price) }}<span class="text-sm font-semibold text-white/60">'dan</span></p>
@@ -153,13 +160,12 @@
                                 <div class="grid gap-6 sm:grid-cols-2">
                                     <div role="group" aria-label="Renk">
                                         <p class="text-xs font-bold tracking-wider text-muted uppercase">Renk</p>
-                                        <div class="mt-2 grid grid-cols-2 gap-2">
-                                            <button type="button" class="flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition" :class="{{ $choice('color', 'bw') }}" @click="choose(f, 'color', 'bw')">
-                                                <span class="size-6 shrink-0 rounded-full bg-gradient-to-br from-slate-200 via-slate-500 to-slate-900 ring-2 ring-white" aria-hidden="true"></span> Siyah-beyaz
-                                            </button>
-                                            <button type="button" class="flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition" :class="{{ $choice('color', 'color') }}" @click="choose(f, 'color', 'color')">
-                                                <span class="size-6 shrink-0 rounded-full bg-[conic-gradient(#ea580c,#facc15,#16a34a,#0284c7,#ea580c)] ring-2 ring-white" aria-hidden="true"></span> Renkli
-                                            </button>
+                                        <div @class(['mt-2 gap-2', 'grid grid-cols-2' => count($colors) > 1, 'flex justify-center' => count($colors) === 1])>
+                                            @foreach ($colors as $c)
+                                                <button type="button" @class(['flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-sm font-semibold transition', 'text-left' => count($colors) > 1, 'w-1/2 justify-center' => count($colors) === 1]) :class="{{ $choice('color', $c) }}" @click="choose(f, 'color', '{{ $c }}')">
+                                                    <span class="size-6 shrink-0 rounded-full {{ $colorButtons[$c][1] }} ring-2 ring-white" aria-hidden="true"></span> {{ $colorButtons[$c][0] }}
+                                                </button>
+                                            @endforeach
                                         </div>
                                     </div>
                                     <div role="group" aria-label="Baskı yüzü">
@@ -283,8 +289,8 @@
                             <thead>
                                 <tr class="text-[11px] tracking-wider text-muted uppercase">
                                     <th class="px-5 py-2.5 text-left font-bold">Sayfa sayısı</th>
-                                    <th class="px-2 py-2.5 text-right font-bold">S-B</th>
-                                    <th class="px-5 py-2.5 text-right font-bold">Renkli</th>
+                                    @if ($settings['bw_enabled'])<th @class(['py-2.5 text-right font-bold', 'px-2' => $settings['color_enabled'], 'px-5' => ! $settings['color_enabled']])>S-B</th>@endif
+                                    @if ($settings['color_enabled'])<th class="px-5 py-2.5 text-right font-bold">Renkli</th>@endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -292,14 +298,14 @@
                                     @php $next = $settings['tiers'][$i + 1]['from'] ?? $threshold; @endphp
                                     <tr class="border-t border-line">
                                         <td class="px-5 py-2.5 font-semibold tabular-nums">{{ $next ? $tier['from'].' – '.($next - 1) : $tier['from'].' +' }}</td>
-                                        <td class="px-2 py-2.5 text-right tabular-nums">{{ Money::format($tier['bw']) }}</td>
-                                        <td class="px-5 py-2.5 text-right tabular-nums">{{ Money::format($tier['color']) }}</td>
+                                        @if ($settings['bw_enabled'])<td @class(['py-2.5 text-right tabular-nums', 'px-2' => $settings['color_enabled'], 'px-5' => ! $settings['color_enabled']])>{{ Money::format($tier['bw']) }}</td>@endif
+                                        @if ($settings['color_enabled'])<td class="px-5 py-2.5 text-right tabular-nums">{{ Money::format($tier['color']) }}</td>@endif
                                     </tr>
                                 @endforeach
                                 @if ($threshold)
                                     <tr class="border-t border-line bg-puzzle-yellow-soft">
                                         <td class="px-5 py-2.5 font-semibold tabular-nums">{{ $threshold }} +</td>
-                                        <td colspan="2" class="px-5 py-2.5 text-right text-xs font-bold text-ink">Özel teklif · bize ulaşın</td>
+                                        <td colspan="{{ count($colors) }}" class="px-5 py-2.5 text-right text-xs font-bold text-ink">Özel teklif · bize ulaşın</td>
                                     </tr>
                                 @endif
                             </tbody>

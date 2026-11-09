@@ -11,6 +11,7 @@ use App\Domain\Store\PaymentCodes\PaymentCodeSettings;
 use App\Domain\Store\Returns\ReturnService;
 use App\Domain\Store\Sms\SmsGateway;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
+use App\Models\AuditLog;
 use App\Models\Store\District;
 use App\Models\Store\StoreAdmin;
 use App\Models\Store\StoreCart;
@@ -70,6 +71,30 @@ class StorePaymentCodeTest extends TestCase
         $this->assertSame('cancelled', $code->fresh()->state());
         $this->get(route('store_admin.payment-codes.index', ['durum' => 'cancelled']))->assertSee($code->display());
         $this->get(route('store_admin.payment-codes.index', ['durum' => 'active']))->assertDontSee($code->display());
+    }
+
+    public function test_admin_can_deactivate_reactivate_and_delete_unused_codes(): void
+    {
+        $this->actingAs($this->admin, 'store_admin');
+        $code = $this->code();
+        app(PaymentCodeService::class)->addToCart($this->cart, $code->code);
+        $this->get(route('store_admin.payment-codes.index'))->assertSee('Pasif et')->assertSee('Sil')->assertDontSee('Yeniden aç');
+
+        $this->post(route('store_admin.payment-codes.cancel', $code))->assertSessionHas('status');
+        $this->assertSame('cancelled', $code->fresh()->state());
+        $this->get(route('store_admin.payment-codes.index'))->assertSee('Pasif')->assertSee('Yeniden aç');
+        $this->assertThrows(fn () => app(PaymentCodeService::class)->addToCart(app(CartService::class)->createGuest(), $code->code), DomainException::class, 'kullanıma kapalı');
+
+        $this->post(route('store_admin.payment-codes.reactivate', $code))->assertSessionHas('status');
+        $this->assertSame('active', $code->fresh()->state());
+
+        // Pasif etmeden doğrudan silinir; müşterinin sepetinden de kalkar.
+        $this->delete(route('store_admin.payment-codes.destroy', $code))->assertSessionHas('status');
+        $this->assertModelMissing($code);
+        $this->assertSame(0, $this->cart->items()->count());
+        $this->assertSame(['store.payment_code_cancelled', 'store.payment_code_reactivated', 'store.payment_code_deleted'],
+            AuditLog::where('action', 'like', 'store.payment_code_%')->where('action', '!=', 'store.payment_code_created')->orderBy('id')->pluck('action')->all());
+        $this->get(route('store_admin.activity'))->assertSee('Ödeme kodu silindi')->assertSee('Kod '.$code->code);
     }
 
     public function test_search_finds_code_and_cart_uses_server_amount(): void
@@ -159,6 +184,7 @@ class StorePaymentCodeTest extends TestCase
         $other = app(CartService::class)->createGuest();
         $this->assertThrows(fn () => app(PaymentCodeService::class)->addToCart($other, $code->code), DomainException::class, 'Bu ödeme kodu kullanıldı.');
         $this->assertThrows(fn () => app(PaymentCodeService::class)->cancel($code), DomainException::class);
+        $this->assertThrows(fn () => app(PaymentCodeService::class)->delete($code), DomainException::class, 'siparişte kullanıldığı için silinemez');
 
         // Ödeme kodu kalemi iade talebine girmez; yalnızca kod içeren siparişte müşteriye mağazayla iletişim söylenir.
         $order->update(['status' => 'delivered', 'delivered_at' => now()]);
@@ -169,6 +195,9 @@ class StorePaymentCodeTest extends TestCase
         // Sipariş iptal edilirse kod yeniden kullanılabilir.
         $order->update(['status' => 'cancelled']);
         $this->assertSame('active', $code->fresh()->state());
+        // Siparişte geçmiş kod iptal edilmiş siparişte de kayıt için kalır.
+        $this->assertFalse(PaymentCodeService::deletable($code->fresh()));
+        $this->assertThrows(fn () => app(PaymentCodeService::class)->delete($code), DomainException::class);
 
         $this->actingAs($this->admin, 'store_admin');
         $this->get(route('store_admin.orders.show', $order))->assertOk()->assertSee('Ödeme kodu: tutarı yönetimde belirlendi');

@@ -1338,7 +1338,9 @@ export function productList() {
 export function printOrder(config) {
     const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
     const fileUrl = (token, suffix) => config.urls.file.replace('__T__', token) + (suffix || '');
-    const defaults = () => ({ color: 'bw', duplex: '0', layout: 1, size: 'A4', range: '', copies: 1, binding: 'none', note: '' });
+    // Varsayılan renk: açık olan ilk renk (siyah-beyaz kapalıysa renkli).
+    const defaultColor = (config.colors && config.colors[0]) || 'bw';
+    const defaults = () => ({ color: defaultColor, duplex: '0', layout: 1, size: 'A4', range: '', copies: 1, binding: 'none', note: '' });
     let uid = 0;
     const prepare = (f) => Object.assign({ uid: ++uid, progress: 100, total: null, summary: '', lines: [], special: null, busy: false, added: false, opts: defaults(), timer: null }, f, { error: f.error || '' });
 

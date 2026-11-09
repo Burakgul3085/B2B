@@ -35,6 +35,9 @@
         'store.discount_created' => 'İndirim oluşturuldu', 'store.discount_updated' => 'İndirim güncellendi', 'store.discount_deleted' => 'İndirim silindi',
         'store.activity_deleted' => 'İşlem geçmişi kayıtları silindi', 'store.contact_message_deleted' => 'Mesaj silindi', 'store.contact_messages_deleted' => 'Mesajlar silindi',
         'store.carrier_created' => 'Kargo firması eklendi', 'store.carrier_updated' => 'Kargo firması güncellendi', 'store.carrier_deleted' => 'Kargo firması silindi',
+        'store.payment_code_created' => 'Ödeme kodu oluşturuldu', 'store.payment_code_cancelled' => 'Ödeme kodu pasif edildi',
+        'store.payment_code_reactivated' => 'Ödeme kodu yeniden açıldı', 'store.payment_code_deleted' => 'Ödeme kodu silindi',
+        'store.print_settings_updated' => 'Fotokopi ayarları güncellendi',
     ];
     $entityNames = ['StoreProduct' => 'Ürün', 'StoreProductVariant' => 'Seçenek', 'StoreCategory' => 'Kategori', 'StoreBrand' => 'Marka'];
     $legalTitles = \App\Models\Store\StoreLegalDocument::KEYS;
@@ -66,6 +69,8 @@
                             isset($log->new_values['order_no']) => 'Sipariş '.$log->new_values['order_no'],
                             $log->action === 'store.legal_published' => ($legalTitles[$log->new_values['key'] ?? ''] ?? '').' · sürüm '.($log->new_values['version'] ?? ''),
                             $log->action === 'store.cod_unblocked' => $log->old_values['phone'] ?? null,
+                            str_starts_with($log->action, 'store.payment_code_') => 'Kod '.($log->new_values['code'] ?? $log->old_values['code'] ?? '')
+                                .(isset($log->new_values['title']) ? ' · '.$log->new_values['title'] : (isset($log->old_values['title']) ? ' · '.$log->old_values['title'] : '')),
                             in_array($log->action, ['store.activity_deleted', 'store.contact_messages_deleted'], true) => ($log->new_values['count'] ?? 0).' kayıt',
                             isset($entityNames[$log->entity_type]) => $entityNames[$log->entity_type].' #'.$log->entity_id
                                 .(isset($log->new_values['name']) ? ' · '.$log->new_values['name'] : (isset($log->old_values['name']) ? ' · '.$log->old_values['name'] : ''))

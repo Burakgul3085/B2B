@@ -14,6 +14,12 @@
             <x-card title="Yayın" description="Açıkken üst menüde Fotokopi bağlantısı görünür ve sipariş alınır. Kapatırsanız sepetteki baskılar siparişe dönüşemez.">
                 <div class="space-y-5">
                     <x-toggle name="enabled" label="Fotokopi siparişi açık" :checked="$s['enabled']" />
+                    <div class="grid gap-3 rounded-xl bg-surface p-4 sm:grid-cols-2">
+                        <x-toggle name="bw_enabled" label="Siyah-beyaz baskı açık" :checked="$s['bw_enabled']" />
+                        <x-toggle name="color_enabled" label="Renkli baskı açık" :checked="$s['color_enabled']" />
+                        <p class="text-xs text-muted sm:col-span-2">Bir makine arızalıysa o rengi kapatın; müşteri yalnızca açık olanı seçebilir. En az biri açık olmalıdır.</p>
+                        @error('color_enabled')<p class="text-sm text-danger sm:col-span-2">{{ $message }}</p>@enderror
+                    </div>
                     <x-field name="prep_text" label="Hazırlık bilgisi" :value="$s['prep_text']" maxlength="200" hint="Fotokopi sayfasında gösterilir. Örn. Baskılar 1 iş günü içinde hazırlanır." />
                     <div class="grid gap-5 sm:grid-cols-2">
                         <x-field name="min_total" label="En düşük baskı tutarı (₺)" :value="$money($s['min_total'])" inputmode="decimal" hint="Sepetteki baskıların toplamı bunun altındaysa sipariş verilemez. 0: sınır yok." />

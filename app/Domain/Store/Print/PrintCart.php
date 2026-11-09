@@ -34,6 +34,9 @@ class PrintCart
             throw new DomainException('Belge henüz hazır değil.');
         }
         $options = PrintOptions::fromInput($input, $file->pages, $this->settings);
+        if (! $this->settings->colorEnabled($options->color)) {
+            throw ValidationException::withMessages(['color' => PrintOptions::COLORS[$options->color].' baskı şu anda yapılamıyor. Lütfen diğer seçeneği seçin.']);
+        }
 
         return ['options' => $options, 'quote' => $this->pricing->quote($file->pages, $options)];
     }
@@ -70,7 +73,7 @@ class PrintCart
         $lines = [];
         foreach ($items as $item) {
             $job = $item->printJob;
-            $issue = (! $enabled || ! $job->file->isReady()) ? 'unavailable' : null;
+            $issue = (! $enabled || ! $job->file->isReady() || ! $this->settings->colorEnabled($job->printOptions()->color)) ? 'unavailable' : null;
             if (! $issue) {
                 try {
                     $quote = $this->pricing->quote($job->file->pages, $job->printOptions());

@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Özel ödeme kodları: oluşturma, iptal ve "Aradığınızı bulamadınız mı?" kutusu ayarları. */
+/** Özel ödeme kodları: oluşturma, pasif etme / yeniden açma, silme ve "Aradığınızı bulamadınız mı?" kutusu ayarları. */
 class PaymentCodeController extends Controller
 {
     public function __construct(private PaymentCodeService $codes, private PaymentCodeSettings $settings) {}
@@ -65,7 +65,25 @@ class PaymentCodeController extends Controller
             return back()->withErrors(['payment_code' => $e->getMessage()]);
         }
 
-        return back()->with('status', "{$storePaymentCode->display()} kodu iptal edildi.");
+        return back()->with('status', "{$storePaymentCode->display()} kodu pasif edildi; müşteri bu kodla ödeme yapamaz.");
+    }
+
+    public function reactivate(StorePaymentCode $storePaymentCode): RedirectResponse
+    {
+        $this->codes->reactivate($storePaymentCode);
+
+        return back()->with('status', "{$storePaymentCode->display()} kodu yeniden kullanıma açıldı.");
+    }
+
+    public function destroy(StorePaymentCode $storePaymentCode): RedirectResponse
+    {
+        try {
+            $this->codes->delete($storePaymentCode);
+        } catch (DomainException $e) {
+            return back()->withErrors(['payment_code' => $e->getMessage()]);
+        }
+
+        return back()->with('status', "{$storePaymentCode->display()} kodu silindi.");
     }
 
     public function updateSettings(Request $request): RedirectResponse
