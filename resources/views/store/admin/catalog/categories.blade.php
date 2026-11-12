@@ -1,4 +1,22 @@
-@php use App\Models\Store\StoreCategory; @endphp
+@php
+    use App\Models\Store\StoreCategory;
+
+    // Aç / kapa: düzenlenen kategorinin üstleri ve altına eklenen kategori her zaman açık gelir.
+    $forced = [];
+    for ($c = $editing?->parent_id ? StoreCategory::find($editing->parent_id) : (request()->integer('ust') ? StoreCategory::find(request()->integer('ust')) : null); $c; $c = $c->parent_id ? StoreCategory::find($c->parent_id) : null) {
+        $forced[] = $c->id;
+    }
+    $parentIds = [];
+    $collect = function ($nodes) use (&$collect, &$parentIds) {
+        foreach ($nodes as $n) {
+            if ($n->children->isNotEmpty()) {
+                $parentIds[] = $n->id;
+                $collect($n->children);
+            }
+        }
+    };
+    $collect($tree);
+@endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Kategoriler">
     <x-page-header title="Kategoriler" :subtitle="'Mağaza menüsü ve filtreleri bu ağaçtan oluşur. İstediğiniz kadar alt kategori açabilirsiniz; menüde ilk üç seviye görünür, daha derindekiler kategori sayfasında ve filtrede listelenir.'" />
 
@@ -9,7 +27,15 @@
             @if ($tree->isEmpty())
                 <x-empty-state icon="list" title="Henüz kategori yok" text="Sağdaki formdan ilk kategoriyi ekleyin (ör. Kalemler, Defterler)." />
             @else
-                <ul class="divide-y divide-line">@include('store.admin.catalog._category-branch', ['nodes' => $tree, 'depth' => 0])</ul>
+                <div x-data="categoryTree(@alpine($forced), @alpine($parentIds))">
+                    @if ($parentIds)
+                        <div class="flex justify-end gap-4 border-b border-line px-5 py-2 text-xs font-medium">
+                            <button type="button" class="text-primary hover:underline" @click="openAll()">Tümünü aç</button>
+                            <button type="button" class="text-primary hover:underline" @click="closeAll()">Tümünü kapat</button>
+                        </div>
+                    @endif
+                    <ul class="divide-y divide-line">@include('store.admin.catalog._category-branch', ['nodes' => $tree, 'depth' => 0, 'ancestors' => []])</ul>
+                </div>
             @endif
         </x-card>
 

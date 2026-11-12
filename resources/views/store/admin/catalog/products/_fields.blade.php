@@ -1,7 +1,7 @@
 {{-- Ürün (grup) alanları: $product, $categories, $brands --}}
 <div class="grid gap-5 sm:grid-cols-2">
     <x-field name="name" label="Ürün adı" :value="$product->name" required class="sm:col-span-2" maxlength="200" />
-    <x-field name="category_id" label="Kategori" :options="['' => 'Kategorisiz'] + $categories" :value="$product->category_id" />
+    @include('store.admin.catalog.products._category-picker', ['value' => $product->category_id])
     <x-field name="brand_id" label="Marka" :options="['' => 'Markasız'] + $brands" :value="$product->brand_id" />
     <x-field name="description" label="Açıklama" :value="$product->description" textarea class="sm:col-span-2"
         hint="Ürün sayfasında görünür. Ölçü, içerik, kullanım gibi bilgileri yazın." />

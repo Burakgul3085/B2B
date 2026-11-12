@@ -1824,3 +1824,124 @@ export function brandPicker(library, existing, initial) {
         },
     };
 }
+
+/**
+ * Yönetim → Kategoriler: ağaçta dalları aç / kapa (yalnızca görünüm; kategori durumu değişmez).
+ * Açık dallar tarayıcıda hatırlanır; düzenlenen veya altına eklenen kategorinin dalı her zaman açılır.
+ */
+export function categoryTree(forced, allParents) {
+    const key = 'yonetim.kategori-agaci.acik';
+    let saved = [];
+    try {
+        saved = JSON.parse(window.localStorage.getItem(key) || '[]');
+    } catch {
+        saved = [];
+    }
+    return {
+        open: [...new Set([...(Array.isArray(saved) ? saved : []), ...forced])],
+        isOpen(id) { return this.open.includes(id); },
+        visible(ancestors) { return ancestors.every((id) => this.open.includes(id)); },
+        toggle(id) {
+            this.open = this.isOpen(id) ? this.open.filter((x) => x !== id) : [...this.open, id];
+            this.remember();
+        },
+        openAll() { this.open = [...allParents]; this.remember(); },
+        closeAll() { this.open = []; this.remember(); },
+        remember() {
+            try {
+                window.localStorage.setItem(key, JSON.stringify(this.open));
+            } catch {
+                // Tarayıcı depolaması kapalıysa yalnızca bu sayfada geçerli olur.
+            }
+        },
+    };
+}
+
+/** Arama için Türkçe harfleri sadeleştirir: "Ölçüm" ile "olcum" aynı sayılır. */
+function plainText(text) {
+    const map = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
+    return String(text).toLocaleLowerCase('tr').replace(/[çğıöşüâîû]/g, (ch) => map[ch]);
+}
+
+/**
+ * Aranabilir kategori seçici (mağaza yönetimi ürün formu): adın herhangi bir yerindeki
+ * kelimeyle süzer, ok tuşları ve Enter ile seçilir. Gönderilen değer gizli alandaki kimliktir;
+ * geçerliliği sunucu denetler.
+ */
+export function categoryPicker(options, selected, emptyLabel) {
+    const items = options.map((o) => ({ id: String(o.id), label: o.label, key: plainText(o.label) }));
+    return {
+        q: '',
+        open: false,
+        active: 0,
+        selected: selected === null || selected === undefined ? '' : String(selected),
+        get results() {
+            const words = plainText(this.q).split(/\s+/).filter(Boolean);
+            const found = items.filter((o) => words.every((w) => o.key.includes(w)));
+            return words.length ? found : [{ id: '', label: emptyLabel, key: '' }, ...found];
+        },
+        get currentLabel() {
+            const hit = items.find((o) => o.id === this.selected);
+            return hit ? hit.label : emptyLabel;
+        },
+        get empty() {
+            return this.results.length === 0;
+        },
+        isActive(index) {
+            return this.active === index;
+        },
+        isSelected(id) {
+            return this.selected === id;
+        },
+        show() {
+            this.open = true;
+            this.q = '';
+            this.active = Math.max(0, this.results.findIndex((o) => o.id === this.selected));
+            this.$nextTick(() => {
+                this.$refs.search.focus();
+                this.scrollActive();
+            });
+        },
+        close() {
+            this.open = false;
+        },
+        toggle() {
+            if (this.open) {
+                this.close();
+            } else {
+                this.show();
+            }
+        },
+        typed() {
+            this.active = 0;
+        },
+        down() {
+            this.active = Math.min(this.results.length - 1, this.active + 1);
+            this.scrollActive();
+        },
+        up() {
+            this.active = Math.max(0, this.active - 1);
+            this.scrollActive();
+        },
+        enter() {
+            const hit = this.results[this.active];
+            if (hit) {
+                this.choose(hit.id);
+            }
+        },
+        hover(index) {
+            this.active = index;
+        },
+        choose(id) {
+            this.selected = String(id);
+            this.close();
+            this.$nextTick(() => this.$refs.button.focus());
+        },
+        scrollActive() {
+            this.$nextTick(() => {
+                const el = this.$refs.list?.querySelector('[data-active="true"]');
+                el?.scrollIntoView({ block: 'nearest' });
+            });
+        },
+    };
+}

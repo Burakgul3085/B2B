@@ -202,4 +202,44 @@ class StoreCatalogTest extends TestCase
         $this->get(route('store_admin.products.index'))->assertRedirect(route('store_admin.login'));
         $this->get(route('store_admin.products.edit', $product))->assertRedirect(route('store_admin.login'));
     }
+
+    public function test_category_tree_branches_can_be_collapsed_in_admin(): void
+    {
+        $root = StoreCategory::create(['name' => 'Hediyelik', 'slug' => 'hediyelik']);
+        $child = StoreCategory::create(['name' => 'Parti Malzemeleri', 'slug' => 'parti', 'parent_id' => $root->id]);
+        StoreCategory::create(['name' => 'Mum', 'slug' => 'mum', 'parent_id' => $child->id]);
+
+        // Alt kategorisi olan dalda aç / kapa düğmesi ve alt kategori sayısı; alt satırlar üst dallar açıksa görünür.
+        $this->get(route('store_admin.categories.index'))->assertOk()
+            ->assertSee('Tümünü aç')->assertSee('Tümünü kapat')
+            ->assertSee('toggle('.$root->id.')', false)->assertSee('1 alt kategori')
+            ->assertSee('visible(['.$root->id.','.$child->id.'])', false);
+
+        // Altına eklenen kategorinin dalı açık gelir (üstleriyle birlikte).
+        $this->get(route('store_admin.categories.index', ['ust' => $child->id]))->assertOk()
+            ->assertSee('categoryTree(['.$child->id.','.$root->id.']', false);
+    }
+
+    public function test_product_form_category_is_a_searchable_picker(): void
+    {
+        $root = StoreCategory::create(['name' => 'Kırtasiye', 'slug' => 'kirtasiye']);
+        $leaf = StoreCategory::create(['name' => 'Ölçüm Aletleri', 'slug' => 'olcum', 'parent_id' => $root->id]);
+
+        // Ekleme formu: seçenekler tam yoluyla aranabilir kutuya gelir, gönderilen alan gizli category_id.
+        $this->get(route('store_admin.products.create'))->assertOk()
+            ->assertSee('categoryPicker(', false)->assertSee('Kırtasiye › Ölçüm Aletleri', false)
+            ->assertSee('<input type="hidden" name="category_id" value=""', false)
+            ->assertDontSee('<select id="f_category_id"', false);
+
+        // Düzenleme formu: kayıtlı kategori seçili gelir.
+        $product = $this->createProduct(['category_id' => $leaf->id]);
+        $this->get(route('store_admin.products.edit', $product))->assertOk()
+            ->assertSee('<input type="hidden" name="category_id" value="'.$leaf->id.'"', false);
+
+        // Geçersiz kategori kimliği sunucuda reddedilir.
+        $this->post(route('store_admin.products.store'), [
+            'name' => 'Cetvel', 'category_id' => 999999, 'is_published' => '0',
+            'variant' => ['sku' => 'CTV-1', 'price' => '10', 'vat_rate' => '20'],
+        ])->assertSessionHasErrors('category_id');
+    }
 }
