@@ -9,7 +9,6 @@ use App\Domain\Store\Print\PrintOptions;
 use App\Domain\Store\Print\PrintPricing;
 use App\Domain\Store\Print\PrintSettings;
 use App\Domain\Store\Returns\ReturnService;
-use App\Domain\Store\Sms\SmsGateway;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
 use App\Models\Store\StoreAdmin;
@@ -40,7 +39,7 @@ class StorePrintTest extends TestCase
         parent::setUp();
         Storage::fake('local');
         config(['store.print.chunk_bytes' => 1024]);
-        StoreSetting::put(['is_open' => '1', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
         app(PrintSettings::class)->save(['enabled' => '1'] + $this->settingsForm());
 
         // Belge araçları sahte: Word → PDF çevrimi ve sayfa sayısı sunucudaki LibreOffice / poppler olmadan.
@@ -249,29 +248,12 @@ class StorePrintTest extends TestCase
 
         StoreSetting::put(['cod_enabled' => '1', 'cod_max' => '3000.00', 'cod_fee' => '0.00', 'local_delivery_fee' => '0.00']);
         $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Fotokopi');
-        $sms = [];
-        $this->instance(SmsGateway::class, new class($sms) extends SmsGateway
-        {
-            public static string $last = '';
-
-            public function __construct(array $unused) {}
-
-            public function send(string $phone, string $body, string $purpose, ?string $maskedBody = null): bool
-            {
-                self::$last = $body;
-
-                return true;
-            }
-        });
-        $gateway = app(SmsGateway::class);
         $this->post(self::HOST.'/odeme', [
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '0532 123 45 67', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Odunpazarı')->value('id'), 'neighborhood' => 'Arifiye', 'address_line' => 'Hamamyolu Cad. No 12'],
             'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
-        ])->assertRedirect(route('store.checkout.verify'));
-        preg_match('/\b(\d{6})\b/', $gateway::$last, $m);
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => $m[1]]);
+        ])->assertRedirect();
 
         $order = StoreOrder::firstOrFail();
         $this->assertSame('255.00', $order->subtotal);

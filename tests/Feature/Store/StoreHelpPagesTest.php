@@ -21,7 +21,7 @@ class StoreHelpPagesTest extends TestCase
     {
         parent::setUp();
         config(['store.bot_protection' => false]);
-        StoreSetting::put(['is_open' => '1', 'shipping_cargo_fee' => '59.90', 'shipping_free_threshold' => '750.00', 'transfer_enabled' => '1', 'transfer_days' => '3']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'shipping_cargo_fee' => '59.90', 'shipping_free_threshold' => '750.00', 'transfer_enabled' => '1', 'transfer_days' => '3']);
     }
 
     private function admin(): void

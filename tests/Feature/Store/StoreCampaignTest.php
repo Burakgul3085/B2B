@@ -36,7 +36,7 @@ class StoreCampaignTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00', 'cod_max_open' => '10', 'cod_first_order_approval' => '0']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00', 'cod_max_open' => '10', 'cod_first_order_approval' => '0']);
         $this->pens = StoreCategory::create(['name' => 'Kalemler', 'slug' => 'kalemler']);
         $this->pen = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'category_id' => $this->pens->id, 'is_published' => true])
             ->variants()->create(['sku' => 'JEL-1', 'price' => '100.00', 'vat_rate' => '20']);

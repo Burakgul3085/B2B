@@ -27,7 +27,7 @@ class ResetStoreCatalogTest extends TestCase
     public function test_demo_catalog_orders_and_stock_are_removed_and_the_rest_is_kept(): void
     {
         Storage::fake('local');
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00']);
         $parent = StoreCategory::create(['name' => 'Kalemler', 'slug' => 'kalemler']);
         $child = StoreCategory::create(['name' => 'Jel', 'slug' => 'jel', 'parent_id' => $parent->id]);
         $brand = StoreBrand::create(['name' => 'Adel', 'slug' => 'adel']);

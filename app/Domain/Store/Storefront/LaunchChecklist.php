@@ -6,7 +6,6 @@ use App\Domain\Store\Content\SitePages;
 use App\Domain\Store\Mail\StoreMailer;
 use App\Domain\Store\Orders\LegalDocuments;
 use App\Domain\Store\Payments\IyzicoClient;
-use App\Domain\Store\Sms\SmsGateway;
 use App\Domain\Support\OpsStatus;
 use App\Models\Store\StoreCarrier;
 use App\Models\Store\StoreLegalDocument;
@@ -19,7 +18,7 @@ use App\Models\Store\StoreSetting;
  */
 class LaunchChecklist
 {
-    public function __construct(private IyzicoClient $iyzico, private SmsGateway $sms, private StoreMailer $mailer, private OpsStatus $ops) {}
+    public function __construct(private IyzicoClient $iyzico, private StoreMailer $mailer, private OpsStatus $ops) {}
 
     /** @return list<array{group: string, items: list<array{label: string, status: string, hint: string, route: ?string}>}> */
     public function groups(): array
@@ -58,8 +57,9 @@ class LaunchChecklist
             ['group' => 'Ödeme ve teslimat', 'items' => [
                 $this->item('Kartla ödeme (iyzico)', ! $this->iyzico->isConfigured() ? 'todo' : ($s['iyzico_mode'] === 'live' ? 'ok' : 'warn'),
                     ! $this->iyzico->isConfigured() ? 'API anahtarları girilmedi.' : ($s['iyzico_mode'] === 'live' ? 'Canlı anahtarlar kayıtlı.' : 'Deneme (sandbox) modunda; başvuru onayından sonra canlı anahtarlar girilmeli.'), 'store_admin.payments.edit'),
-                $this->item('Kapıda ödeme SMS doğrulaması', ! $cod ? 'warn' : ($this->sms->isLive() ? 'ok' : 'todo'),
-                    ! $cod ? 'Kapıda ödeme kapalı.' : ($this->sms->isLive() ? 'Netgsm bağlı.' : 'Netgsm bilgileri girilmedi; canlıda kapıda ödeme açılamaz.'), 'store_admin.payments.edit'),
+                $this->item('Teslimatta ödeme (Eskişehir)', $cod ? 'ok' : 'warn',
+                    $cod ? 'Açık; yalnızca Eskişehir\'de mağazadan teslim alda ("Mağazada öde") ve eve teslimde ("Kapıda öde") görünür.'
+                        : 'Kapalı; Eskişehir\'de mağazada veya kapıda nakit / POS ile ödeme alınmıyor.', 'store_admin.payments.edit'),
                 $this->item('Kargo takip bağlantıları', StoreCarrier::where('is_active', true)->get()->contains(fn ($c) => $c->trackingTemplate() !== null) ? 'ok' : 'warn',
                     'En az bir kargo firmasının takip bağlantısı olmalı (bilinen firmalarda kendiliğinden gelir); müşteri kargosunu sipariş sayfasından izler.', 'store_admin.carriers.index'),
                 $this->item('Kargo firması ücretleri', StoreCarrier::where('is_active', true)->whereNotNull('fee')->exists() ? 'ok' : 'warn',

@@ -81,8 +81,8 @@
             <td style="padding-left: 6px;">
                 <div class="box">
                     <div class="k">Ödeme ve teslimat</div>
-                    <div>{{ \App\Models\Store\StoreOrder::PAYMENT_METHODS[$invoice->order->payment_method] ?? $invoice->order->payment_method }}</div>
-                    <div>{{ \App\Models\Store\StoreOrder::DELIVERY_METHODS[$invoice->order->delivery_method] ?? $invoice->order->delivery_method }}</div>
+                    <div>{{ $invoice->order->paymentLabel() }}</div>
+                    <div>{{ $invoice->order->deliveryLabel() }}</div>
                     <div class="small muted" style="margin-top: 3px;">{{ config('store.display_domain') }} üzerinden internet satışı</div>
                 </div>
             </td>

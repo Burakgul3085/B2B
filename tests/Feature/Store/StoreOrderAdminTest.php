@@ -30,7 +30,7 @@ class StoreOrderAdminTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00']);
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true]);
         $this->pen = $product->variants()->create(['sku' => 'JEL-1', 'price' => '50.00', 'vat_rate' => '20']);
         app(StoreStockService::class)->receive($this->pen, 10);
@@ -93,7 +93,7 @@ class StoreOrderAdminTest extends TestCase
         $this->delete(route('store_admin.cod-blocks.destroy', StoreCodBlock::firstOrFail()))->assertSessionHasNoErrors();
         $this->assertSame(0, StoreCodBlock::count());
         $this->get(route('store_admin.activity'))->assertOk()
-            ->assertSee('Sipariş teslim alınmadı')->assertSee('Sipariş '.$order->order_no)->assertSee('Telefon kapıda ödeme engelinden çıkarıldı');
+            ->assertSee('Sipariş teslim alınmadı')->assertSee('Sipariş '.$order->order_no)->assertSee('Telefon teslimatta ödeme engelinden çıkarıldı');
     }
 
     public function test_not_delivered_blocks_the_address_for_other_phones_too(): void
@@ -122,7 +122,7 @@ class StoreOrderAdminTest extends TestCase
             $attempt('05330001122', 'ATATÜRK BLV. No: 5 Daire: 2');
             $this->fail('adres engeli');
         } catch (ValidationException $e) {
-            $this->assertStringContainsString('adresine kapıda ödeme kullanılamıyor', $e->errors()['payment_method'][0]);
+            $this->assertStringContainsString('adresine teslimde ödeme kullanılamıyor', $e->errors()['payment_method'][0]);
         }
         $this->assertSame('cod', $attempt('05330001122', 'İnönü Caddesi No 12 D 4')['payment_method'], 'başka adres serbest');
 
@@ -152,7 +152,7 @@ class StoreOrderAdminTest extends TestCase
         $form = ['shipping_cargo_fee' => '49,90', 'shipping_free_threshold' => '750', 'local_delivery_enabled' => '1', 'local_delivery_fee' => '0',
             'local_districts' => [District::where('province_id', 26)->where('name', 'Tepebaşı')->value('id')],
             'cod_enabled' => '1', 'cod_max' => '2.500,00', 'cod_fee' => '15', 'cod_max_open' => 2, 'cod_first_order_approval' => '1', 'return_days' => 14,
-            'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'iyzico_api_key' => 'api-123', 'iyzico_secret_key' => 'gizli-456', 'sms_driver' => 'log'];
+            'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'iyzico_api_key' => 'api-123', 'iyzico_secret_key' => 'gizli-456'];
 
         $this->put(route('store_admin.payments.update'), ['cod_max' => 'abc'] + $form)->assertSessionHasErrors('cod_max');
         $this->put(route('store_admin.payments.update'), ['local_districts' => []] + $form)->assertSessionHasErrors('local_districts');

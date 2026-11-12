@@ -9,6 +9,7 @@ use App\Models\Store\StoreInvoice;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreReturn;
+use App\Models\Store\StoreSetting;
 
 /**
  * Müşteriye sipariş e-postaları (sistem e-posta hesabıyla). Gönderim yanıt döndükten sonra yapılır;
@@ -18,14 +19,20 @@ class OrderMailer
 {
     public function placed(StoreOrder $order): void
     {
+        $pickup = $order->delivery_method === 'pickup';
+        $payAt = $pickup ? 'Ödemeyi mağazada nakit veya kartla (POS) yapacaksınız.' : 'Ödemeyi kapıda nakit veya kartla (POS) yapacaksınız.';
         $intro = match ($order->payment_method) {
-            'cod' => $order->status === 'awaiting_approval'
-                ? 'Siparişinizi aldık. Kısa süre içinde sizi arayarak teyit edeceğiz; ödemeyi teslimatta yapacaksınız.'
-                : 'Siparişinizi aldık ve hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.',
+            'cod' => ($order->status === 'awaiting_approval'
+                ? 'Siparişinizi aldık. Kısa süre içinde sizi arayarak teyit edeceğiz. '
+                : 'Siparişinizi aldık ve hazırlamaya başladık. ').$payAt,
             'transfer' => self::transferInstructions($order),
             default => 'Ödemeniz alındı, siparişinizi hazırlamaya başladık.',
+        }.($pickup ? ' Siparişiniz mağazamızda teslime hazır olunca size e-posta göndereceğiz.' : '');
+        $bankRows = match (true) {
+            $order->payment_method === 'transfer' => self::bankRows(),
+            $pickup && filled($address = StoreSetting::get('address')) => [['Teslim alacağınız mağaza', $address]],
+            default => [],
         };
-        $bankRows = $order->payment_method === 'transfer' ? self::bankRows() : [];
 
         // Mesafeli Sözleşmeler Yönetmeliği: onaylanan Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi tüketiciye kalıcı
         // veri saklayıcısıyla (e-posta) iletilir; siparişte saklanan, onaylandığı sürümdeki doldurulmuş metinler gönderilir.
@@ -60,6 +67,11 @@ class OrderMailer
 
     public function shipped(StoreOrder $order): void
     {
+        if ($order->delivery_method === 'pickup') {
+            $this->readyForPickup($order);
+
+            return;
+        }
         if ($order->delivery_method !== 'cargo') {
             $this->send($order, "Siparişiniz yolda — {$order->order_no}", 'Siparişiniz yolda', 'Siparişiniz teslimat için yola çıktı.', false, figure: 'kargoda');
 
@@ -76,6 +88,22 @@ class OrderMailer
         $this->send($order, "Kargonuz yola çıktı — {$order->order_no}", 'Kargonuz yola çıktı', $intro, false,
             $order->tracking_url ? [$order->tracking_url, 'Kargonuz nerede?'] : null, [],
             [['Kargo firması', (string) $order->carrier], ['Takip numarası', (string) $order->tracking_number]], 'kargoda');
+    }
+
+    /** Mağazadan teslim al: sipariş hazır; mağaza adresi ve (teslimde ödemede) ödeme bilgisi. */
+    private function readyForPickup(StoreOrder $order): void
+    {
+        $intro = "{$order->order_no} numaralı siparişiniz mağazamızda hazır; dilediğiniz zaman gelip teslim alabilirsiniz. "
+            .($order->payment_method === 'cod'
+                ? 'Ödemeyi ('.Money::format($order->total).') mağazada nakit veya kartla (POS) yapabilirsiniz.'
+                : 'Ödemeniz alındığı için yalnızca sipariş numaranızı söylemeniz yeterli.');
+        $rows = array_values(array_filter([
+            ['Sipariş numarası', $order->order_no],
+            ($address = StoreSetting::get('address')) ? ['Mağaza adresi', $address] : null,
+            ($phone = StoreSetting::get('phone')) ? ['Telefon', $phone] : null,
+        ]));
+
+        $this->send($order, "Siparişiniz mağazada hazır — {$order->order_no}", 'Siparişiniz mağazada hazır', $intro, false, null, [], $rows);
     }
 
     /** Teslim edildi: üyeye ürünleri değerlendirme daveti (misafir sipariş yorum yazamaz). */
@@ -154,7 +182,7 @@ class OrderMailer
                 $rows[] = ['Teslimat', Money::format($order->shipping_fee)];
             }
             if (bccomp((string) $order->cod_fee, '0', 2) > 0) {
-                $rows[] = ['Kapıda ödeme bedeli', Money::format($order->cod_fee)];
+                $rows[] = [$order->paymentLabel().' bedeli', Money::format($order->cod_fee)];
             }
             $rows[] = ['Toplam (KDV dahil)', Money::format($order->total)];
         }

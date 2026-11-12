@@ -233,7 +233,7 @@
                         <dl class="space-y-1.5 text-sm">
                             <div class="flex justify-between gap-3"><dt class="text-muted">Sipariş</dt><dd><a href="{{ route('store_admin.orders.show', $order) }}" class="font-medium text-primary hover:underline">{{ $order->order_no }}</a></dd></div>
                             <div class="flex justify-between gap-3"><dt class="text-muted">Durum</dt><dd>{{ $order->statusLabel() }}</dd></div>
-                            <div class="flex justify-between gap-3"><dt class="text-muted">Ödeme</dt><dd>{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] ?? $order->payment_method }}</dd></div>
+                            <div class="flex justify-between gap-3"><dt class="text-muted">Ödeme</dt><dd>{{ $order->paymentLabel() }}</dd></div>
                             <div class="flex justify-between gap-3"><dt class="text-muted">Ödenen</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>
                             @if (bccomp((string) $order->refunded_total, '0', 2) > 0)<div class="flex justify-between gap-3"><dt class="text-muted">İade edilen</dt><dd class="tabular-nums">{{ Money::format($order->refunded_total) }}</dd></div>@endif
                         </dl>

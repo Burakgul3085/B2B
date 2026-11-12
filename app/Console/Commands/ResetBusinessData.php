@@ -15,7 +15,7 @@ use function Laravel\Prompts\confirm;
 /**
  * Canlıya gerçek verilerle başlamak için mağaza ve B2B'deki tüm iş verisini siler (yalnızca sunucudan, SSH ile).
  * Kalanlar: yöneticiler ve toptancı kullanıcısı, işletme ve mağaza ayarları (ödeme altyapısı, havale/EFT hesapları,
- * fatura, SMS, e-posta), kargo firmaları, yasal metinler, sabit sayfalar, blog, banner'lar, depo/birim/KDV tanımları,
+ * fatura, e-posta), kargo firmaları, yasal metinler, sabit sayfalar, blog, banner'lar, depo/birim/KDV tanımları,
  * işlem geçmişi ve kuyruk. Silinenler: ürün, kategori, marka, stok, sipariş, ödeme, fatura, iade, müşteri, bayi,
  * cari, mesaj ve bunların dosyaları.
  *
@@ -72,9 +72,9 @@ class ResetBusinessData extends Command
         'store_discount_codes', 'store_discount_redemptions', 'store_print_jobs', 'store_print_files',
         // Mağaza: müşteriler ve etkileşim
         'store_customers', 'store_customer_addresses', 'store_carts', 'store_cart_items', 'store_favorites',
-        'store_otp_codes', 'store_reviews', 'store_review_photos', 'store_product_questions', 'store_contact_messages',
+        'store_reviews', 'store_review_photos', 'store_product_questions', 'store_contact_messages',
         'store_contact_replies', 'store_newsletter_subscribers', 'store_newsletter_campaigns',
-        'store_newsletter_deliveries', 'store_sms_messages', 'store_cod_blocklist', 'store_visitor_days',
+        'store_newsletter_deliveries', 'store_cod_blocklist', 'store_visitor_days',
         'store_saved_reports',
     ];
 

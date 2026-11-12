@@ -75,7 +75,7 @@
                             <x-field name="address[last_name]" label="Soyad" :value="$customer?->last_name" required maxlength="60" ::disabled="addressMode !== 'new'" />
                         </div>
                         <x-field name="address[phone]" label="Cep telefonu" type="tel" :value="PhoneNumber::format($customer?->phone)" required placeholder="05xx xxx xx xx" ::disabled="addressMode !== 'new'"
-                            hint="Teslimatta ulaşabilmemiz için; kapıda ödemede doğrulama kodu bu numaraya gönderilir." />
+                            hint="Teslimatta ve sipariş teyidinde size ulaşabilmemiz için." />
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label for="c_province" class="mb-1.5 block text-sm font-medium">İl<span class="text-danger"> *</span></label>
@@ -108,22 +108,36 @@
                 {{-- 3. Teslimat yöntemi --}}
                 <section class="rounded-2xl border border-line p-5 sm:p-6">
                     <h2 class="font-semibold">3. Teslimat</h2>
-                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                        <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="delivery === 'cargo' ? 'border-primary ring-1 ring-primary' : 'border-line'">
-                            <input type="radio" name="delivery_method" value="cargo" x-model="delivery" class="mt-0.5 size-4 text-primary">
+                    <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                        <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" x-show="showCargo" :class="isDelivery('cargo') ? 'border-primary ring-1 ring-primary' : 'border-line'">
+                            <input type="radio" name="delivery_method" value="cargo" x-model="delivery" :disabled="! showCargo" class="mt-0.5 size-4 text-primary">
                             <span><span class="font-semibold">Kargo</span><span class="block text-muted" x-text="cargoLabel"></span>
                                 <template x-if="freeThreshold && ! cargoFree"><span class="block text-xs text-muted" x-text="money(freeThreshold) + ' ve üzeri ücretsiz'"></span></template></span>
                         </label>
-                        <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! isLocal ? 'cursor-not-allowed opacity-50 border-line' : (delivery === 'local' ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
-                            <input type="radio" name="delivery_method" value="local" x-model="delivery" :disabled="! isLocal" class="mt-0.5 size-4 text-primary">
-                            <span><span class="font-semibold">Mağaza teslimatı</span>
-                                <span class="block text-muted" x-text="isLocal ? (positive(localFee) ? money(localFee) : 'Ücretsiz') : 'Yalnızca Eskişehir içi'"></span>
-                                <span class="block text-xs text-muted">Kendi aracımızla, kapıda ödeme seçeneğiyle</span></span>
-                        </label>
+                        @if ($rules['pickupEnabled'])
+                            <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! canPickup ? 'cursor-not-allowed opacity-50 border-line' : (isDelivery('pickup') ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
+                                <input type="radio" name="delivery_method" value="pickup" x-model="delivery" :disabled="! canPickup" class="mt-0.5 size-4 text-primary">
+                                <span><span class="font-semibold">Mağazadan teslim al</span>
+                                    <span class="block text-muted" x-text="pickupLabel"></span>
+                                    <span class="block text-xs text-muted">Hazır olunca e-postayla haber veririz</span></span>
+                            </label>
+                        @endif
+                        @if ($rules['localEnabled'])
+                            <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! canHome ? 'cursor-not-allowed opacity-50 border-line' : (isDelivery('local') ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
+                                <input type="radio" name="delivery_method" value="local" x-model="delivery" :disabled="! canHome" class="mt-0.5 size-4 text-primary">
+                                <span><span class="font-semibold">Eve teslim</span>
+                                    <span class="block text-muted" x-text="homeLabel"></span>
+                                    <span class="block text-xs text-muted" x-text="homeHint"></span></span>
+                            </label>
+                        @endif
                     </div>
+                    @if ($rules['pickupEnabled'] && $rules['storeAddress'])
+                        <p class="mt-4 flex items-start gap-2 rounded-xl bg-surface px-4 py-3 text-sm" x-show="isDelivery('pickup')" x-cloak><x-icon name="map-pin" class="mt-0.5 size-4 shrink-0 text-primary" />
+                            <span><span class="font-semibold">Teslim alacağınız mağaza:</span> {{ $rules['storeAddress'] }}</span></p>
+                    @endif
                     @error('delivery_method')<p class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
                     {{-- Tahmini teslim (Ön Bilgilendirme Formu: süreler ürün ve ödeme sayfalarında belirtilir) --}}
-                    <p class="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted"><x-icon name="clock" class="mt-0.5 size-4 shrink-0" />
+                    <p class="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted" x-show="isDelivery('cargo')"><x-icon name="clock" class="mt-0.5 size-4 shrink-0" />
                         <span>@if ($cargoCutoff)Hafta içi saat <strong>{{ $cargoCutoff }}</strong> öncesi verilen siparişler aynı gün kargoya verilir. @endif @if ($cargoDeliveryTime)Kargoya verilen siparişler genellikle <strong>{{ $cargoDeliveryTime }}</strong> içinde teslim edilir; @else Siparişiniz en geç 30 gün içinde teslim edilir; @endif kargo takip numarası e-postayla gönderilir.</span></p>
 
                     @if ($rules['carriers'] && ! $rules['cargoFree'])
@@ -153,19 +167,22 @@
                 <section class="rounded-2xl border border-line p-5 sm:p-6">
                     <h2 class="font-semibold">4. Ödeme</h2>
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                        <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! cardAvailable ? 'cursor-not-allowed opacity-50 border-line' : (payment === 'card' ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
+                        <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! cardAvailable ? 'cursor-not-allowed opacity-50 border-line' : (isPayment('card') ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
                             <input type="radio" name="payment_method" value="card" x-model="payment" :disabled="! cardAvailable" class="mt-0.5 size-4 text-primary">
-                            <span><span class="font-semibold">Kredi / banka kartı</span>
-                                <span class="block text-muted" x-text="cardAvailable ? 'iyzico güvenli ödeme sayfasında; taksit seçenekleriyle' : 'Şu anda kullanılamıyor'"></span></span>
+                            <span><span class="font-semibold" x-text="cardTitle">Kredi / banka kartı</span>
+                                <span class="block text-muted" x-text="cardReason"></span></span>
                         </label>
-                        <label class="flex gap-3 rounded-xl border p-4 text-sm" :class="! codAllowed ? 'cursor-not-allowed opacity-50 border-line' : (payment === 'cod' ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
-                            <input type="radio" name="payment_method" value="cod" x-model="payment" :disabled="! codAllowed" class="mt-0.5 size-4 text-primary">
-                            <span><span class="font-semibold">Kapıda ödeme</span>
-                                <span class="block text-muted" x-text="codReason"></span></span>
-                        </label>
+                        {{-- Teslimde ödeme yalnızca Eskişehir'de, mağazadan teslim al ve eve teslimde görünür (sunucu da denetler) --}}
+                        @if ($rules['codEnabled'])
+                            <label class="flex gap-3 rounded-xl border p-4 text-sm" x-show="showCod" x-cloak :class="! codAllowed ? 'cursor-not-allowed opacity-50 border-line' : (isPayment('cod') ? 'cursor-pointer border-primary ring-1 ring-primary' : 'cursor-pointer border-line')">
+                                <input type="radio" name="payment_method" value="cod" x-model="payment" :disabled="! codAllowed" class="mt-0.5 size-4 text-primary">
+                                <span><span class="font-semibold" x-text="codTitle"></span>
+                                    <span class="block text-muted" x-text="codReason"></span></span>
+                            </label>
+                        @endif
                         @if ($rules['transferAvailable'])
-                            <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" :class="payment === 'transfer' ? 'border-primary ring-1 ring-primary' : 'border-line'">
-                                <input type="radio" name="payment_method" value="transfer" x-model="payment" class="mt-0.5 size-4 text-primary">
+                            <label class="flex cursor-pointer gap-3 rounded-xl border p-4 text-sm" x-show="transferAllowed" :class="isPayment('transfer') ? 'border-primary ring-1 ring-primary' : 'border-line'">
+                                <input type="radio" name="payment_method" value="transfer" x-model="payment" :disabled="! transferAllowed" class="mt-0.5 size-4 text-primary">
                                 <span><span class="font-semibold">Havale / EFT</span>
                                     <span class="block text-muted">Hesap bilgileri sipariş sonrası gösterilir; ödeme {{ \App\Domain\Store\Payments\BankTransfer::days() }} gün içinde yapılır</span>
                                     <span class="mt-2 flex flex-wrap items-center gap-2">
@@ -246,7 +263,7 @@
                         <p class="text-xs text-green-800">{{ $discount->label() }}: teslimat ücretsiz.</p>
                     @endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums" x-text="positive(shippingFee) ? money(shippingFee) : 'Ücretsiz'"></dd></div>
-                    <div class="flex justify-between" x-show="payment === 'cod' && positive(codFee)" x-cloak><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums" x-text="money(codFee)"></dd></div>
+                    <div class="flex justify-between" x-show="payment === 'cod' && positive(codFee)" x-cloak><dt class="text-muted" x-text="codFeeLabel"></dt><dd class="tabular-nums" x-text="money(codFee)"></dd></div>
                 </dl>
                 <div class="flex justify-between border-t border-line pt-4 text-base font-bold"><span>Toplam</span><span class="tabular-nums" x-text="money(total)"></span></div>
                 <p class="text-xs text-muted">Fiyatlara KDV dahildir.</p>

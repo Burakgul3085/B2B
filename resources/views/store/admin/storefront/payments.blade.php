@@ -1,6 +1,6 @@
 @php $s = $settings; $money = fn ($v) => $v === null ? '' : number_format((float) $v, 2, ',', ''); @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Ödeme ve Teslimat">
-    <x-page-header title="Ödeme ve Teslimat" subtitle="Teslimat ücretleri, Eskişehir mağaza teslimatı, kapıda ödeme kuralları, kartla ödeme (iyzico) ve SMS (Netgsm). Tutarlar KDV dahildir." />
+    <x-page-header title="Ödeme ve Teslimat" subtitle="Kargo, mağazadan teslim al, Eskişehir eve teslim, teslimatta ödeme, kartla ödeme (iyzico) ve havale / EFT. Tutarlar KDV dahildir." />
 
     <form method="POST" action="{{ route('store_admin.payments.update') }}" class="space-y-6">
         @csrf @method('PUT')
@@ -14,12 +14,24 @@
                 </div>
             </x-card>
 
-            <x-card title="Mağaza teslimatı (Eskişehir)" description="Kendi aracınızla teslimat. Kapıda ödeme yalnızca bu teslimatla kullanılabilir.">
+            <x-card title="Mağazadan teslim al (Eskişehir)" description="Eskişehir adresli müşteri siparişini mağazadan ücretsiz teslim alır. Hazır olunca siparişte “Teslime hazır” deyin; müşteriye mağaza adresiyle e-posta gider.">
                 <div class="space-y-5">
-                    <x-toggle name="local_delivery_enabled" label="Mağaza teslimatı açık" :checked="$s['local_delivery_enabled'] === '1'" />
-                    <x-field name="local_delivery_fee" label="Teslimat ücreti (₺)" :value="$money($s['local_delivery_fee'])" inputmode="decimal" class="max-w-48" />
+                    <x-toggle name="pickup_enabled" label="Mağazadan teslim al açık" :checked="$s['pickup_enabled'] === '1'" />
+                    <p class="text-sm text-muted">Mağaza adresi: <span class="font-medium text-ink">{{ $s['address'] ?: 'girilmedi' }}</span> — Mağaza Ayarları'ndan değiştirilir; ödeme sayfasında ve e-postada gösterilir.</p>
+                </div>
+            </x-card>
+
+            <x-card title="Eve teslim (Eskişehir)" description="Seçili ilçelerde kendi aracınızla adrese teslim. En düşük tutarın altındaki siparişte seçilemez; ücretsiz sınırın altında teslimat ücreti alınır.">
+                <div class="space-y-5">
+                    <x-toggle name="local_delivery_enabled" label="Eve teslim açık" :checked="$s['local_delivery_enabled'] === '1'" />
+                    <div class="grid gap-5 sm:grid-cols-3">
+                        <x-field name="local_min_total" label="En düşük sipariş (₺)" :value="$money($s['local_min_total'])" inputmode="decimal" hint="Altında eve teslim seçilemez. Boşsa sınır yok." />
+                        <x-field name="local_delivery_fee" label="Teslimat ücreti (₺)" :value="$money($s['local_delivery_fee'])" inputmode="decimal" hint="Ücretsiz sınırın altındaki siparişlerde." />
+                        <x-field name="local_free_threshold" label="Ücretsiz teslimat sınırı (₺)" :value="$money($s['local_free_threshold'])" inputmode="decimal" hint="Bu tutar ve üzeri ücretsiz. Boşsa her zaman ücretli." />
+                    </div>
+                    <x-toggle name="local_hide_cargo" label="Eve teslim yapılabilen adreste kargo seçeneğini gösterme" :checked="$s['local_hide_cargo'] === '1'" hint="Kapalıysa bu ilçelerde müşteri kargoyu da seçebilir." />
                     <fieldset>
-                        <legend class="text-sm font-medium">Teslimat yapılan ilçeler</legend>
+                        <legend class="text-sm font-medium">Eve teslim yapılan ilçeler</legend>
                         <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                             @foreach ($districts as $id => $name)
                                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="local_districts[]" value="{{ $id }}" @checked(in_array($id, $selectedDistricts, true)) class="size-4 rounded text-primary"> {{ $name }}</label>
@@ -30,14 +42,14 @@
                 </div>
             </x-card>
 
-            <x-card title="Kapıda ödeme" description="Yalnızca Eskişehir'deki mağaza teslimatında. Müşteri telefonuna gelen SMS koduyla siparişi doğrular.">
+            <x-card title="Teslimatta ödeme" description="Yalnızca Eskişehir'de, mağazadan teslim al ve eve teslimde görünür. Müşteri mağazadan teslim alda “Mağazada öde”, eve teslimde “Kapıda öde” görür; ödeme nakit veya POS ile alınır. Kargoda ve Eskişehir dışında hiç gösterilmez.">
                 <div class="space-y-5">
-                    <x-toggle name="cod_enabled" label="Kapıda ödeme açık" :checked="$s['cod_enabled'] === '1'" :hint="$smsLive ? null : 'SMS şu anda geliştirme modunda (günlüğe yazılıyor). Canlıda Netgsm bilgileri girilmeden açılamaz.'" />
+                    <x-toggle name="cod_enabled" label="Teslimatta ödeme açık" :checked="$s['cod_enabled'] === '1'" />
                     @error('cod_enabled')<p class="text-sm text-danger">{{ $message }}</p>@enderror
                     <div class="grid gap-5 sm:grid-cols-3">
-                        <x-field name="cod_min" label="En düşük tutar (₺)" :value="$money($s['cod_min'])" inputmode="decimal" />
-                        <x-field name="cod_max" label="En yüksek tutar (₺)" :value="$money($s['cod_max'])" inputmode="decimal" />
-                        <x-field name="cod_fee" label="Hizmet bedeli (₺)" :value="$money($s['cod_fee'])" inputmode="decimal" />
+                        <x-field name="cod_min" label="En düşük tutar (₺)" :value="$money($s['cod_min'])" inputmode="decimal" hint="Boşsa sınır yok." />
+                        <x-field name="cod_max" label="En yüksek tutar (₺)" :value="$money($s['cod_max'])" inputmode="decimal" hint="Bu tutarın üstünde yalnızca kartla ödenir. Boşsa sınır yok." />
+                        <x-field name="cod_fee" label="Hizmet bedeli (₺)" :value="$money($s['cod_fee'])" inputmode="decimal" hint="Genellikle 0." />
                     </div>
                     <x-field name="cod_max_open" label="Aynı telefonda en fazla açık sipariş" type="number" min="1" max="10" :value="$s['cod_max_open']" class="max-w-48" />
                     <x-toggle name="cod_first_order_approval" label="İlk siparişte telefonla teyit (sipariş 'Onay bekliyor' düşer)" :checked="$s['cod_first_order_approval'] === '1'" />
@@ -89,20 +101,6 @@
                         hint="Bu sürede ödenmeyen sipariş kendiliğinden iptal edilir ve ürünler stoğa döner." />
                 </div>
             </x-card>
-
-            <x-card title="SMS (Netgsm)" :description="$smsLive ? 'Netgsm bilgileri kayıtlı; SMS gerçekten gönderilir.' : 'Netgsm hesabı açıldığında bilgileri girip sürücüyü Netgsm yapın.'">
-                <div class="space-y-5">
-                    <x-field name="sms_driver" label="Gönderim" :options="['log' => 'Geliştirme (SMS gönderilmez, günlüğe yazılır)', 'netgsm' => 'Netgsm']" :value="$s['sms_driver']" />
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        <x-field name="netgsm_usercode" label="Kullanıcı kodu" :value="$s['netgsm_usercode']" autocomplete="off" />
-                        <x-field name="netgsm_header" label="Mesaj başlığı" :value="$s['netgsm_header']" maxlength="20" hint="Netgsm'de onaylı başlık (ör. YAPBOZ)." />
-                    </div>
-                    <div class="flex items-end gap-3">
-                        <x-field name="netgsm_password" label="Şifre" type="password" autocomplete="new-password" class="flex-1" :hint="$secrets['netgsm_password'] ? 'Kayıtlı. Boş bırakırsanız korunur.' : 'Kayıtlı değil.'" />
-                        @if ($secrets['netgsm_password'])<button form="sil-netgsm_password" class="mb-7 text-sm text-danger hover:underline">Sil</button>@endif
-                    </div>
-                </div>
-            </x-card>
         </div>
         <x-button>Kaydet</x-button>
     </form>
@@ -111,7 +109,7 @@
     @endforeach
 
     <div class="mt-8 grid gap-6 xl:grid-cols-2">
-        <x-card title="Kapıda ödeme engel listesi" description="Teslim almayan müşterilerin telefonları ve teslimat adresleri. Bu numaralarla veya bu adreslere yalnızca kartla ödeme yapılabilir." :padding="false">
+        <x-card title="Teslimatta ödeme engel listesi" description="Teslim almayan müşterilerin telefonları ve teslimat adresleri. Bu numaralarla veya bu adreslere yalnızca internetten kartla ödeme yapılabilir." :padding="false">
             @if ($blocklist->isEmpty())
                 <p class="p-5 text-sm text-muted">Liste boş.</p>
             @else
@@ -121,19 +119,6 @@
                             <span><span class="font-medium">{{ \App\Domain\Store\Customers\PhoneNumber::format($block->phone) }}</span><span class="block text-xs text-muted">{{ $block->reason }}</span>@if ($block->address_label)<span class="block text-xs text-muted">Adres: {{ $block->address_label }}</span>@endif</span>
                             <form method="POST" action="{{ route('store_admin.cod-blocks.destroy', $block) }}" data-confirm="Engel kaldırılsın mı?">@csrf @method('DELETE')<button class="text-sm text-primary hover:underline">Kaldır</button></form>
                         </li>
-                    @endforeach
-                </ul>
-            @endif
-        </x-card>
-        <x-card title="Son SMS'ler" :padding="false">
-            @if ($smsLog->isEmpty())
-                <p class="p-5 text-sm text-muted">Henüz SMS yok.</p>
-            @else
-                <ul class="divide-y divide-line text-sm">
-                    @foreach ($smsLog as $sms)
-                        <li class="px-5 py-3"><span class="font-medium">{{ \App\Domain\Store\Customers\PhoneNumber::format($sms->phone) }}</span>
-                            <x-badge :tone="$sms->status === 'sent' ? 'success' : 'danger'" class="ml-2">{{ $sms->driver }} · {{ $sms->status }}</x-badge>
-                            <span class="block text-xs text-muted">{{ $sms->body }}@if ($sms->error) — {{ $sms->error }}@endif</span></li>
                     @endforeach
                 </ul>
             @endif

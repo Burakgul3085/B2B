@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Store\Front;
 
 use App\Domain\Store\Cart\CartService;
-use App\Domain\Store\Customers\PhoneNumber;
 use App\Domain\Store\Discounts\DiscountService;
 use App\Domain\Store\Inventory\InsufficientStoreStock;
 use App\Domain\Store\Orders\CheckoutService;
@@ -13,7 +12,6 @@ use App\Domain\Store\Orders\LegalDocuments;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\PaymentService;
 use App\Domain\Store\Print\PrintSettings;
-use App\Domain\Store\Sms\OtpService;
 use App\Domain\Support\Decimal;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
@@ -32,9 +30,9 @@ use Illuminate\View\View;
 /**
  * Ödeme akışı:
  *  - Kart: sipariş oluşur (stok ayrılır) → iyzico ödeme sayfası → geri dönüşte sonuç iyzico'dan sorgulanır.
- *  - Kapıda ödeme: taslak oturuma alınır → telefona SMS kodu → kod doğrulanınca sepet ve tutar yeniden denetlenir
- *    ve sipariş oluşur.
- *  - Havale / EFT: sipariş hemen oluşur; sipariş sayfasında hesap bilgileri ve son ödeme zamanı gösterilir.
+ *  - Teslimde ödeme (yalnızca Eskişehir; mağazada veya kapıda nakit / POS): uygunluk sunucuda denetlenir, sipariş
+ *    hemen oluşur (ilk siparişte yönetici telefonla teyit eder).
+ *  - Havale / EFT (yalnızca kargoda): sipariş hemen oluşur; sipariş sayfasında hesap bilgileri ve son ödeme zamanı gösterilir.
  *
  * Çift gönderim koruması: form her açılışta tek kullanımlık bir anahtar (submit_token) taşır; aynı anahtarla gelen ikinci
  * istek (çift tıklama, geri tuşu, yanıtı kaybolan istek) yeni sipariş açmaz, ilk siparişe (kartta ödeme sayfasına) döner.
@@ -42,8 +40,6 @@ use Illuminate\View\View;
  */
 class CheckoutController extends Controller
 {
-    private const DRAFT_KEY = 'checkout.cod_draft';
-
     /** Aynı IP veya e-postadan aynı anda en fazla bu kadar ödenmemiş kart siparişi (stok kilitlenmesine karşı). */
     private const MAX_PENDING_CARD = 3;
 
@@ -87,8 +83,13 @@ class CheckoutController extends Controller
                 'shippingWaived' => (bool) $discount?->freeShipping,
                 'carriers' => $delivery->carrierChoices()->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'fee' => (string) $c->fee, 'logo' => $c->logoUrl()])->values()->all(),
                 'freeThreshold' => $threshold,
+                'pickupEnabled' => StoreSetting::flag('pickup_enabled'),
+                'storeAddress' => StoreSetting::get('address'),
                 'localEnabled' => StoreSetting::flag('local_delivery_enabled'),
-                'localFee' => $discount?->freeShipping ? '0.00' : (Decimal::parse(StoreSetting::get('local_delivery_fee'), 2) ?? '0.00'),
+                'localFee' => $discount?->freeShipping ? '0.00' : $delivery->localFee($net),
+                'localMin' => $delivery->localMinTotal(),
+                'localFreeThreshold' => $delivery->localFreeThreshold(),
+                'hideCargo' => StoreSetting::flag('local_hide_cargo'),
                 'localProvince' => Province::ESKISEHIR,
                 'localDistricts' => $delivery->localDistrictIds(),
                 'codEnabled' => StoreSetting::flag('cod_enabled'),
@@ -102,7 +103,7 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request, PaymentService $payments, OtpService $otp): RedirectResponse
+    public function store(Request $request, PaymentService $payments): RedirectResponse
     {
         $customer = $request->user('customer');
         $cart = $this->current->find($request) ?? abort(404);
@@ -120,18 +121,8 @@ class CheckoutController extends Controller
         }
         $draft['submit_token'] = $token;
 
-        if ($draft['payment_method'] === 'cod') {
-            try {
-                $otp->send($draft['phone'], 'cod', $request->ip());
-            } catch (DomainException $e) {
-                return back()->withErrors(['payment_method' => $e->getMessage()])->withInput();
-            }
-            $request->session()->put(self::DRAFT_KEY, ['draft' => $draft, 'expires' => now()->addMinutes(15)->timestamp]);
-
-            return redirect()->route('store.checkout.verify');
-        }
-
-        if ($draft['payment_method'] === 'transfer') {
+        // Teslimde ödeme ve havale: ödeme sonra alınır, sipariş hemen oluşur (uygunluk validate() içinde denetlendi).
+        if (in_array($draft['payment_method'], ['cod', 'transfer'], true)) {
             try {
                 $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
             } catch (UniqueConstraintViolationException) {
@@ -168,87 +159,6 @@ class CheckoutController extends Controller
         }
 
         return redirect()->away($url);
-    }
-
-    public function verifyForm(Request $request): View|RedirectResponse
-    {
-        if (! $draft = $this->draft($request)) {
-            return redirect()->route('store.checkout');
-        }
-
-        return view('store.front.checkout-verify', [
-            'phone' => PhoneNumber::format($draft['phone']),
-            'total' => $draft['total'],
-            // Geliştirmede SMS gönderilmez; kod uygulama günlüğüne yazılır.
-            'smsLogged' => StoreSetting::get('sms_driver') !== 'netgsm',
-        ]);
-    }
-
-    public function verify(Request $request, OtpService $otp, CodPolicy $cod): RedirectResponse
-    {
-        $draft = $this->draft($request);
-        if (! $draft) {
-            return redirect()->route('store.checkout')->withErrors(['payment_method' => 'Doğrulama süresi doldu. Lütfen siparişi yeniden onaylayın.']);
-        }
-        $code = (string) $request->validate(['code' => ['required', 'string', 'max:10']], [], ['code' => 'doğrulama kodu'])['code'];
-
-        try {
-            $otp->verify($draft['phone'], 'cod', $code);
-        } catch (DomainException $e) {
-            return back()->withErrors(['code' => $e->getMessage()]);
-        }
-
-        $customer = $request->user('customer');
-        $cart = $this->current->find($request);
-        $summary = $this->carts->summary($cart);
-        $lines = [...array_map(fn ($l) => [$l->variant->id, $l->quantity(), $l->unitPrice()], $summary->orderable()),
-            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->printsOrderable()),
-            ...array_map(fn ($l) => [null, 1, $l->total()], $summary->codesOrderable())];
-        $expected = array_map(fn ($l) => [$l['variant_id'], $l['quantity'], $l['unit_price']], $draft['lines']);
-
-        // Kod beklenirken sepet, fiyat veya kapıda ödeme uygunluğu değiştiyse sipariş oluşturulmaz.
-        if (! $cart || $summary->hasIssues() || $lines !== $expected
-            || $cod->refusal($draft['delivery_method'], $draft['shipping']['province_id'], $draft['shipping']['district_id'], $draft['total'], $draft['phone'],
-                CodPolicy::addressKey($draft['shipping']['district_id'], $draft['shipping']['neighborhood'], $draft['shipping']['address']))) {
-            $request->session()->forget(self::DRAFT_KEY);
-
-            return redirect()->route('store.cart')->withErrors(['cart' => 'Sepetiniz veya sipariş koşulları değişti. Lütfen kontrol edip yeniden onaylayın.']);
-        }
-
-        if (! empty($draft['submit_token']) && ($existing = StoreOrder::where('submit_token', $draft['submit_token'])->first())) {
-            $request->session()->forget(self::DRAFT_KEY);
-
-            return $this->orderRedirect($existing); // aynı doğrulama ikinci kez gönderildi
-        }
-
-        try {
-            $order = $this->checkout->place($draft, $customer, $cart, $request->ip(), $request->userAgent());
-        } catch (UniqueConstraintViolationException) {
-            $request->session()->forget(self::DRAFT_KEY);
-
-            return $this->orderRedirect(StoreOrder::where('submit_token', $draft['submit_token'])->firstOrFail());
-        } catch (InsufficientStoreStock) {
-            return redirect()->route('store.cart')->withErrors(['cart' => 'Bazı ürünlerin stoğu az önce değişti. Sepetinizi kontrol edin.']);
-        } catch (DomainException $e) { // ör. kupon kullanım sınırı bu arada doldu
-            $request->session()->forget(self::DRAFT_KEY);
-
-            return redirect()->route('store.cart')->withErrors(['cart' => $e->getMessage()]);
-        }
-        $request->session()->forget(self::DRAFT_KEY);
-
-        return redirect()->route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token])->with('order_placed', true);
-    }
-
-    public function resend(Request $request, OtpService $otp): RedirectResponse
-    {
-        $draft = $this->draft($request) ?? abort(404);
-        try {
-            $otp->send($draft['phone'], 'cod', $request->ip());
-        } catch (DomainException $e) {
-            return back()->withErrors(['code' => $e->getMessage()]);
-        }
-
-        return back()->with('status', 'Yeni doğrulama kodu gönderildi.');
     }
 
     /**
@@ -314,12 +224,5 @@ class CheckoutController extends Controller
         return app()->isProduction()
             ? 'https://'.config('store.domain').route('store.payment.callback', absolute: false)
             : route('store.payment.callback');
-    }
-
-    private function draft(Request $request): ?array
-    {
-        $data = $request->session()->get(self::DRAFT_KEY);
-
-        return $data && $data['expires'] > now()->timestamp ? $data['draft'] : null;
     }
 }

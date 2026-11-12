@@ -9,7 +9,6 @@ use App\Domain\Store\Orders\OrderService;
 use App\Domain\Store\PaymentCodes\PaymentCodeService;
 use App\Domain\Store\PaymentCodes\PaymentCodeSettings;
 use App\Domain\Store\Returns\ReturnService;
-use App\Domain\Store\Sms\SmsGateway;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\AuditLog;
 use App\Models\Store\District;
@@ -39,7 +38,7 @@ class StorePaymentCodeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'phone' => '0222 111 22 33', 'whatsapp' => '0532 000 00 00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'phone' => '0222 111 22 33', 'whatsapp' => '0532 000 00 00']);
         $this->admin = StoreAdmin::create(['name' => 'Yönetici', 'email' => 'yonetici@ornek.com', 'password' => 'Gizli-Parola-123', 'is_super' => true]);
         $this->cart = app(CartService::class)->createGuest();
         $this->withCookie(CurrentCart::COOKIE, $this->cart->token)->withCredentials();
@@ -147,29 +146,13 @@ class StorePaymentCodeTest extends TestCase
         app(PaymentCodeService::class)->addToCart($this->cart, $code->code);
 
         StoreSetting::put(['cod_enabled' => '1', 'cod_max' => '3000.00', 'cod_fee' => '0.00', 'local_delivery_enabled' => '1', 'local_delivery_fee' => '0.00']);
-        $gateway = new class extends SmsGateway
-        {
-            public static string $last = '';
-
-            public function __construct() {}
-
-            public function send(string $phone, string $body, string $purpose, ?string $maskedBody = null): bool
-            {
-                self::$last = $body;
-
-                return true;
-            }
-        };
-        $this->instance(SmsGateway::class, $gateway);
         $this->get(self::HOST.'/odeme')->assertOk()->assertSee('Özel ödeme: 500 sayfa fotokopi, özel fiyat')->assertSee('₺450,00');
         $this->post(self::HOST.'/odeme', [
             'email' => 'ayse@ornek.com',
             'address' => ['first_name' => 'Ayşe', 'last_name' => 'Yılmaz', 'phone' => '0532 123 45 67', 'province_id' => 26,
                 'district_id' => District::where('province_id', 26)->where('name', 'Odunpazarı')->value('id'), 'neighborhood' => 'Arifiye', 'address_line' => 'Hamamyolu Cad. No 12'],
             'billing_type' => 'individual', 'billing_tckn' => '10000000146', 'billing_same' => '1', 'delivery_method' => 'local', 'payment_method' => 'cod', 'consent' => '1',
-        ])->assertRedirect(route('store.checkout.verify'));
-        preg_match('/\b(\d{6})\b/', $gateway::$last, $m);
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => $m[1]]);
+        ])->assertRedirect();
 
         $order = StoreOrder::firstOrFail();
         $this->assertSame(['550.00', '550.00'], [$order->subtotal, $order->total]);

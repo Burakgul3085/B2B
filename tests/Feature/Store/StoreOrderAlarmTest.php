@@ -27,7 +27,7 @@ class StoreOrderAlarmTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00']);
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true]);
         $this->pen = $product->variants()->create(['sku' => 'JEL-1', 'price' => '50.00', 'vat_rate' => '20']);
         app(StoreStockService::class)->receive($this->pen, 10);

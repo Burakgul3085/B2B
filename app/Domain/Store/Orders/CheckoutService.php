@@ -37,8 +37,10 @@ use Illuminate\Validation\ValidationException;
  * Ödeme sayfası: girdiyi doğrular, tutarları sunucuda yeniden hesaplar ve siparişi oluşturur.
  * Tarayıcıdan gelen fiyat veya tutar kullanılmaz (CLAUDE.md). Adres, fatura ve fiyatlar siparişe kopyalanır.
  *  - Kart: stok 20 dakika ayrılır, sipariş "ödeme bekleniyor" olur, ödeme iyzico'da alınır.
- *  - Kapıda: SMS doğrulamasından sonra stok hemen satışa düşer; sipariş "onay bekliyor" veya "hazırlanıyor" olur.
- *  - Havale: stok hemen satışa düşer, sipariş "havale bekleniyor" olur; yönetici ödemeyi görünce onaylar (BankTransfer).
+ *  - Teslimde ödeme (yalnızca Eskişehir: mağazadan teslim al → mağazada, eve teslim → kapıda; nakit / POS): stok hemen
+ *    satışa düşer; sipariş "onay bekliyor" (ilk siparişte telefonla teyit) veya "hazırlanıyor" olur.
+ *  - Havale (yalnızca kargoyla gönderimde): stok hemen satışa düşer, sipariş "havale bekleniyor" olur; yönetici ödemeyi
+ *    görünce onaylar (BankTransfer).
  */
 class CheckoutService
 {
@@ -180,6 +182,9 @@ class CheckoutService
             if (! BankTransfer::available()) {
                 throw ValidationException::withMessages(['payment_method' => 'Havale / EFT ile ödeme şu anda kullanılamıyor.']);
             }
+            if ($deliveryMethod !== 'cargo') {
+                throw ValidationException::withMessages(['payment_method' => 'Havale / EFT yalnızca kargoyla gönderimde kullanılabilir. Şimdi internetten kartla ödeyebilirsiniz.']);
+            }
         } elseif ($paymentMethod === 'cod') {
             $codFee = $this->cod->fee();
             $total = bcadd(bcadd($net, $shippingFee, 2), $codFee, 2);
@@ -283,7 +288,7 @@ class CheckoutService
     }
 
     /**
-     * Siparişi oluşturur. Kartta stok ayrılır; kapıda ödeme ve havalede stok satışa düşer ve sepet boşaltılır.
+     * Siparişi oluşturur. Kartta stok ayrılır; teslimde ödeme ve havalede stok satışa düşer ve sepet boşaltılır.
      *
      * @throws DomainException (stok yetersizse InsufficientStoreStock)
      */
@@ -379,7 +384,7 @@ class CheckoutService
 
             $this->recordConsents($order, $draft, $shippingAddressText, $ip);
             $this->orders->event($order, $order->status, match (true) {
-                $isCod => 'Kapıda ödemeli sipariş oluşturuldu (SMS ile doğrulandı).',
+                $isCod => StoreOrder::paymentLabelFor('cod', $draft['delivery_method']).' ile sipariş oluşturuldu'.($needsApproval ? '; telefonla teyit bekleniyor.' : '.'),
                 $isTransfer => 'Sipariş oluşturuldu; havale / EFT bekleniyor (son gün '.BankTransfer::deadline($order)->timezone('Europe/Istanbul')->format('d.m.Y H:i').').',
                 default => 'Sipariş oluşturuldu; ödeme bekleniyor.',
             });
@@ -488,7 +493,7 @@ class CheckoutService
             'cod_fee' => $draft['cod_fee'],
             'discount' => ($draft['discount_total'] ?? '0.00') !== '0.00' ? ['name' => $draft['discount']['name'], 'amount' => $draft['discount_total']] : null,
             'total' => $draft['total'],
-            'payment' => StoreOrder::PAYMENT_METHODS[$draft['payment_method']],
+            'payment' => StoreOrder::paymentLabelFor($draft['payment_method'], $draft['delivery_method']),
             'delivery' => StoreOrder::DELIVERY_METHODS[$draft['delivery_method']].(isset($draft['carrier']['name']) ? " ({$draft['carrier']['name']})" : ''),
         ];
     }

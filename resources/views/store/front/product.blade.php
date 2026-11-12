@@ -198,8 +198,8 @@
                         @elseif ($info['cargo_fee'])Kargo ücreti {{ Money::format($info['cargo_fee']) }}{{ $info['cargo_from'] ? "'den başlar" : '' }}.
                         @else Türkiye geneline kargo ile gönderim.@endif
                     </span></li>
-                    @if ($info['local'])
-                        <li class="flex gap-3 px-4 py-3"><x-icon name="map-pin" class="size-5 shrink-0 text-puzzle-green" /><span>Eskişehir içinde kendi aracımızla teslimat.</span></li>
+                    @if ($info['local'] || $info['pickup'])
+                        <li class="flex gap-3 px-4 py-3"><x-icon name="map-pin" class="size-5 shrink-0 text-puzzle-green" /><span>Eskişehir içinde {{ $info['local'] && $info['pickup'] ? 'eve teslim veya mağazadan ücretsiz teslim alma' : ($info['local'] ? 'kendi aracımızla eve teslim' : 'mağazadan ücretsiz teslim alma') }}.</span></li>
                     @endif
                     <li class="flex gap-3 px-4 py-3"><x-icon name="refresh" class="size-5 shrink-0 text-puzzle-yellow" /><span>Teslimattan sonra {{ $info['return_days'] }} gün içinde iade hakkı.</span></li>
                 </ul>
@@ -231,7 +231,7 @@
                 </div>
             @endif
             <div x-show="is('teslimat')" @if ($product->description) x-cloak @endif role="tabpanel" class="max-w-3xl space-y-3 py-6 text-sm leading-relaxed text-slate-700 sm:text-base">
-                <p>Siparişiniz ödeme onayından sonra hazırlanır ve kargoya verilir; kargo takip numarası e-posta ile gönderilir.@if ($info['local']) Eskişehir'deki adreslere kendi aracımızla da teslim ediyoruz.@endif</p>
+                <p>Siparişiniz ödeme onayından sonra hazırlanır ve kargoya verilir; kargo takip numarası e-posta ile gönderilir.@if ($info['local']) Eskişehir'deki adreslere kendi aracımızla da teslim ediyoruz.@endif @if ($info['pickup']) Eskişehir'de siparişinizi mağazamızdan da teslim alabilirsiniz.@endif</p>
                 <p>Teslim aldığınız ürünü {{ $info['return_days'] }} gün içinde, kullanılmamış ve yeniden satılabilir durumda iade edebilirsiniz. İade talebini hesabınızdaki sipariş sayfasından açabilirsiniz.</p>
                 <p><a href="{{ route('store.legal', 'iptal-iade') }}" class="font-semibold text-navy-ink underline-offset-4 hover:underline">İptal ve İade Koşulları</a></p>
             </div>

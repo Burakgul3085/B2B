@@ -37,7 +37,7 @@ class StoreOrderEmailTest extends TestCase
                 return true;
             }
         });
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_first_order_approval' => '0', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_first_order_approval' => '0', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
         $variant = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true])
             ->variants()->create(['sku' => 'JEL-1', 'price' => '50.00', 'vat_rate' => '20']);
         app(StoreStockService::class)->receive($variant, 5);

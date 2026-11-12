@@ -22,7 +22,7 @@ class HelpPages
         'help' => ['Yardım Merkezi', 'yardim', 'Yardım konularına giden kutucuklar.'],
         'faq' => ['Sıkça Sorulan Sorular', 'sss', 'Soru ve cevaplar; gruplara ayrılır.'],
         'shipping' => ['Sipariş ve Teslimat', 'siparis-ve-teslimat', 'Kargo ücreti, ücretsiz kargo sınırı ve teslimat seçenekleri ayarlardan otomatik yazılır.'],
-        'payment' => ['Ödeme Seçenekleri', 'odeme-secenekleri', 'Kart, taksit, havale ve kapıda ödeme ayarlardan otomatik yazılır.'],
+        'payment' => ['Ödeme Seçenekleri', 'odeme-secenekleri', 'Kart, taksit, havale ve Eskişehir içi mağazada / kapıda ödeme ayarlardan otomatik yazılır.'],
         'tracking' => ['Kargo Takip', 'kargo-takip', 'Sipariş numarası ve e-postayla sipariş durumu.'],
         'legal' => ['Yasal Haklar ve Sözleşmeler', 'yasal-haklar', 'Tüm yasal metinlerin listesi.'],
     ];
@@ -65,7 +65,7 @@ class HelpPages
                 'tiles' => [
                     ['icon' => 'message-circle', 'title' => 'Sıkça sorulan sorular', 'text' => 'Sipariş, kargo, ödeme ve iade hakkında merak edilenler.', 'link' => 'faq'],
                     ['icon' => 'truck', 'title' => 'Sipariş ve teslimat', 'text' => 'Kargo ücreti, teslim süresi ve Eskişehir teslimatı.', 'link' => 'shipping'],
-                    ['icon' => 'percent', 'title' => 'Ödeme seçenekleri', 'text' => 'Kart, taksit, havale ve kapıda ödeme.', 'link' => 'payment'],
+                    ['icon' => 'percent', 'title' => 'Ödeme seçenekleri', 'text' => 'Kart, taksit, havale; Eskişehir\'de mağazada veya kapıda ödeme.', 'link' => 'payment'],
                     ['icon' => 'package', 'title' => 'Kargo takip', 'text' => 'Siparişinizin nerede olduğunu öğrenin.', 'link' => 'tracking'],
                     ['icon' => 'refresh', 'title' => 'İptal ve iade', 'text' => 'İade koşulları ve iade talebi.', 'link' => 'legal:iptal-iade'],
                     ['icon' => 'phone', 'title' => 'Bize ulaşın', 'text' => 'Telefon, WhatsApp ve iletişim formu.', 'link' => 'contact'],

@@ -153,7 +153,7 @@ class OrderService
     public function ship(StoreOrder $order, ?int $carrierId, ?string $tracking): void
     {
         $extra = ['shipped_at' => now()];
-        $note = 'Teslimat için yola çıktı.';
+        $note = $order->delivery_method === 'pickup' ? 'Mağazada teslime hazır.' : 'Teslimat için yola çıktı.';
         if ($order->delivery_method === 'cargo') {
             $carrier = $carrierId ? StoreCarrier::where('is_active', true)->find($carrierId) : null;
             $tracking = trim((string) $tracking);
@@ -170,7 +170,7 @@ class OrderService
     }
 
     /**
-     * Teslim edildi. Kapıda ödemede tahsilat türü (nakit / kapıda kart) zorunludur.
+     * Teslim edildi. Teslimde ödemede tahsilat türü (nakit / POS ile kart) zorunludur.
      *
      * @throws DomainException
      */
@@ -179,29 +179,32 @@ class OrderService
         $extra = ['delivered_at' => now()];
         if ($order->payment_method === 'cod') {
             if (! in_array($collectedMethod, ['cash', 'card'], true)) {
-                throw new DomainException('Tahsilat türünü seçin (nakit veya kapıda kart).');
+                throw new DomainException('Tahsilat türünü seçin (nakit veya POS).');
             }
             $extra += ['payment_status' => 'collected', 'collected_method' => $collectedMethod];
         }
 
         $this->transition($order, ['shipped'], 'delivered', $extra,
-            $order->payment_method === 'cod' ? 'Teslim edildi, ödeme tahsil edildi ('.($collectedMethod === 'cash' ? 'nakit' : 'kapıda kart').').' : 'Teslim edildi.',
+            $order->payment_method === 'cod'
+                ? 'Teslim edildi, ödeme '.($order->delivery_method === 'pickup' ? 'mağazada' : 'kapıda').' tahsil edildi ('.($collectedMethod === 'cash' ? 'nakit' : 'POS ile kart').').'
+                : 'Teslim edildi.',
             'store.order_delivered');
         $this->mailer->delivered($order);
         if ($order->payment_method === 'cod') {
-            $this->invoices->draftOnPayment($order); // kapıda ödemede ödeme teslimde alınır
+            $this->invoices->draftOnPayment($order); // teslimde ödemede ödeme teslimde alınır
         }
     }
 
     /**
-     * Kapıda ödemeli sipariş teslim alınmadı: stok iade edilir, telefon kapıda ödeme engel listesine girer.
+     * Teslimde ödemeli sipariş teslim alınmadı (kapıda alınmadı veya mağazaya gelinmedi): stok iade edilir, telefon ve
+     * adres teslimatta ödeme engel listesine girer.
      *
      * @throws DomainException
      */
     public function notDelivered(StoreOrder $order, string $reason): void
     {
         if ($order->payment_method !== 'cod') {
-            throw new DomainException('Bu işlem yalnızca kapıda ödemeli siparişler içindir.');
+            throw new DomainException('Bu işlem yalnızca teslimde ödemeli siparişler içindir.');
         }
 
         DB::transaction(function () use ($order, $reason) {

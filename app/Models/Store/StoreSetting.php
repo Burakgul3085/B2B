@@ -68,11 +68,15 @@ class StoreSetting extends Model
         'shipping_free_threshold' => null,   // bu tutar ve üzeri kargo ücretsiz
         'cargo_cutoff' => null,              // SS:DD; hafta içi bu saatten önceki siparişler aynı gün kargoda (boşsa gösterilmez)
         'cargo_delivery_time' => '2–3 iş günü', // kargoya verildikten sonra tahmini teslim süresi (boşsa yasal en geç 30 gün yazılır)
-        'local_delivery_enabled' => '1',     // Eskişehir'de kendi aracımızla teslimat
-        'local_delivery_fee' => '0.00',
+        'pickup_enabled' => '1',             // Eskişehir adreslerinde "Mağazadan teslim al" (her zaman ücretsiz)
+        'local_delivery_enabled' => '1',     // Eskişehir'in seçili ilçelerinde kendi aracımızla eve teslim
+        'local_delivery_fee' => '0.00',      // eve teslim ücreti (ücretsiz sınırın altında)
+        'local_min_total' => '250.00',       // eve teslim için en düşük sipariş tutarı (boşsa sınır yok)
+        'local_free_threshold' => '500.00',  // bu tutar ve üzeri eve teslim ücretsiz (boşsa uygulanmaz)
+        'local_hide_cargo' => '1',           // eve teslim yapılabilen adreste kargo seçeneği gösterilmez
         'local_districts' => null,           // virgülle ilçe kimlikleri; boşsa Eskişehir'in tüm ilçeleri
 
-        // Kapıda ödeme (yalnızca kendi teslimatımızla, Eskişehir)
+        // Teslimatta ödeme (yalnızca Eskişehir: mağazadan teslim alda "mağazada", eve teslimde "kapıda" nakit / POS)
         'cod_enabled' => '0',
         'cod_min' => null,
         'cod_max' => '3000.00',
@@ -112,12 +116,6 @@ class StoreSetting extends Model
         'transfer_accounts' => null,
         'transfer_days' => '3',
 
-        // SMS (Netgsm). log: geliştirmede kod günlüğe yazılır, SMS gönderilmez.
-        'sms_driver' => 'log',
-        'netgsm_usercode' => null,
-        'netgsm_password' => null,
-        'netgsm_header' => null,
-
         // e-Fatura / e-Arşiv (Ayarlar → Fatura). deneme: sahte numara ve PDF üretir, hiçbir yere gönderilmez.
         // Fatura otomatik kesilmez; yönetici Faturalar ekranından tek tek gönderir. Şifre şifreli saklanır.
         'invoice_driver' => 'deneme',        // deneme | uyumsoft
@@ -132,7 +130,7 @@ class StoreSetting extends Model
     ];
 
     /** Veritabanında şifreli tutulan anahtarlar. */
-    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'netgsm_password', 'mail_password', 'uyumsoft_password'];
+    public const SECRETS = ['iyzico_api_key', 'iyzico_secret_key', 'mail_password', 'uyumsoft_password'];
 
     private const CACHE_KEY = 'store.settings.saved';
 

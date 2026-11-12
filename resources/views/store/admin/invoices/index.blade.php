@@ -65,7 +65,7 @@
                                         <p class="text-xs text-muted">{{ $at($order->paid_at ?? $order->created_at) }} · {{ $order->statusLabel() }}</p>
                                     </td>
                                     <td>{{ $order->billing_name }}<p class="text-xs text-muted">{{ $order->billing_type === 'corporate' ? 'Kurumsal · VKN '.$order->billing_tax_number : 'Bireysel' }}</p></td>
-                                    <td class="text-sm">{{ \App\Models\Store\StoreOrder::PAYMENT_METHODS[$order->payment_method] ?? $order->payment_method }}
+                                    <td class="text-sm">{{ $order->paymentLabel() }}
                                         @if ($tab === 'iade')<p class="text-xs text-muted">{{ bccomp((string) $order->refunded_total, '0', 2) > 0 ? 'İade: '.Money::format($order->refunded_total) : 'İptal edildi' }} · Fatura {{ $order->invoice?->invoice_no }}</p>@endif
                                         @foreach ($order->eInvoices as $rejected)
                                             <p class="mt-1 max-w-xs text-xs text-danger">Önceki belge {{ $rejected->invoice_no }} Uyumsoft'ta reddedildi; yeniden hazırlayın.</p>

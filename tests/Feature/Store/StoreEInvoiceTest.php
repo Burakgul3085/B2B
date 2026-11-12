@@ -55,7 +55,7 @@ class StoreEInvoiceTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local');
-        StoreSetting::put(['is_open' => '1', 'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'shipping_cargo_fee' => '50.00',
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'shipping_cargo_fee' => '50.00',
             'company_title' => 'Ebru Birbilen – Yapboz Kırtasiye', 'company_tax_office' => 'Eskişehir Vergi Dairesi', 'company_tax_number' => '1770247133',
             'address' => 'Kurtuluş Mah. Ziya Paşa Cad. No 26 B ODUNPAZARI / ESKİŞEHİR']);
         StoreSetting::putSecret('iyzico_api_key', 'sandbox-api-key');

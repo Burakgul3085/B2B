@@ -31,7 +31,7 @@ class StoreComplianceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'return_days' => '30', 'address' => 'Hamamyolu Cad. No 1 Eskişehir']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.', 'return_days' => '30', 'address' => 'Hamamyolu Cad. No 1 Eskişehir']);
     }
 
     public function test_legal_pages_footer_and_cookie_banner(): void

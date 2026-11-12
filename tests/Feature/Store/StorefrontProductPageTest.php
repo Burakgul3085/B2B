@@ -89,7 +89,7 @@ class StorefrontProductPageTest extends TestCase
     public function test_cargo_cutoff_is_validated_and_saved(): void
     {
         $this->actingAs(StoreAdmin::create(['name' => 'V', 'email' => 'v@magaza.local', 'password' => self::PASSWORD]), 'store_admin');
-        $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox', 'sms_driver' => 'log'];
+        $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox'];
 
         $this->put(route('store_admin.payments.update'), $base + ['cargo_cutoff' => '25:00'])->assertSessionHasErrors('cargo_cutoff');
         $this->put(route('store_admin.payments.update'), $base + ['cargo_cutoff' => '14:30', 'cargo_delivery_time' => ' 1–2 iş günü '])->assertSessionHasNoErrors();

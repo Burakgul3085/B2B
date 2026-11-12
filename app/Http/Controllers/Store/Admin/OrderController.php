@@ -108,7 +108,7 @@ class OrderController extends Controller
     {
         $reason = (string) $request->validate(['reason' => ['required', 'string', 'max:200']], [], ['reason' => 'gerekçe'])['reason'];
 
-        return $this->attempt(fn () => $this->orders->notDelivered($storeOrder, $reason), 'Teslim alınmadı olarak işaretlendi; ürünler stoğa döndü, telefon kapıda ödeme engel listesine eklendi.');
+        return $this->attempt(fn () => $this->orders->notDelivered($storeOrder, $reason), 'Teslim alınmadı olarak işaretlendi; ürünler stoğa döndü, telefon teslimatta ödeme engel listesine eklendi.');
     }
 
     public function cancel(Request $request, StoreOrder $storeOrder): RedirectResponse
@@ -181,7 +181,7 @@ class OrderController extends Controller
     {
         $this->orders->unblockPhone($storeCodBlock);
 
-        return back()->with('status', 'Telefon kapıda ödeme engel listesinden çıkarıldı.');
+        return back()->with('status', 'Telefon teslimatta ödeme engel listesinden çıkarıldı.');
     }
 
     private function attempt(callable $action, string $message): RedirectResponse

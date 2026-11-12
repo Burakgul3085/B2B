@@ -8,12 +8,15 @@ use App\Models\Store\StoreOrder;
 use App\Models\Store\StoreSetting;
 
 /**
- * Kapıda ödeme uygunluğu (docs/13-magaza-mimarisi.md §8.4). Yalnızca mağaza teslimatıyla (Eskişehir'in seçili
- * ilçeleri) kullanılabilir; tutar sınırları, açık sipariş sınırı ve teslim almayanlar listesi denetlenir.
- * Kurallar her istekte sunucuda yeniden denetlenir; ekranda gizlemek yeterli sayılmaz.
+ * Teslimatta ödeme uygunluğu (docs/13-magaza-mimarisi.md §8.4). Yalnızca Eskişehir'de kullanılabilir:
+ * mağazadan teslim alda "mağazada öde", eve teslimde (seçili ilçeler) "kapıda öde"; ödeme nakit veya POS ile alınır.
+ * Kargoyla gönderimde (ve Eskişehir dışında) hiç kullanılamaz. Tutar sınırları, aynı telefonda açık sipariş sınırı ve
+ * teslim almayanlar listesi denetlenir. Kurallar her istekte sunucuda yeniden denetlenir; ekranda gizlemek yeterli sayılmaz.
  */
 class CodPolicy
 {
+    public const OUTSIDE_ESKISEHIR = "Kapıda ve mağazada ödeme yalnızca Eskişehir'de geçerlidir.";
+
     public function __construct(private DeliveryRules $delivery) {}
 
     /**
@@ -23,32 +26,38 @@ class CodPolicy
      */
     public function refusal(string $deliveryMethod, int $provinceId, int $districtId, string $total, string $phone, ?string $addressKey = null): ?string
     {
-        if (! StoreSetting::flag('cod_enabled')) {
-            return 'Kapıda ödeme şu anda kullanılamıyor.';
+        $eligible = match ($deliveryMethod) {
+            'pickup' => $this->delivery->isEskisehir($provinceId),
+            'local' => $this->delivery->isLocal($provinceId, $districtId),
+            default => false,
+        };
+        if (! $eligible) {
+            return self::OUTSIDE_ESKISEHIR;
         }
-        if ($deliveryMethod !== 'local' || ! $this->delivery->isLocal($provinceId, $districtId)) {
-            return 'Kapıda ödeme yalnızca Eskişehir içinde mağaza teslimatında geçerlidir.';
+        $label = StoreOrder::paymentLabelFor('cod', $deliveryMethod);
+        if (! StoreSetting::flag('cod_enabled')) {
+            return $label.' şu anda kullanılamıyor.';
         }
 
         $min = Decimal::parse(StoreSetting::get('cod_min'), 2);
         $max = Decimal::parse(StoreSetting::get('cod_max'), 2);
         if ($min !== null && bccomp($total, $min, 2) < 0) {
-            return 'Kapıda ödeme için sipariş tutarı en az '.number_format((float) $min, 2, ',', '.').' ₺ olmalıdır.';
+            return $label.' için sipariş tutarı en az '.number_format((float) $min, 2, ',', '.').' ₺ olmalıdır.';
         }
         if ($max !== null && bccomp($max, '0', 2) > 0 && bccomp($total, $max, 2) > 0) {
-            return 'Kapıda ödeme '.number_format((float) $max, 2, ',', '.').' ₺ ve altındaki siparişlerde geçerlidir.';
+            return $label.' '.number_format((float) $max, 2, ',', '.').' ₺ ve altındaki siparişlerde geçerlidir.';
         }
 
         if (StoreCodBlock::where('phone', $phone)->exists()) {
-            return 'Bu telefon numarasıyla kapıda ödeme kullanılamıyor. Kartla ödeyebilirsiniz.';
+            return 'Bu telefon numarasıyla teslimde ödeme kullanılamıyor. Şimdi internetten kartla ödeyebilirsiniz.';
         }
         if ($addressKey && StoreCodBlock::where('address_key', $addressKey)->exists()) {
-            return 'Bu teslimat adresine kapıda ödeme kullanılamıyor. Kartla ödeyebilirsiniz.';
+            return 'Bu teslimat adresine teslimde ödeme kullanılamıyor. Şimdi internetten kartla ödeyebilirsiniz.';
         }
 
         $maxOpen = max(1, (int) (StoreSetting::get('cod_max_open') ?? 1));
         if (StoreOrder::where('payment_method', 'cod')->where('phone', $phone)->whereIn('status', StoreOrder::OPEN)->count() >= $maxOpen) {
-            return 'Teslim edilmemiş kapıda ödemeli siparişiniz var. Yeni siparişte kartla ödeyebilirsiniz.';
+            return 'Teslim edilmemiş, teslimde ödemeli siparişiniz var. Yeni siparişte internetten kartla ödeyebilirsiniz.';
         }
 
         return null;
@@ -70,7 +79,7 @@ class CodPolicy
         return hash('sha256', $districtId.'|'.implode('', $words));
     }
 
-    /** İlk kapıda ödemeli siparişte (ve ayar açıksa) yönetici teyidi istenir. */
+    /** İlk teslimde ödemeli siparişte (ve ayar açıksa) yönetici telefonla teyit eder. */
     public function needsApproval(string $phone): bool
     {
         return StoreSetting::flag('cod_first_order_approval')

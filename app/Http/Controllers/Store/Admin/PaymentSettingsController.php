@@ -5,22 +5,20 @@ namespace App\Http\Controllers\Store\Admin;
 use App\Domain\Store\Payments\BankTransfer;
 use App\Domain\Store\Payments\IyzicoClient;
 use App\Domain\Store\Payments\PaymentSettings;
-use App\Domain\Store\Sms\SmsGateway;
 use App\Domain\Support\Payments\TurkishBanks;
 use App\Http\Controllers\Controller;
 use App\Models\Store\District;
 use App\Models\Store\Province;
 use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreSetting;
-use App\Models\Store\StoreSmsMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Ödeme ve Teslimat: kargo/mağaza teslimatı ücretleri, kapıda ödeme kuralları, iyzico ve Netgsm ayarları. */
+/** Ödeme ve Teslimat: kargo, mağazadan teslim al, eve teslim kuralları, teslimatta ödeme, iyzico ve havale ayarları. */
 class PaymentSettingsController extends Controller
 {
-    public function edit(IyzicoClient $iyzico, SmsGateway $sms): View
+    public function edit(IyzicoClient $iyzico): View
     {
         $selected = array_filter(array_map('intval', explode(',', (string) StoreSetting::get('local_districts'))));
 
@@ -32,9 +30,7 @@ class PaymentSettingsController extends Controller
             'bankRows' => array_map(fn ($a) => ['bank' => $a['bank'], 'holder' => $a['holder'], 'iban' => BankTransfer::formatIban($a['iban'])], BankTransfer::accounts()),
             'banks' => TurkishBanks::forBrowser(),
             'iyzicoReady' => $iyzico->isConfigured(),
-            'smsLive' => $sms->isLive(),
             'blocklist' => StoreCodBlock::latest('id')->limit(50)->get(),
-            'smsLog' => StoreSmsMessage::latest('id')->limit(10)->get(),
         ]);
     }
 

@@ -120,7 +120,7 @@
                         <thead><tr><th>Ödeme</th><th>Teslimat</th><th class="text-right">Sipariş</th><th class="text-right">Tutar</th></tr></thead>
                         <tbody class="divide-y divide-line">
                             @foreach ($methods as $m)
-                                <tr><td>{{ StoreOrder::PAYMENT_METHODS[$m->payment_method] ?? $m->payment_method }}</td><td>{{ StoreOrder::DELIVERY_METHODS[$m->delivery_method] ?? $m->delivery_method }}</td>
+                                <tr><td>{{ StoreOrder::paymentLabelFor($m->payment_method, $m->delivery_method) }}</td><td>{{ StoreOrder::DELIVERY_METHODS[$m->delivery_method] ?? $m->delivery_method }}</td>
                                     <td class="text-right tabular-nums">{{ $m->orders }}</td><td class="text-right tabular-nums">{{ Money::format($m->gross) }}</td></tr>
                             @endforeach
                         </tbody>

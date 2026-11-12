@@ -133,7 +133,7 @@ class ClearTestOrdersTest extends TestCase
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'category_id' => $category->id, 'brand_id' => $brand->id, 'is_published' => true]);
         $variant = $product->variants()->create(['sku' => 'JEL-1', 'price' => '50.00', 'vat_rate' => '20']);
         app(StoreStockService::class)->receive($variant, 10);
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00']);
 
         $carts = app(CartService::class);
         $cart = $carts->createGuest();

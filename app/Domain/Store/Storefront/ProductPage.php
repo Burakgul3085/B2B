@@ -30,6 +30,7 @@ class ProductPage
             'cutoff' => StoreSetting::get('cargo_cutoff'),
             'delivery_time' => StoreSetting::get('cargo_delivery_time'),
             'local' => StoreSetting::flag('local_delivery_enabled'),
+            'pickup' => StoreSetting::flag('pickup_enabled'),
             'return_days' => (int) StoreSetting::get('return_days'),
             'perks' => StoreFooter::config()['strip'],
             'whatsapp' => self::whatsapp(StoreSetting::get('whatsapp')),

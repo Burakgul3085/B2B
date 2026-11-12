@@ -83,7 +83,7 @@ class StoreFooter
             $items[] = ['truck', Money::format($threshold).' üzeri ücretsiz kargo'];
         }
         if (StoreSetting::flag('local_delivery_enabled')) {
-            $items[] = ['map-pin', 'Eskişehir içi mağaza teslimatı'];
+            $items[] = ['map-pin', 'Eskişehir içi eve teslim'];
         }
         $items[] = ['lock', 'Güvenli alışveriş'];
 
@@ -91,7 +91,7 @@ class StoreFooter
     }
 
     /**
-     * Kayan şeridin maddeleri: yönetimde yazılanlar; yoksa ayarlardan (ücretsiz kargo, taksit, mağaza teslimatı, güvenli ödeme).
+     * Kayan şeridin maddeleri: yönetimde yazılanlar; yoksa ayarlardan (ücretsiz kargo, taksit, Eskişehir eve teslim, güvenli ödeme).
      *
      * @return list<array{icon: string, text: string, badge: ?string}>
      */
@@ -119,7 +119,7 @@ class StoreFooter
             $items[] = ['icon' => 'percent', 'text' => 'Kredi kartına', 'badge' => 'Taksit imkânı'];
         }
         if ($s['local_delivery_enabled'] === '1') {
-            $items[] = ['icon' => 'map-pin', 'text' => 'Eskişehir içi', 'badge' => 'Mağaza teslimatı'];
+            $items[] = ['icon' => 'map-pin', 'text' => 'Eskişehir içi', 'badge' => 'Eve teslim'];
         }
         if ($s['cargo_cutoff']) {
             $items[] = ['icon' => 'clock', 'text' => 'Hafta içi '.$s['cargo_cutoff'].' öncesi siparişlerde', 'badge' => 'Aynı gün kargo'];

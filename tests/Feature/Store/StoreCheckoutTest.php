@@ -6,7 +6,6 @@ use App\Domain\Store\Cart\CartService;
 use App\Domain\Store\Inventory\StoreStockService;
 use App\Domain\Store\Orders\CheckoutService;
 use App\Domain\Store\Orders\LegalDocuments;
-use App\Domain\Store\Sms\SmsGateway;
 use App\Http\Controllers\Store\Front\Concerns\CurrentCart;
 use App\Models\Store\District;
 use App\Models\Store\StoreCart;
@@ -14,7 +13,6 @@ use App\Models\Store\StoreCodBlock;
 use App\Models\Store\StoreCustomer;
 use App\Models\Store\StoreLegalDocument;
 use App\Models\Store\StoreOrder;
-use App\Models\Store\StoreOtpCode;
 use App\Models\Store\StoreProduct;
 use App\Models\Store\StoreProductVariant;
 use App\Models\Store\StoreSetting;
@@ -22,18 +20,16 @@ use App\Models\Store\StoreStockMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/** Ödeme akışı (M6): sözleşme onayı, tutarın sunucuda hesaplanması, kapıda ödeme + SMS, iyzico kart ödemesi. */
+/** Ödeme akışı (M6): sözleşme onayı, tutarın sunucuda hesaplanması, teslimde ödeme (Eskişehir, SMS'siz), iyzico kart ödemesi. */
 class StoreCheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
     private const HOST = 'http://magaza.localhost';
-
-    /** @var list<array{phone: string, body: string}> */
-    private array $sms = [];
 
     private StoreProductVariant $pen;
 
@@ -42,21 +38,7 @@ class StoreCheckoutTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
-
-        // SMS'i yakalayan sahte gönderici (kod veritabanında yalnızca özet olarak tutulduğu için).
-        $test = $this;
-        $this->instance(SmsGateway::class, new class($test) extends SmsGateway
-        {
-            public function __construct(private $test) {}
-
-            public function send(string $phone, string $body, string $purpose, ?string $maskedBody = null): bool
-            {
-                $this->test->captureSms($phone, $body);
-
-                return true;
-            }
-        });
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'company_title' => 'Yapboz Kırtasiye Ltd. Şti.']);
 
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true]);
         $this->pen = $product->variants()->create(['sku' => 'JEL-1', 'price' => '100.00', 'vat_rate' => '20']);
@@ -65,18 +47,6 @@ class StoreCheckoutTest extends TestCase
         $this->cart = app(CartService::class)->createGuest();
         app(CartService::class)->add($this->cart, $this->pen->id, 2);
         $this->withCookie(CurrentCart::COOKIE, $this->cart->token);
-    }
-
-    public function captureSms(string $phone, string $body): void
-    {
-        $this->sms[] = ['phone' => $phone, 'body' => $body];
-    }
-
-    private function lastCode(): string
-    {
-        preg_match('/\b(\d{6})\b/', end($this->sms)['body'], $m);
-
-        return $m[1];
     }
 
     private function district(int $province, string $name): int
@@ -133,9 +103,14 @@ class StoreCheckoutTest extends TestCase
         $this->post(self::HOST.'/odeme', $this->form())->assertSessionHasErrors(['payment_method' => 'Kapıda ödeme şu anda kullanılamıyor.']);
 
         $this->enableCod();
-        // Ankara adresine mağaza teslimatı ve kapıda ödeme yok.
+        // Ankara adresine eve teslim, mağazadan teslim al ve teslimde ödeme yok.
         $this->post(self::HOST.'/odeme', $this->form([], 6, 'Çankaya'))->assertSessionHasErrors('delivery_method');
-        $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'cargo'], 6, 'Çankaya'))->assertSessionHasErrors('payment_method');
+        $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'pickup'], 6, 'Çankaya'))->assertSessionHasErrors('delivery_method');
+        $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'cargo'], 6, 'Çankaya'))
+            ->assertSessionHasErrors(['payment_method' => "Kapıda ve mağazada ödeme yalnızca Eskişehir'de geçerlidir."]);
+        // Eskişehir'de de kargoyla gönderimde teslimde ödeme yok.
+        $this->post(self::HOST.'/odeme', $this->form(['delivery_method' => 'cargo']))
+            ->assertSessionHasErrors(['payment_method' => "Kapıda ve mağazada ödeme yalnızca Eskişehir'de geçerlidir."]);
         // Seçili olmayan Eskişehir ilçesi
         StoreSetting::put(['local_districts' => (string) $this->district(26, 'Tepebaşı')]);
         $this->post(self::HOST.'/odeme', $this->form())->assertSessionHasErrors('delivery_method');
@@ -155,20 +130,12 @@ class StoreCheckoutTest extends TestCase
         $this->assertSame(0, StoreOrder::count());
     }
 
-    public function test_cash_on_delivery_with_sms_verification(): void
+    public function test_cash_on_delivery_places_the_order_directly_without_sms(): void
     {
         $this->enableCod();
 
-        // Tarayıcıdan gelen tutar/fiyat dikkate alınmaz.
-        $this->post(self::HOST.'/odeme', $this->form(['total' => '1', 'price' => '1']))->assertRedirect(route('store.checkout.verify'));
-        $this->assertSame('05321234567', $this->sms[0]['phone']);
-        $this->assertSame(0, StoreOrder::count(), 'kod doğrulanmadan sipariş oluşmaz');
-        $this->get(self::HOST.'/odeme/dogrulama')->assertOk()->assertSee('0532 123 45 67');
-
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => '000000'])->assertSessionHasErrors(['code' => 'Kod hatalı. 4 deneme hakkınız kaldı.']);
-        $this->assertSame(1, StoreOtpCode::value('attempts'), 'hatalı deneme sayılır');
-
-        $response = $this->post(self::HOST.'/odeme/dogrulama', ['code' => $this->lastCode()]);
+        // Tarayıcıdan gelen tutar/fiyat dikkate alınmaz; SMS kodu sorulmaz, sipariş hemen oluşur.
+        $response = $this->post(self::HOST.'/odeme', $this->form(['total' => '1', 'price' => '1']));
         $order = StoreOrder::firstOrFail();
         $response->assertRedirect(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]));
 
@@ -202,29 +169,23 @@ class StoreCheckoutTest extends TestCase
 
         $this->enableCod();
         StoreCodBlock::create(['phone' => '05321234567', 'reason' => 'Teslim almadı']);
-        $this->post(self::HOST.'/odeme', $this->form())->assertSessionHasErrors(['payment_method' => 'Bu telefon numarasıyla kapıda ödeme kullanılamıyor. Kartla ödeyebilirsiniz.']);
+        $this->post(self::HOST.'/odeme', $this->form())->assertSessionHasErrors(['payment_method' => 'Bu telefon numarasıyla teslimde ödeme kullanılamıyor. Şimdi internetten kartla ödeyebilirsiniz.']);
         StoreCodBlock::query()->delete();
 
         // Açık kapıda ödemeli sipariş varken ikincisi açılamaz (varsayılan sınır 1).
         $this->post(self::HOST.'/odeme', $this->form());
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => $this->lastCode()]);
+        $this->assertSame(1, StoreOrder::count());
         app(CartService::class)->add($this->cart, $this->pen->id, 1);
         $this->post(self::HOST.'/odeme', $this->form())->assertSessionHasErrors('payment_method');
     }
 
-    public function test_sms_resend_cooldown_and_cart_change_during_verification(): void
+    public function test_sms_verification_is_removed(): void
     {
-        $this->enableCod();
-        $this->post(self::HOST.'/odeme', $this->form());
-        $this->post(self::HOST.'/odeme/dogrulama/yeniden')->assertSessionHasErrors('code'); // 60 sn dolmadı
-        $this->travel(61)->seconds();
-        $this->post(self::HOST.'/odeme/dogrulama/yeniden')->assertSessionHas('status');
-        $this->assertCount(2, $this->sms);
-
-        // Kod beklenirken sepet değişirse sipariş oluşmaz.
-        app(CartService::class)->add($this->cart, $this->pen->id, 1);
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => $this->lastCode()])->assertRedirect(route('store.cart'));
-        $this->assertSame(0, StoreOrder::count());
+        $this->get(self::HOST.'/odeme/dogrulama')->assertNotFound();
+        $this->assertFalse(Schema::hasTable('store_otp_codes'));
+        $this->assertFalse(Schema::hasTable('store_sms_messages'));
+        $this->assertArrayNotHasKey('sms_driver', StoreSetting::values());
+        $this->assertNotContains('netgsm_password', StoreSetting::SECRETS);
     }
 
     public function test_shipping_fees_and_free_threshold(): void
@@ -341,10 +302,10 @@ class StoreCheckoutTest extends TestCase
         app(CartService::class)->add(app(CartService::class)->forCustomer($customer), $this->pen->id, 1);
         $this->actingAs($customer, 'customer');
 
-        $this->post(self::HOST.'/odeme', $this->form(['save_address' => '1', 'address' => ['title' => 'Ev']]))->assertRedirect(route('store.checkout.verify'));
-        $this->post(self::HOST.'/odeme/dogrulama', ['code' => $this->lastCode()]);
+        $response = $this->post(self::HOST.'/odeme', $this->form(['save_address' => '1', 'address' => ['title' => 'Ev']]));
 
         $order = StoreOrder::firstOrFail();
+        $response->assertRedirect(route('store.order', ['orderNo' => $order->order_no, 'token' => $order->access_token]));
         $this->assertSame([$customer->id, 'uye@ornek.com', 'preparing'], [$order->customer_id, $order->email, $order->status]);
         $this->assertSame(1, $customer->addresses()->count(), 'adres kaydedildi');
         $this->assertSame(4, $order->consents()->where('document_key', 'mesafeli-satis')->value('version'));

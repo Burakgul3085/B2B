@@ -42,7 +42,7 @@ class StoreLeftoversTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'cod_enabled' => '1', 'cod_max' => '5000.00', 'cod_max_open' => '10', 'cod_first_order_approval' => '0']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'cod_enabled' => '1', 'cod_max' => '5000.00', 'cod_max_open' => '10', 'cod_first_order_approval' => '0']);
         $parent = StoreCategory::create(['name' => 'Yazı Gereçleri', 'slug' => 'yazi-gerecleri']);
         $this->child = StoreCategory::create(['name' => 'Kalemler', 'slug' => 'kalemler', 'parent_id' => $parent->id]);
         $this->pen = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true, 'category_id' => $this->child->id])

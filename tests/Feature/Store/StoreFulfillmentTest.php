@@ -43,7 +43,7 @@ class StoreFulfillmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        StoreSetting::put(['is_open' => '1', 'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'shipping_cargo_fee' => '50.00']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'card_enabled' => '1', 'iyzico_mode' => 'sandbox', 'shipping_cargo_fee' => '50.00']);
         StoreSetting::putSecret('iyzico_api_key', 'sandbox-api-key');
         StoreSetting::putSecret('iyzico_secret_key', 'sandbox-secret-key');
 

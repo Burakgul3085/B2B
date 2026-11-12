@@ -1,6 +1,6 @@
 @php use App\Domain\Support\Money; use App\Models\Store\StoreOrder; @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" title="Siparişler">
-    <x-page-header title="Siparişler" subtitle="Mağaza siparişleri. Kapıda ödemeli ilk siparişler teyit için onay bekler." />
+    <x-page-header title="Siparişler" subtitle="Mağaza siparişleri. Mağazada veya kapıda ödemeli (yalnızca Eskişehir) ilk siparişler telefonla teyit için onay bekler." />
 
     <div class="mb-4 flex flex-wrap gap-2 text-sm">
         @foreach (['' => 'Tümü', 'new' => 'Yeni (işlem bekleyen)', 'awaiting_transfer' => 'Havale bekleyen', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi', 'cancelled' => 'İptal'] as $key => $label)
@@ -39,7 +39,7 @@
                                     <p class="text-xs text-muted">{{ $order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i') }} · {{ $order->items_count }} kalem</p>
                                 </td>
                                 <td>{{ $order->shipping_name }}<p class="text-xs text-muted">{{ $order->shipping_district }} / {{ $order->shipping_province }}@unless ($order->customer_id) · misafir @endunless</p></td>
-                                <td class="text-sm">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }}<p class="text-xs text-muted">{{ StoreOrder::DELIVERY_METHODS[$order->delivery_method] }}</p></td>
+                                <td class="text-sm">{{ $order->paymentLabel() }}<p class="text-xs text-muted">{{ $order->deliveryLabel() }}</p></td>
                                 <td class="text-right font-semibold tabular-nums">{{ Money::format($order->total) }}</td>
                                 <td><x-badge :tone="$order->statusTone()">{{ $order->statusLabel() }}</x-badge></td>
                             </tr>

@@ -35,7 +35,7 @@ class StorefrontEngagementTest extends TestCase
     {
         parent::setUp();
         config(['store.bot_protection' => false]);
-        StoreSetting::put(['is_open' => '1']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null]);
         $this->pens = StoreCategory::create(['name' => 'Kalemler', 'slug' => 'kalemler']);
     }
 

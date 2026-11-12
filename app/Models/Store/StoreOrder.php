@@ -12,7 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Mağaza siparişi. Adres, fatura ve fiyatlar sipariş anındaki kopyadır.
  * Durumlar (docs/13-magaza-mimarisi.md §8.3):
  *   kart:      pending_payment → paid → preparing → shipped → delivered   (ödeme başarısız: payment_failed)
- *   kapıda:    awaiting_approval → preparing → shipped → delivered        (teslim alınmadı: not_delivered)
+ *   teslimde:  awaiting_approval → preparing → shipped → delivered        (teslim alınmadı: not_delivered)
+ *              (yalnızca Eskişehir: mağazadan teslim alda "mağazada", eve teslimde "kapıda" nakit / POS)
+ *   mağazadan teslim alda "shipped" durumu "Teslime hazır" olarak gösterilir.
  *   havale:    awaiting_transfer → preparing → shipped → delivered        (süresinde ödenmezse: cancelled)
  *   hepsi:     yola çıkmadan cancelled
  */
@@ -35,16 +37,18 @@ class StoreOrder extends Model
         'pending' => 'Bekleniyor',
         'paid' => 'Ödendi',
         'failed' => 'Başarısız',
-        'cod_pending' => 'Kapıda tahsil edilecek',
+        'cod_pending' => 'Teslimde ödenecek',
         'collected' => 'Tahsil edildi',
         'void' => 'Tahsil edilmedi',
         'partially_refunded' => 'Kısmen iade edildi',
         'refunded' => 'İade edildi',
     ];
 
-    public const PAYMENT_METHODS = ['card' => 'Kredi / banka kartı', 'cod' => 'Kapıda ödeme', 'transfer' => 'Havale / EFT'];
+    /** Yönetim listeleri ve filtreler için genel adlar; müşteriye paymentLabel() gösterilir ("Mağazada / Kapıda ödeme"). */
+    public const PAYMENT_METHODS = ['card' => 'Kredi / banka kartı', 'cod' => 'Teslimatta ödeme', 'transfer' => 'Havale / EFT'];
 
-    public const DELIVERY_METHODS = ['cargo' => 'Kargo', 'local' => 'Mağaza teslimatı (Eskişehir)'];
+    /** "local" eski siparişlerde de eve teslim (Eskişehir, kendi aracımızla) anlamındadır. */
+    public const DELIVERY_METHODS = ['cargo' => 'Kargo', 'pickup' => 'Mağazadan teslim al', 'local' => 'Eve teslim (Eskişehir)'];
 
     /** Teslim edilmemiş, iptal edilmemiş siparişler. */
     public const OPEN = ['pending_payment', 'awaiting_approval', 'awaiting_transfer', 'paid', 'preparing', 'shipped'];
@@ -181,7 +185,42 @@ class StoreOrder extends Model
 
     public function statusLabel(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return self::statusLabelFor($this->status, $this->delivery_method);
+    }
+
+    /** Mağazadan teslim alınacak siparişte "Yolda" yerine "Teslime hazır" yazılır. */
+    public static function statusLabelFor(string $status, ?string $deliveryMethod): string
+    {
+        if ($status === 'shipped' && $deliveryMethod === 'pickup') {
+            return 'Teslime hazır';
+        }
+
+        return self::eventLabel($status);
+    }
+
+    public function paymentLabel(): string
+    {
+        return self::paymentLabelFor($this->payment_method, $this->delivery_method);
+    }
+
+    /** Teslimde ödeme müşteriye teslimat yöntemine göre adlandırılır: mağazadan teslim alda "Mağazada ödeme", eve teslimde "Kapıda ödeme". */
+    public static function paymentLabelFor(string $paymentMethod, ?string $deliveryMethod): string
+    {
+        if ($paymentMethod === 'cod') {
+            return $deliveryMethod === 'pickup' ? 'Mağazada ödeme' : 'Kapıda ödeme';
+        }
+
+        return self::PAYMENT_METHODS[$paymentMethod] ?? $paymentMethod;
+    }
+
+    public function deliveryLabel(): string
+    {
+        return self::DELIVERY_METHODS[$this->delivery_method] ?? $this->delivery_method;
+    }
+
+    public function isPickup(): bool
+    {
+        return $this->delivery_method === 'pickup';
     }
 
     public function statusTone(): string

@@ -48,7 +48,7 @@ class StoreCarrierChoiceTest extends TestCase
                 return true;
             }
         });
-        StoreSetting::put(['is_open' => '1', 'transfer_enabled' => '1', 'transfer_days' => '3', 'shipping_cargo_fee' => '30.00',
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'transfer_enabled' => '1', 'transfer_days' => '3', 'shipping_cargo_fee' => '30.00',
             'transfer_accounts' => 'Ziraat Bankası | Yapboz Kırtasiye | TR330006100519786457841326']);
 
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true]);

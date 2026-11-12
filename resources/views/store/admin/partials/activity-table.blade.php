@@ -23,7 +23,7 @@
         'store.order_placed' => 'Yeni sipariş', 'store.order_approved' => 'Sipariş onaylandı', 'store.order_preparing' => 'Sipariş hazırlanıyor',
         'store.order_shipped' => 'Sipariş yola çıktı', 'store.order_delivered' => 'Sipariş teslim edildi', 'store.order_not_delivered' => 'Sipariş teslim alınmadı',
         'store.order_cancelled' => 'Sipariş iptal edildi', 'store.order_paid_without_stock' => 'Ödeme alındı, stok yetersiz (kontrol edin)',
-        'store.cod_unblocked' => 'Telefon kapıda ödeme engelinden çıkarıldı',
+        'store.cod_unblocked' => 'Telefon teslimatta ödeme engelinden çıkarıldı',
         'store.legal_published' => 'Yasal metin yayımlandı', 'store.payment_settings_updated' => 'Ödeme ve teslimat ayarları güncellendi',
         'store.payment_secret_removed' => 'Ödeme / SMS anahtarı silindi',
         'store.return_requested' => 'İade talebi açıldı', 'store.return_approved' => 'İade onaylandı', 'store.return_rejected' => 'İade reddedildi',

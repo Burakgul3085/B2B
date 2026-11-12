@@ -14,7 +14,7 @@
             @if ($settings['transfer_enabled'] === '1')
                 <div class="rounded-3xl border border-line p-6">
                     <p class="flex items-center gap-2 font-display text-lg font-extrabold"><x-icon name="building" class="size-5 text-puzzle-blue" /> Havale / EFT</p>
-                    <p class="mt-1 text-sm text-muted">Siparişten sonra {{ $settings['transfer_days'] }} gün içinde, açıklamaya sipariş numaranızı yazarak ödeyin. Ödeme hesabımıza geçince siparişiniz hazırlanır.</p>
+                    <p class="mt-1 text-sm text-muted">Kargoyla gönderilen siparişlerde. Siparişten sonra {{ $settings['transfer_days'] }} gün içinde, açıklamaya sipariş numaranızı yazarak ödeyin. Ödeme hesabımıza geçince siparişiniz hazırlanır.</p>
                     @if ($banks)
                         <ul class="mt-4 space-y-2.5">
                             @foreach ($banks as $bank)
@@ -26,8 +26,8 @@
             @endif
             @if ($settings['cod_enabled'] === '1')
                 <div class="rounded-3xl border border-line p-6">
-                    <p class="flex items-center gap-2 font-display text-lg font-extrabold"><x-icon name="truck" class="size-5 text-puzzle-orange" /> Kapıda ödeme</p>
-                    <p class="mt-1 text-sm text-muted">Yalnızca Eskişehir mağaza teslimatında.@if ($settings['cod_max']) En fazla {{ Money::format($settings['cod_max']) }} tutarındaki siparişlerde.@endif</p>
+                    <p class="flex items-center gap-2 font-display text-lg font-extrabold"><x-icon name="truck" class="size-5 text-puzzle-orange" /> Mağazada veya kapıda ödeme (yalnızca Eskişehir)</p>
+                    <p class="mt-1 text-sm text-muted">Yalnızca Eskişehir içindeki siparişlerde geçerlidir: mağazadan teslim alırken mağazada, eve teslimde kapıda nakit veya kartla (POS) ödeyebilirsiniz. Başka şehirlere kargoyla gönderilen siparişlerde kapıda ödeme yoktur; kartla veya havale / EFT ile ödenir.@if ($settings['cod_max']) En fazla {{ Money::format($settings['cod_max']) }} tutarındaki siparişlerde.@endif</p>
                 </div>
             @endif
         </div>

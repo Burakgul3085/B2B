@@ -143,7 +143,7 @@
         <div class="space-y-6">
             <x-card title="Sipariş">
                 <a href="{{ route('store_admin.orders.show', $order) }}" class="font-medium text-primary hover:underline">{{ $order->order_no }}</a>
-                <p class="mt-1 text-sm">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }} · {{ Money::format($order->total) }}</p>
+                <p class="mt-1 text-sm">{{ $order->paymentLabel() }} · {{ Money::format($order->total) }}</p>
                 <p class="text-sm text-muted">Teslim: {{ $order->delivered_at?->timezone('Europe/Istanbul')->format('d.m.Y') ?? '—' }}</p>
                 @if (bccomp((string) $order->refunded_total, '0', 2) > 0)<p class="text-sm text-danger">Siparişte iade edilen: {{ Money::format($order->refunded_total) }}</p>@endif
             </x-card>

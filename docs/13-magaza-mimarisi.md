@@ -21,8 +21,8 @@
 | D5 | Mağaza yöneticileri | Platform **süper admin** açar. Süper admin **yönetici** açar. Yöneticiler birbirini ve süper admini silemez. Ayrıntı §5'te. |
 | D6 | Girişler | Beş ayrı giriş: müşteri, mağaza yöneticisi, bayi, toptancı, platform. Her birinin oturumu ayrı. |
 | D7 | Kart ödemesi | iyzico Ödeme Formu (3D Secure). Altyapı ve başvuru şartları canlıya çıkıştan önce hazır olur. Başvuru yayından sonra yapılır; onay gelince panelden açılır. |
-| D8 | Kapıda ödeme | Yalnızca Eskişehir. Teslimatı mağazanın kendi aracı yapar, kargo kullanılmaz. Hangi ilçelerde geçerli olduğu ve tutar üst sınırı panelden değiştirilir. SMS doğrulaması zorunludur. |
-| D9 | SMS | Netgsm. Altyapı şimdi kurulur, hesap bilgileri hesap açıldığında panelden girilir. |
+| D8 | Teslimatta ödeme | Yalnızca Eskişehir: mağazadan teslim alda "Mağazada öde", eve teslimde "Kapıda öde" (nakit veya POS). Kargoda ve Eskişehir dışında yoktur. İlçeler ve tutar sınırları panelden değiştirilir. |
+| D9 | SMS | Yok (karar 2026-11-12: SMS entegrasyonu kaldırıldı). Teslimatta ödeme SMS koduyla doğrulanmaz; ilk siparişte telefonla teyit, açık sipariş sınırı ve engel listesi kullanılır. |
 | D10 | Fatura | e-Arşiv entegratörü Uyumsoft. API bilgileri gelene kadar manuel fatura (PDF yükleme) kullanılır. |
 | D11 | Kargo | Henüz anlaşma yok. Firmadan bağımsız sürücü yapısı kurulur: ilk gün manuel kargo, anlaşma yapılınca firma sürücüsü eklenir. |
 | D12 | Bayi perakende alışveriş | Serbest, ama ayrı müşteri hesabıyla. İki sistem ayrı olduğu için mağazada B2B bilgisi hiçbir koşulda görünmez. |
@@ -92,7 +92,6 @@ Mevcut çok işletmeli altyapı (`BelongsToBusiness`, `SetBusinessContext`, işl
 | Teslimat | `store_carriers` (kargo firmaları, takip adresi şablonu); gönderi bilgisi siparişte tutulur (`carrier_id`, `tracking_number`, `shipped_at`); durum geçmişi `store_order_events`. İadeler: `store_returns`, `store_return_items` |
 | Fatura | `store_invoices` (sürücü: manuel / Uyumsoft, numara, PDF, durum) |
 | Kapıda ödeme | `store_cod_blocklist` (telefon ve adres), ilçe izinleri ve sınırlar `store_settings` içinde |
-| SMS | `store_sms_messages` (gönderim kaydı), `store_otp_codes` (karma (hash) olarak) |
 | Pazarlama | `store_discounts` (kampanya ve kupon tek tabloda), `store_discount_codes` (toplu tek kullanımlık kodlar), `store_discount_redemptions` |
 | İçerik | `store_banners`, `store_pages`, `store_legal_documents` (sürümlü), `store_order_consents` (hangi sürüm, ne zaman, hangi IP) |
 | Coğrafya | `tr_provinces`, `tr_districts` (sabit liste; adreste il ve ilçe serbest metin değildir) |
@@ -117,8 +116,8 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 **Kartla ödeme:**
 `ödeme bekleniyor` → `ödendi` → `hazırlanıyor` → `kargoda` veya `yolda` → `teslim edildi`
 
-**Kapıda ödeme:**
-`SMS doğrulandı` → (kural varsa `teyit bekliyor`) → `hazırlanıyor` → `yolda` → `teslim edildi + tahsil edildi (nakit/kart)`; alternatif son: `teslim alınmadı` → iptal
+**Teslimatta ödeme (yalnızca Eskişehir):**
+(kural varsa `teyit bekliyor`) → `hazırlanıyor` → `yolda` (mağazadan teslim alda `teslime hazır`) → `teslim edildi + tahsil edildi (nakit/POS)`; alternatif son: `teslim alınmadı` → iptal
 
 **Havale / EFT** (isteğe bağlı, varsayılan kapalı):
 `havale bekleniyor` (stok hemen düşer) → yönetici "Havale alındı" → `hazırlanıyor` → `kargoda` veya `yolda` → `teslim edildi`. Ödeme süresi (1–7 gün, ayar) içinde ödenmeyen sipariş kendiliğinden iptal edilir, stok geri girer. Havalesi alınmış siparişin iptalinde tutar önce müşterinin hesabına elle iade edilip kaydedilir.
@@ -127,25 +126,26 @@ Ayrıntılı ER diyagramı M1'de `02-veritabani-er.md` dosyasına eklenir.
 - Kargoya verilmeden önce iptal edilen siparişte stok ters kayıtla geri girer; kartla ödendiyse iyzico iadesi yapılır.
 - Teslimden sonra 14 gün cayma hakkı vardır. İade gelen ürün stok hareketiyle geri girer, tam veya kısmi iade yapılır.
 
-### 8.4 Kapıda ödeme (yalnızca Eskişehir)
-- **Bölge:** Teslimat adresinin ili Eskişehir olmalı ve ilçesi panelde izinli olmalı. Varsayılan olarak 14 ilçenin hepsi izinlidir; panelden işaretlenir. Bölge dışında bu seçenek hiç gösterilmez. Sunucu, siparişi oluştururken bölgeyi **ayrıca** denetler.
-- **Teslimat:** Mağazanın kendi aracıyla yapılır (sürücü: "Kendi teslimatım"). Kargo firması kullanılmaz.
+### 8.4 Teslimatta ödeme (yalnızca Eskişehir)
+- **Nerede:** Yalnızca Eskişehir adreslerinde ve yalnızca iki teslimatla: **mağazadan teslim al** (müşteriye "Mağazada öde (nakit veya POS)") ve **eve teslim** (seçili ilçeler; "Kapıda öde (nakit veya POS)"). Kargoda ve Eskişehir dışında bu seçenek hiç gösterilmez. Müşteri hiçbir yerde genel "Teslimatta ödeme" adını görmez; bu ad yalnızca yönetimdedir. Sunucu, siparişi oluştururken uygunluğu **ayrıca** denetler (`CodPolicy`); Eskişehir dışında gelen istek "Kapıda ve mağazada ödeme yalnızca Eskişehir'de geçerlidir." ile reddedilir.
 - **Panelden değiştirilebilen kurallar:**
   - Açık/kapalı
-  - İzinli ilçeler
-  - **Tutar üst sınırı** (dinamik), isteğe bağlı alt sınır
+  - Tutar üst sınırı ve isteğe bağlı alt sınır
   - Hizmet bedeli (0 olabilir)
-  - Aynı telefon veya hesapta en fazla açık sipariş sayısı (varsayılan 1)
-  - "İlk siparişte yönetici teyidi" (açık/kapalı)
-- **Güvenlik:**
-  1. **SMS doğrulama zorunlu.** 6 haneli kod 3 dakika geçerlidir; en fazla 5 deneme hakkı vardır; yeniden gönderim 60 saniye sonra mümkündür; bir telefona günde en fazla 5 kod gider. Ayrıca IP başına sınır vardır. Kodlar karma (hash) olarak saklanır.
-  2. Teslim almayan müşterinin telefonu ve adresi **engel listesine** girer; bu kişiler için kapıda ödeme kapanır, kart ödemesi açık kalır. Engel yönetici tarafından kaldırılabilir. Adres karşılaştırması ilçe + mahalle + açık adresin sadeleştirilmiş özetiyle yapılır ("Mah./Cad./No/D." gibi yazım farkları ve büyük-küçük harf yok sayılır).
-  3. Ödeme ve kod gönderme uçlarında görünmez robot doğrulaması ve hız sınırı vardır.
-  4. SMS sağlayıcısı yapılandırılmadan canlı ortamda kapıda ödeme açılamaz.
-- Teslimatta tahsil eden yönetici "tahsil edildi" der ve tahsilat türünü seçer: nakit veya kapıda kart.
+  - Aynı telefonda en fazla açık sipariş sayısı (varsayılan 1)
+  - "İlk siparişte telefonla teyit" (açık/kapalı)
+- **Güvenlik (SMS yok):**
+  1. İlk siparişte yönetici müşteriyi arayıp teyit eder (sipariş "Onay bekliyor" düşer).
+  2. Aynı telefonda teslim edilmemiş teslimde ödemeli sipariş sınırı.
+  3. Teslim almayan müşterinin telefonu ve adresi **engel listesine** girer; bu kişiler için teslimatta ödeme kapanır, kart ödemesi açık kalır. Engel yönetici tarafından kaldırılabilir. Adres karşılaştırması ilçe + mahalle + açık adresin sadeleştirilmiş özetiyle yapılır ("Mah./Cad./No/D." gibi yazım farkları ve büyük-küçük harf yok sayılır).
+  4. Ödeme ucunda görünmez robot doğrulaması ve hız sınırı vardır.
+- Teslimatta tahsil eden yönetici "Teslim edildi" der ve tahsilat türünü seçer: nakit veya POS.
 
 ### 8.5 Teslimat yöntemleri
-- **Kendi teslimatım:** Eskişehir'deki izinli ilçeler için. Kart ve kapıda ödemenin ikisiyle de kullanılabilir. Ücret panelden belirlenir.
+- **Kargo:** Tüm Türkiye. Ödeme: kart veya havale / EFT. Ücretsiz kargo sınırının altında müşteri ücreti girilmiş firmalardan birini seçer.
+- **Mağazadan teslim al (`pickup`):** Eskişehir adreslerinde, her zaman ücretsiz. Ödeme: şimdi internetten kartla (iyzico) veya mağazada nakit / POS. Yönetici sipariş hazır olunca "Teslime hazır" der (durum `shipped`, müşteriye "Teslime hazır" gösterilir); müşteriye mağaza adresiyle "Siparişiniz mağazada hazır" e-postası gider.
+- **Eve teslim (`local`, kendi aracımız):** Eskişehir'in seçili ilçeleri. En düşük sipariş tutarının altında seçilemez; ücretsiz sınırın altında eve teslim ücreti alınır (üçü de panelden). Ödeme: internetten kartla veya kapıda nakit / POS. Ayar açıksa eve teslim yapılabilen adreste kargo gösterilmez. Eski "Mağaza teslimatı" siparişleri de `local` olarak eve teslim sayılır.
+- Havale / EFT yalnızca kargoda kullanılabilir.
 - **Kargo:** Tüm Türkiye. Ücret kuralı: sabit ücret ve "X TL üzeri ücretsiz" (karar 2026-10-22: desiye göre ücret olmayacak; kargo firmasıyla anlaşılan sabit ücret uygulanır). İlk sürücü manuel kargodur: firma adı, takip numarası ve takip bağlantısı şablonu girilir.
 
 ### 8.6 Klasörden toplu ürün ekleme (2026-11-05)
@@ -174,7 +174,6 @@ Her entegrasyon bir arayüz ve sürücülerden oluşur. Yapılandırma mağaza p
 | Arayüz | Sürücüler | Not |
 |---|---|---|
 | Ödeme | `iyzico`, `kapida` (Eskişehir), `havale` (isteğe bağlı, varsayılan kapalı) | iyzico: Ödeme Formu → token → geri dönüş → sonucun **sunucudan sorgulanması** (`retrieve`) → tutar ve sepet kimliği eşleşmesi. Webhook (`/odeme/iyzico/bildirim`) yedek olarak çalışır: müşteri geri dönmese de ödeme aynı sunucu sorgusuyla sonuçlanır. Aynı ödeme iki kez işlenmez. Taksit ve iade desteklenir. Sandbox ve canlı ortam panelden seçilir. |
-| SMS | `netgsm`, `log` (geliştirme: kod günlüğe ve panele yazılır) | Netgsm kullanıcı kodu, şifre ve mesaj başlığı panelden girilir. Doğrulama ve bilgilendirme mesajları ticari ileti değildir; kampanya SMS'i kapsam dışıdır (İYS gerektirir). |
 | Fatura | `manuel` (PDF yükleme), `uyumsoft` (e-Arşiv) | Uyumsoft'tan e-Arşiv web servisi kullanıcısı ve test ortamı bilgileri gerekir. |
 | Teslimat | `manuel_kargo`, `kendi_teslimat`, (ileride) firma veya aracı servis sürücüleri | Kargo anlaşması yapılınca sürücü eklenir. |
 | E-posta | İşlem e-postası servisi (SMTP/API), yedek olarak Gmail | Gmail'in günlük gönderim sınırı mağaza trafiğine yetmez. |
@@ -199,7 +198,7 @@ Metinlerin içeriğini müşterinin hukukçusu veya mali müşaviri onaylar. Sis
 - **Fiyat ve tutar** sunucuda hesaplanır (§8.1). **Ödeme** sunucudan doğrulanır (§9).
 - Müşteri yalnızca kendi sipariş, adres ve faturasını görür. IDOR taraması mağaza rotalarına genişletilir.
 - Mağaza yanıtlarında hiçbir koşulda B2B verisi olmaz; mimari test (§6) ve rota testleri bunu denetler.
-- Kayıt, giriş, şifre sıfırlama, sepet, ödeme ve SMS uçlarında hız sınırı ve robot doğrulaması vardır.
+- Kayıt, giriş, şifre sıfırlama, sepet ve ödeme uçlarında hız sınırı ve robot doğrulaması vardır.
 - Kart verisi sistemimize hiç gelmez (iyzico Ödeme Formu).
 - Mevcut güvenlik başlıkları ve CSP mağazaya uygulanır; iyzico alan adları CSP'ye eklenir.
 - Kişisel veri: müşteri hesabını silme talebi vardır. Yasal saklama süresi olan sipariş ve fatura kayıtları anonimleştirilerek saklanır.
@@ -223,11 +222,11 @@ Metinlerin içeriğini müşterinin hukukçusu veya mali müşaviri onaylar. Sis
 | **M3** | Stok: giriş, sayım, kritik stok, hareket geçmişi, ayırma altyapısı |
 | **M4** | Vitrin: ana sayfa, banner, kategori, marka, arama ve filtre, ürün sayfası, SEO, site haritası |
 | **M5** | Müşteri: üyelik, misafir alışveriş, adres (il/ilçe), sepet, kupon altyapısı |
-| **M6** | Ödeme ve sipariş: iyzico (sandbox), kapıda ödeme (Eskişehir + Netgsm/log SMS + kurallar + engel listesi), sözleşme onayları, sipariş e-postaları |
+| **M6** | Ödeme ve sipariş: iyzico (sandbox), teslimatta ödeme (Eskişehir + kurallar + engel listesi; SMS 2026-11-12 kaldırıldı), sözleşme onayları, sipariş e-postaları |
 | **M7** | Teslimat ve fatura: manuel kargo, kendi teslimatım, iptal/iade, iyzico iadesi, manuel fatura, Uyumsoft sürücüsü (test bilgileri gelince) |
 | **M8** | Kampanya ve kupon, raporlar, yönetici bildirimleri |
 | **M9** | Yasal sayfalar, çerez onayı, iyzico başvuru kontrol listesi; sunucu, HTTPS, yedek ve geri yükleme provası (eski Aşama 10); alan adı → **yayın** |
-| **M10** | Yayın sonrası: iyzico başvurusu → canlı kart ödemesi; Netgsm hesabı; kargo firması sürücüsü |
+| **M10** | Yayın sonrası: iyzico başvurusu → canlı kart ödemesi; kargo firması sürücüsü |
 
 Her aşama B2B'deki düzende ilerler: testler, aşama raporu, push.
 
@@ -236,7 +235,6 @@ Her aşama B2B'deki düzende ilerler: testler, aşama raporu, push.
 | Konu | Kimden | Ne zaman gerekir |
 |---|---|---|
 | `yapbozkirtasiye.com` alan adı | Müşteri | M9 (yayın) |
-| Netgsm hesabı (kullanıcı kodu, şifre, onaylı mesaj başlığı) | Müşteri | Kapıda ödemenin canlıda açılması için; geliştirmede gerekmez |
 | Uyumsoft e-Arşiv API kullanıcısı ve test ortamı | Müşteri / mali müşavir | M7'de otomatik fatura için; o zamana kadar manuel fatura |
 | Yasal metinlerin içeriği ve şirket bilgileri | Müşteri / hukukçu | M9 |
 | İşlem e-postası servisi hesabı | Müşteri (öneri M9'da sunulur) | M9 |

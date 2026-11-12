@@ -40,16 +40,16 @@ class AdminNotifier
             return;
         }
         $intro = match (true) {
-            $order->status === 'awaiting_approval' => 'Kapıda ödemeli ilk sipariş: müşteriyi arayıp teyit edin.',
+            $order->status === 'awaiting_approval' => $order->paymentLabel().' ile ilk sipariş ('.$order->deliveryLabel().'): müşteriyi arayıp teyit edin.',
             $order->status === 'awaiting_transfer' => 'Havale / EFT ile ödenecek yeni sipariş. Ödeme hesaba geçince sipariş sayfasında "Havale alındı" ile onaylayın.',
             $order->payment_method === 'card' => 'Kartla ödemesi alınmış yeni sipariş hazırlanmayı bekliyor.',
-            default => 'Kapıda ödemeli yeni sipariş hazırlanmayı bekliyor.',
+            default => $order->paymentLabel().' ile yeni sipariş ('.$order->deliveryLabel().') hazırlanmayı bekliyor.',
         };
 
         $this->send("Yeni sipariş {$order->order_no} — ".Money::format($order->total), 'Yeni sipariş', $intro, [
             ['Müşteri', $order->shipping_name],
             ['Teslimat', $order->shipping_district.' / '.$order->shipping_province],
-            ['Ödeme', StoreOrder::PAYMENT_METHODS[$order->payment_method]],
+            ['Ödeme', $order->paymentLabel()],
             ['Tutar', Money::format($order->total)],
         ], route('store_admin.orders.show', $order), 'Siparişi aç');
     }

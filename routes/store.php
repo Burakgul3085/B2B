@@ -361,9 +361,6 @@ Route::domain(config('store.domain'))->name('store.')->group(function () {
         // Ödeme ve siparişler (M6)
         Route::get('odeme', [Front\CheckoutController::class, 'show'])->name('checkout');
         Route::post('odeme', [Front\CheckoutController::class, 'store'])->middleware(['throttle:20,10,checkout.store', 'store.bot'])->name('checkout.store');
-        Route::get('odeme/dogrulama', [Front\CheckoutController::class, 'verifyForm'])->name('checkout.verify');
-        Route::post('odeme/dogrulama', [Front\CheckoutController::class, 'verify'])->middleware('throttle:20,10,checkout.verify.store')->name('checkout.verify.store');
-        Route::post('odeme/dogrulama/yeniden', [Front\CheckoutController::class, 'resend'])->middleware('throttle:5,10,checkout.verify.resend')->name('checkout.verify.resend');
         Route::get('yasal/{key}', [Front\CheckoutController::class, 'legal'])->name('legal');
         Route::get('siparis/{orderNo}/{token}', [Front\OrderController::class, 'showByToken'])->middleware('throttle:60,1,order')->name('order');
         Route::get('siparis/{orderNo}/{token}/iade-faturasi/{note}', [Front\OrderController::class, 'creditNoteByToken'])->whereNumber('note')->middleware('throttle:30,1,order.credit-note')->name('order.credit-note');

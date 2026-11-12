@@ -28,7 +28,9 @@ class HelpController extends Controller
 
         return view('store.front.help.'.$key, ['key' => $key, 'c' => $page['content']] + match ($key) {
             'shipping' => ['info' => ProductPage::info(), 'cargoFee' => app(DeliveryRules::class)->startingCargoFee(), 'carriers' => app(DeliveryRules::class)->carrierChoices(),
-                'localFee' => Decimal::parse(StoreSetting::get('local_delivery_fee'), 2)],
+                'localFee' => Decimal::parse(StoreSetting::get('local_delivery_fee'), 2),
+                'localMin' => app(DeliveryRules::class)->localMinTotal(), 'localFree' => app(DeliveryRules::class)->localFreeThreshold(),
+                'storeAddress' => StoreSetting::get('address')],
             'payment' => ['settings' => StoreSetting::values(), 'banks' => StoreSetting::flag('transfer_enabled') ? BankTransfer::accounts() : []],
             'legal' => ['documents' => StoreLegalDocument::KEYS, 'contactLive' => StorePage::where('key', 'contact')->where('is_published', true)->exists()],
             default => [],

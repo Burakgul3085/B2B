@@ -5,10 +5,12 @@
     use App\Models\Store\StoreOrder;
     use App\Models\Store\StoreReturn;
 
+    $shippedLabel = $order->isPickup() ? 'Teslime hazır' : 'Yolda';
+    $payAt = $order->isPickup() ? 'Ödemeyi mağazada nakit veya kartla (POS) yapacaksınız.' : 'Ödemeyi kapıda nakit veya kartla (POS) yapacaksınız.';
     $steps = match ($order->payment_method) {
-        'cod' => ['awaiting_approval' => 'Alındı', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
-        'transfer' => ['awaiting_transfer' => 'Ödeme bekleniyor', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
-        default => ['paid' => 'Ödendi', 'preparing' => 'Hazırlanıyor', 'shipped' => 'Yolda', 'delivered' => 'Teslim edildi'],
+        'cod' => ['awaiting_approval' => 'Alındı', 'preparing' => 'Hazırlanıyor', 'shipped' => $shippedLabel, 'delivered' => 'Teslim edildi'],
+        'transfer' => ['awaiting_transfer' => 'Ödeme bekleniyor', 'preparing' => 'Hazırlanıyor', 'shipped' => $shippedLabel, 'delivered' => 'Teslim edildi'],
+        default => ['paid' => 'Ödendi', 'preparing' => 'Hazırlanıyor', 'shipped' => $shippedLabel, 'delivered' => 'Teslim edildi'],
     };
     $current = array_search($order->status === 'pending_payment' ? 'paid' : $order->status, array_keys($steps), true);
     $closed = in_array($order->status, ['cancelled', 'payment_failed', 'not_delivered'], true);
@@ -19,10 +21,11 @@
             <div class="mb-6 rounded-2xl border border-green-200 bg-success-soft p-6 text-green-900">
                 <p class="text-lg font-semibold">Siparişiniz alındı, teşekkür ederiz!</p>
                 <p class="mt-1 text-sm">
-                    @if ($order->status === 'awaiting_approval') Kısa süre içinde sizi arayarak siparişinizi teyit edeceğiz. Ödemeyi teslimatta yapacaksınız.
-                    @elseif ($order->payment_method === 'cod') Siparişinizi hazırlamaya başladık. Ödemeyi teslimatta yapacaksınız.
+                    @if ($order->status === 'awaiting_approval') Kısa süre içinde sizi arayarak siparişinizi teyit edeceğiz. {{ $payAt }}
+                    @elseif ($order->payment_method === 'cod') Siparişinizi hazırlamaya başladık. {{ $payAt }}
                     @elseif ($order->status === 'awaiting_transfer') Ödemenizi aşağıdaki hesaplardan birine gönderdiğinizde siparişinizi hazırlamaya başlayacağız.
                     @else Ödemeniz alındı, siparişinizi hazırlamaya başladık. @endif
+                    @if ($order->isPickup()) Siparişiniz mağazamızda teslime hazır olunca e-posta göndereceğiz. @endif
                     Sipariş bilgileri {{ $order->email }} adresine gönderildi.
                 </p>
             </div>
@@ -76,6 +79,18 @@
             <x-store.tracking-card :order="$order" class="mt-6" id="kargo-takip" />
         @elseif ($order->carrier && $order->delivery_method === 'cargo')
             <p class="mt-4 text-sm text-muted">Kargo firması: <span class="font-medium text-ink">{{ $order->carrier }}</span> · Takip numarası kargoya verilince burada görünür.</p>
+        @endif
+        @if ($order->isPickup() && ! $closed && $order->status !== 'delivered')
+            @php $storeAddress = \App\Models\Store\StoreSetting::get('address'); @endphp
+            <section class="mt-6 flex items-start gap-3 rounded-2xl border p-5 text-sm {{ $order->status === 'shipped' ? 'border-green-200 bg-success-soft text-green-900' : 'border-line' }}">
+                <x-icon name="map-pin" class="mt-0.5 size-5 shrink-0" />
+                <div>
+                    <p class="font-semibold">{{ $order->status === 'shipped' ? 'Siparişiniz mağazada teslime hazır' : 'Mağazadan teslim alacaksınız' }}</p>
+                    @if ($storeAddress)<p class="mt-1">{{ $storeAddress }}</p>@endif
+                    <p class="mt-1 text-muted">{{ $order->status === 'shipped' ? 'Gelirken sipariş numaranızı söylemeniz yeterli.' : 'Hazır olunca size e-posta göndereceğiz.' }}
+                        @if ($order->payment_method === 'cod') Ödemeyi mağazada nakit veya kartla (POS) yaparsınız. @endif</p>
+                </div>
+            </section>
         @endif
 
         @error('return')<p role="alert" class="mt-6 rounded-xl border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</p>@enderror
@@ -131,8 +146,8 @@
                 <dl class="space-y-2 border-t border-line px-5 py-4 text-sm">
                     <div class="flex justify-between"><dt class="text-muted">Ürünler</dt><dd class="tabular-nums">{{ Money::format($order->subtotal) }}</dd></div>
                     @if (bccomp((string) $order->discount_total, '0', 2) > 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
-                    <div class="flex justify-between"><dt class="text-muted">Teslimat ({{ StoreOrder::DELIVERY_METHODS[$order->delivery_method] }})</dt><dd class="tabular-nums">{{ bccomp((string) $order->shipping_fee, '0', 2) > 0 ? Money::format($order->shipping_fee) : 'Ücretsiz' }}</dd></div>
-                    @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
+                    <div class="flex justify-between"><dt class="text-muted">Teslimat ({{ $order->deliveryLabel() }})</dt><dd class="tabular-nums">{{ bccomp((string) $order->shipping_fee, '0', 2) > 0 ? Money::format($order->shipping_fee) : 'Ücretsiz' }}</dd></div>
+                    @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">{{ $order->paymentLabel() }} bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
                     <div class="flex justify-between border-t border-line pt-3 text-base font-bold"><dt>Toplam</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>
                     <div class="flex justify-between text-xs text-muted"><dt>Tutara dahil KDV</dt><dd class="tabular-nums">{{ Money::format($order->vat_total) }}</dd></div>
                     @if (bccomp((string) $order->refunded_total, '0', 2) > 0)
@@ -254,7 +269,7 @@
                 </section>
                 <section class="rounded-2xl border border-line p-5 text-sm">
                     <h2 class="font-semibold">Ödeme</h2>
-                    <p class="mt-2">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }} · <span class="text-muted">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span></p>
+                    <p class="mt-2">{{ $order->paymentLabel() }} · <span class="text-muted">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span></p>
                     <h2 class="mt-4 font-semibold">Fatura</h2>
                     <p class="mt-2">{{ $order->billing_name }}@if ($order->billing_type === 'corporate') · {{ $order->billing_tax_office }} / {{ $order->billing_tax_number }}@endif</p>
                     @if ($order->invoice?->file_path)

@@ -6,12 +6,13 @@
     use App\Models\Store\StoreOrder;
 
     $isCod = $order->payment_method === 'cod';
+    $isPickup = $order->isPickup();
     $canCancel = in_array($order->status, StoreOrder::CANCELLABLE, true);
     $transferPaid = $order->payment_method === 'transfer' && bccomp($order->refundableAmount(), '0', 2) > 0;
     $refundsOnCancel = $order->payment_method === 'card' && $order->isSettled();
 @endphp
 <x-layouts.panel :area="\App\Domain\Auth\Area::StoreAdmin" :title="'Sipariş '.$order->order_no">
-    <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i').' · '.StoreOrder::PAYMENT_METHODS[$order->payment_method].' · '.StoreOrder::DELIVERY_METHODS[$order->delivery_method]">
+    <x-page-header :title="'Sipariş '.$order->order_no" :subtitle="$order->created_at->timezone('Europe/Istanbul')->format('d.m.Y H:i').' · '.$order->paymentLabel().' · '.$order->deliveryLabel()">
         <x-slot:breadcrumb><a href="{{ route('store_admin.orders.index') }}" class="hover:underline">Siparişler</a></x-slot:breadcrumb>
         <x-badge :tone="$order->statusTone()" class="px-3! py-1! text-sm!">{{ $order->statusLabel() }}</x-badge>
     </x-page-header>
@@ -25,7 +26,7 @@
                 <div class="space-y-4 text-sm">
                     @switch($order->status)
                         @case('awaiting_approval')
-                            <p class="text-muted">Kapıda ödemeli ilk sipariş. Müşteriyi arayıp ({{ PhoneNumber::format($order->phone) }}) teyit edin.</p>
+                            <p class="text-muted">{{ $order->paymentLabel() }} ile ilk sipariş. Müşteriyi arayıp ({{ PhoneNumber::format($order->phone) }}) teyit edin.</p>
                             <form method="POST" action="{{ route('store_admin.orders.approve', $order) }}">@csrf<x-button icon="check">Teyit edildi, onayla</x-button></form>
                             @break
                         @case('awaiting_transfer')
@@ -49,8 +50,11 @@
                                     :hint="$carriers->isEmpty() ? 'Önce Ayarlar → Kargo Firmaları ekranından firma ekleyin.' : ($order->carrier_id ? 'Müşterinin seçtiği firma.' : (bccomp((string) $order->shipping_fee, '0', 2) === 0 ? 'Ücretsiz kargo: firmayı siz seçin.' : null))" />
                                 <x-field name="tracking_number" label="Takip numarası" required maxlength="60" class="w-56" />
                                 <x-button icon="arrow-right">Kargoya verildi</x-button>
+                            @elseif ($isPickup)
+                                <p class="flex-1 text-muted">Mağazadan teslim alınacak: sipariş hazır olunca işaretleyin; müşteriye mağaza adresiyle “Siparişiniz mağazada hazır” e-postası gider.</p>
+                                <x-button icon="check">Teslime hazır</x-button>
                             @else
-                                <p class="flex-1 text-muted">Mağaza teslimatı: ürünler teslimat için yola çıktığında işaretleyin.</p>
+                                <p class="flex-1 text-muted">Eve teslim: ürünler teslimat için yola çıktığında işaretleyin.</p>
                                 <x-button icon="arrow-right">Yola çıktı</x-button>
                             @endif
                         </form>
@@ -60,14 +64,14 @@
                         <form method="POST" action="{{ route('store_admin.orders.deliver', $order) }}" class="flex flex-wrap items-end gap-3 rounded-xl bg-surface p-4">
                             @csrf
                             @if ($isCod)
-                                <x-field name="collected_method" label="Tahsilat" :options="['' => 'Seçin', 'cash' => 'Nakit', 'card' => 'Kapıda kart']" required class="w-48" />
+                                <x-field name="collected_method" :label="$isPickup ? 'Mağazada tahsilat' : 'Kapıda tahsilat'" :options="['' => 'Seçin', 'cash' => 'Nakit', 'card' => 'POS (kart)']" required class="w-48" />
                             @endif
                             <x-button icon="check-circle">Teslim edildi</x-button>
                         </form>
                         @if ($isCod)
-                            <form method="POST" action="{{ route('store_admin.orders.not-delivered', $order) }}" class="flex flex-wrap items-end gap-3" data-confirm="Teslim alınmadı olarak işaretlensin mi? Ürünler stoğa döner ve bu telefon kapıda ödeme engel listesine eklenir.">
+                            <form method="POST" action="{{ route('store_admin.orders.not-delivered', $order) }}" class="flex flex-wrap items-end gap-3" data-confirm="Teslim alınmadı olarak işaretlensin mi? Ürünler stoğa döner ve bu telefon teslimatta ödeme engel listesine eklenir.">
                                 @csrf
-                                <x-field name="reason" label="Teslim alınmadı — gerekçe" required maxlength="200" class="min-w-64 flex-1" placeholder="ör. Kapıda teslim almadı, ulaşılamadı" />
+                                <x-field name="reason" label="Teslim alınmadı — gerekçe" required maxlength="200" class="min-w-64 flex-1" :placeholder="$isPickup ? 'ör. Mağazaya gelmedi, ulaşılamadı' : 'ör. Kapıda teslim almadı, ulaşılamadı'" />
                                 <x-button variant="secondary">Teslim alınmadı</x-button>
                             </form>
                         @endif
@@ -149,7 +153,7 @@
                                         <x-field name="amount" label="Tutar (₺)" required inputmode="decimal" />
                                         @if ($order->refundsToBank())
                                             <input type="hidden" name="method" value="manual">
-                                            <p class="self-end text-xs text-muted sm:col-span-2">{{ $isCod ? 'Kapıda ödeme' : 'Havale / EFT' }}: tutarı müşterinin hesabına havale edip burada kaydedin.</p>
+                                            <p class="self-end text-xs text-muted sm:col-span-2">{{ $order->paymentLabel() }}: tutarı müşterinin hesabına havale edip burada kaydedin.</p>
                                         @else
                                             <x-field name="method" label="Yöntem" :options="['iyzico' => 'Karta iade (iyzico)', 'manual' => 'iyzico panelinden yaptım (elle)']" class="sm:col-span-2" />
                                         @endif
@@ -199,7 +203,7 @@
                     @if (bccomp((string) $order->discount_total, '0', 2) > 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd class="tabular-nums">−{{ Money::format($order->discount_total) }}</dd></div>@endif
                     @if ($order->discount_name && bccomp((string) $order->discount_total, '0', 2) === 0)<div class="flex justify-between text-green-800"><dt>{{ $order->discount_name }}</dt><dd>Ücretsiz teslimat</dd></div>@endif
                     <div class="flex justify-between"><dt class="text-muted">Teslimat</dt><dd class="tabular-nums">{{ Money::format($order->shipping_fee) }}</dd></div>
-                    @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">Kapıda ödeme bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
+                    @if (bccomp((string) $order->cod_fee, '0', 2) > 0)<div class="flex justify-between"><dt class="text-muted">{{ $order->paymentLabel() }} bedeli</dt><dd class="tabular-nums">{{ Money::format($order->cod_fee) }}</dd></div>@endif
                     <div class="flex justify-between border-t border-line pt-2 text-base font-bold"><dt>Toplam</dt><dd class="tabular-nums">{{ Money::format($order->total) }}</dd></div>
                     <div class="flex justify-between text-xs text-muted"><dt>Dahil KDV</dt><dd class="tabular-nums">{{ Money::format($order->vat_total) }}</dd></div>
                     @if (bccomp((string) $order->refunded_total, '0', 2) > 0)
@@ -257,7 +261,7 @@
                 <p class="mt-1 text-xs text-muted">{{ $order->customer ? 'Üye' : 'Misafir' }}</p>
                 @if ($blocked)
                     <div class="mt-3 rounded-lg bg-danger-soft p-3 text-xs text-red-900">
-                        {{ $blocked->phone === $order->phone ? 'Bu telefon' : 'Bu teslimat adresi' }} kapıda ödeme engel listesinde. {{ $blocked->reason }}
+                        {{ $blocked->phone === $order->phone ? 'Bu telefon' : 'Bu teslimat adresi' }} teslimatta ödeme engel listesinde. {{ $blocked->reason }}
                         <form method="POST" action="{{ route('store_admin.cod-blocks.destroy', $blocked) }}" class="mt-2" data-confirm="Engel kaldırılsın mı?">@csrf @method('DELETE')<button class="font-medium underline">Engeli kaldır</button></form>
                     </div>
                 @endif
@@ -341,8 +345,8 @@
                 </div>
             </x-card>
             <x-card title="Ödeme">
-                <p class="text-sm">{{ StoreOrder::PAYMENT_METHODS[$order->payment_method] }} · <span class="font-medium">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span>
-                    @if ($order->collected_method) ({{ $order->collected_method === 'cash' ? 'nakit' : 'kapıda kart' }})@endif</p>
+                <p class="text-sm">{{ $order->paymentLabel() }} · <span class="font-medium">{{ StoreOrder::PAYMENT_STATUSES[$order->payment_status] ?? $order->payment_status }}</span>
+                    @if ($order->collected_method) ({{ $order->collected_method === 'cash' ? 'nakit' : 'POS ile kart' }})@endif</p>
                 @if ($order->payments->where('driver', 'iyzico')->where('status', 'succeeded')->contains('mode', 'sandbox'))
                     <p class="mt-2 rounded-lg bg-danger-soft px-3 py-2 text-xs font-bold text-red-900">TEST ÖDEMESİ – para alınmadı (iyzico test ortamı). Bu siparişi göndermeyin.</p>
                 @endif

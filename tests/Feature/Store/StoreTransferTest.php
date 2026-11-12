@@ -53,7 +53,7 @@ class StoreTransferTest extends TestCase
                 return true;
             }
         });
-        StoreSetting::put(['is_open' => '1', 'transfer_enabled' => '1', 'transfer_days' => '3',
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null, 'transfer_enabled' => '1', 'transfer_days' => '3',
             'transfer_accounts' => 'Ziraat Bankası | Yapboz Kırtasiye Ltd. Şti. | '.self::IBAN]);
 
         $product = StoreProduct::create(['name' => 'Jel Kalem', 'slug' => 'jel-kalem', 'is_published' => true]);
@@ -200,7 +200,7 @@ class StoreTransferTest extends TestCase
     public function test_settings_validate_bank_accounts(): void
     {
         $this->actAsAdmin();
-        $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox', 'sms_driver' => 'log', 'transfer_days' => 2];
+        $base = ['cod_max_open' => 1, 'return_days' => 14, 'iyzico_mode' => 'sandbox', 'transfer_days' => 2];
         $put = fn (array $rows, array $extra = []) => $this->put(route('store_admin.payments.update'), $base + $extra + ['transfer_accounts' => $rows]);
 
         $put([], ['transfer_enabled' => '1'])->assertSessionHasErrors('transfer_accounts');

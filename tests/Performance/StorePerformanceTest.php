@@ -44,7 +44,7 @@ class StorePerformanceTest extends TestCase
         [$categorySlug, $productSlug, $customerId] = $this->seedVolume($sizes);
         $seedSeconds = round(microtime(true) - $started, 1);
         DB::statement('ANALYZE TABLE store_products, store_product_variants, store_categories, store_orders, store_order_items, store_customers');
-        StoreSetting::put(['is_open' => '1']);
+        StoreSetting::put(['is_open' => '1', 'local_hide_cargo' => '0', 'local_min_total' => null, 'local_free_threshold' => null]);
 
         $order = StoreOrder::where('customer_id', $customerId)->latest('id')->firstOrFail();
         $from = now()->subYear()->toDateString();

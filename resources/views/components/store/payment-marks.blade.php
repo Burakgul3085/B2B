@@ -4,7 +4,7 @@
     $dark: koyu zemin (alt bilgi) için beyaz bant, açık zeminde renkli bant. $src: mağaza yönetiminden yüklenen bant
     (iyzico yeni bir bant verirse) yerleşik bandın yerine geçer.
     Kılavuz: logonun çevresinde ve iş birliği işaretleriyle arasında en az iki "o" genişliği boşluk bırakılır (gap-x-8).
-    Havale / EFT ve kapıda ödeme yalnızca ayarlarda açıksa, logo değil metin olarak gösterilir.
+    Havale / EFT ve teslimatta ödeme (yalnızca Eskişehir) ayarlarda açıksa, logo değil metin olarak gösterilir.
 --}}
 @props(['transfer' => false, 'cod' => false, 'dark' => false, 'src' => null])
 @php
@@ -19,7 +19,7 @@
             <li class="flex items-center gap-1.5"><x-icon name="building" class="size-4" /> Havale / EFT</li>
         @endif
         @if ($cod)
-            <li class="flex items-center gap-1.5"><x-icon name="truck" class="size-4" /> Kapıda ödeme</li>
+            <li class="flex items-center gap-1.5"><x-icon name="truck" class="size-4" /> Eskişehir'de kapıda / mağazada ödeme</li>
         @endif
         <li class="flex items-center gap-1.5"><x-icon name="lock" class="size-4" /> 256-bit SSL · 3D Secure</li>
     </ul>
