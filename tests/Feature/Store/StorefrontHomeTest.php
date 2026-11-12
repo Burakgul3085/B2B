@@ -50,7 +50,10 @@ class StorefrontHomeTest extends TestCase
             ->assertSee('Hızlı teslimat')                                  // avantaj şeridi
             ->assertDontSee('Sepetiniz için hazır avantajlar')             // kupon yok
             ->assertDontSee('Bugün neye ihtiyacınız var?')                 // seçki yok
-            ->assertSee('Kırtasiyede aradığınız her şey');                 // kategori var
+            ->assertDontSee('Kırtasiyede aradığınız her şey');             // kategori var ama içinde ürün yok: gizli
+
+        $this->product('Jel Kalem', '20.00');
+        $this->get(self::HOST.'/')->assertSee('Kırtasiyede aradığınız her şey'); // tek ürün eklenince görünür
     }
 
     public function test_showcase_tabs_coupons_collections_and_about_use_real_data(): void
@@ -99,6 +102,7 @@ class StorefrontHomeTest extends TestCase
 
     public function test_admin_orders_and_hides_blocks_and_places_side_banners(): void
     {
+        $this->product('Jel Kalem', '20.00'); // kategori kutusu yalnızca ürünlü kategoriyle görünür
         $this->get(route('store_admin.home-layout.edit'))->assertOk()->assertSee('Kategori kutuları');
         $this->put(route('store_admin.home-layout.update'), ['blocks' => [
             'hero' => ['enabled' => '1', 'sort' => 5], 'perks' => ['enabled' => '0', 'sort' => 2], 'categories' => ['enabled' => '1', 'sort' => 1, 'title' => 'Raflarımız'],

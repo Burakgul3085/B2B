@@ -51,6 +51,7 @@ class StorefrontNavigationTest extends TestCase
     {
         StorePage::create(['key' => 'about', 'is_published' => true, 'content' => ['headline' => 'Biz Kimiz']]);
         StorePage::create(['key' => 'contact', 'is_published' => true, 'content' => []]);
+        $this->product('Mavi Jel Kalem', StoreCategory::where('slug', 'mavi-jel')->first()); // menüde yalnızca ürünlü kategoriler
 
         $html = $this->get(self::HOST.'/')->assertOk()->getContent();
         $nav = Str::between($html, 'Tüm kategoriler', '</nav>');

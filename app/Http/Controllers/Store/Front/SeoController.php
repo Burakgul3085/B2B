@@ -50,7 +50,7 @@ class SeoController extends Controller
         $about = StorePage::where('key', 'about')->where('is_published', true)->first();
 
         $urls = collect([$page('store.home'), $page('store.products'), $page('store.brands'), $page('store.campaigns')])
-            ->merge(StoreCategory::where('is_active', true)->get(['slug', 'updated_at'])->map(fn ($c) => ['loc' => route('store.category', $c->slug), 'lastmod' => $c->updated_at]))
+            ->merge(StoreCategory::where('is_active', true)->whereIn('id', $catalog->visibleCategoryIds())->get(['slug', 'updated_at'])->map(fn ($c) => ['loc' => route('store.category', $c->slug), 'lastmod' => $c->updated_at]))
             ->merge(StoreBrand::where('is_active', true)->whereHas('products', fn ($q) => $q->where('is_published', true))->get(['slug', 'updated_at'])
                 ->map(fn ($b) => ['loc' => route('store.brand', $b->slug), 'lastmod' => $b->updated_at]))
             ->merge(StoreCollection::where('is_active', true)->get(['slug', 'updated_at'])->map(fn ($c) => ['loc' => route('store.collection', $c->slug), 'lastmod' => $c->updated_at]))

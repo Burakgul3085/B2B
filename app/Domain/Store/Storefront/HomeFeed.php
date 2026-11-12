@@ -32,7 +32,7 @@ class HomeFeed
         return ['main' => $all->where('placement', '!=', 'side')->values(), 'side' => $all->where('placement', 'side')->take(4)->values()];
     }
 
-    /** Ana kategoriler (renkleriyle) ve her birinin ürün sayısı. */
+    /** İçinde ürün olan ilk 8 ana kategori (menü sırasıyla, renkleriyle) ve her birinin ürün sayısı; boş kategori atlanır. */
     public function categories(): Collection
     {
         $roots = $this->catalog->menu()->take(8);

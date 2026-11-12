@@ -50,7 +50,7 @@ class ListingController extends Controller
             'category' => $category,
             // Ana kategorinin yapboz rengi ve görseli (başlık alanı)
             'rootCategory' => $this->catalog->menu()->firstWhere('id', $chain[0]->id),
-            'subcategories' => $category->children()->where('is_active', true)->get(['id', 'name', 'slug']),
+            'subcategories' => $category->children()->where('is_active', true)->whereIn('id', $this->catalog->visibleCategoryIds())->get(['id', 'name', 'slug']),
             'breadcrumbs' => array_map(fn ($c) => [$c->name, $c->id === $category->id ? null : route('store.category', $c->slug)], $chain),
         ]);
     }
@@ -85,7 +85,7 @@ class ListingController extends Controller
                 'image' => $p->primaryImage ? route('store.media.product', ['storeImage' => $p->primaryImage, 'w' => 160]) : null,
                 'price' => ($v = $p->cheapestVariant()) ? Money::format($v->price) : null,
             ])->values(),
-            'categories' => StoreCategory::where('is_active', true)->where('name', 'like', $like)->orderBy('sort')->limit(4)->get(['name', 'slug'])
+            'categories' => StoreCategory::where('is_active', true)->whereIn('id', $this->catalog->visibleCategoryIds())->where('name', 'like', $like)->orderBy('sort')->limit(4)->get(['name', 'slug'])
                 ->map(fn ($c) => ['name' => $c->name, 'url' => route('store.category', $c->slug)])->values(),
             'brands' => StoreBrand::where('is_active', true)->where('name', 'like', $like)->orderBy('name')->limit(3)->get(['name', 'slug'])
                 ->map(fn ($b) => ['name' => $b->name, 'url' => route('store.brand', $b->slug)])->values(),

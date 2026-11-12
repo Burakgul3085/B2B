@@ -35,10 +35,11 @@ class StorefrontRedesignTest extends TestCase
         StoreCategory::create(['name' => 'Defterler', 'slug' => 'defterler', 'sort' => 1]);
     }
 
-    private function product(string $name, string $price, int $stock = 10): StoreProduct
+    private function product(string $name, string $price, int $stock = 10, ?string $category = null): StoreProduct
     {
         $brand = StoreBrand::firstOrCreate(['slug' => 'pensan'], ['name' => 'Pensan']);
-        $product = StoreProduct::create(['name' => $name, 'slug' => Str::slug($name), 'category_id' => $this->pens->id, 'brand_id' => $brand->id, 'is_published' => true]);
+        $categoryId = $category ? StoreCategory::where('slug', $category)->value('id') : $this->pens->id;
+        $product = StoreProduct::create(['name' => $name, 'slug' => Str::slug($name), 'category_id' => $categoryId, 'brand_id' => $brand->id, 'is_published' => true]);
         $variant = $product->variants()->create(['sku' => strtoupper(Str::slug($name)), 'price' => $price, 'vat_rate' => '20']);
         if ($stock) {
             app(StoreStockService::class)->receive($variant, $stock);
@@ -49,6 +50,7 @@ class StorefrontRedesignTest extends TestCase
 
     public function test_header_mega_menu_and_category_colours(): void
     {
+        $this->product('Mavi Jel', '12.00', category: 'jel-kalemler'); // menüde yalnızca ürünlü kategoriler
         $this->get(self::HOST.'/menu/kategoriler/masaustu')->assertOk()
             ->assertSee('Tükenmez ve jel kalemler')->assertSee('Jel Kalemler')
             ->assertSee('bg-puzzle-green', false);  // seçilen renk
@@ -88,6 +90,7 @@ class StorefrontRedesignTest extends TestCase
         Storage::disk('local')->assertExists($this->pens->image_path);
         $this->get(route('store_admin.categories.image', $this->pens))->assertOk();
         $this->get(self::HOST.'/gorsel/kategori/'.$this->pens->id)->assertOk();
+        $this->product('Jel Kalem', '20.00'); // ana sayfa kategori kutusu yalnızca ürünlü kategoride
         $this->get(self::HOST.'/')->assertSee('/gorsel/kategori/'.$this->pens->id, false);
 
         $this->put(route('store_admin.categories.update', $this->pens), ['name' => 'Kalemler', 'remove_image' => '1', 'is_active' => '1'])->assertSessionHasNoErrors();
@@ -98,6 +101,7 @@ class StorefrontRedesignTest extends TestCase
     {
         $this->product('Pensan Jel Kalem Mavi', '24.90');
         $this->product('Gizli Kalem', '10.00')->update(['is_published' => false]);
+        $this->product('Mavi Jel Uç', '8.00', category: 'jel-kalemler');
 
         $this->getJson(self::HOST.'/ara/oneri')->assertOk()->assertExactJson(['products' => [], 'categories' => [], 'brands' => []]);
         $this->get(self::HOST.'/ara')->assertOk(); // arama terimi olmadan

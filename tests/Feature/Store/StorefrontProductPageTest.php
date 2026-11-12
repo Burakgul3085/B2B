@@ -57,6 +57,7 @@ class StorefrontProductPageTest extends TestCase
     {
         $this->product('Jel Kalem', '20.00', 5, '25.00');
         $this->product('Tükenmez Kalem', '15.00');
+        $this->product('Mavi Jel', '12.00')->update(['category_id' => StoreCategory::where('slug', 'jel-kalemler')->value('id')]); // alt kategori ürünlü
 
         $this->get(self::HOST.'/kategori/kalemler')->assertOk()
             ->assertSee('Tükenmez ve jel kalemler')->assertSee('bg-puzzle-green-soft', false)

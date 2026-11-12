@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Vitrinde ziyaretçiye görünen katalog. Yalnızca yayındaki ve en az bir etkin varyantı olan ürünler listelenir;
- * menüde yalnızca görünür kategoriler, markalar sayfasında ürünü olan görünür markalar yer alır.
+ * menüde yalnızca görünür ve içinde ürün olan kategoriler, markalar sayfasında ürünü olan görünür markalar yer alır.
  */
 class Catalog
 {
@@ -120,16 +120,26 @@ class Catalog
         return $roots;
     }
 
-    /** @return Collection<int, StoreCategory> menü ağacı: görünür kök kategoriler, görünür alt kategorileri yüklü */
+    /**
+     * Menü ağacı: görünür kök kategoriler, görünür alt kategorileri yüklü. İçinde (alt kategorileri dahil) vitrinde
+     * görünen hiç ürün olmayan kategori ağaçtan çıkarılır; tek bir ürün eklenince yeniden görünür.
+     *
+     * @return Collection<int, StoreCategory>
+     */
     public function menu(): Collection
     {
         $all = StoreCategory::hydrate($this->menuRows());
         $byParent = $all->groupBy(fn ($c) => $c->parent_id ?? 0);
-        foreach ($all as $category) {
-            $category->setRelation('children', $byParent->get($category->id, collect())->values());
-        }
+        $filled = array_flip($this->filledCategoryIds());
+        // Alt kategorilerden başlayarak boş dallar budanır: düğüm, kendisinde ya da kalan bir alt kategorisinde ürün varsa kalır.
+        $prune = function (StoreCategory $category) use (&$prune, $byParent, $filled): bool {
+            $children = $byParent->get($category->id, collect())->filter(fn ($child) => $prune($child))->values();
+            $category->setRelation('children', $children);
+
+            return isset($filled[$category->id]) || $children->isNotEmpty();
+        };
         // Ana kategorinin yapboz rengi (seçilmemişse sırayla); alt kategoriler bunu taşır. Kaydedilmez, yalnızca görünüm içindir.
-        $roots = $byParent->get(0, collect())->values();
+        $roots = $byParent->get(0, collect())->filter(fn ($root) => $prune($root))->values();
         foreach ($roots as $i => $root) {
             $root->setAttribute('palette', Palette::forIndex($root->color, $i));
             for ($level = $root->children; $level->isNotEmpty(); $level = $level->flatMap(fn ($c) => $c->children)) {
@@ -149,7 +159,7 @@ class Catalog
      */
     private function menuRows(): array
     {
-        $key = $this->menuVersion();
+        $key = $this->categoriesVersion();
         $cached = Cache::get(StoreCategory::MENU_CACHE);
         if (is_array($cached) && ($cached['key'] ?? null) === $key) {
             return $cached['rows'];
@@ -163,13 +173,43 @@ class Catalog
         return $rows;
     }
 
-    /** Kategori tablosunun parmak izi: herhangi bir kategori eklenince, değişince veya silinince değişir. */
+    /**
+     * Menünün parmak izi (menü HTML önbelleği ve adresi): kategori eklenince, değişince, silinince ya da bir kategori
+     * ürünlü/ürünsüz hale gelince (ürün eklendi, yayından kalktı, kategorisi değişti) değişir.
+     */
     public function menuVersion(): string
+    {
+        return substr(md5($this->categoriesVersion().'|'.implode(',', $this->filledCategoryIds())), 0, 12);
+    }
+
+    /** Kategori tablosunun parmak izi: herhangi bir kategori eklenince, değişince veya silinince değişir. */
+    private function categoriesVersion(): string
     {
         $print = StoreCategory::query()->toBase()
             ->selectRaw('COUNT(*) AS n, MAX(id) AS m, MAX(updated_at) AS u, SUM(is_active) AS a')->first();
 
         return substr(md5(json_encode($print)), 0, 12);
+    }
+
+    /** @var list<int>|null bu nesnede bir kez hesaplanır (aynı istekte menü ve parmak izi için) */
+    private ?array $filledIds = null;
+
+    /** @return list<int> vitrinde görünen en az bir ürünü doğrudan içeren kategoriler (artan sırada) */
+    public function filledCategoryIds(): array
+    {
+        return $this->filledIds ??= $this->products()->whereNotNull('category_id')->distinct()->orderBy('category_id')
+            ->pluck('category_id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** @return list<int> vitrinde gösterilen (görünür ve içinde ürün olan) tüm kategoriler: menü ağacındaki düğümler */
+    public function visibleCategoryIds(): array
+    {
+        $ids = [];
+        for ($level = $this->menu(); $level->isNotEmpty(); $level = $level->flatMap(fn ($c) => $c->children)) {
+            array_push($ids, ...$level->pluck('id')->all());
+        }
+
+        return $ids;
     }
 
     /** Kategori ve tüm görünür alt kategorilerindeki ürünler. */
