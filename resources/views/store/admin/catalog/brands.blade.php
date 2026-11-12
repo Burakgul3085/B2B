@@ -4,8 +4,17 @@
     @error('brand')<div role="alert" class="mb-5 rounded-lg border border-red-200 bg-danger-soft px-4 py-3 text-sm text-red-900">{{ $message }}</div>@enderror
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <x-card :padding="false" class="lg:col-span-2" title="Markalar" :description="$brands->count().' marka'">
-            @if ($brands->isEmpty())
+        <x-card :padding="false" class="lg:col-span-2" title="Markalar" :description="number_format($total, 0, ',', '.').' marka'">
+            <form method="GET" role="search" class="flex flex-wrap items-center gap-2 border-b border-line p-4">
+                <input type="search" name="q" value="{{ $term }}" maxlength="100" class="field-input min-w-0 flex-1" placeholder="Marka ara (ör. yıldız, faber)" aria-label="Marka ara">
+                <x-button variant="secondary" aria-label="Ara"><x-icon name="search" class="size-4" /></x-button>
+                @if ($term !== '')
+                    <a href="{{ route('store_admin.brands.index') }}" class="text-sm font-medium text-primary hover:underline">Temizle</a>
+                @endif
+            </form>
+            @if ($brands->isEmpty() && $term !== '')
+                <x-empty-state icon="search" title="Eşleşen marka yok" :text="'“'.$term.'” adını içeren marka bulunamadı. Aramayı değiştirin ya da sağdaki formdan ekleyin.'" />
+            @elseif ($brands->isEmpty())
                 <x-empty-state icon="layers" title="Henüz marka yok" text="Sağdaki formdan marka ekleyin; Excel aktarımında eksik markalar otomatik de oluşturulabilir." />
             @else
                 <ul class="divide-y divide-line">
@@ -47,6 +56,10 @@
                         </li>
                     @endforeach
                 </ul>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line p-4 text-sm text-muted">
+                    <span>@if ($term !== '')"{{ $term }}" için {{ number_format($brands->total(), 0, ',', '.') }} marka @else Toplam {{ number_format($brands->total(), 0, ',', '.') }} marka @endif</span>
+                    {{ $brands->links() }}
+                </div>
             @endif
         </x-card>
 

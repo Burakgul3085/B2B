@@ -242,4 +242,38 @@ class StoreCatalogTest extends TestCase
             'variant' => ['sku' => 'CTV-1', 'price' => '10', 'vat_rate' => '20'],
         ])->assertSessionHasErrors('category_id');
     }
+
+    public function test_brands_page_is_paginated_and_searchable(): void
+    {
+        foreach (range(1, 17) as $n) {
+            StoreBrand::create(['name' => sprintf('Marka %02d', $n), 'slug' => 'marka-'.$n]);
+        }
+        StoreBrand::create(['name' => 'Yıldızlar', 'slug' => 'yildizlar']);
+        StoreBrand::create(['name' => 'Zümrüt Yıldız', 'slug' => 'zumrut-yildiz']);
+
+        $row = fn (string $name) => '<p class="font-medium text-ink">'.$name.' ';
+
+        // 15'erli sayfa; üstte toplam marka sayısı, altta sayfa bağlantıları.
+        $this->get(route('store_admin.brands.index'))->assertOk()
+            ->assertSee('19 marka')->assertSee($row('Marka 01'), false)->assertSee($row('Marka 15'), false)
+            ->assertDontSee($row('Marka 16'), false)->assertSee('page=2', false);
+        $this->get(route('store_admin.brands.index', ['page' => 2]))->assertOk()
+            ->assertSee($row('Marka 16'), false)->assertSee($row('Yıldızlar'), false)->assertDontSee($row('Marka 01'), false);
+
+        // Arama tüm markalarda, adın herhangi bir yerinde; "zaten var" uyarısı yine tüm markalara bakar.
+        $this->get(route('store_admin.brands.index', ['q' => 'yıldız']))->assertOk()
+            ->assertSee($row('Yıldızlar'), false)->assertSee($row('Zümrüt Yıldız'), false)->assertDontSee($row('Marka 17'), false)
+            ->assertSee('Temizle')->assertSee('için 2 marka');
+        $this->get(route('store_admin.brands.index', ['q' => '%']))->assertOk()->assertSee('Eşleşen marka yok');
+
+        // İşlemden sonra aynı arama ve sayfaya dönülür.
+        $brand = StoreBrand::where('name', 'Yıldızlar')->firstOrFail();
+        $from = route('store_admin.brands.index', ['q' => 'yıldız', 'page' => 1]);
+        $this->from($from)->put(route('store_admin.brands.update', $brand), ['name' => 'Yıldızlar Kırtasiye', 'is_active' => '1'])
+            ->assertRedirect($from);
+
+        // Son sayfadaki son marka silinince boş sayfa yerine son dolu sayfaya gidilir.
+        StoreBrand::where('name', 'like', 'Marka%')->limit(10)->get()->each->delete();
+        $this->get(route('store_admin.brands.index', ['page' => 2]))->assertRedirect(route('store_admin.brands.index', ['page' => 1]));
+    }
 }

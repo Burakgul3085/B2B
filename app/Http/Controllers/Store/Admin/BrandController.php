@@ -17,14 +17,32 @@ class BrandController extends Controller
 {
     public function __construct(private BrandService $brands) {}
 
-    public function index(BrandLibrary $library): View
+    /** Sayfa başına gösterilen marka sayısı. */
+    private const PER_PAGE = 15;
+
+    /** Liste sayfalanır ve adla aranır; yeni marka kutusunun "zaten var" uyarısı tüm markalara bakar. */
+    public function index(Request $request, BrandLibrary $library): View|RedirectResponse
     {
-        $brands = StoreBrand::withCount('products')->orderBy('name')->get();
+        $term = trim((string) ($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? ''));
+
+        $brands = StoreBrand::withCount('products')
+            ->when($term !== '', fn ($q) => $q->where('name', 'like', '%'.addcslashes($term, '%_\\').'%'))
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        // Son sayfadaki son marka silinince boş sayfa yerine son dolu sayfaya dönülür.
+        if ($brands->isEmpty() && $brands->currentPage() > 1 && $brands->total() > 0) {
+            return redirect($brands->url($brands->lastPage()));
+        }
 
         return view('store.admin.catalog.brands', [
             'brands' => $brands,
+            'term' => $term,
+            'total' => StoreBrand::count(),
             'library' => $library->suggestions(fn (string $slug) => route('store_admin.brands.library-logo', $slug)),
-            'existing' => $brands->pluck('name')->all(),
+            'existing' => StoreBrand::orderBy('name')->pluck('name')->all(),
         ]);
     }
 
